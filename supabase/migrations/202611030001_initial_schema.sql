@@ -52,12 +52,20 @@ alter table public.user_profiles enable row level security;
 alter table public.school_classes enable row level security;
 alter table public.students enable row level security;
 
--- Only an administrator can view all profiles; staff can view their own.
+-- SECURITY DEFINER avoids recursive RLS evaluation when checking administrator role.
+create or replace function public.is_school_admin()
+returns boolean language sql stable security definer set search_path = ''
+as $
+  select exists (
+    select 1 from public.user_profiles
+    where id = (select auth.uid()) and role = 'Admin'
+  );
+$;
+
+-- Staff can view their own profile; administrators can view all profiles.
 create policy "Users can read own profile or admins can read all"
 on public.user_profiles for select to authenticated
-using (id = (select auth.uid()) or exists (
-  select 1 from public.user_profiles p where p.id = (select auth.uid()) and p.role = 'Admin'
-));
+using (id = (select auth.uid()) or public.is_school_admin());
 
 -- Staff cannot promote themselves: profile updates are intentionally not granted.
 create policy "Authenticated staff can read classes"
