@@ -10,12 +10,12 @@
 <body>
 <header class="top"><div><div class="brand">🌿 CORNHILL NURSERY AND PRIMARY SCHOOL</div><div class="sub">School Management System · Uganda</div></div><button id="logout" class="hidden">Sign out</button></header>
 <main class="wrap">
-<section id="login" class="panel login"><h2>Staff sign in</h2><p class="muted">Use your school staff account to access student records.</p><div id="loginMsg" class="notice hidden"></div><label>Email address</label><input id="email" type="email" autocomplete="username" placeholder="staff@school.com"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password"><button id="signIn" class="primary" style="width:100%">Sign in</button><p class="muted">The school administrator must create staff accounts in Supabase Authentication.</p></section>
+<section id="login" class="panel login"><h2>Staff sign in</h2><p class="muted">Use your school staff account to access student records.</p><div id="loginMsg" class="notice hidden"></div><label>Email address</label><input id="email" type="email" autocomplete="username" placeholder="staff@school.com"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password"><button id="signIn" class="primary" style="width:100%">Sign in</button><p class="muted">The school administrator must create staff accounts in Supabase Authentication.</p><button id="demoAccess" class="tab" style="width:100%;margin-top:10px">Explore software without signing in</button><p class="muted">Demo access uses sample information only. Saving records and access to real school data remain protected.</p></section>
 <section id="app" class="hidden">
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
-<div id="appMsg" class="notice hidden"></div>
+<div id="appMsg" class="notice hidden"></div><div id="demoBanner" class="notice" style="display:none;background:#fff7ed;color:#9a3412">DEMO MODE · Sample records only · Changes are disabled · No real school data is being shown.</div>
 <div class="grid"><div class="stat"><small>Total students</small><div id="totalStudents" class="num">0</div></div><div class="stat"><small>Active students</small><div id="activeStudents" class="num">0</div></div><div class="stat"><small>Classes / levels</small><div id="totalClasses" class="num">0</div></div></div>
-<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="staffProfiles">Staff profiles</button><button class="tab" data-tab="attendance">USB Attendance</button></nav>
+<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">USB Attendance</button></nav>
 <section id="dashboard" class="panel">
 <h2>School dashboard</h2><p class="muted">Choose a module below. Modules marked “In development” are planned but are not yet connected to working records.</p>
 <div class="module-grid">
@@ -87,15 +87,33 @@
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-let students=[],classes=[],profile=null,staffProfiles=[],academic={years:[],terms:[],subjects:[],assessments:[]};
+let students=[],classes=[],profile=null,staffProfiles=[],demoMode=false,academic={years:[],terms:[],subjects:[],assessments:[]};
 const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
-function tab(name){document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','staffProfiles','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics()}
+function tab(name){if(demoMode&&['staffProfiles','attendance'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','staffProfiles','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics()}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 const moduleInfo={academics:['Academics','Subjects, assessments, examination entry, grading and report cards.'],finance:['Finance','Fee structures, learner accounts, payment posting, receipts and balances.'],staff:['Staff & HR','Staff profiles, roles, attendance administration and confidential HR records.'],communication:['Communication','Staff announcements, parent communication and the school calendar.'],inventory:['Inventory & sales','Stock control, uniforms, school shop sales and other income.'],reports:['Reports','Academic, enrolment, attendance and financial reports.'],settings:['Settings','School details, user accounts, access permissions and system preferences.']};
 document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance','academics'].includes(key)){tab(key);return}if(key==='staff'){tab('staffProfiles');return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
-async function startSession(session){if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
+
+function enterDemoMode(){
+ demoMode=true;profile={full_name:'Demo visitor',role:'Demo'};
+ students=[
+  {id:'demo-1',admission_number:'CHF26-000001',first_name:'Amina',middle_name:'N.',last_name:'Kato',gender:'Female',class_id:'class-p3',learner_type:'Day',guardian_name:'Sarah Kato',guardian_phone:'+256 700 000 001',status:'Active',school_classes:{name:'Primary 3'}},
+  {id:'demo-2',admission_number:'CHM26-000002',first_name:'Daniel',middle_name:'',last_name:'Mugisha',gender:'Male',class_id:'class-p4',learner_type:'Boarding',guardian_name:'Peter Mugisha',guardian_phone:'+256 700 000 002',status:'Active',school_classes:{name:'Primary 4'}},
+  {id:'demo-3',admission_number:'CHF26-000003',first_name:'Grace',middle_name:'A.',last_name:'Nabirye',gender:'Female',class_id:'class-p3',learner_type:'Day',guardian_name:'Mary Nabirye',guardian_phone:'+256 700 000 003',status:'Active',school_classes:{name:'Primary 3'}}
+ ];
+ classes=[{id:'class-p3',name:'Primary 3',stream:'East'},{id:'class-p4',name:'Primary 4',stream:'West'},{id:'class-p7',name:'Primary 7',stream:''}];
+ $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');$('logout').textContent='Exit demo';
+ $('demoBanner').style.display='block';$('welcome').textContent='Welcome to the Cornhill demo';$('role').textContent='Demo · Read only';
+ $('staffProfilesTab').classList.add('hidden');$('attendanceTab').classList.add('hidden');
+ document.querySelectorAll('#app form button[type="submit"],#app form button:not([type])').forEach(b=>{b.disabled=true;b.title='Disabled in read-only demo mode'});
+ document.querySelectorAll('#app form input,#app form select,#app form textarea').forEach(el=>el.disabled=true);
+ render();tab('dashboard');message('appMsg','You are viewing sample records. Sign-in and database security have not been disabled.');
+}
+$('demoAccess').addEventListener('click',enterDemoMode);
+
+async function startSession(session){demoMode=false;$('demoBanner').style.display='none';if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
 const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
 if(error){message('appMsg','Your account profile could not be loaded. Ask the administrator to check the database setup.',true);return}
@@ -115,6 +133,7 @@ $('search').addEventListener('input',render);
 
 
 async function loadStaffProfiles(){
+ if(demoMode)return;
  if(profile?.role!=='Admin'){message('staffProfileMsg','Only school administrators can manage staff profiles.',true);return}
  const {data,error}=await db.from('user_profiles').select('id,full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').order('full_name');
  if(error){message('staffProfileMsg','Could not load staff profiles: '+error.message,true);return}
@@ -141,6 +160,7 @@ $('staffProfileForm').addEventListener('submit',async e=>{
 
 
 async function loadAcademics(){
+ if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(profile?.role!=='Admin'){message('academicMsg','Academic setup and mark entry are currently restricted to administrators.',true);return}
  const [y,t,s,a,staff,cscores]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
@@ -218,6 +238,7 @@ function parseAttendanceTime(value){
  const d=new Date(s);return isNaN(d)?null:d.toISOString();
 }
 async function setupAttendance(){
+ if(demoMode){message('attendanceMsg','Attendance is not available in read-only demo mode.');return}
  const admin=profile?.role==='Admin';
  $('attendanceAdmin').classList.toggle('hidden',!admin);
  $('attendanceStaff').classList.toggle('hidden',admin);
@@ -279,9 +300,9 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
 });
 
 $('signIn').addEventListener('click',async()=>{clearMessage('loginMsg');const {data,error}=await db.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(error){message('loginMsg',error.message,true);return}await startSession(data.session)});
-$('logout').addEventListener('click',async()=>{await db.auth.signOut();profile=null;await startSession(null)});
-$('studentForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);const record=Object.fromEntries(f.entries());if(!record.class_id)record.class_id=null;if(!record.date_of_birth)record.date_of_birth=null;const {data,error}=await db.from('students').insert(record).select('admission_number').single();if(error){message('appMsg','Could not save student: '+error.message,true);return}e.target.reset();await refresh();tab('students');message('appMsg','Student registered successfully. Permanent learner code: '+data.admission_number+'. Please record this code on the learner file.')});
-$('classForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);const {error}=await db.from('school_classes').insert({name:f.get('name').trim(),stream:f.get('stream').trim()});if(error){message('appMsg','Could not add class: '+error.message,true);return}e.target.reset();await refresh();message('appMsg','Class added successfully.')});
+$('logout').addEventListener('click',async()=>{if(demoMode){demoMode=false;profile=null;location.reload();return}await db.auth.signOut();profile=null;await startSession(null)});
+$('studentForm').addEventListener('submit',async e=>{e.preventDefault();if(demoMode){message('appMsg','Saving is disabled in demo mode.');return}const f=new FormData(e.target);const record=Object.fromEntries(f.entries());if(!record.class_id)record.class_id=null;if(!record.date_of_birth)record.date_of_birth=null;const {data,error}=await db.from('students').insert(record).select('admission_number').single();if(error){message('appMsg','Could not save student: '+error.message,true);return}e.target.reset();await refresh();tab('students');message('appMsg','Student registered successfully. Permanent learner code: '+data.admission_number+'. Please record this code on the learner file.')});
+$('classForm').addEventListener('submit',async e=>{e.preventDefault();if(demoMode){message('appMsg','Saving is disabled in demo mode.');return}const f=new FormData(e.target);const {error}=await db.from('school_classes').insert({name:f.get('name').trim(),stream:f.get('stream').trim()});if(error){message('appMsg','Could not add class: '+error.message,true);return}e.target.reset();await refresh();message('appMsg','Class added successfully.')});
 db.auth.getSession().then(({data})=>startSession(data.session));db.auth.onAuthStateChange((_event,session)=>{if(!session)startSession(null)});
 if('serviceWorker' in navigator && location.protocol === 'https:'){navigator.serviceWorker.register('/service-worker.js').catch(()=>{});}
 </script></body></html>
