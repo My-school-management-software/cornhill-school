@@ -81,19 +81,19 @@ function parseCSV(text){
   if(c==='"'&&quoted&&n==='"'){field+='"';i++}
   else if(c==='"'){quoted=!quoted}
   else if(c===','&&!quoted){row.push(field.trim());field=''}
-  else if((c==='\\n'||c==='\\r')&&!quoted){if(c==='\\r'&&n==='\\n')i++;row.push(field.trim());if(row.some(v=>v!==''))rows.push(row);row=[];field=''}
+  else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(field.trim());if(row.some(v=>v!==''))rows.push(row);row=[];field=''}
   else field+=c;
  }
  if(field.length||row.length){row.push(field.trim());rows.push(row)}
  if(!rows.length)return [];
- const headers=rows.shift().map(x=>x.toLowerCase().replace(/^\\ufeff/,'').trim());
+ const headers=rows.shift().map(x=>x.toLowerCase().replace(/^\ufeff/,'').trim());
  return rows.map(values=>Object.fromEntries(headers.map((key,i)=>[key,values[i]||''])));
 }
 function parseAttendanceTime(value){
  const s=String(value||'').trim();
  if(!s)return null;
- if(/(Z|[+-]\\d\\d:?\\d\\d)$/i.test(s)){const d=new Date(s);return isNaN(d)?null:d.toISOString()}
- const m=s.match(/^(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})[ T](\\d{1,2}):(\\d{2})(?::(\\d{2}))?$/);
+ if(/(Z|[+-]\d\d:?\d\d)$/i.test(s)){const d=new Date(s);return isNaN(d)?null:d.toISOString()}
+ const m=s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/);
  if(m){const [,y,mo,d,hh,mm,ss='0']=m;return new Date(Date.UTC(+y,+mo-1,+d,+hh-3,+mm,+ss)).toISOString()}
  const d=new Date(s);return isNaN(d)?null:d.toISOString();
 }
