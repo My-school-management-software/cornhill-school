@@ -15,10 +15,36 @@
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
 <div id="appMsg" class="notice hidden"></div>
 <div class="grid"><div class="stat"><small>Total students</small><div id="totalStudents" class="num">0</div></div><div class="stat"><small>Active students</small><div id="activeStudents" class="num">0</div></div><div class="stat"><small>Classes / levels</small><div id="totalClasses" class="num">0</div></div></div>
-<nav class="tabs"><button class="tab active" data-tab="students">Students</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button></nav>
+<nav class="tabs"><button class="tab active" data-tab="students">Students</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="attendance">USB Attendance</button></nav>
 <section id="students" class="panel"><div class="row"><h2>Student register</h2><input id="search" style="max-width:260px" placeholder="Search name or admission no."></div><div class="table-wrap"><table><thead><tr><th>Admission No.</th><th>Student</th><th>Gender</th><th>Class</th><th>Guardian / Phone</th><th>Status</th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="noStudents" class="empty hidden">No students registered yet. Use “Register student” to add the first learner.</div></section>
 <section id="register" class="panel hidden"><h2>Register a student</h2><form id="studentForm"><div><label>Admission number *</label><input name="admission_number" required placeholder="e.g. COR/2026/001"></div><div><label>First name *</label><input name="first_name" required></div><div><label>Last name *</label><input name="last_name" required></div><div><label>Gender *</label><select name="gender" required><option value="">Choose</option><option>Male</option><option>Female</option></select></div><div><label>Date of birth</label><input name="date_of_birth" type="date"></div><div><label>Class</label><select name="class_id" id="classSelect"><option value="">Unassigned</option></select></div><div><label>Parent / guardian name</label><input name="guardian_name"></div><div><label>Guardian phone</label><input name="guardian_phone" type="tel" placeholder="+256..."></div><div class="full"><label>Home address</label><input name="address"></div><div class="full"><button class="primary" type="submit">Save student record</button></div></form></section>
 <section id="classes" class="panel hidden"><div class="row"><h2>Classes and streams</h2></div><form id="classForm"><div><label>Class name *</label><input name="name" required placeholder="e.g. Primary 4"></div><div><label>Stream</label><input name="stream" placeholder="e.g. East"></div><div class="full"><button class="primary" type="submit">Add class</button></div></form><div id="classList" class="muted" style="margin-top:14px"></div></section>
+<section id="attendance" class="panel hidden">
+<h2>Staff attendance · USB import</h2>
+<p class="muted">Administrator-only import. Export the attendance file from the fingerprint terminal, then upload it here. This screen becomes active after the attendance database migration is applied.</p>
+<div id="attendanceMsg" class="notice hidden"></div>
+<div id="attendanceAdmin" class="hidden">
+<h3>1. Register machine staff IDs</h3>
+<form id="deviceMapForm">
+<div><label>Machine serial number *</label><input name="device_serial" required placeholder="Serial on device label"></div>
+<div><label>Machine user ID *</label><input name="device_user_id" required placeholder="e.g. 1"></div>
+<div><label>Match to staff account *</label><select name="staff_user_id" id="staffUserSelect" required><option value="">Choose staff member</option></select></div>
+<div class="full"><button class="primary" type="submit">Save staff ID mapping</button></div>
+</form>
+<div id="deviceMapList" class="muted"></div>
+<hr style="border:0;border-top:1px solid #e5ece6;margin:20px 0">
+<h3>2. Upload attendance export</h3>
+<p class="muted">CSV columns required: <code>device_user_id,event_type,occurred_at</code>. Optional columns: <code>external_event_id</code>. Event types: clock_in, clock_out, break_start, break_end. Include a header row. Export times should be local Uganda time (EAT) or ISO timestamps with timezone.</p>
+<form id="attendanceImportForm">
+<div><label>Machine serial number *</label><input name="device_serial" required></div>
+<div><label>Device model</label><input name="device_model" value="ZKTeco (model to confirm)"></div>
+<div class="full"><label>Attendance CSV file *</label><input name="attendance_file" type="file" accept=".csv,text/csv" required></div>
+<div class="full"><button class="primary" type="submit">Preview and import attendance</button></div>
+</form>
+<div id="attendancePreview" class="table-wrap"></div>
+</div>
+<div id="attendanceStaff" class="hidden"><h3>My attendance records</h3><div id="myAttendance" class="table-wrap"></div></div>
+</section>
 <p class="muted" style="text-align:center;margin:20px 0">Cornhill School · Student and class management · Amounts in UGX in future finance modules</p>
 </section></main>
 <script>
@@ -29,7 +55,7 @@ let students=[],classes=[],profile=null;
 const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
-function tab(name){document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['students','register','classes'].forEach(x=>$(x).classList.toggle('hidden',x!==name))}
+function tab(name){document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['students','register','classes','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name))}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 async function startSession(session){if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
@@ -48,6 +74,90 @@ $('noStudents').classList.toggle('hidden',filtered.length>0);$('classSelect').in
 $('classList').innerHTML=classes.length?classes.map(c=>'<div style="padding:10px;border-bottom:1px solid #edf1ed"><strong>'+esc(c.name)+'</strong> '+(c.stream?'<span class="muted">· '+esc(c.stream)+'</span>':'')+'</div>').join(''):'No classes added yet.'}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 $('search').addEventListener('input',render);
+
+function parseCSV(text){
+ const rows=[];let row=[],field='',quoted=false;
+ for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];
+  if(c==='"'&&quoted&&n==='"'){field+='"';i++}
+  else if(c==='"'){quoted=!quoted}
+  else if(c===','&&!quoted){row.push(field.trim());field=''}
+  else if((c==='\\n'||c==='\\r')&&!quoted){if(c==='\\r'&&n==='\\n')i++;row.push(field.trim());if(row.some(v=>v!==''))rows.push(row);row=[];field=''}
+  else field+=c;
+ }
+ if(field.length||row.length){row.push(field.trim());rows.push(row)}
+ if(!rows.length)return [];
+ const headers=rows.shift().map(x=>x.toLowerCase().replace(/^\\ufeff/,'').trim());
+ return rows.map(values=>Object.fromEntries(headers.map((key,i)=>[key,values[i]||''])));
+}
+function parseAttendanceTime(value){
+ const s=String(value||'').trim();
+ if(!s)return null;
+ if(/(Z|[+-]\\d\\d:?\\d\\d)$/i.test(s)){const d=new Date(s);return isNaN(d)?null:d.toISOString()}
+ const m=s.match(/^(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})[ T](\\d{1,2}):(\\d{2})(?::(\\d{2}))?$/);
+ if(m){const [,y,mo,d,hh,mm,ss='0']=m;return new Date(Date.UTC(+y,+mo-1,+d,+hh-3,+mm,+ss)).toISOString()}
+ const d=new Date(s);return isNaN(d)?null:d.toISOString();
+}
+async function setupAttendance(){
+ const admin=profile?.role==='Admin';
+ $('attendanceAdmin').classList.toggle('hidden',!admin);
+ $('attendanceStaff').classList.toggle('hidden',admin);
+ if(!admin){
+  const {data,error}=await db.from('staff_attendance_events').select('event_type,occurred_at,source').order('occurred_at',{ascending:false}).limit(100);
+  if(error){message('attendanceMsg','Attendance database is not ready yet. The administrator must apply the attendance migration.',true);return}
+  $('myAttendance').innerHTML=(data||[]).map(x=>'<div style="padding:9px;border-bottom:1px solid #eee">'+esc(x.event_type)+' · '+esc(new Date(x.occurred_at).toLocaleString())+'</div>').join('')||'<p class="empty">No attendance records yet.</p>';return;
+ }
+ const [staff,maps]=await Promise.all([
+  db.from('user_profiles').select('id,full_name,role').order('full_name'),
+  db.from('staff_attendance_device_users').select('device_serial,device_user_id,staff_user_id').order('device_serial')
+ ]);
+ if(staff.error||maps.error){message('attendanceMsg','Apply the staff attendance migration in Supabase before using this screen.',true);return}
+ $('staffUserSelect').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.full_name||x.id)+' ('+esc(x.role)+')</option>').join('');
+ const byId=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||x.id]));
+ $('deviceMapList').innerHTML=(maps.data||[]).map(x=>'<div style="padding:7px;border-bottom:1px solid #eee">Device '+esc(x.device_serial)+' · ID '+esc(x.device_user_id)+' → '+esc(byId[x.staff_user_id]||'Unknown staff')+'</div>').join('')||'No machine IDs mapped yet.';
+}
+$('deviceMapForm').addEventListener('submit',async e=>{
+ e.preventDefault();clearMessage('attendanceMsg');const f=new FormData(e.target);
+ const payload={device_serial:f.get('device_serial').trim(),device_user_id:f.get('device_user_id').trim(),staff_user_id:f.get('staff_user_id'),created_by:(await db.auth.getUser()).data.user.id};
+ const {error}=await db.from('staff_attendance_device_users').upsert(payload,{onConflict:'device_serial,device_user_id'});
+ if(error){message('attendanceMsg','Could not save staff ID mapping: '+error.message,true);return}
+ e.target.reset();await setupAttendance();message('attendanceMsg','Staff machine ID mapped successfully.');
+});
+$('attendanceImportForm').addEventListener('submit',async e=>{
+ e.preventDefault();clearMessage('attendanceMsg');$('attendancePreview').innerHTML='';
+ const f=new FormData(e.target),file=f.get('attendance_file'),serial=f.get('device_serial').trim(),model=f.get('device_model').trim();
+ if(!file||!serial){message('attendanceMsg','Choose a CSV file and enter the machine serial number.',true);return}
+ const rows=parseCSV(await file.text());
+ if(!rows.length){message('attendanceMsg','The CSV file is empty or could not be read.',true);return}
+ const mappingsResult=await db.from('staff_attendance_device_users').select('device_user_id,staff_user_id').eq('device_serial',serial);
+ if(mappingsResult.error){message('attendanceMsg','Could not load staff ID mappings: '+mappingsResult.error.message,true);return}
+ const mappings=Object.fromEntries((mappingsResult.data||[]).map(x=>[String(x.device_user_id),x.staff_user_id]));
+ const seen=new Set(),valid=[],issues=[];
+ rows.forEach((r,i)=>{
+  const id=String(r.device_user_id||r.user_id||r.userid||'').trim();
+  const rawType=String(r.event_type||r.status||r.type||'').toLowerCase().trim().replace(/[ -]/g,'_');
+  const time=parseAttendanceTime(r.occurred_at||r.datetime||r.timestamp||r.time);
+  const aliases={'0':'clock_in','in':'clock_in','check_in':'clock_in','1':'clock_out','out':'clock_out','check_out':'clock_out','breakstart':'break_start','breakend':'break_end'};
+  const type=aliases[rawType]||rawType;
+  const external=String(r.external_event_id||r.event_id||r.log_id||'').trim();
+  const key=external?serial+':'+external:[id,type,time].join('|');
+  if(!id||!mappings[id])issues.push('Row '+(i+2)+': no staff mapping for device user ID '+(id||'(blank)'));
+  else if(!['clock_in','clock_out','break_start','break_end'].includes(type))issues.push('Row '+(i+2)+': unsupported event type '+rawType);
+  else if(!time)issues.push('Row '+(i+2)+': invalid date/time');
+  else if(seen.has(key))issues.push('Row '+(i+2)+': duplicate row in this file');
+  else {seen.add(key);valid.push({staff_user_id:mappings[id],event_type:type,occurred_at:time,source:'usb_csv',device_serial:serial,device_model:model||null,device_user_id:id,external_event_id:external||null})}
+ });
+ $('attendancePreview').innerHTML='<p><strong>'+valid.length+'</strong> valid rows · <strong>'+issues.length+'</strong> rows needing correction</p>'+(issues.length?'<div class="notice error">'+issues.slice(0,12).map(esc).join('<br>')+(issues.length>12?'<br>More errors not shown.':'')+'</div>':'')+'<p class="muted">Review the results above. Valid rows will be imported; invalid rows are skipped.</p>';
+ if(!valid.length){message('attendanceMsg','No valid rows to import. Correct the CSV or staff ID mappings.',true);return}
+ const user=(await db.auth.getUser()).data.user;
+ const batch=await db.from('staff_attendance_import_batches').insert({source:'usb_csv',source_file_name:file.name,device_model:model||null,device_serial:serial,imported_rows:valid.length,rejected_rows:issues.length,created_by:user.id,notes:'Imported through Cornhill USB attendance screen'}).select('id').single();
+ if(batch.error){message('attendanceMsg','Could not create import batch: '+batch.error.message,true);return}
+ const records=valid.map(x=>({...x,import_batch_id:batch.data.id,recorded_by:user.id}));
+ const result=await db.from('staff_attendance_events').insert(records);
+ if(result.error){message('attendanceMsg','Import batch was created but event insertion failed. Do not re-upload until the administrator checks the batch. Error: '+result.error.message,true);return}
+ message('attendanceMsg','Successfully imported '+valid.length+' attendance events. '+issues.length+' rows were skipped.');
+ $('attendancePreview').insertAdjacentHTML('beforeend','<p class="badge">Import complete</p>');
+});
+
 $('signIn').addEventListener('click',async()=>{clearMessage('loginMsg');const {data,error}=await db.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(error){message('loginMsg',error.message,true);return}await startSession(data.session)});
 $('logout').addEventListener('click',async()=>{await db.auth.signOut();profile=null;await startSession(null)});
 $('studentForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);const record=Object.fromEntries(f.entries());if(!record.class_id)record.class_id=null;if(!record.date_of_birth)record.date_of_birth=null;const {error}=await db.from('students').insert(record);if(error){message('appMsg','Could not save student: '+error.message,true);return}e.target.reset();await refresh();tab('students');message('appMsg','Student registered successfully.')});
