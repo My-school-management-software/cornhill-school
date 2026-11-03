@@ -53,7 +53,9 @@
  <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score *</label><input name="score" type="number" min="0" step="0.01" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form>
  <h3 style="margin-top:20px">Recent marks</h3><div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Assessment</th><th>Score</th><th>Maximum</th><th>Entered</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
 </section>
-\n<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Job title</th><th>Department</th><th>Phone</th><th>Status</th><th>Start date</th></tr></thead><tbody id="staffProfileRows"></tbody></table></div><h3 style="margin-top:22px">Edit staff profile</h3><form id="staffProfileForm"><div class="full"><label>Staff account *</label><select name="id" id="staffProfileSelect" required><option value="">Choose staff member</option></select></div><div><label>Full name</label><input name="full_name"></div><div><label>Phone</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Job title</label><input name="job_title" placeholder="e.g. Class Teacher"></div><div><label>Department</label><input name="department" placeholder="e.g. Primary Section"></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment end date</label><input name="employment_end_date" type="date"></div><div class="full"><label>Responsibilities / duties</label><input name="responsibilities"></div><div class="full"><button class="primary" type="submit">Save staff profile</button></div></form></section>\n<section id="attendance" class="panel hidden">
+
+<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Job title</th><th>Department</th><th>Phone</th><th>Status</th><th>Start date</th></tr></thead><tbody id="staffProfileRows"></tbody></table></div><h3 style="margin-top:22px">Edit staff profile</h3><form id="staffProfileForm"><div class="full"><label>Staff account *</label><select name="id" id="staffProfileSelect" required><option value="">Choose staff member</option></select></div><div><label>Full name</label><input name="full_name"></div><div><label>Phone</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Job title</label><input name="job_title" placeholder="e.g. Class Teacher"></div><div><label>Department</label><input name="department" placeholder="e.g. Primary Section"></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment end date</label><input name="employment_end_date" type="date"></div><div class="full"><label>Responsibilities / duties</label><input name="responsibilities"></div><div class="full"><button class="primary" type="submit">Save staff profile</button></div></form></section>
+<section id="attendance" class="panel hidden">
 <h2>Staff attendance · USB import</h2>
 <p class="muted">Administrator-only import. Export the attendance file from the fingerprint terminal, then upload it here. This screen becomes active after the attendance database migration is applied.</p>
 <div id="attendanceMsg" class="notice hidden"></div>
@@ -136,7 +138,8 @@ $('staffProfileForm').addEventListener('submit',async e=>{
  if(error){message('staffProfileMsg','Could not save staff profile: '+error.message,true);return}
  await loadStaffProfiles();message('staffProfileMsg','Staff profile saved successfully.');
 });
-\n
+
+
 async function loadAcademics(){
  if(profile?.role!=='Admin'){message('academicMsg','Academic setup and mark entry are currently restricted to administrators.',true);return}
  const [y,t,s,a,staff,cscores]=await Promise.all([
@@ -181,7 +184,8 @@ submitAcademic('academicTermForm','academic_terms',v=>v,'Term saved.');
 submitAcademic('subjectForm','subjects',v=>({name:v.name.trim(),code:v.code.trim()||null}),'Subject added.');
 submitAcademic('classSubjectForm','class_subjects',v=>({...v,teacher_user_id:v.teacher_user_id||null}),'Subject assigned to class.');
 submitAcademic('assessmentForm','assessments',v=>({...v,max_score:Number(v.max_score),assessment_date:v.assessment_date||null,created_by:null}),'Assessment created.');
-\n
+
+
 $('scoreForm').addEventListener('submit',async e=>{
  e.preventDefault();if(profile?.role!=='Admin'){message('academicMsg','Only administrators can enter marks at present.',true);return}
  const v=Object.fromEntries(new FormData(e.target).entries()),user=(await db.auth.getUser()).data.user;
@@ -190,7 +194,8 @@ $('scoreForm').addEventListener('submit',async e=>{
  if(error){message('academicMsg','Could not save mark: '+error.message,true);return}
  e.target.reset();await loadAcademics();message('academicMsg','Learner mark saved.');
 });
-\nfunction parseCSV(text){
+
+function parseCSV(text){
  const rows=[];let row=[],field='',quoted=false;
  for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];
   if(c==='"'&&quoted&&n==='"'){field+='"';i++}
