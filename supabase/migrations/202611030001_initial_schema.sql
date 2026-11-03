@@ -55,12 +55,12 @@ alter table public.students enable row level security;
 -- SECURITY DEFINER avoids recursive RLS evaluation when checking administrator role.
 create or replace function public.is_school_admin()
 returns boolean language sql stable security definer set search_path = ''
-as $
+as $function$
   select exists (
     select 1 from public.user_profiles
     where id = (select auth.uid()) and role = 'Admin'
   );
-$;
+$function$;
 
 -- Staff can view their own profile; administrators can view all profiles.
 drop policy if exists "Users can read own profile or admins can read all" on public.user_profiles;
