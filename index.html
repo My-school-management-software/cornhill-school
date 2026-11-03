@@ -15,13 +15,13 @@
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
 <div id="appMsg" class="notice hidden"></div>
 <div class="grid"><div class="stat"><small>Total students</small><div id="totalStudents" class="num">0</div></div><div class="stat"><small>Active students</small><div id="activeStudents" class="num">0</div></div><div class="stat"><small>Classes / levels</small><div id="totalClasses" class="num">0</div></div></div>
-<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="staffProfiles">Staff profiles</button><button class="tab" data-tab="attendance">USB Attendance</button></nav>
+<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="staffProfiles">Staff profiles</button><button class="tab" data-tab="attendance">USB Attendance</button></nav>
 <section id="dashboard" class="panel">
 <h2>School dashboard</h2><p class="muted">Choose a module below. Modules marked “In development” are planned but are not yet connected to working records.</p>
 <div class="module-grid">
 <button class="module-card" data-module="students"><strong>👧 Learners</strong><span>Admissions, learner register and profiles</span><em>Available</em></button>
 <button class="module-card" data-module="classes"><strong>🏫 Classes</strong><span>Classes, streams and class lists</span><em>Available</em></button>
-<button class="module-card" data-module="academics"><strong>📚 Academics</strong><span>Subjects, marks, exams and report cards</span><em>In development</em></button>
+<button class="module-card" data-module="academics"><strong>📚 Academics</strong><span>Subjects, marks, exams and report cards</span><em>Foundation available</em></button>
 <button class="module-card" data-module="finance"><strong>💳 Finance</strong><span>Fees, payments, balances and receipts</span><em>In development</em></button>
 <button class="module-card" data-module="staff"><strong>👩‍🏫 Staff & HR</strong><span>Staff profiles, roles and documents</span><em>In development</em></button>
 <button class="module-card" data-module="attendance"><strong>🕒 Staff attendance</strong><span>Fingerprint machine USB attendance imports</span><em>Foundation available</em></button>
@@ -34,7 +34,26 @@
 <section id="students" class="panel hidden"><div class="row"><h2>Student register</h2><input id="search" style="max-width:260px" placeholder="Search name or learner code"></div><div class="table-wrap"><table><thead><tr><th>Permanent learner code</th><th>Student</th><th>Gender</th><th>Class</th><th>Day / Boarding</th><th>Guardian / Phone</th><th>Status</th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="noStudents" class="empty hidden">No students registered yet. Use “Register student” to add the first learner.</div></section>
 <section id="register" class="panel hidden"><h2>Register a student</h2><form id="studentForm"><div class="full"><label>Permanent learner code</label><div class="notice">Generated automatically when you save this admission. It is permanent and will not change when the learner changes class.</div></div><div><label>First name *</label><input name="first_name" required></div><div><label>Middle name</label><input name="middle_name"></div><div><label>Last name *</label><input name="last_name" required></div><div><label>Gender *</label><select name="gender" required><option value="">Choose</option><option>Male</option><option>Female</option></select></div><div><label>Date of birth</label><input name="date_of_birth" type="date"></div><div><label>Date of admission</label><input name="admission_date" type="date"></div><div><label>Learner type</label><select name="learner_type"><option>Day</option><option>Boarding</option></select></div><div><label>Previous school</label><input name="previous_school"></div><div><label>Class</label><select name="class_id" id="classSelect"><option value="">Unassigned</option></select></div><div><label>Parent / guardian name</label><input name="guardian_name"></div><div><label>Guardian relationship</label><input name="guardian_relationship" placeholder="e.g. Mother, Father"></div><div><label>Guardian phone</label><input name="guardian_phone" type="tel" placeholder="+256..."></div><div><label>Guardian email</label><input name="guardian_email" type="email"></div><div><label>Alternative guardian name</label><input name="alternate_guardian_name"></div><div><label>Alternative guardian phone</label><input name="alternate_guardian_phone" type="tel" placeholder="+256..."></div><div class="full"><label>Home address</label><input name="address"></div><div class="full"><button class="primary" type="submit">Save student record</button></div></form></section>
 <section id="classes" class="panel hidden"><div class="row"><h2>Classes and streams</h2></div><form id="classForm"><div><label>Class name *</label><input name="name" required placeholder="e.g. Primary 4"></div><div><label>Stream</label><input name="stream" placeholder="e.g. East"></div><div class="full"><button class="primary" type="submit">Add class</button></div></form><div id="classList" class="muted" style="margin-top:14px"></div></section>
-<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Job title</th><th>Department</th><th>Phone</th><th>Status</th><th>Start date</th></tr></thead><tbody id="staffProfileRows"></tbody></table></div><h3 style="margin-top:22px">Edit staff profile</h3><form id="staffProfileForm"><div class="full"><label>Staff account *</label><select name="id" id="staffProfileSelect" required><option value="">Choose staff member</option></select></div><div><label>Full name</label><input name="full_name"></div><div><label>Phone</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Job title</label><input name="job_title" placeholder="e.g. Class Teacher"></div><div><label>Department</label><input name="department" placeholder="e.g. Primary Section"></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment end date</label><input name="employment_end_date" type="date"></div><div class="full"><label>Responsibilities / duties</label><input name="responsibilities"></div><div class="full"><button class="primary" type="submit">Save staff profile</button></div></form></section>\n<section id="attendance" class="panel hidden">
+
+<section id="academics" class="panel hidden">
+ <div class="row"><h2>Academics · subjects, terms, assessments and marks</h2><span class="badge">Administrator entry</span></div>
+ <p class="muted">Create the academic calendar, subjects and assessments, then record learner scores. The database checks that marks do not exceed the maximum and that each learner belongs to the assessment class.</p>
+ <div id="academicMsg" class="notice hidden"></div>
+ <h3>1. Academic year</h3>
+ <form id="academicYearForm"><div><label>Academic year *</label><input name="name" required placeholder="e.g. 2027"></div><div><label>Make current?</label><select name="is_current"><option value="false">No</option><option value="true">Yes</option></select></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save academic year</button></div></form>
+ <h3 style="margin-top:20px">2. Term</h3>
+ <form id="academicTermForm"><div><label>Academic year *</label><select name="academic_year_id" id="academicYearSelect" required></select></div><div><label>Term name *</label><select name="name"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save term</button></div></form>
+ <h3 style="margin-top:20px">3. Subject</h3>
+ <form id="subjectForm"><div><label>Subject name *</label><input name="name" required placeholder="e.g. Mathematics"></div><div><label>Subject code</label><input name="code" placeholder="e.g. MTC"></div><div class="full"><button class="primary">Add subject</button></div></form>
+ <h3 style="margin-top:20px">4. Assign subject to class and teacher</h3>
+ <form id="classSubjectForm"><div><label>Class *</label><select name="class_id" id="academicClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="academicSubjectSelect" required></select></div><div class="full"><label>Teacher (optional)</label><select name="teacher_user_id" id="academicTeacherSelect"><option value="">Not assigned</option></select></div><div class="full"><button class="primary">Assign subject</button></div></form>
+ <h3 style="margin-top:20px">5. Create assessment</h3>
+ <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="assessmentSubjectSelect" required></select></div><div><label>Assessment title *</label><input name="title" required placeholder="e.g. Beginning of term test"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" step="0.01" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><button class="primary">Create assessment</button></div></form>
+ <h3 style="margin-top:20px">6. Enter learner marks</h3>
+ <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score *</label><input name="score" type="number" min="0" step="0.01" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form>
+ <h3 style="margin-top:20px">Recent marks</h3><div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Assessment</th><th>Score</th><th>Maximum</th><th>Entered</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
+</section>
+\n<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Job title</th><th>Department</th><th>Phone</th><th>Status</th><th>Start date</th></tr></thead><tbody id="staffProfileRows"></tbody></table></div><h3 style="margin-top:22px">Edit staff profile</h3><form id="staffProfileForm"><div class="full"><label>Staff account *</label><select name="id" id="staffProfileSelect" required><option value="">Choose staff member</option></select></div><div><label>Full name</label><input name="full_name"></div><div><label>Phone</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Job title</label><input name="job_title" placeholder="e.g. Class Teacher"></div><div><label>Department</label><input name="department" placeholder="e.g. Primary Section"></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment end date</label><input name="employment_end_date" type="date"></div><div class="full"><label>Responsibilities / duties</label><input name="responsibilities"></div><div class="full"><button class="primary" type="submit">Save staff profile</button></div></form></section>\n<section id="attendance" class="panel hidden">
 <h2>Staff attendance · USB import</h2>
 <p class="muted">Administrator-only import. Export the attendance file from the fingerprint terminal, then upload it here. This screen becomes active after the attendance database migration is applied.</p>
 <div id="attendanceMsg" class="notice hidden"></div>
@@ -66,14 +85,14 @@
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-let students=[],classes=[],profile=null,staffProfiles=[];
+let students=[],classes=[],profile=null,staffProfiles=[],academic={years:[],terms:[],subjects:[],assessments:[]};
 const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
-function tab(name){document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','staffProfiles','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles()}
+function tab(name){document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','staffProfiles','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics()}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 const moduleInfo={academics:['Academics','Subjects, assessments, examination entry, grading and report cards.'],finance:['Finance','Fee structures, learner accounts, payment posting, receipts and balances.'],staff:['Staff & HR','Staff profiles, roles, attendance administration and confidential HR records.'],communication:['Communication','Staff announcements, parent communication and the school calendar.'],inventory:['Inventory & sales','Stock control, uniforms, school shop sales and other income.'],reports:['Reports','Academic, enrolment, attendance and financial reports.'],settings:['Settings','School details, user accounts, access permissions and system preferences.']};
-document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance'].includes(key)){tab(key);return}if(key==='staff'){tab('staffProfiles');return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
+document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance','academics'].includes(key)){tab(key);return}if(key==='staff'){tab('staffProfiles');return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
 async function startSession(session){if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
 const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
@@ -116,6 +135,60 @@ $('staffProfileForm').addEventListener('submit',async e=>{
  const {error}=await db.from('user_profiles').update(payload).eq('id',id);
  if(error){message('staffProfileMsg','Could not save staff profile: '+error.message,true);return}
  await loadStaffProfiles();message('staffProfileMsg','Staff profile saved successfully.');
+});
+\n
+async function loadAcademics(){
+ if(profile?.role!=='Admin'){message('academicMsg','Academic setup and mark entry are currently restricted to administrators.',true);return}
+ const [y,t,s,a,staff,cscores]=await Promise.all([
+  db.from('academic_years').select('*').order('starts_on',{ascending:false}),
+  db.from('academic_terms').select('*,academic_years(name)').order('starts_on',{ascending:false}),
+  db.from('subjects').select('*').eq('is_active',true).order('name'),
+  db.from('assessments').select('*,subjects(name),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
+  db.from('user_profiles').select('id,full_name').order('full_name'),
+  db.from('assessment_scores').select('id,score,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100)
+ ]);
+ const err=[y,t,s,a,staff,cscores].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
+ academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:a.data||[]};
+ const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
+ $('academicYearSelect').innerHTML=opts(academic.years,x=>x.name);
+ $('academicClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
+ $('assessmentClassSelect').innerHTML=$('academicClassSelect').innerHTML;
+ $('academicSubjectSelect').innerHTML=opts(academic.subjects,x=>x.name);
+ $('assessmentSubjectSelect').innerHTML=$('academicSubjectSelect').innerHTML;
+ $('academicTeacherSelect').innerHTML='<option value="">Not assigned</option>'+opts(staff.data||[],x=>x.full_name||'Staff member');
+ $('assessmentTermSelect').innerHTML=opts(academic.terms,x=>x.name+' · '+(x.academic_years?.name||''));
+ $('scoreAssessmentSelect').innerHTML=opts(academic.assessments,x=>(x.title+' · '+(x.school_classes?.name||'')+' · '+(x.subjects?.name||'')));
+ $('academicScoreRows').innerHTML=(cscores.data||[]).map(x=>'<tr><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+esc(x.score)+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>Saved</td></tr>').join('')||'<tr><td colspan="6">No marks entered yet.</td></tr>';
+ updateScoreLearners();
+}
+function updateScoreLearners(){
+ const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
+ const list=students.filter(x=>!ass||x.class_id===ass.class_id);
+ $('scoreStudentSelect').innerHTML=list.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</option>').join('');
+}
+$('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
+async function submitAcademic(formId,table,transform,success){
+ $(formId).addEventListener('submit',async e=>{
+  e.preventDefault();if(profile?.role!=='Admin'){message('academicMsg','Only administrators can make academic changes at present.',true);return}
+  const values=Object.fromEntries(new FormData(e.target).entries());const payload=transform(values);
+  const {error}=await db.from(table).insert(payload);
+  if(error){message('academicMsg','Could not save record: '+error.message,true);return}
+  e.target.reset();await loadAcademics();message('academicMsg',success);
+ });
+}
+submitAcademic('academicYearForm','academic_years',v=>({...v,is_current:v.is_current==='true'}),'Academic year saved.');
+submitAcademic('academicTermForm','academic_terms',v=>v,'Term saved.');
+submitAcademic('subjectForm','subjects',v=>({name:v.name.trim(),code:v.code.trim()||null}),'Subject added.');
+submitAcademic('classSubjectForm','class_subjects',v=>({...v,teacher_user_id:v.teacher_user_id||null}),'Subject assigned to class.');
+submitAcademic('assessmentForm','assessments',v=>({...v,max_score:Number(v.max_score),assessment_date:v.assessment_date||null,created_by:null}),'Assessment created.');
+\n
+$('scoreForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(profile?.role!=='Admin'){message('academicMsg','Only administrators can enter marks at present.',true);return}
+ const v=Object.fromEntries(new FormData(e.target).entries()),user=(await db.auth.getUser()).data.user;
+ const payload={assessment_id:v.assessment_id,student_id:v.student_id,score:Number(v.score),teacher_comment:v.teacher_comment||null,entered_by:user.id};
+ const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
+ if(error){message('academicMsg','Could not save mark: '+error.message,true);return}
+ e.target.reset();await loadAcademics();message('academicMsg','Learner mark saved.');
 });
 \nfunction parseCSV(text){
  const rows=[];let row=[],field='',quoted=false;
