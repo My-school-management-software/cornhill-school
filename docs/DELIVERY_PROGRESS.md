@@ -1,6 +1,6 @@
 # Cornhill School System — Delivery Progress
 
-Last updated: 2026-11-03 20:34 UTC
+Last updated: 2026-11-03 20:40 UTC
 
 This tracker separates code committed to the development branch, database changes the school has applied, and features that are actually tested or live. A commit is not the same as a deployed or verified feature.
 
@@ -51,6 +51,9 @@ This tracker separates code committed to the development branch, database change
 - Added CSV parsing, supported event checks, Uganda local-time conversion, preview of invalid rows and batch import.
 - Applied the attendance migration to the Supabase project and verified the new tables and RLS are present.
 - The screen is committed on the development branch; the live production site has not been updated.
+
+
+- Added a no-login, read-only demo entry point with sample learners/classes so the owner can inspect the interface without exposing real school records or disabling Supabase authentication/RLS. Demo form controls are disabled and sample records are local to the browser.
 
 ## USB attendance plan
 
