@@ -1,6 +1,6 @@
 # Cornhill School System — Delivery Progress
 
-Last updated: 2026-11-03 20:10 UTC
+Last updated: 2026-11-03 20:12 UTC
 
 This tracker separates code committed to the development branch, database changes the school has applied, and features that are actually tested or live. A commit is not the same as a deployed or verified feature.
 
@@ -18,7 +18,7 @@ This tracker separates code committed to the development branch, database change
 | Module | Code/spec status | Applied to database | Tested/live |
 |---|---|---|---|
 | Staff login and basic roles | Foundation committed | Initial schema previously applied | Basic account/admin role previously verified; app not fully tested |
-| Learner register and classes | Basic UI committed | Initial schema previously applied | Limited manual testing only |
+| Dashboard and module navigation | Dashboard and 10 module tiles committed; unfinished modules clearly labelled | Not applicable | Not yet deployed or browser-tested |\n| Learner register and classes | Basic UI committed | Initial schema previously applied | Limited manual testing only |
 | PWA install foundation | Manifest, icon and service worker committed | Not applicable | Installability still needs browser/hosting verification |
 | Permanent learner code | Spec only | No | No |
 | Teacher portal and class access gate | Spec only | No | No |
