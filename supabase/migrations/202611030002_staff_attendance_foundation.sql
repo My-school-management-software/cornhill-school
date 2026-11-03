@@ -1,3 +1,20 @@
+create table if not exists public.staff_attendance_device_users (
+  id uuid primary key default gen_random_uuid(),
+  device_serial text not null,
+  device_user_id text not null,
+  staff_user_id uuid not null references public.user_profiles(id),
+  created_by uuid not null references public.user_profiles(id),
+  created_at timestamptz not null default now(),
+  unique(device_serial, device_user_id)
+);
+alter table public.staff_attendance_device_users enable row level security;
+drop policy if exists "Admins manage device staff mappings" on public.staff_attendance_device_users;
+create policy "Admins manage device staff mappings"
+on public.staff_attendance_device_users for all to authenticated
+using (exists(select 1 from public.user_profiles p where p.id=(select auth.uid()) and p.role='Admin'))
+with check (created_by=(select auth.uid()) and exists(select 1 from public.user_profiles p where p.id=(select auth.uid()) and p.role='Admin'));
+grant select, insert, update, delete on public.staff_attendance_device_users to authenticated;
+
 -- Cornhill staff attendance foundation
 -- USB exports are imported by an authorized administrator. This migration does not
 -- connect a physical fingerprint terminal or store biometric templates.
