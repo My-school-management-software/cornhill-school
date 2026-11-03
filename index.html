@@ -15,7 +15,7 @@
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
 <div id="appMsg" class="notice hidden"></div>
 <div class="grid"><div class="stat"><small>Total students</small><div id="totalStudents" class="num">0</div></div><div class="stat"><small>Active students</small><div id="activeStudents" class="num">0</div></div><div class="stat"><small>Classes / levels</small><div id="totalClasses" class="num">0</div></div></div>
-<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="attendance">USB Attendance</button></nav>
+<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="staffProfiles">Staff profiles</button><button class="tab" data-tab="attendance">USB Attendance</button></nav>
 <section id="dashboard" class="panel">
 <h2>School dashboard</h2><p class="muted">Choose a module below. Modules marked “In development” are planned but are not yet connected to working records.</p>
 <div class="module-grid">
@@ -34,7 +34,7 @@
 <section id="students" class="panel hidden"><div class="row"><h2>Student register</h2><input id="search" style="max-width:260px" placeholder="Search name or learner code"></div><div class="table-wrap"><table><thead><tr><th>Permanent learner code</th><th>Student</th><th>Gender</th><th>Class</th><th>Day / Boarding</th><th>Guardian / Phone</th><th>Status</th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="noStudents" class="empty hidden">No students registered yet. Use “Register student” to add the first learner.</div></section>
 <section id="register" class="panel hidden"><h2>Register a student</h2><form id="studentForm"><div class="full"><label>Permanent learner code</label><div class="notice">Generated automatically when you save this admission. It is permanent and will not change when the learner changes class.</div></div><div><label>First name *</label><input name="first_name" required></div><div><label>Middle name</label><input name="middle_name"></div><div><label>Last name *</label><input name="last_name" required></div><div><label>Gender *</label><select name="gender" required><option value="">Choose</option><option>Male</option><option>Female</option></select></div><div><label>Date of birth</label><input name="date_of_birth" type="date"></div><div><label>Date of admission</label><input name="admission_date" type="date"></div><div><label>Learner type</label><select name="learner_type"><option>Day</option><option>Boarding</option></select></div><div><label>Previous school</label><input name="previous_school"></div><div><label>Class</label><select name="class_id" id="classSelect"><option value="">Unassigned</option></select></div><div><label>Parent / guardian name</label><input name="guardian_name"></div><div><label>Guardian relationship</label><input name="guardian_relationship" placeholder="e.g. Mother, Father"></div><div><label>Guardian phone</label><input name="guardian_phone" type="tel" placeholder="+256..."></div><div><label>Guardian email</label><input name="guardian_email" type="email"></div><div><label>Alternative guardian name</label><input name="alternate_guardian_name"></div><div><label>Alternative guardian phone</label><input name="alternate_guardian_phone" type="tel" placeholder="+256..."></div><div class="full"><label>Home address</label><input name="address"></div><div class="full"><button class="primary" type="submit">Save student record</button></div></form></section>
 <section id="classes" class="panel hidden"><div class="row"><h2>Classes and streams</h2></div><form id="classForm"><div><label>Class name *</label><input name="name" required placeholder="e.g. Primary 4"></div><div><label>Stream</label><input name="stream" placeholder="e.g. East"></div><div class="full"><button class="primary" type="submit">Add class</button></div></form><div id="classList" class="muted" style="margin-top:14px"></div></section>
-<section id="attendance" class="panel hidden">
+<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Job title</th><th>Department</th><th>Phone</th><th>Status</th><th>Start date</th></tr></thead><tbody id="staffProfileRows"></tbody></table></div><h3 style="margin-top:22px">Edit staff profile</h3><form id="staffProfileForm"><div class="full"><label>Staff account *</label><select name="id" id="staffProfileSelect" required><option value="">Choose staff member</option></select></div><div><label>Full name</label><input name="full_name"></div><div><label>Phone</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Job title</label><input name="job_title" placeholder="e.g. Class Teacher"></div><div><label>Department</label><input name="department" placeholder="e.g. Primary Section"></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment end date</label><input name="employment_end_date" type="date"></div><div class="full"><label>Responsibilities / duties</label><input name="responsibilities"></div><div class="full"><button class="primary" type="submit">Save staff profile</button></div></form></section>\n<section id="attendance" class="panel hidden">
 <h2>Staff attendance · USB import</h2>
 <p class="muted">Administrator-only import. Export the attendance file from the fingerprint terminal, then upload it here. This screen becomes active after the attendance database migration is applied.</p>
 <div id="attendanceMsg" class="notice hidden"></div>
@@ -66,24 +66,24 @@
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-let students=[],classes=[],profile=null;
+let students=[],classes=[],profile=null,staffProfiles=[];
 const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
-function tab(name){document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance()}
+function tab(name){document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','staffProfiles','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles()}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 const moduleInfo={academics:['Academics','Subjects, assessments, examination entry, grading and report cards.'],finance:['Finance','Fee structures, learner accounts, payment posting, receipts and balances.'],staff:['Staff & HR','Staff profiles, roles, attendance administration and confidential HR records.'],communication:['Communication','Staff announcements, parent communication and the school calendar.'],inventory:['Inventory & sales','Stock control, uniforms, school shop sales and other income.'],reports:['Reports','Academic, enrolment, attendance and financial reports.'],settings:['Settings','School details, user accounts, access permissions and system preferences.']};
-document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance'].includes(key)){tab(key);return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
+document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance'].includes(key)){tab(key);return}if(key==='staff'){tab('staffProfiles');return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
 async function startSession(session){if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
-const {data:p,error}=await db.from('user_profiles').select('full_name,role').eq('id',session.user.id).single();
+const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
 if(error){message('appMsg','Your account profile could not be loaded. Ask the administrator to check the database setup.',true);return}
 profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';$('role').textContent=p.role;
 await refresh();
 }
 async function refresh(){clearMessage('appMsg');const [s,c]=await Promise.all([db.from('students').select('*,school_classes(name)').order('created_at',{ascending:false}),db.from('school_classes').select('*').order('name')]);
 if(s.error||c.error){message('appMsg','Could not load school data. Check that the Supabase SQL setup has been completed.',true);return}
-students=s.data||[];classes=c.data||[];render()}
+students=s.data||[];classes=c.data||[];render();if(profile?.role==='Admin')loadStaffProfiles()}
 function render(){ $('totalStudents').textContent=students.length;$('activeStudents').textContent=students.filter(s=>s.status==='Active').length;$('totalClasses').textContent=classes.length;
 const q=$('search').value.toLowerCase();const filtered=students.filter(s=>(s.first_name+' '+(s.middle_name||'')+' '+s.last_name+' '+s.admission_number).toLowerCase().includes(q));
 $('studentRows').innerHTML=filtered.map(s=>'<tr><td><strong>'+esc(s.admission_number)+'</strong></td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.gender)+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(s.learner_type||'Day')+'</td><td>'+esc(s.guardian_name||'—')+'<br><span class="muted">'+esc(s.guardian_phone||'')+'</span></td><td><span class="badge">'+esc(s.status)+'</span></td></tr>').join('');
@@ -92,7 +92,32 @@ $('classList').innerHTML=classes.length?classes.map(c=>'<div style="padding:10px
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 $('search').addEventListener('input',render);
 
-function parseCSV(text){
+
+async function loadStaffProfiles(){
+ if(profile?.role!=='Admin'){message('staffProfileMsg','Only school administrators can manage staff profiles.',true);return}
+ const {data,error}=await db.from('user_profiles').select('id,full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').order('full_name');
+ if(error){message('staffProfileMsg','Could not load staff profiles: '+error.message,true);return}
+ staffProfiles=data||[];
+ $('staffProfileRows').innerHTML=staffProfiles.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">'+esc(x.role)+'</span></td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td></tr>').join('')||'<tr><td colspan="6">No staff accounts found.</td></tr>';
+ $('staffProfileSelect').innerHTML='<option value="">Choose staff member</option>'+staffProfiles.map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed')+' ('+esc(x.role)+')</option>').join('');
+}
+$('staffProfileSelect').addEventListener('change',()=>{
+ const x=staffProfiles.find(p=>p.id===$('staffProfileSelect').value);if(!x)return;
+ const form=$('staffProfileForm');
+ for(const key of ['full_name','phone','job_title','department','responsibilities','employment_start_date','reporting_date','employment_end_date','employment_status'])form.elements[key].value=x[key]|| (key==='employment_status'?'Active':'');
+});
+$('staffProfileForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(profile?.role!=='Admin'){message('staffProfileMsg','Only administrators can update staff profiles.',true);return}
+ const form=new FormData(e.target),id=String(form.get('id')||'');if(!id){message('staffProfileMsg','Choose a staff account first.',true);return}
+ const payload={};
+ for(const key of ['full_name','phone','job_title','department','responsibilities','employment_status'])payload[key]=String(form.get(key)||'').trim()||null;
+ for(const key of ['employment_start_date','reporting_date','employment_end_date'])payload[key]=String(form.get(key)||'')||null;
+ if(!payload.employment_status)payload.employment_status='Active';
+ const {error}=await db.from('user_profiles').update(payload).eq('id',id);
+ if(error){message('staffProfileMsg','Could not save staff profile: '+error.message,true);return}
+ await loadStaffProfiles();message('staffProfileMsg','Staff profile saved successfully.');
+});
+\nfunction parseCSV(text){
  const rows=[];let row=[],field='',quoted=false;
  for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];
   if(c==='"'&&quoted&&n==='"'){field+='"';i++}
