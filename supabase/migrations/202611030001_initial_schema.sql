@@ -34,14 +34,14 @@ create table if not exists public.students (
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = ''
-as $$
+as $function$
 begin
   insert into public.user_profiles (id, full_name, role)
   values (new.id, coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email,'@',1)), 'Staff')
   on conflict (id) do nothing;
   return new;
 end;
-$$;
+$function$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -63,26 +63,35 @@ as $
 $;
 
 -- Staff can view their own profile; administrators can view all profiles.
+drop policy if exists "Users can read own profile or admins can read all" on public.user_profiles;
 create policy "Users can read own profile or admins can read all"
 on public.user_profiles for select to authenticated
 using (id = (select auth.uid()) or public.is_school_admin());
 
 -- Staff cannot promote themselves: profile updates are intentionally not granted.
+drop policy if exists "Authenticated staff can read classes" on public.school_classes;
 create policy "Authenticated staff can read classes"
 on public.school_classes for select to authenticated using (true);
+drop policy if exists "Authenticated staff can add classes" on public.school_classes;
 create policy "Authenticated staff can add classes"
 on public.school_classes for insert to authenticated with check (true);
+drop policy if exists "Authenticated staff can update classes" on public.school_classes;
 create policy "Authenticated staff can update classes"
 on public.school_classes for update to authenticated using (true) with check (true);
+drop policy if exists "Authenticated staff can delete classes" on public.school_classes;
 create policy "Authenticated staff can delete classes"
 on public.school_classes for delete to authenticated using (true);
 
+drop policy if exists "Authenticated staff can read students" on public.students;
 create policy "Authenticated staff can read students"
 on public.students for select to authenticated using (true);
+drop policy if exists "Authenticated staff can register students" on public.students;
 create policy "Authenticated staff can register students"
 on public.students for insert to authenticated with check (true);
+drop policy if exists "Authenticated staff can update students" on public.students;
 create policy "Authenticated staff can update students"
 on public.students for update to authenticated using (true) with check (true);
+drop policy if exists "Authenticated staff can delete students" on public.students;
 create policy "Authenticated staff can delete students"
 on public.students for delete to authenticated using (true);
 
