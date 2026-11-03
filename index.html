@@ -170,7 +170,7 @@ $('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
 async function submitAcademic(formId,table,transform,success){
  $(formId).addEventListener('submit',async e=>{
   e.preventDefault();if(profile?.role!=='Admin'){message('academicMsg','Only administrators can make academic changes at present.',true);return}
-  const values=Object.fromEntries(new FormData(e.target).entries());const payload=transform(values);
+  const values=Object.fromEntries(new FormData(e.target).entries());const payload=transform(values);if(table==='assessments')payload.created_by=(await db.auth.getUser()).data.user.id;
   const {error}=await db.from(table).insert(payload);
   if(error){message('academicMsg','Could not save record: '+error.message,true);return}
   e.target.reset();await loadAcademics();message('academicMsg',success);
