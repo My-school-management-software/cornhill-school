@@ -2,6 +2,10 @@
 
 A mobile-friendly starter for Cornhill Nursery and Primary School (Uganda).
 
+## Delivery progress
+
+See [the live development progress tracker](docs/DELIVERY_PROGRESS.md) for what is specified, coded, applied, tested and deployed.
+
 ## Current foundation
 - Staff sign-in through Supabase Auth
 - Student register and search
