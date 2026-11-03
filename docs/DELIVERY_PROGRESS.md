@@ -1,6 +1,6 @@
 # Cornhill School System — Delivery Progress
 
-Last updated: 2026-11-03 20:25 UTC
+Last updated: 2026-11-03 20:30 UTC
 
 This tracker separates code committed to the development branch, database changes the school has applied, and features that are actually tested or live. A commit is not the same as a deployed or verified feature.
 
@@ -27,11 +27,11 @@ This tracker separates code committed to the development branch, database change
 | Staff attendance | Tables, device-ID mapping and admin USB import UI committed | **Applied; tables and RLS verified** | No real-device CSV test yet |
 | USB fingerprint attendance import screen | Admin screen, staff-ID mapping, CSV parsing, validation and import committed | Uses applied attendance tables | Needs sample terminal CSV and test import |
 | Fingerprint terminal integration | Device not purchased; candidate only | No | No |
-| Academics, marks and report cards | Spec only | No | No |
+| Academics, marks and report cards | Admin UI for years, terms, subjects, class/teacher assignments, assessments and marks committed; score/class validation in DB | **Six academic tables, indexes, RLS and score validation trigger applied and verified** | Not browser-tested; teacher self-service and report-card layouts remain future work |
 | Fees, receipts and accounting | Spec only | No | No |
 | Parent communication, LMS and other modules | Spec only | No | No |
 
-## Latest completed coding milestone (2026-11-03)\n\n- Added staff profile fields for phone, job title, department, responsibilities, employment dates and status.\n- Added administrator-only profile editing in the web app; staff cannot edit or promote their own profiles.\n- Added database update policy and indexes; schema was verified after applying the change.\n- Identity numbers, contracts and private documents remain excluded until a dedicated private storage bucket and access workflow are built.\n\n\n- Added an administrator-only USB attendance import screen to the web app.\n- Added mapping from the fingerprint machine's user ID to each staff account.\n- Added CSV parsing, supported event checks, Uganda local-time conversion, preview of invalid rows and batch import.\n- Applied the attendance migration to the Supabase project and verified the new tables and RLS are present.\n- The screen is committed on the development branch; the live production site has not been updated.\n\n## USB attendance plan
+## Latest completed coding milestone (2026-11-03)\n\n- Added academic years and terms, subject catalogue, class-subject/teacher assignments, assessments and learner scores.\n- Added administrator screens to configure the academic calendar, subjects, assignments and assessments, and enter or update marks.\n- Database validation prevents marks above the assessment maximum and prevents scoring learners outside the assessment class.\n- Enabled RLS on all academic tables; reads require sign-in and academic writes are currently administrator-only. Teacher portal permissions and report-card generation are not yet complete.\n\n\n- Added staff profile fields for phone, job title, department, responsibilities, employment dates and status.\n- Added administrator-only profile editing in the web app; staff cannot edit or promote their own profiles.\n- Added database update policy and indexes; schema was verified after applying the change.\n- Identity numbers, contracts and private documents remain excluded until a dedicated private storage bucket and access workflow are built.\n\n\n- Added an administrator-only USB attendance import screen to the web app.\n- Added mapping from the fingerprint machine's user ID to each staff account.\n- Added CSV parsing, supported event checks, Uganda local-time conversion, preview of invalid rows and batch import.\n- Applied the attendance migration to the Supabase project and verified the new tables and RLS are present.\n- The screen is committed on the development branch; the live production site has not been updated.\n\n## USB attendance plan
 
 1. Supplier confirms the exact terminal model supports exporting attendance logs to USB in a documented CSV/Excel/TXT format.
 2. Cornhill imports that export through an administrator-only screen.
