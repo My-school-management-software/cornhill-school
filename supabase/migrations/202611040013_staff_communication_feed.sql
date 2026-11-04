@@ -29,7 +29,7 @@ alter table public.staff_communication_reactions enable row level security;
 grant select, insert, update, delete on public.staff_communication_posts to authenticated;
 grant select, insert, delete on public.staff_communication_comments to authenticated;
 grant select, insert, delete on public.staff_communication_reactions to authenticated;
-create policy staff_comm_posts_read on public.staff_communication_posts for select to authenticated using (public.is_school_admin() or audience='all_staff' or audience=(select role from public.user_profiles where id=(select auth.uid())));
+create policy staff_comm_posts_read on public.staff_communication_posts for select to authenticated using (public.is_school_admin() or audience='all_staff' or (audience='teachers' and (select role from public.user_profiles where id=(select auth.uid()))='Teacher') or (audience='admins' and (select role from public.user_profiles where id=(select auth.uid()))='Admin'));
 create policy staff_comm_posts_create on public.staff_communication_posts for insert to authenticated with check (author_user_id=(select auth.uid()) and exists(select 1 from public.user_profiles p where p.id=(select auth.uid()) and p.role in ('Admin','Teacher','Staff')));
 create policy staff_comm_posts_update on public.staff_communication_posts for update to authenticated using (author_user_id=(select auth.uid()) or public.is_school_admin()) with check (author_user_id=(select auth.uid()) or public.is_school_admin());
 create policy staff_comm_posts_delete on public.staff_communication_posts for delete to authenticated using (author_user_id=(select auth.uid()) or public.is_school_admin());
