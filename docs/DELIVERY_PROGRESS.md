@@ -156,3 +156,9 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Extended the administrator's class/subject assignment register with an inline teacher selector for every existing assignment.
 - Administrators can reassign a subject to another staff account or choose “Not assigned” to remove that teacher's access. The change updates `class_subjects.teacher_user_id`, which is the same assignment relationship used by teacher assessment/score RLS.
 - This is committed to the development branch; live admin browser verification and a real Teacher login test are still required. Production remains unchanged.
+
+
+## 2026-11-04 — Class mark sheet and bulk mark entry
+- Added a class-wide mark sheet to the academic mark-entry screen. Selecting an assessment loads learners in its class and any previously saved scores/comments.
+- Teachers and administrators can enter or revise multiple learner marks and save them together. Empty rows are skipped; scores are checked in the browser against the assessment maximum before saving. Database RLS and constraints remain the authoritative security/validation layer.
+- Existing single-learner mark entry remains available. End-to-end testing with a real assigned teacher and populated class is still outstanding; production remains unchanged.
