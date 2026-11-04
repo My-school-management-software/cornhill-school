@@ -138,3 +138,12 @@
 - Staff communication is planned as an authenticated internal feed with announcements, image posts, comments/reactions and short-video posts, plus role/class targeting and moderation. Short video support is technically possible but must be constrained by upload size, storage, compression and bandwidth; it is not a promise of Instagram-scale streaming.
 - Offline-first work must use a local operation queue with idempotent sync and conflict handling; payment posting must never silently duplicate or be treated as complete while offline. Cash payments may be captured as pending local drafts and only become official receipts after server confirmation.
 - Parent SMS uses explicit opt-in and a queued outbox; an approved provider account, sender ID and credentials are still required before sending.
+
+
+## 2026-11-04 — Zero-cost delivery requirement
+- School owner requires the entire Cornhill system to be built and operated using free plans or genuinely free trials only. No paid subscriptions, plan upgrades, paid add-ons, paid API usage, or payment-method entry are authorised.
+- This applies to Vercel, GitHub, Supabase, ChatGPT, SMS gateways, storage, hosting, email, analytics, and every other third-party service used by the project.
+- Before enabling any external service or feature, check whether it remains within the free allowance and whether usage can trigger charges. Keep billing/usage caps and alerts at zero-cost settings wherever available; do not enable paid overages.
+- If a feature cannot be delivered safely and reliably within a free tier, stop before incurring a charge, explain the limitation, and implement a free/local alternative where practical. Ask the owner before any action that could create a cost; default is not to proceed.
+- Prioritise a complete, reliable core school system over optional integrations that require paid services. Clearly distinguish implemented features from those awaiting free-tier capacity, external credentials, or physical hardware.
+- Production remains untouched; this is a development-branch delivery policy.
