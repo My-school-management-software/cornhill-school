@@ -240,3 +240,10 @@
 
 - Static markup integrity check: 188 declared element IDs, no duplicate IDs, and no missing literal `$('id')` references in the current HTML. Vercel confirms the code preview deployment is READY.
 - Important limitation: duplicate LIN/P7 checks currently run in the registration UI; database-level unique indexes are not yet installed, so a concurrent duplicate submission could still race. A reviewed Supabase migration and admin/teacher browser tests are required before production release. Production database schema and records were not changed during this work.
+
+
+## 2026-11-04 — Teacher register privacy and database duplicate protection verification
+- Restricted guardian names, guardian phone numbers and bursary status/amount in both the learner register and class register to administrator views. Teacher views show restricted placeholders; learner profile already limits guardian, address and bursary details to administrators.
+- Queried the connected Supabase catalogue and confirmed existing unique indexes: `students_lin_unique` on `upper(trim(lin))` when LIN is non-empty, and `students_p7_index_number_unique` on `upper(trim(p7_index_number))` when P7 index is non-empty. The permanent admission number also has its existing unique index.
+- This confirms database-level duplicate protection already exists; no new migration was necessary. The SQL operation was read-only and no production schema or records were changed.
+- Code commits: `d50c111` (guardian contacts), `0089f5d` (bursary privacy). Browser role verification and print testing remain outstanding; production release is not approved by these source changes alone.
