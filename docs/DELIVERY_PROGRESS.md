@@ -300,3 +300,11 @@
 - Clearly labels the figure as potential extra time for manual review. It is not approved overtime, does not include an approval workflow, and is not used for payroll.
 - Both inline application scripts pass JavaScript syntax parsing after this change. Static element-reference check reports no missing literal element IDs.
 - Commits: calculation/UI `91fa713`; explanatory wording `014efe3`. Browser verification with real event data remains pending; current attendance event table has no real event records, so no numeric example could be validated.
+
+
+## 2026-11-04 — Staff attendance privacy and import validation
+- Restricted the staff self-service attendance history query to the currently signed-in staff user's own `staff_user_id`, in addition to the database access controls.
+- Hardened the attendance CSV timestamp parser: accepts explicit ISO timestamps with timezone offsets and unzoned local Uganda date-times, converts unzoned values from EAT (UTC+03:00), and rejects invalid dates/times and ambiguous non-ISO formats instead of relying on browser-dependent date parsing.
+- Verification: both inline JavaScript blocks parse; test samples confirm an unzoned 08:15 EAT timestamp maps to 05:15 UTC, a +03:00 ISO timestamp maps to the same instant, a Z timestamp is preserved, and an impossible February 30 date is rejected.
+- Commits: self-service filter `a1a9730`; strict timestamp validation `b1444ba`.
+- This is source-level verification only. No Supabase schema, permissions or records were changed, and real device export/browser testing remains outstanding.
