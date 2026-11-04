@@ -278,3 +278,11 @@
 - Existing Supabase security advisor still reports the authenticated-executable `is_school_admin()` SECURITY DEFINER function and disabled leaked-password protection. Review those settings separately; do not disable a required policy helper without replacing its use safely.
 
 - Added `docs/LEARNER_PRIVACY_TEST_PLAN.md` with read-only SQL privilege checks and administrator/teacher staging test cases. Commit `03af53f`.
+
+
+## 2026-11-04 — Learner privacy migration review correction
+- A deeper read-only check of `information_schema.column_privileges` showed that both `anon` and `authenticated` also held explicit column-level SELECT/INSERT/UPDATE/REFERENCES grants on learner fields. PostgreSQL table-level REVOKE does not remove independent column-level grants.
+- Corrected migration `202611040014_student_data_column_privileges.sql` to explicitly revoke all column-level privileges on every current `students` column from PUBLIC, anon and authenticated before granting the safe roster projection and administrator-only write columns.
+- Expanded `docs/LEARNER_PRIVACY_TEST_PLAN.md` to verify anonymous guardian-phone access and authenticated guardian phone/email, address and bursary-field SELECT privileges are all false after applying the migration.
+- Commits: migration correction `01a809f`; test-plan correction `30ae312`.
+- This correction is still development-branch source only. No Supabase privileges or records were changed; migration must be tested in staging and explicitly approved before application.
