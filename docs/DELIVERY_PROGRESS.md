@@ -366,3 +366,5 @@
 - Verified anon has no table privileges; authenticated has only SELECT and UPDATE. Profile creation on signup remains handled by the existing SECURITY DEFINER `handle_new_user()` trigger, which inserts new accounts as `Staff`; the trigger remains intact.
 - The live database currently has one profile with role `Admin`. Staff cannot self-promote: profile updates are governed by the administrator-only RLS policy, and signup assigns `Staff` by default.
 - The migration was first tested in a transaction and rolled back, then applied. No user profile records were modified.
+
+- Role-boundary check: ran a transaction as PostgreSQL role `authenticated` with a non-admin JWT subject. An attempted update of the existing Admin profile returned no rows (RLS denied it), and a call to `admin_list_students()` was rejected with SQLSTATE 42501. The transaction was rolled back; no profile data changed.
