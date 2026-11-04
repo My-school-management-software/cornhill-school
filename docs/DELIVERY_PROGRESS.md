@@ -626,3 +626,9 @@
 - Performance advisors report 38 foreign keys without covering indexes, 29 currently unused indexes, and 19 tables with multiple permissive policies. These are review findings, not automatic instructions to add/drop indexes or merge policies; changes require query-plan and authorization review first.
 - Supabase's Nov 4, 2026 CLI v3 release changes hosted/local command defaults; any future CLI deployment or migration pipeline must explicitly target the remote project and confirm hosted changes. No schema change was made as part of this audit.
 - No live learner, marks, payment or attendance rows were added. Browser and role-based acceptance tests remain outstanding.
+
+
+### 2026-11-04 — Absent-mark scope and report-card consistency
+- Restricted the X (Absent) marker to P4–P7 in individual, bulk class-sheet and Excel-style mark entry. Nursery and P1–P3 must receive a numeric mark instead.
+- In P4–P7 report cards, a subject with any assessment marked X now displays X for its subject average and grade rather than displaying a calculated grade alongside an absence marker. The UNEB aggregate/division remains unavailable when a core subject is X.
+- This is a source-code correction only. Existing stored marks were not changed; authenticated browser tests across Nursery, P1–P3 and P4–P7 remain outstanding.
