@@ -114,3 +114,11 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Applied Supabase RLS/grant migration for grade bands and publication records. Grade bands are readable by authenticated users; grade maintenance and report approval are restricted to school administrators, and the approver must match the authenticated user.
 - Added replayable SQL at `supabase/migrations/202611040003_report_approval_grading.sql`.
 - The approval flow is implemented but has not yet been exercised against a real learner/term with a browser session. Do not treat all school reports as approved by default.
+
+
+## 2026-11-04 — Repeat-safe USB attendance imports
+- Hardened USB CSV import so re-uploading the same terminal export does not create duplicate attendance events. Events with a device event ID use the existing unique key; exports without an event ID now use a second database uniqueness rule based on terminal, staff device ID, event type and timestamp.
+- Updated the importer to ignore already-imported events, report new/duplicate/invalid row counts, and update the import batch with the actual number of new events.
+- Applied the database index migration and verified it with a transaction test: first event accepted, identical repeat rejected by the unique index, and all test rows rolled back.
+- Existing security advisor notices remain: the public `is_school_admin()` SECURITY DEFINER helper is executable by authenticated users, and leaked-password protection is disabled. These were pre-existing and were not broadened by this change.
+- A real terminal CSV and authenticated browser test are still required; no attendance data was retained by the database test.
