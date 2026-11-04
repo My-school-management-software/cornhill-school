@@ -568,3 +568,11 @@
 - This confirms database security foundations only. It does not prove that stock receipt/issue, attendance import, schedule assignment, alerts, payroll deductions, or staff feed interactions work in an authenticated browser.
 - Fingerprint terminal integration remains hardware-dependent: the exact device model, firmware, supported export/SDK and a real import/verification test are still required. The app must not claim live fingerprint capture until that test passes.
 - Stage 4 remains under implementation review and is not accepted. Required next checks include role-by-role browser tests, inventory movement reconciliation, attendance import idempotency, staff schedule/adjustment workflows, and payroll attendance-deduction verification.
+
+
+## 2026-11-04 — Staff communication feed role-selector correction
+
+- A code review found that the staff communication audience dropdown used obsolete option values ("Admin" and "Teacher"), while the current form and database use "admins" and "teachers". This could throw an error when loading the feed and prevent the noticeboard from rendering.
+- Corrected the selector to use the actual database values. Admins can select all staff, teachers or administrators; teachers can select all staff or teachers; other staff can select all staff only. This mirrors the current insert policy.
+- Saved in commit 6fecbf5dc64c98dfdcf3a16b365a8060b9fee002.
+- This is a code-level correction only. Authenticated role-by-role feed, post, comment, reaction and deletion tests remain outstanding, and deployment has not yet been refreshed.
