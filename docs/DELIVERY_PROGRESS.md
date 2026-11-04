@@ -234,3 +234,6 @@
 - Learner edit now explicitly saves SMS consent as true/false, so withdrawing consent is respected.
 - Existing database RLS remains unchanged. No production schema, production records, or live deployment were modified.
 - Commits: `3169a22`, `2c77f1d`, `6540837`. Static/browser end-to-end testing is still pending; these changes are not yet declared production-ready.
+
+- Final learner form polish: added learner status selection (Active / Inactive / Transferred), explicit Cancel edit action, and clear Edit learner heading. Commit: `435c609`.
+- Vercel Git preview for this development branch reports `READY` (latest code commit `435c609`; docs-only tracker commit `10de2b7` also has a READY preview). This is a preview only (`target: null`), not a production release. Browser sign-in and role-based end-to-end checks remain outstanding.
