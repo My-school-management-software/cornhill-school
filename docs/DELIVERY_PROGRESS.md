@@ -359,3 +359,10 @@
 
 - Additional RPC verification: simulated the existing Admin profile's JWT claim and confirmed both administrator learner-list RPCs execute successfully (0 rows returned because no learners have been admitted yet). Simulated an identity with no Admin profile and confirmed `admin_list_students()` rejects it with SQLSTATE 42501. No test identity or school record was created.
 - Latest Vercel Git preview for the corrected branch is READY at https://cornhill-school-ldpmnuu95-cypher-projects1.vercel.app (commit `64c1644`, preview target). The deployment record confirms the commit and READY state. Automated browser sign-in testing remains unavailable from this runtime; owner/admin and teacher flows still need a real browser check.
+
+## 2026-11-04 — Staff profile privilege hardening
+- A follow-up permission audit found `public.user_profiles` had unnecessary table-level grants to anon and authenticated roles. RLS already had policies limiting reads to the signed-in user's own profile or administrators, and updates to administrators only.
+- Added and applied `202611040016_user_profile_privilege_hardening.sql`: removed all table grants from PUBLIC/anon/authenticated, then granted authenticated only SELECT and UPDATE. RLS policies remain unchanged.
+- Verified anon has no table privileges; authenticated has only SELECT and UPDATE. Profile creation on signup remains handled by the existing SECURITY DEFINER `handle_new_user()` trigger, which inserts new accounts as `Staff`; the trigger remains intact.
+- The live database currently has one profile with role `Admin`. Staff cannot self-promote: profile updates are governed by the administrator-only RLS policy, and signup assigns `Staff` by default.
+- The migration was first tested in a transaction and rolled back, then applied. No user profile records were modified.
