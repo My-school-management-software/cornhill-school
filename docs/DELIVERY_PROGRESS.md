@@ -603,3 +603,10 @@
 - A second rapid submission is ignored; the control is restored on normal completion, validation return, or unexpected client-side error.
 - Unexpected failures instruct the administrator to check the learner register before retrying, reducing accidental duplicate admissions when a request may already have reached the database.
 - Permanent learner-code generation and database uniqueness protections remain the authoritative controls; real authenticated admission/photo tests are still outstanding.
+
+
+### 2026-11-04 — Individual academic mark-entry guard
+- Individual learner mark entry now checks that the authenticated user session is still present before assigning `entered_by` or sending the score to Supabase.
+- The save button is locked during processing to prevent rapid duplicate submissions; it is restored in a `finally` block on success, validation exits, and unexpected errors.
+- Unexpected errors advise the teacher to check the class mark sheet before retrying. Existing database RLS remains responsible for confirming that a teacher is assigned to the assessment's class and subject.
+- This is a client-side reliability improvement, not a substitute for authenticated teacher/admin acceptance tests.
