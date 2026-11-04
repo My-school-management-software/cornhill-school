@@ -292,3 +292,11 @@
 - Full inline JavaScript parse check found another literal backslash-n sequence immediately before `loadStaffProfiles()`. It prevented the main application script from parsing, which would stop the application before staff features load.
 - Replaced the literal escape sequence with a real line break. Re-ran JavaScript parsing on both inline scripts successfully. Static HTML ID check found no missing literal `$('id')` references; two duplicate-ID matches are dynamic HTML template strings, not duplicate static markup IDs.
 - Commit: `57fcf85`. This is a source-level syntax check only; browser sign-in and workflow tests remain pending.
+
+
+## 2026-11-04 — Daily attendance potential overtime review
+- Extended the Uganda-time daily attendance dashboard with a potential extra-time total and per-staff minutes where the final clock-out is later than the assigned schedule end.
+- Handles schedules that cross midnight by comparing against the correct next-day schedule end in East Africa Time (UTC+03:00).
+- Clearly labels the figure as potential extra time for manual review. It is not approved overtime, does not include an approval workflow, and is not used for payroll.
+- Both inline application scripts pass JavaScript syntax parsing after this change. Static element-reference check reports no missing literal element IDs.
+- Commits: calculation/UI `91fa713`; explanatory wording `014efe3`. Browser verification with real event data remains pending; current attendance event table has no real event records, so no numeric example could be validated.
