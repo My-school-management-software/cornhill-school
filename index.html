@@ -518,7 +518,8 @@ async function renderReportCard(){
  const classGroup=curriculumGroupForClass(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'');
  const aggregateNote=classGroup==='P4-P7'?'<p><strong>Total aggregate / division:</strong> Not calculated — the school must first configure its approved grade-to-aggregate and division rules.</p>':'';
  const termId=$('reportTermSelect').value;
- const publication=await db.from('report_card_publications').select('id,approved_at,approved_by').eq('term_id',termId).eq('student_id',studentId).maybeSingle();
+ let publication={data:null,error:null};
+ if(profile?.role==='Admin')publication=await db.from('report_card_publications').select('id,approved_at,approved_by').eq('term_id',termId).eq('student_id',studentId).maybeSingle();
  if(publication.error){message('academicMsg','Could not check report approval: '+publication.error.message,true);return}
  const approved=!!publication.data;
  const approvalLine=approved?'<p><strong>School approval:</strong> Approved on '+esc(new Date(publication.data.approved_at).toLocaleString())+'</p>':'<p class="muted">Draft only — not yet approved or published by the school administrator.</p>';
@@ -799,7 +800,7 @@ $('backToLearners').addEventListener('click',()=>tab('students'));
 $('studentRows').addEventListener('click',e=>{
  const view=e.target.closest('.viewLearner');if(!view)return;
  const learner=students.find(x=>x.id===view.dataset.id);if(!learner)return;
- const fields=[['School learner code',learner.admission_number],['Ministry LIN',learner.lin],['P7 index number',learner.p7_index_number],['Full name',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')],['Gender',learner.gender],['Date of birth',learner.date_of_birth],['Admission date',learner.admission_date],['Class',learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name],['Learner type',learner.learner_type],['Status',learner.status],['Previous school',learner.previous_school],['Guardian',learner.guardian_name],['Relationship',learner.guardian_relationship],['Guardian phone',learner.guardian_phone],['Guardian email',learner.guardian_email],['Alternative guardian',learner.alternate_guardian_name],['Alternative phone',learner.alternate_guardian_phone],['Home address',learner.address],['Bursary',learner.is_bursary?'Approved · UGX '+money(learner.bursary_fee_ugx):'Regular fees'],['Bursary notes',learner.bursary_notes]];
+ const fields=[['School learner code',learner.admission_number],['Ministry LIN',learner.lin],['P7 index number',learner.p7_index_number],['Full name',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')],['Gender',learner.gender],['Date of birth',learner.date_of_birth],['Admission date',learner.admission_date],['Class',learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name],['Learner type',learner.learner_type],['Status',learner.status],['Previous school',learner.previous_school],...(profile?.role==='Admin'?[['Guardian',learner.guardian_name],['Relationship',learner.guardian_relationship],['Guardian phone',learner.guardian_phone],['Guardian email',learner.guardian_email],['Alternative guardian',learner.alternate_guardian_name],['Alternative phone',learner.alternate_guardian_phone],['Home address',learner.address],['Bursary',learner.is_bursary?'Approved · UGX '+money(learner.bursary_fee_ugx):'Regular fees'],['Bursary notes',learner.bursary_notes]]:[])];
  $('learnerProfileContent').innerHTML='<div class="panel"><div class="row"><h3>'+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+'</h3><button type="button" id="printLearnerProfile">Print learner profile</button></div><div class="table-wrap"><table><tbody>'+fields.map(x=>'<tr><th>'+esc(x[0])+'</th><td>'+esc(x[1]||'—')+'</td></tr>').join('')+'</tbody></table></div></div>';
  $('printLearnerProfile').addEventListener('click',()=>{document.body.classList.add('print-learner-profile');window.print();document.body.classList.remove('print-learner-profile')});
  tab('learnerProfile');
@@ -827,7 +828,7 @@ $('studentRows').addEventListener('click',e=>{
 $('studentForm').addEventListener('submit',async e=>{
  e.preventDefault();if(demoMode){message('appMsg','Saving is disabled in demo mode.');return}
  const f=new FormData(e.target),record=Object.fromEntries(f.entries());
- record.is_bursary=record.is_bursary==='true';record.guardian_sms_opt_in=record.guardian_sms_opt_in==='true';
+ record.is_bursary=record.is_bursary==='true';record.guardian_sms_opt_in=!!e.target.elements.guardian_sms_opt_in.checked;
  record.bursary_fee_ugx=record.is_bursary?Number(record.bursary_fee_ugx):0;
  if(record.is_bursary&&(!Number.isSafeInteger(record.bursary_fee_ugx)||record.bursary_fee_ugx<=0)){message('appMsg','Enter the approved bursary amount in whole Uganda shillings.',true);return}
  if(!record.is_bursary)record.bursary_notes=null;
