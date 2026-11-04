@@ -342,3 +342,17 @@
 
 - Latest preview deployment for application commit b32122c is READY at https://cornhill-school-e1zdpd4vp-cypher-projects1.vercel.app (preview target, not production). The Vercel deployment record confirms the commit and READY state. This is not a completed browser end-to-end test; direct HTTP access from this runtime was unavailable, and sign-in/role workflows have not been exercised.
 - Pure logic checks for the new CSV escaping and competition ranking passed. These do not replace a browser download test.
+
+
+## 2026-11-04 — Live database migration repair and verification
+- Corrected learner privacy migration SQL: PostgreSQL column-level revoke syntax is now `REVOKE ALL (columns) ON TABLE ...`, rather than the invalid ordering previously committed.
+- Corrected inventory migration trigger function dollar quoting from a single `$` delimiter to valid `$$` delimiters.
+- Tested each corrected migration in an explicit transaction followed by ROLLBACK against the live database. Both transactional dry-runs completed successfully and left no persistent changes.
+- With the owner's conditional approval, applied migrations `202611040014_student_data_column_privileges` and `202611040015_inventory_stock_ledger` to the live Supabase project. Supabase migration history records both.
+- Post-apply checks: no table-level SELECT/INSERT/UPDATE grants remain on `public.students` for anon/authenticated; authenticated users have only the 16-column safe roster SELECT projection; no sensitive guardian/address/bursary/SMS-consent column has SELECT permission; administrator-only RPCs exist and anon cannot execute them.
+- Authenticated INSERT/UPDATE grants remain on sensitive admission columns by design, but the existing `Admins manage students` RLS write policy limits those operations to school administrators.
+- Inventory verification: all three tables exist with RLS enabled and administrator-only policies; the stock summary view uses `security_invoker=true`; authenticated users cannot UPDATE/DELETE/TRUNCATE stock movements; the negative-stock trigger is enabled.
+- The student table still has 0 rows at verification time. These migrations changed database permissions and added inventory schema/functions/triggers; they did not update or delete learner records.
+- Supabase security advisor now flags the two administrator RPCs as SECURITY DEFINER functions, alongside the pre-existing `is_school_admin()` helper. This is intentional because the RPCs must return protected columns to administrators while denying teachers; each RPC checks `auth.uid()` and `is_school_admin()`, uses an empty search_path, and is not executable by anon. Keep these functions guarded; do not remove SECURITY DEFINER without replacing the admin-only data path.
+- Leaked-password protection remains disabled in Supabase Auth and is a separate account-security setting; it was not changed as part of these schema migrations.
+- Browser end-to-end testing with the actual owner/admin and teacher accounts is still outstanding. Static/database checks do not establish that all frontend flows work in a real browser.
