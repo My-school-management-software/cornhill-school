@@ -276,3 +276,5 @@
 - Git commits: migration `8a17e1a`; app RPC integration `d72da21`; safe admission response `da05a7a`.
 - **Not applied to Supabase.** No database grants, policies, functions or records were changed during this work. The migration needs review and then a separately authorized maintenance/test deployment. Test admin and teacher accounts against direct REST column reads, RPC denial for teachers, admission insert/edit, roster, finance, bursary and receipt workflows before production use.
 - Existing Supabase security advisor still reports the authenticated-executable `is_school_admin()` SECURITY DEFINER function and disabled leaked-password protection. Review those settings separately; do not disable a required policy helper without replacing its use safely.
+
+- Added `docs/LEARNER_PRIVACY_TEST_PLAN.md` with read-only SQL privilege checks and administrator/teacher staging test cases. Commit `03af53f`.
