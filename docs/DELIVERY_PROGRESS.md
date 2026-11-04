@@ -267,3 +267,12 @@
 - Theme, font and motion preferences are stored locally in the current browser/device. They do not alter school-wide settings or other users' devices; no database schema or external font service is required.
 - Added a reset-to-default action and a live preview. Preferences are applied on app load and can be changed from Settings & themes.
 - Commit: `423143c`. Browser/device visual testing remains outstanding. No production database changes or production deployment were made.
+
+
+## 2026-11-04 — Learner privacy hardening (development branch)
+- Rechecked the connected Supabase project using read-only catalog queries. The `public.students` table currently has broad table privileges for both `anon` and `authenticated`, including access to guardian contact, address and bursary columns. Existing RLS limits rows but does not hide selected columns from an assigned teacher. This is a production release blocker.
+- Added reviewed migration file `supabase/migrations/202611040014_student_data_column_privileges.sql`. It revokes broad table privileges, grants teachers/staff only non-confidential roster columns, keeps insert/update behind the existing authenticated administrator RLS policy, and adds two administrator-checked SECURITY DEFINER read RPCs: `admin_list_students()` and `admin_list_active_finance_students()`.
+- Updated the frontend so the administrator learner register and finance learner picker use those RPCs. Teacher roster reads remain direct but select only the safe roster projection. The admission insert response now returns only non-confidential identifiers.
+- Git commits: migration `8a17e1a`; app RPC integration `d72da21`; safe admission response `da05a7a`.
+- **Not applied to Supabase.** No database grants, policies, functions or records were changed during this work. The migration needs review and then a separately authorized maintenance/test deployment. Test admin and teacher accounts against direct REST column reads, RPC denial for teachers, admission insert/edit, roster, finance, bursary and receipt workflows before production use.
+- Existing Supabase security advisor still reports the authenticated-executable `is_school_admin()` SECURITY DEFINER function and disabled leaked-password protection. Review those settings separately; do not disable a required policy helper without replacing its use safely.
