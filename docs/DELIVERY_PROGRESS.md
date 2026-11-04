@@ -165,3 +165,12 @@
 - Posted collections remain grouped by payment method; reversed receipts remain visible in the audit and separately totalled, and are excluded from net collections.
 - The database currently has no active learners and no school payment rows, so a real receipt-based browser test cannot yet be run without creating test data. No financial records were added or changed.
 - UI commit: `c91fa1c`. Development branch only; production remains untouched.
+
+
+## 2026-11-04 — Offline app-shell foundation
+- Added a service worker that caches only the application shell (main page, manifest and school icon), serves the cached shell when navigation is offline, and updates the shell when the network is available.
+- Explicitly excludes cross-origin requests and all non-GET requests. Supabase authentication, database, storage and function traffic are never cached by this service worker; private learner/finance records and payment requests are not placed in an offline cache.
+- Added a visible offline notice explaining that live records and payments require internet. Returning online shows a brief reconnect notice.
+- This is an offline shell foundation, not full offline operation or background data synchronisation. No financial action is queued or falsely marked as successful offline. IndexedDB draft queues, conflict handling and idempotent server sync remain future work.
+- Source re-fetched from the feature branch after commits. Browser/offline simulation testing and deployment remain outstanding.
+- Commits: `11bbb7c` app UI/registration; `c1bde4c` service worker.
