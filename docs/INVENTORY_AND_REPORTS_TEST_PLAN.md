@@ -1,0 +1,34 @@
+# Inventory and school reports verification plan
+
+## Safety boundary
+- Apply `202611040015_inventory_stock_ledger.sql` only to a separate staging Supabase project first.
+- Do not apply this migration to production until reviewed and explicitly approved.
+- Use test accounts only; do not place real school stock or learner data in staging without authorization.
+
+## Inventory role and access tests
+1. Signed-out / anon requests to `inventory_categories`, `inventory_items`, `inventory_movements` and `inventory_stock_summary` must be denied.
+2. A Teacher or Staff account must not read or modify inventory tables or the stock summary.
+3. An Admin account can create a category and item, then read the stock summary.
+4. Receive 10 units; verify the balance becomes 10.
+5. Issue 4 units; verify the balance becomes 6.
+6. Attempt to issue 7 units; the database trigger must reject it and the balance must remain 6.
+7. Confirm movements cannot be updated or deleted through the authenticated API.
+8. Confirm low-stock status is raised when on-hand quantity is less than or equal to the reorder level.
+9. Verify concurrent issue attempts cannot drive stock below zero.
+
+## School reports tests
+1. Admin report summary should match the count of active learner rows, class rows and assessments.
+2. Class counts should match the learner register grouped by class, including an Unassigned group when applicable.
+3. CSV export should open as UTF-8 in spreadsheet software and contain only admission code, learner names, class, gender and LIN.
+4. Confirm guardian name/phone/email, address, bursary details, and SMS consent are absent from the CSV.
+5. Teacher, Staff and Demo roles must not open the reports panel or invoke the export.
+
+## Browser regression
+- Test phone width and desktop width.
+- Test item/category forms, duplicate item codes, decimal quantities, empty inventory, and database-unavailable messages.
+- Test report refresh with zero learners and with active/inactive learners.
+- Verify no action reports success when the database returns an error.
+
+## Current status
+- Source syntax checks and static element-reference checks pass.
+- No browser end-to-end or staging database test has yet been performed.
