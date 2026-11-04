@@ -42,3 +42,15 @@
 - Commit: `6e899bc`. Production remains unchanged; Vercel deployment limit still blocks preview publication.
 
 - Follow-up attendance calculation fix: late-arrival comparisons now explicitly convert clock-in times to `Africa/Kampala` before comparing against the scheduled start and grace period. This avoids relying on the administrator's browser timezone. Commit: `520b6f8`; JavaScript syntax check passed.
+
+
+## 2026-11-04 — Learner bursary fees and receipt-compatible accounts
+- Added admission fields for regular fees vs bursary learner, approved bursary amount payable in UGX, and an administrative bursary/sponsor note.
+- Bursary amount is the total charge the learner is expected to pay (not a payment or a discount percentage). It must be a positive whole-UGX amount when bursary is selected.
+- Added student columns `is_bursary`, `bursary_fee_ugx`, and `bursary_notes`, with a non-negative database constraint.
+- Added an after-insert database trigger that creates a normal `learner_charges` record for a bursary learner in the same admission transaction. It uses the existing invoice sequence and charge ledger, so partial payments reduce the normal outstanding balance.
+- Existing `post_school_payment` RPC handles bursary learner payments exactly like other learners: receipt number, payment record, allocation against the bursary charge, remaining balance, and printable receipt are retained.
+- Learner register now displays bursary status and the approved amount.
+- Database migration applied to Supabase project `yemhortbudwbcrzsoozk`; verified all three columns and the insert trigger exist. Frontend JavaScript syntax check passed.
+- Commits: `5b554d7` admission UI; `a798769` learner list; `3f07edb` migration file. Production remains untouched; preview deployment remains blocked by Vercel's rate limit.
+- Not yet tested with a real learner/payment in the browser. The next deployment should verify admission creates exactly one bursary charge, a part-payment creates a receipt, and the remaining balance is correct.
