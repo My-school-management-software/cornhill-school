@@ -98,3 +98,11 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Current database has one Admin profile, zero assigned teacher-subject rows and no teacher accounts to exercise the workflow. Admin must create teacher accounts and assign class subjects before teachers see assessments. No teacher browser login test has been possible yet.
 
 - Added the previously missing replayable finance schema migration at `supabase/migrations/202611040001_finance_foundation.sql`, including fee catalogue/schedules, charges, payment allocations, receipts, account balances, RLS and the SECURITY INVOKER payment-posting function. The schema had already been applied and verified directly; this commit now preserves the SQL for future environment setup.
+
+
+## 2026-11-04 — Draft term report cards and class performance
+- Added term/class/learner report-card preview with subject totals, assessment counts, maximum marks and percentages, plus print support.
+- Added provisional class ranking/average summary using marks entered for the selected term. Results are clearly marked draft and not approved or published.
+- Teacher report filters are restricted to classes in their teacher assignment records; score visibility remains governed by Supabase RLS. Teachers see only marks allowed by their assigned-subject policies, so a teacher's report preview may be partial where other subjects are assigned to other teachers.
+- No schema migration was required. Cashier shift reconciliation remains deferred because payment creation and payment-table access are currently Admin-only; cashier roles and shift-aware payment posting need a separate security design.
+- No active learners or recorded scores are currently present in the live database, so live report output could not be exercised with real school data. Browser/device testing remains outstanding.
