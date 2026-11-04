@@ -674,7 +674,7 @@ async function setupAttendance(){
  $('attendanceAdmin').classList.toggle('hidden',!admin);
  $('attendanceStaff').classList.toggle('hidden',admin);
  if(!admin){
-  const {data,error}=await db.from('staff_attendance_events').select('event_type,occurred_at,source').order('occurred_at',{ascending:false}).limit(100);
+  const {data,error}=await db.from('staff_attendance_events').select('event_type,occurred_at,source').eq('staff_user_id',currentUserId).order('occurred_at',{ascending:false}).limit(100);
   const adjustments=await db.from('staff_attendance_adjustments').select('attendance_date,adjustment_type,proposed_time,reason,status,review_note,created_at').eq('staff_user_id',currentUserId).order('created_at',{ascending:false}).limit(50);
   if(adjustments.error){message('attendanceMsg','Your attendance loaded, but correction requests could not be read: '+adjustments.error.message,true);return}
   $('myAttendanceAdjustments').innerHTML=(adjustments.data||[]).map(x=>'<div style="padding:9px;border-bottom:1px solid #eee"><strong>'+esc(x.attendance_date)+' · '+esc(x.adjustment_type.replace(/_/g,' '))+'</strong><br>'+esc(x.reason)+'<br><span class="badge">'+esc(x.status)+'</span>'+(x.review_note?'<br><span class="muted">Administrator: '+esc(x.review_note)+'</span>':'')+'</div>').join('')||'<p class="empty">You have not submitted any correction requests.</p>';
