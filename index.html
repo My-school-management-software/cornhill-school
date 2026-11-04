@@ -420,6 +420,25 @@ $('gradeBandForm').addEventListener('submit',async e=>{
  if(error){message('academicMsg','Could not add grade: '+error.message,true);return}
  e.target.reset();await loadGradeBands();message('academicMsg','Grading band saved.');
 });
+function curriculumGroupForClass(name){
+ const n=String(name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ if(n.includes('BABY')||n.includes('MIDDLE')||n.includes('TOP')||n.includes('NURSERY'))return 'Nursery';
+ if(/P[123]/.test(n)||/PRIMARY[123]/.test(n))return 'P1-P3';
+ if(/P[4567]/.test(n)||/PRIMARY[4567]/.test(n))return 'P4-P7';
+ return null;
+}
+async function filterAssessmentSubjects(){
+ const classId=$('assessmentClassSelect').value,cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name);
+ let allowed=null;
+ if(group){
+  const {data,error}=await db.from('school_curriculum_subjects').select('subject_id').eq('school_level_group',group);
+  if(error){message('academicMsg','Could not load class curriculum: '+error.message,true);return}
+  allowed=new Set((data||[]).map(x=>x.subject_id));
+ }
+ const subjects=academic.subjects.filter(x=>!allowed||allowed.has(x.id));
+ $('assessmentSubjectSelect').innerHTML=subjects.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('')||'<option value="">No curriculum subjects assigned</option>';
+ if(group)message('academicMsg','Showing '+group+' curriculum subjects for '+(cls?.name||'this class')+'.');
+}
 async function loadAcademics(){
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
@@ -445,6 +464,7 @@ async function loadAcademics(){
  $('assessmentClassSelect').innerHTML=$('academicClassSelect').innerHTML;
  $('academicSubjectSelect').innerHTML=opts(academic.subjects,x=>x.name);
  $('assessmentSubjectSelect').innerHTML=$('academicSubjectSelect').innerHTML;
+ await filterAssessmentSubjects();
  $('academicTeacherSelect').innerHTML='<option value="">Not assigned</option>'+opts(staff.data||[],x=>x.full_name||'Staff member');
  const staffNames=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||'Staff member']));
  $('teacherAssignmentRows').innerHTML=(assignments.data||[]).map(x=>'<tr><td>'+esc(x.school_classes?.name||'—')+'</td><td>'+esc(x.subjects?.name||'—')+'</td><td>'+esc(staffNames[x.teacher_user_id]||'Not assigned')+'</td><td><select data-assignment-teacher="'+esc(x.id)+'"><option value="">Not assigned</option>'+ (staff.data||[]).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===x.teacher_user_id?'selected':'')+'>'+esc(p.full_name||'Staff member')+'</option>').join('')+'</select> <button type="button" class="primary" data-save-assignment="'+esc(x.id)+'">Save</button></td></tr>').join('')||'<tr><td colspan="4">No class-subject assignments yet.</td></tr>';
@@ -489,6 +509,10 @@ async function renderReportCard(){
  const grouped=new Map();
  data.assessments.forEach(a=>{const rows=data.scores.filter(s=>s.assessment_id===a.id&&s.student_id===studentId);if(!grouped.has(a.subject_id))grouped.set(a.subject_id,{name:a.subjects?.name||'Subject',score:0,max:0,assessments:0,comments:[]});const g=grouped.get(a.subject_id);rows.forEach(s=>{g.score+=Number(s.score);g.max+=Number(a.max_score);g.assessments++;if(s.teacher_comment)g.comments.push(s.teacher_comment)})});
  const rows=[...grouped.values()].filter(x=>x.assessments),total=rows.reduce((n,x)=>n+x.score,0),max=rows.reduce((n,x)=>n+x.max,0),pct=max?total/max*100:0;const overallGrade=gradeFor(pct);
+ const classLearners=students.filter(x=>x.class_id===learner.class_id&&x.status==='Active');
+ const ranking=classLearners.map(l=>{const score=data.scores.filter(z=>z.student_id===l.id);let got=0,possible=0;score.forEach(z=>{const a=data.assessments.find(v=>v.id===z.assessment_id);if(a){got+=Number(z.score);possible+=Number(a.max_score)}});return {id:l.id,got,possible,percentage:possible?got/possible*100:-1}}).filter(x=>x.percentage>=0).sort((a,b)=>b.percentage-a.percentage);
+ const position=ranking.findIndex(x=>x.id===studentId)+1;
+ const classSize=classLearners.length;
  const termId=$('reportTermSelect').value;
  const publication=await db.from('report_card_publications').select('id,approved_at,approved_by').eq('term_id',termId).eq('student_id',studentId).maybeSingle();
  if(publication.error){message('academicMsg','Could not check report approval: '+publication.error.message,true);return}
@@ -535,6 +559,7 @@ async function loadBulkMarkSheet(){
  body.innerHTML=list.map(x=>{const mark=saved[x.id];return '<tr><td>'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</td><td><input aria-label="Score for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-score="'+x.id+'" type="number" min="0" max="'+Number(ass.max_score)+'" step="0.01" inputmode="decimal" placeholder=" / '+Number(ass.max_score)+'" value="'+(mark?esc(mark.score):'')+'" style="max-width:105px"></td><td><input aria-label="Comment for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-comment="'+x.id+'" value="'+(mark?.teacher_comment?esc(mark.teacher_comment):'')+'" placeholder="Optional comment"></td></tr>'}).join('')||'<tr><td colspan="3">No learners are registered in this class.</td></tr>';
  message('bulkMarksMsg',(data||[]).length+' existing mark(s) loaded. Maximum score: '+ass.max_score+'.');
 }
+$('assessmentClassSelect').addEventListener('change',filterAssessmentSubjects);
 $('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
 $('saveBulkMarks').addEventListener('click',async()=>{
  if(!['Admin','Teacher'].includes(profile?.role)){message('bulkMarksMsg','Only administrators and assigned teachers can save marks.',true);return}
