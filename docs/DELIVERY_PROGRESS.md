@@ -118,3 +118,11 @@
 - Date boundaries use Africa/Kampala local midnight and an exclusive next-day boundary, including the full selected end date.
 - JavaScript syntax check passed. Live browser query and print testing pending; database has no payment records at this time.
 - Commits: `bbdcdd3`, date-boundary correction `8d47e77`.
+
+
+## 2026-11-04 — Portable thermal receipts and parent payment SMS foundation
+- Added receipt paper-width selection for 58 mm and 80 mm portable thermal rolls, compact receipt typography/layout, and a print-only test slip. Receipt issue and receipt reprint both apply the selected paper width. The current implementation uses the device/system print dialog; direct Bluetooth ESC/POS bridge support still depends on the actual printer connection type and Android print environment.
+- Added guardian SMS opt-in on learner admission. Default is opt-out. A posted payment queues a parent SMS only when consent is enabled and a guardian phone is present. Added admin-only outbox visibility; no message is sent yet because the school must select and configure an SMS provider, credentials and sender ID.
+- Database migration `202611040012_parent_payment_sms_outbox.sql` applied and committed. Verified outbox schema, payment trigger, and permissions: anonymous users cannot read the queue, authenticated users have SELECT subject to admin RLS, and cannot directly execute the trigger function.
+- JavaScript syntax checks passed. Printer hardware print test and SMS delivery test pending. No live provider credentials or physical printer model have been supplied.
+- Commits: thermal layout `0954f5c`, print action width fix `bdabd48`, parent consent/queue UI `06279d8`, SMS migration `ebb549a`.
