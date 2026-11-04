@@ -89,3 +89,10 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Preview deployment for the finance milestone is READY: https://cornhill-school-1yeg5ud2m-cypher-projects1.vercel.app (commit `487c09b1c3ed2993e1488ff3b6fc989fef02a069`). Inline JavaScript syntax check passed. No interactive browser/device test has yet been performed.
 
 - Extended the no-login read-only demo to include sample finance fee items, schedules, learner balances, and receipt activity. These are synthetic examples only; all finance forms remain disabled in demo mode.
+
+## 2026-11-04 — Teacher mark-entry permissions
+- Added a teacher mark-entry view: teachers see the assessment and score-entry workflow, while academic-year, term, subject, class assignment and assessment-creation controls remain administrator-only.
+- Added RLS policies restricting teacher assessment/score reads to class-subject assignments where `teacher_user_id = auth.uid()`. Score inserts and updates also require the learner to belong to the assessment class and record the authenticated teacher as `entered_by`.
+- Added an index supporting teacher assignment lookups. Applied the policies to Supabase and committed replayable SQL at `supabase/migrations/202611040002_teacher_mark_entry.sql`.
+- Inline JavaScript syntax check passed.
+- Current database has one Admin profile, zero assigned teacher-subject rows and no teacher accounts to exercise the workflow. Admin must create teacher accounts and assign class subjects before teachers see assessments. No teacher browser login test has been possible yet.
