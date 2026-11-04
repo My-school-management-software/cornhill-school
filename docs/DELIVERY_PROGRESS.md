@@ -222,3 +222,15 @@
 - Code commit: 287aaaa. Source change is committed to `feature/cornhill-v3-foundation`; browser/E2E verification remains pending. Production remains untouched.
 
 - Follow-up safety fix: learner profile edits preserve the existing bursary status, approved amount and bursary note. This prevents a profile-only edit from silently changing the financial arrangement. Commit: `793ff8c`.
+
+
+## 2026-11-04 — Parallel learner, class, teacher and report improvements
+- Learner register now offers a read-only profile view for administrators and assigned teachers. The profile displays school code, Ministry LIN, P7 index, identity, admission, class and learner type; guardian contact, home address and bursary details are limited to administrator view.
+- Added print-ready individual learner profiles.
+- Added class register views with alphabetical learner listing, serial numbers, gender totals, active totals, guardian contacts, and print action. Teachers can open registers only for classes already exposed by their existing class/subject assignments.
+- Teacher navigation now exposes read-only learner and class registers alongside academic mark entry. Class creation remains administrator-only.
+- Added client-side duplicate checks for Ministry LIN and P7 index before admission, plus a same-name/date-of-birth confirmation. Existing class/stream duplicates are rejected.
+- Added print-only output for term report cards. Teacher report preview no longer queries the administrator-only publication table; approval remains administrator-only.
+- Learner edit now explicitly saves SMS consent as true/false, so withdrawing consent is respected.
+- Existing database RLS remains unchanged. No production schema, production records, or live deployment were modified.
+- Commits: `3169a22`, `2c77f1d`, `6540837`. Static/browser end-to-end testing is still pending; these changes are not yet declared production-ready.
