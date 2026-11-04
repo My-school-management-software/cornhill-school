@@ -254,6 +254,11 @@ async function loadAcademics(){
   db.from('assessment_scores').select('id,score,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100)
  ]);
  const err=[y,t,s,a,staff,cscores].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
+ if(profile?.role==='Teacher'){
+  const assigned=await db.from('class_subjects').select('class_id').eq('teacher_user_id',currentUserId);
+  if(assigned.error){message('academicMsg','Could not load your class assignments: '+assigned.error.message,true);return}
+  window.teacherClassIds=[...new Set((assigned.data||[]).map(x=>x.class_id))];
+ }else window.teacherClassIds=null;
  academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:a.data||[]};
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
  $('academicYearSelect').innerHTML=opts(academic.years,x=>x.name);
