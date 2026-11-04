@@ -220,3 +220,5 @@
 - The update path does not regenerate or replace the permanent school admission number. Class/stream placement can be corrected through the existing class selector.
 - Existing bursary validation is retained; editing bursary details updates the learner record and does not create a second admission-time bursary charge.
 - Code commit: 287aaaa. Source change is committed to `feature/cornhill-v3-foundation`; browser/E2E verification remains pending. Production remains untouched.
+
+- Follow-up safety fix: learner profile edits preserve the existing bursary status, approved amount and bursary note. This prevents a profile-only edit from silently changing the financial arrangement. Commit: `793ff8c`.
