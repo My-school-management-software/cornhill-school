@@ -228,8 +228,12 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  </div>
  <h3 style="margin-top:20px">Grading bands</h3>
  <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
- <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add grading band</button></div></form></div>
+ <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add general grading band</button></div></form></div>
  <div class="table-wrap"><table><thead><tr><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Comment</th></tr></thead><tbody id="gradeBandRows"></tbody></table></div>
+ <h4 style="margin-top:16px">UNEB P4–P7 subject grading</h4>
+ <p class="muted">Set the percentage range for each grade separately for each core subject. The nine UNEB grade codes are preloaded; aggregate remains unavailable until all required subject boundaries are configured.</p>
+ <div id="unebGradeBandAdmin" class="hidden"><form id="unebGradeBandForm"><div><label>Core subject *</label><select name="subject_id" id="unebGradeSubject" required></select></div><div><label>Grade code *</label><select name="grade_code" required><option>D1</option><option>D2</option><option>C3</option><option>C4</option><option>C5</option><option>C6</option><option>P7</option><option>P8</option><option>F9</option></select></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div class="full"><button class="primary">Save UNEB subject boundary</button></div></form></div>
+ <div class="table-wrap"><table><thead><tr><th>Subject</th><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Status</th></tr></thead><tbody id="unebGradeBandRows"></tbody></table></div>
  <h3 style="margin-top:24px">7. Term report cards and class performance</h3>
  <p class="muted">Preview individual learner results by term and review class averages. These are draft results for checking; official publication and grading bands require administrator approval.</p>
  <div class="row" style="align-items:end">
@@ -820,7 +824,9 @@ $('staffProfileForm').addEventListener('submit',async e=>{
 const ABSENT_MARKER='[ABSENT:X]';
 function isAbsentMark(mark){return mark?.teacher_comment===ABSENT_MARKER}
 let gradeBands=[];
+let unebSubjectGradeBands=[];
 function gradeFor(percent){return gradeBands.find(x=>x.is_active!==false&&percent>=Number(x.min_percent)&&percent<=Number(x.max_percent))||null}
+function unebGradeFor(subjectId,percent){return unebSubjectGradeBands.find(x=>x.subject_id===subjectId&&x.is_active!==false&&x.min_percent!==null&&x.max_percent!==null&&percent>=Number(x.min_percent)&&percent<=Number(x.max_percent))||null}
 function unebGradePoint(gradeName){const m=String(gradeName||'').toUpperCase().match(/(?:D|C|P|F)\s*([1-9])/);return m?Number(m[1]):null}
 function unebPrimaryDivision(subjectGrades){
  const required=['English','Mathematics','Science','Social Studies'];
@@ -846,6 +852,22 @@ async function loadGradeBands(){
  gradeBands=data||[];
  $('gradeBandRows').innerHTML=gradeBands.map(x=>'<tr><td><strong>'+esc(x.name)+'</strong></td><td>'+Number(x.min_percent).toFixed(2)+'%</td><td>'+Number(x.max_percent).toFixed(2)+'%</td><td>'+esc(x.comment||'—')+'</td></tr>').join('')||'<tr><td colspan="4">No active grading bands.</td></tr>';
 }
+async function loadUnebSubjectGradeBands(){
+ const {data,error}=await db.from('uneb_subject_grade_bands').select('id,subject_id,grade_code,grade_point,min_percent,max_percent,is_active,subjects(name)').order('grade_point');
+ if(error){message('academicMsg','UNEB subject grading unavailable: '+error.message,true);return}
+ unebSubjectGradeBands=data||[];
+ $('unebGradeBandRows').innerHTML=unebSubjectGradeBands.map(x=>'<tr><td>'+esc(x.subjects?.name||'—')+'</td><td><strong>'+esc(x.grade_code)+'</strong></td><td>'+(x.min_percent===null?'Not configured':Number(x.min_percent).toFixed(2)+'%')+'</td><td>'+(x.max_percent===null?'Not configured':Number(x.max_percent).toFixed(2)+'%')+'</td><td>'+(x.min_percent===null?'Awaiting cut-off':'Configured')+'</td></tr>').join('')||'<tr><td colspan="5">No UNEB subject grades found.</td></tr>';
+}
+$('unebGradeBandForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(profile?.role!=='Admin')return;
+ const v=Object.fromEntries(new FormData(e.target).entries()),low=Number(v.min_percent),high=Number(v.max_percent);
+ if(low>high){message('academicMsg','Minimum must not exceed maximum.',true);return}
+ const current=unebSubjectGradeBands.filter(x=>x.subject_id===v.subject_id&&x.grade_code!==v.grade_code&&x.min_percent!==null);
+ if(current.some(x=>low<=Number(x.max_percent)&&high>=Number(x.min_percent))){message('academicMsg','This range overlaps another configured grade for the same subject.',true);return}
+ const {error}=await db.from('uneb_subject_grade_bands').update({min_percent:low,max_percent:high,updated_at:new Date().toISOString()}).eq('subject_id',v.subject_id).eq('grade_code',v.grade_code);
+ if(error){message('academicMsg','Could not save UNEB boundary: '+error.message,true);return}
+ await loadUnebSubjectGradeBands();message('academicMsg','UNEB subject grade boundary saved.');
+});
 $('gradeBandForm').addEventListener('submit',async e=>{
  e.preventDefault();
  if(profile?.role!=='Admin')return;
@@ -881,6 +903,7 @@ async function loadAcademics(){
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
  $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
+ $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Administrator access':'Assigned teacher · Mark entry only';
  const [y,t,s,a,staff,cscores,assignments]=await Promise.all([
@@ -895,6 +918,8 @@ async function loadAcademics(){
  const err=[y,t,s,a,staff,cscores,assignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
  if(profile?.role!=='Teacher')window.teacherClassIds=null;
  academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:a.data||[]};
+ $('unebGradeSubject').innerHTML=academic.subjects.filter(x=>['english','mathematics','science','social studies'].includes(String(x.name).toLowerCase())).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+ await loadUnebSubjectGradeBands();
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
  $('academicYearSelect').innerHTML=opts(academic.years,x=>x.name);
  $('academicClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
@@ -945,7 +970,7 @@ async function renderReportCard(){
  if(!studentId){message('academicMsg','Choose a learner for the individual report card.',true);return}
  const learner=students.find(x=>x.id===studentId);if(!learner)return;
  const grouped=new Map();
- data.assessments.forEach(a=>{const rows=data.scores.filter(s=>s.assessment_id===a.id&&s.student_id===studentId);if(!grouped.has(a.subject_id))grouped.set(a.subject_id,{name:a.subjects?.name||'Subject',score:0,max:0,assessments:0,comments:[]});const g=grouped.get(a.subject_id);rows.forEach(s=>{g.assessments++;if(isAbsentMark(s)){g.absentAssessments=(g.absentAssessments||0)+1}else{g.score+=Number(s.score);g.max+=Number(a.max_score)}if(s.teacher_comment&&!isAbsentMark(s))g.comments.push(s.teacher_comment)})});
+ data.assessments.forEach(a=>{const rows=data.scores.filter(s=>s.assessment_id===a.id&&s.student_id===studentId);if(!grouped.has(a.subject_id))grouped.set(a.subject_id,{subject_id:a.subject_id,name:a.subjects?.name||'Subject',score:0,max:0,assessments:0,comments:[]});const g=grouped.get(a.subject_id);rows.forEach(s=>{g.assessments++;if(isAbsentMark(s)){g.absentAssessments=(g.absentAssessments||0)+1}else{g.score+=Number(s.score);g.max+=Number(a.max_score)}if(s.teacher_comment&&!isAbsentMark(s))g.comments.push(s.teacher_comment)})});
  const rows=[...grouped.values()].filter(x=>x.assessments),total=rows.reduce((n,x)=>n+x.score,0),max=rows.reduce((n,x)=>n+x.max,0),pct=max?total/max*100:0;const overallGrade=gradeFor(pct);
  const classLearners=students.filter(x=>x.class_id===learner.class_id&&x.status==='Active');
  const ranking=classLearners.map(l=>{const score=data.scores.filter(z=>z.student_id===l.id);let got=0,possible=0;score.forEach(z=>{const a=data.assessments.find(v=>v.id===z.assessment_id);if(a&&!isAbsentMark(z)){got+=Number(z.score);possible+=Number(a.max_score)}});return {id:l.id,got,possible,percentage:possible?got/possible*100:-1}}).filter(x=>x.percentage>=0).sort((a,b)=>b.percentage-a.percentage);
@@ -953,7 +978,7 @@ async function renderReportCard(){
  const position=learnerRank<0?0:ranking.findIndex(x=>x.percentage===ranking[learnerRank].percentage)+1;
  const classSize=classLearners.length;
  const classGroup=curriculumGroupForClass(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'');
- const uneb=classGroup==='P4-P7'?unebPrimaryDivision(rows.map(x=>({name:x.name,max:x.max,absent:!!x.absentAssessments,grade:x.max?gradeFor((x.score/x.max)*100)?.name||'':''}))):null;
+ const uneb=classGroup==='P4-P7'?unebPrimaryDivision(rows.map(x=>({name:x.name,max:x.max,absent:!!x.absentAssessments,grade:x.max?unebGradeFor(x.subject_id,(x.score/x.max)*100)?.grade_code||'':''}))):null;
  const aggregateNote=classGroup==='P4-P7'?(uneb?.ready?'<p><strong>UNEB-style aggregate:</strong> '+uneb.aggregate+' &nbsp; <strong>Base division:</strong> '+(uneb.baseDivision===5?'U':uneb.baseDivision)+' &nbsp; <strong>Adjusted division:</strong> '+(uneb.division===5?'U':uneb.division)+'</p><p class="muted">English '+(uneb.englishGrade===9?'F9: moves down two divisions.':uneb.englishGrade===8?'P8: moves down one division.':'grade '+uneb.englishGrade+': no English adjustment.')+' Mathematics '+(uneb.mathGrade===9?'F9: moves down one division.':'grade '+uneb.mathGrade+': no Mathematics adjustment.')+'</p>':'<p><strong>UNEB-style aggregate:</strong> X &nbsp; <strong>Division:</strong> X</p><p class="muted">'+esc(uneb?.reason||'Aggregate or division is not available.')+'</p>'):'';
  const termId=$('reportTermSelect').value;
  let publication={data:null,error:null};
@@ -962,7 +987,7 @@ async function renderReportCard(){
  const approved=!!publication.data;
  const approvalLine=approved?'<p><strong>School approval:</strong> Approved on '+esc(new Date(publication.data.approved_at).toLocaleString())+'</p>':'<p class="muted">Draft only — not yet approved or published by the school administrator.</p>';
  const approveButton=profile?.role==='Admin'&&!approved?'<button class="primary" type="button" id="approveReportButton">Approve official report</button>':'';
- $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · '+(approved?'APPROVED':'DRAFT')+'</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>School code:</strong> '+esc(learner.admission_number)+' &nbsp; <strong>LIN:</strong> '+esc(learner.lin||'Not yet issued/entered')+(String(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'').toUpperCase().includes('P7')?' &nbsp; <strong>P7 index:</strong> '+esc(learner.p7_index_number||'Not yet registered'):'')+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th><th>Grade</th><th>Teacher comment</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+(x.max?money(x.score):'X')+'</td><td>'+(x.max?money(x.max):'—')+'</td><td>'+(x.max?((x.score/x.max)*100).toFixed(1)+'%':'X · Absent')+'</td><td>'+esc(x.max?(gradeFor((x.score/x.max)*100)?.name||'—'):'X')+'</td><td>'+esc((x.absentAssessments?'X · Absent in '+x.absentAssessments+' assessment(s)':'')+(x.comments.length?' · '+x.comments.join(' · '):'')||'—')+'</td></tr>').join('')+'</tbody></table></div><p><strong>Total marks:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%) · <strong>Grade:</strong> '+esc(overallGrade?.name||'—')+' · '+esc(overallGrade?.comment||'')+'</p><p><strong>Class size:</strong> '+classSize+' active learners · <strong>Class position:</strong> '+(position>0?position+' of '+classSize:'Not ranked — no marks recorded')+'</p>'+aggregateNote+approvalLine+approveButton+' <button class="tab" type="button" id="printOfficialReport">Print report</button></div>';
+ $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · '+(approved?'APPROVED':'DRAFT')+'</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>School code:</strong> '+esc(learner.admission_number)+' &nbsp; <strong>LIN:</strong> '+esc(learner.lin||'Not yet issued/entered')+(String(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'').toUpperCase().includes('P7')?' &nbsp; <strong>P7 index:</strong> '+esc(learner.p7_index_number||'Not yet registered'):'')+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th><th>Grade</th><th>Teacher comment</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+(x.max?money(x.score):'X')+'</td><td>'+(x.max?money(x.max):'—')+'</td><td>'+(x.max?((x.score/x.max)*100).toFixed(1)+'%':'X · Absent')+'</td><td>'+esc(x.max?(classGroup==='P4-P7'?(unebGradeFor(x.subject_id,(x.score/x.max)*100)?.grade_code||'—'):(gradeFor((x.score/x.max)*100)?.name||'—')):'X')+'</td><td>'+esc((x.absentAssessments?'X · Absent in '+x.absentAssessments+' assessment(s)':'')+(x.comments.length?' · '+x.comments.join(' · '):'')||'—')+'</td></tr>').join('')+'</tbody></table></div><p><strong>Total marks:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%) · <strong>Grade:</strong> '+esc(overallGrade?.name||'—')+' · '+esc(overallGrade?.comment||'')+'</p><p><strong>Class size:</strong> '+classSize+' active learners · <strong>Class position:</strong> '+(position>0?position+' of '+classSize:'Not ranked — no marks recorded')+'</p>'+aggregateNote+approvalLine+approveButton+' <button class="tab" type="button" id="printOfficialReport">Print report</button></div>';
  const printButton=$('printOfficialReport');if(printButton)printButton.addEventListener('click',()=>{document.body.classList.add('print-official-report');window.print();document.body.classList.remove('print-official-report')});
  const approve=$('approveReportButton');
  if(approve)approve.addEventListener('click',async()=>{
