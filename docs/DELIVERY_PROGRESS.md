@@ -200,3 +200,6 @@
 - Individual term report now displays total marks, percentage/grade and a position among active learners in the same class who have marks recorded for the selected term. Learners without marks are not ranked.
 - This does not yet calculate Uganda PLE aggregate/division; the school's approved grade-to-aggregate/division mapping must be configured before that result is published. Tied percentages currently receive sequential positions, not shared ranks; this should be improved before official ranking use.
 - Code commit: `6215517`. Browser testing remains pending; no student fixtures were created.
+
+- Offline service-worker review found an older `service-worker.js` already registered by the app. Removed the second registration to avoid competing service workers; retained the existing same-origin-only, GET-only shell cache. Fix commit: `2a81f8e`.
+- Preview deployment check: no deployment exists for the current feature commit. Vercel team plan confirmed Hobby (free). Preview creation was rejected with HTTP 402 `payment_required`, specifically the 24-hour `api-deployments-young-hobby-team-24h` limit (retry after 24 hours). No upgrade, billing, payment method, or paid service was enabled. Production remains untouched.
