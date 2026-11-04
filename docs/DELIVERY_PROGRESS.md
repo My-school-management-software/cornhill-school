@@ -338,3 +338,7 @@
 - Full offline data sync is not enabled. The current service worker caches only the app shell and deliberately excludes API/auth data. A safe offline marks outbox still needs conflict detection, re-authentication, permission re-check and device data-protection decisions; offline finance payments must never be silently queued or receipted.
 - Fingerprint attendance has a CSV import path and device-user mapping, but no live terminal integration has been verified. The exact fingerprint device make/model, firmware, export/API protocol and USB driver/bridge are required to build and test a reliable adapter.
 - No real browser end-to-end run has been performed. Static parsing is not browser testing; the latest preview/deployment must be checked and tested with administrator, teacher and staff accounts before release.
+
+
+- Latest preview deployment for application commit b32122c is READY at https://cornhill-school-e1zdpd4vp-cypher-projects1.vercel.app (preview target, not production). The Vercel deployment record confirms the commit and READY state. This is not a completed browser end-to-end test; direct HTTP access from this runtime was unavailable, and sign-in/role workflows have not been exercised.
+- Pure logic checks for the new CSV escaping and competition ranking passed. These do not replace a browser download test.
