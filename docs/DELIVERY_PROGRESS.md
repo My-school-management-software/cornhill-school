@@ -534,3 +534,16 @@
 - Current live learner count remains zero. No learner identities, guardian details, photographs, payments or marks were fabricated.
 - Stage 1 implementation and class structure are in place. Production acceptance is still conditional on the school administrator testing admission and automatic code generation, Android photo upload, promotion/status changes, teacher class access, and printed class registers using a real authenticated session. These actions cannot be truthfully marked end-to-end tested from source/database checks alone.
 - Preview deployment remains on the older published commit until Vercel's free deployment API limit clears; no plan upgrade or paid deployment was initiated.
+
+
+## 2026-11-04 — Stage 2 UNEB grading configuration foundation
+
+- Added `public.uneb_subject_grade_bands` as a separate grading scale for P4–P7 core subjects. It stores the nine UNEB PLE grade codes and aggregate points independently for English, Mathematics, Science and Social Studies.
+- Seeded 9 grade-code rows for each of the four core subjects (36 rows total). All percentage boundaries are intentionally null until CORNHILL configures the verified subject-specific cut-offs; no invented percentage thresholds were inserted.
+- Enabled row-level security: authenticated users can read the scale; school administrators can manage it.
+- Connected the academic screen to show the UNEB subject-grade setup and allow administrators to save a subject-specific percentage range. Report-card subject grades and P4–P7 aggregate calculation now read this scale. Aggregate remains unavailable until the relevant grade boundaries are configured.
+- Kept the existing general A–E scale separate for Nursery and P1–P3.
+- Applied and recorded Supabase migration `uneb_subject_grade_scales`; verification returned 9 grade codes for each of the four core subjects, all 36 awaiting percentage cut-offs.
+- Security advisor still reports existing WARN findings for callable SECURITY DEFINER functions and disabled leaked-password protection. No new error-level finding was reported in this check.
+- Not yet deployed to the preview: the Vercel deployment API rate limit previously blocked deployment. This code must not be described as live until the deployed commit is verified.
+- Still required before Stage 2 acceptance: configure approved subject cut-offs, run authenticated admin/teacher mark-entry tests, verify grade boundaries and aggregates with sample test marks, and test printed reports on Android and desktop.
