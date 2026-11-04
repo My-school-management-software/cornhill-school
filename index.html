@@ -473,10 +473,21 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
  const batch=await db.from('staff_attendance_import_batches').insert({source:'usb_csv',source_file_name:file.name,device_model:model||null,device_serial:serial,imported_rows:valid.length,rejected_rows:issues.length,created_by:user.id,notes:'Imported through Cornhill USB attendance screen'}).select('id').single();
  if(batch.error){message('attendanceMsg','Could not create import batch: '+batch.error.message,true);return}
  const records=valid.map(x=>({...x,import_batch_id:batch.data.id,recorded_by:user.id}));
- const result=await db.from('staff_attendance_events').insert(records);
- if(result.error){message('attendanceMsg','Import batch was created but event insertion failed. Do not re-upload until the administrator checks the batch. Error: '+result.error.message,true);return}
- message('attendanceMsg','Successfully imported '+valid.length+' attendance events. '+issues.length+' rows were skipped.');
- $('attendancePreview').insertAdjacentHTML('beforeend','<p class="badge">Import complete</p>');
+ const withExternal=records.filter(x=>x.external_event_id), withoutExternal=records.filter(x=>!x.external_event_id);
+ let inserted=0,importError=null;
+ if(withExternal.length){
+  const result=await db.from('staff_attendance_events').upsert(withExternal,{onConflict:'device_serial,external_event_id',ignoreDuplicates:true}).select('id');
+  if(result.error)importError=result.error;else inserted+=(result.data||[]).length;
+ }
+ if(!importError&&withoutExternal.length){
+  const result=await db.from('staff_attendance_events').upsert(withoutExternal,{onConflict:'device_serial,device_user_id,event_type,occurred_at',ignoreDuplicates:true}).select('id');
+  if(result.error)importError=result.error;else inserted+=(result.data||[]).length;
+ }
+ if(importError){message('attendanceMsg','The import batch was created but attendance rows could not be saved. Check the batch before retrying. Error: '+importError.message,true);return}
+ const duplicates=valid.length-inserted;
+ await db.from('staff_attendance_import_batches').update({imported_rows:inserted,notes:'Imported through Cornhill USB attendance screen; '+duplicates+' duplicate rows ignored.'}).eq('id',batch.data.id);
+ message('attendanceMsg','Imported '+inserted+' new attendance events. '+duplicates+' previously imported duplicates ignored; '+issues.length+' invalid rows skipped.');
+ $('attendancePreview').insertAdjacentHTML('beforeend','<p class="badge">Import complete · '+inserted+' new · '+duplicates+' duplicates ignored</p>');
 });
 
 $('signIn').addEventListener('click',async()=>{clearMessage('loginMsg');const {data,error}=await db.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(error){message('loginMsg',error.message,true);return}await startSession(data.session)});
