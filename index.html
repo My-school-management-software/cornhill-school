@@ -819,7 +819,7 @@ $('staffProfileForm').addEventListener('submit',async e=>{
 
 let gradeBands=[];
 function gradeFor(percent){return gradeBands.find(x=>x.is_active!==false&&percent>=Number(x.min_percent)&&percent<=Number(x.max_percent))||null}
-function unebGradePoint(gradeName){const m=String(gradeName||'').toUpperCase().match(/(?:D|C|P|F)\\s*([1-9])/);return m?Number(m[1]):null}
+function unebGradePoint(gradeName){const m=String(gradeName||'').toUpperCase().match(/(?:D|C|P|F)\s*([1-9])/);return m?Number(m[1]):null}
 function unebPrimaryDivision(subjectGrades){
  const required=['English','Mathematics','Science','Social Studies'];
  const normalized=required.map(label=>({label,grade:subjectGrades.find(x=>{const n=String(x.name||'').toLowerCase();return label==='English'?n.includes('english'):label==='Mathematics'?n.includes('mathematics')||n.includes('math'):label==='Science'?n.includes('science'):n.includes('social studies')||n==='sst'})}));
