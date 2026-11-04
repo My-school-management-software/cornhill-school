@@ -237,3 +237,6 @@
 
 - Final learner form polish: added learner status selection (Active / Inactive / Transferred), explicit Cancel edit action, and clear Edit learner heading. Commit: `435c609`.
 - Vercel Git preview for this development branch reports `READY` (latest code commit `435c609`; docs-only tracker commit `10de2b7` also has a READY preview). This is a preview only (`target: null`), not a production release. Browser sign-in and role-based end-to-end checks remain outstanding.
+
+- Static markup integrity check: 188 declared element IDs, no duplicate IDs, and no missing literal `$('id')` references in the current HTML. Vercel confirms the code preview deployment is READY.
+- Important limitation: duplicate LIN/P7 checks currently run in the registration UI; database-level unique indexes are not yet installed, so a concurrent duplicate submission could still race. A reviewed Supabase migration and admin/teacher browser tests are required before production release. Production database schema and records were not changed during this work.
