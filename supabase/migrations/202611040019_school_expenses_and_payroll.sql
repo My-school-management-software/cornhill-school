@@ -65,6 +65,7 @@ create table if not exists public.payroll_items (
  status text not null default 'Pending' check(status in ('Pending','Paid','On hold')),
  paid_at timestamptz,
  payment_reference text,
+ payment_method text not null default 'Bank transfer' check(payment_method in ('Cash','Bank transfer','Mobile Money','Cheque','Other')),
  notes text,
  created_at timestamptz not null default now(),
  unique(payroll_period_id,staff_user_id),
@@ -117,7 +118,7 @@ begin
   select 'SAL-'||left(replace(new.id::text,'-',''),12),(timezone('Africa/Kampala',coalesce(new.paid_at,now())))::date,v_category,
    'Salary payment · '||new.staff_name_snapshot||' · payroll period '||p.period_name,
    new.net_pay_ugx,new.staff_name_snapshot,
-   case when nullif(new.payment_reference,'') is null then 'Other' else 'Bank transfer' end,
+   new.payment_method,
    new.payment_reference,new.id,auth.uid()
   from public.payroll_periods p where p.id=new.payroll_period_id;
  end if;
