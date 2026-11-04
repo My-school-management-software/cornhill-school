@@ -259,3 +259,11 @@
 - Confirmed via PostgreSQL privilege inspection that `authenticated` currently has table-level SELECT on `public.students`, including guardian names/phones, home address, guardian email, bursary details and SMS consent. The current assigned-teacher RLS policy restricts which learner rows teachers can read, but does not restrict columns on those rows. The `anon` role also has table-level SELECT privilege; row-level policy behavior still applies.
 - Therefore the UI hiding fields and teacher query projection are defence-in-depth only; they do **not** prove sensitive columns are inaccessible through direct PostgREST/API requests. Do not release to production until a reviewed column-privilege/admin-RPC design is implemented and tested.
 - No privileges, RLS policies, schema, or records were changed. Production remains untouched.
+
+
+## 2026-11-04 — Local appearance preferences
+- Added an administrator-only Settings & themes panel to the application navigation.
+- Added eight built-in colour themes (Forest, Ocean, Royal, Sunrise, Ruby, Midnight, Slate and Teal) and 24 system-font choices, plus an optional subtle transition effect with reduced-motion support.
+- Theme, font and motion preferences are stored locally in the current browser/device. They do not alter school-wide settings or other users' devices; no database schema or external font service is required.
+- Added a reset-to-default action and a live preview. Preferences are applied on app load and can be changed from Settings & themes.
+- Commit: `423143c`. Browser/device visual testing remains outstanding. No production database changes or production deployment were made.
