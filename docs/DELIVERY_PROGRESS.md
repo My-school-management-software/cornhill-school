@@ -87,3 +87,5 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Fee schedules are templates only and do not bulk-charge learners. Confirm billing period and the meaning of boarding amounts before setting school-wide defaults or generating term invoices.
 
 - Preview deployment for the finance milestone is READY: https://cornhill-school-1yeg5ud2m-cypher-projects1.vercel.app (commit `487c09b1c3ed2993e1488ff3b6fc989fef02a069`). Inline JavaScript syntax check passed. No interactive browser/device test has yet been performed.
+
+- Extended the no-login read-only demo to include sample finance fee items, schedules, learner balances, and receipt activity. These are synthetic examples only; all finance forms remain disabled in demo mode.
