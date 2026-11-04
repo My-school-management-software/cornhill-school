@@ -1005,7 +1005,7 @@ function excelSubjectLabel(assessment,index,clsArg){
  const mappings=group==='Nursery'?[['number','numeracy','nu'],['language','lod'],['reading','rd'],['health','hh'],['social','sd'],['writing','wr'],['drawing','dr']]:group==='P1-P3'?[['english','eng'],['mathematics','mtc'],['literacyi','lit1'],['literacyii','lit2'],['local','ll'],['religious','re']]:[['english','eng'],['mathematics','mtc'],['science','sci'],['socialstudies','sst']];
  const found=mappings.find(x=>x.slice(0,-1).some(k=>name.includes(k)));
  const prefix=found?.[found.length-1]||(subject.code||subject.name||assessment.title||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
- return prefix+n;
+ return prefix.toUpperCase()+n;
 }
 async function loadExcelMarksGrid(){
  const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value;
@@ -1029,7 +1029,7 @@ async function loadExcelMarksGrid(){
  body.innerHTML=list.map((x,i)=>{
   const initials=([x.first_name,x.last_name].filter(Boolean).map(n=>n[0]).join('').slice(0,2)||'—').toUpperCase();
   return '<tr><td>'+(i+1)+'</td><td>'+esc(x.admission_number||'—')+'</td><td><span class="excel-photo-placeholder" title="No learner photo stored">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td><td>'+(positions.get(x.id)||'—')+'</td>'+assessments.map(a=>{const value=saved.get(a.id+'|'+x.id);return '<td><input data-grid-score data-assessment-id="'+a.id+'" data-student-id="'+x.id+'" type="number" min="0" max="'+Number(a.max_score)+'" step="0.01" inputmode="decimal" aria-label="'+esc(a.subjects?.name||a.title)+' mark for '+esc(x.first_name+' '+x.last_name)+'" value="'+(value===undefined?'':esc(value))+'" placeholder="—"></td>'}).join('')+'</tr>'
- }).join('')||'<tr><td colspan="'+(4+assessments.length)+'">No learners are registered in this class.</td></tr>';
+ }).join('')||'<tr><td colspan="'+(5+assessments.length)+'">No learners are registered in this class.</td></tr>';
  message('excelMarksMsg',list.length+' learner(s) and '+assessments.length+' subject assessment(s) loaded. Existing marks are shown.');
 }
 $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
