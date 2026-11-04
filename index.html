@@ -77,7 +77,7 @@
  <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="assessmentSubjectSelect" required></select></div><div><label>Assessment title *</label><input name="title" required placeholder="e.g. Beginning of term test"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" step="0.01" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><button class="primary">Create assessment</button></div></form>
  </div>
  <h3 style="margin-top:20px">6. Enter learner marks</h3>
- <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score *</label><input name="score" type="number" min="0" step="0.01" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form>
+ <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score *</label><input name="score" type="number" min="0" step="0.01" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form><div style="margin-top:18px"><h4>Class mark sheet</h4><p class="muted">Choose an assessment above to load its learners. Enter marks in one list and save together. Existing marks are shown so you can safely update them.</p><div id="bulkMarksMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Learner</th><th>Score</th><th>Comment</th></tr></thead><tbody id="bulkMarkRows"><tr><td colspan="3">Choose an assessment to load the class mark sheet.</td></tr></tbody></table></div><button type="button" class="primary" id="saveBulkMarks" style="margin-top:12px">Save all entered marks</button></div>
  <h3 style="margin-top:20px">Grading bands</h3>
  <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
  <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add grading band</button></div></form></div>
@@ -416,8 +416,33 @@ function updateScoreLearners(){
  const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
  const list=students.filter(x=>!ass||x.class_id===ass.class_id);
  $('scoreStudentSelect').innerHTML=list.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</option>').join('');
+ loadBulkMarkSheet();
+}
+async function loadBulkMarkSheet(){
+ const body=$('bulkMarkRows'),id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
+ if(!ass){body.innerHTML='<tr><td colspan="3">Choose an assessment to load the class mark sheet.</td></tr>';return}
+ const list=students.filter(x=>x.class_id===ass.class_id);
+ body.innerHTML='<tr><td colspan="3">Loading learners and existing marks…</td></tr>';
+ const {data,error}=await db.from('assessment_scores').select('student_id,score,teacher_comment').eq('assessment_id',id);
+ if(error){body.innerHTML='<tr><td colspan="3">Could not load existing marks.</td></tr>';message('bulkMarksMsg','Could not load existing marks: '+error.message,true);return}
+ const saved=Object.fromEntries((data||[]).map(x=>[x.student_id,x]));
+ body.innerHTML=list.map(x=>{const mark=saved[x.id];return '<tr><td>'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</td><td><input aria-label="Score for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-score="'+x.id+'" type="number" min="0" max="'+Number(ass.max_score)+'" step="0.01" inputmode="decimal" placeholder=" / '+Number(ass.max_score)+'" value="'+(mark?esc(mark.score):'')+'" style="max-width:105px"></td><td><input aria-label="Comment for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-comment="'+x.id+'" value="'+(mark?.teacher_comment?esc(mark.teacher_comment):'')+'" placeholder="Optional comment"></td></tr>'}).join('')||'<tr><td colspan="3">No learners are registered in this class.</td></tr>';
+ message('bulkMarksMsg',(data||[]).length+' existing mark(s) loaded. Maximum score: '+ass.max_score+'.');
 }
 $('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
+$('saveBulkMarks').addEventListener('click',async()=>{
+ if(!['Admin','Teacher'].includes(profile?.role)){message('bulkMarksMsg','Only administrators and assigned teachers can save marks.',true);return}
+ const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);if(!ass){message('bulkMarksMsg','Choose an assessment first.',true);return}
+ const user=(await db.auth.getUser()).data.user;if(!user){message('bulkMarksMsg','Your session has expired. Sign in again.',true);return}
+ const rows=[...document.querySelectorAll('[data-bulk-score]')],payload=[];
+ for(const input of rows){const raw=input.value.trim();if(raw==='')continue;const score=Number(raw),studentId=input.dataset.bulkScore,comment=document.querySelector('[data-bulk-comment="'+CSS.escape(studentId)+'"]')?.value.trim()||null;if(!Number.isFinite(score)||score<0||score>Number(ass.max_score)){message('bulkMarksMsg','Check the score for '+(students.find(x=>x.id===studentId)?.first_name||'a learner')+'. Scores must be between 0 and '+ass.max_score+'.',true);input.focus();return}payload.push({assessment_id:id,student_id:studentId,score,teacher_comment:comment,entered_by:user.id})}
+ if(!payload.length){message('bulkMarksMsg','Enter at least one score before saving.',true);return}
+ const button=$('saveBulkMarks');button.disabled=true;button.textContent='Saving…';
+ const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
+ button.disabled=false;button.textContent='Save all entered marks';
+ if(error){message('bulkMarksMsg','Could not save the mark sheet: '+error.message,true);return}
+ message('bulkMarksMsg','Saved '+payload.length+' learner mark(s).');await loadAcademics();await loadBulkMarkSheet();
+});
 async function submitAcademic(formId,table,transform,success){
  $(formId).addEventListener('submit',async e=>{
   e.preventDefault();if(profile?.role!=='Admin'){message('academicMsg','Only administrators can make academic changes at present.',true);return}
