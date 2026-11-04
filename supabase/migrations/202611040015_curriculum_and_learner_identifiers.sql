@@ -13,7 +13,9 @@ create table if not exists public.school_curriculum_subjects (
 alter table public.school_curriculum_subjects enable row level security;
 grant select,insert,update,delete on public.school_curriculum_subjects to authenticated;
 drop policy if exists school_curriculum_read on public.school_curriculum_subjects;
+drop policy if exists school_curriculum_read on public.school_curriculum_subjects;
 create policy school_curriculum_read on public.school_curriculum_subjects for select to authenticated using (public.is_school_admin() or exists(select 1 from public.user_profiles p where p.id=(select auth.uid()) and p.role in ('Teacher','Staff')));
+drop policy if exists school_curriculum_admin_manage on public.school_curriculum_subjects;
 drop policy if exists school_curriculum_admin_manage on public.school_curriculum_subjects;
 create policy school_curriculum_admin_manage on public.school_curriculum_subjects for all to authenticated using (public.is_school_admin()) with check (public.is_school_admin());
 insert into public.subjects(name,code) values
