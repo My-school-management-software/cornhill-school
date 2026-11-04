@@ -596,3 +596,10 @@
 - Payment amounts must be positive whole UGX values within JavaScript's safe-integer range before the payment RPC is called.
 - Unexpected client-side failures are surfaced with a warning to check the receipt register before retrying, because the server may already have committed a payment.
 - The existing database RPC remains the atomic payment/allocation operation. This UI guard does not replace database idempotency; authenticated double-submit and receipt tests remain required.
+
+
+### 2026-11-04 — Learner admission submission guard
+- Learner registration and editing now lock the submit control while duplicate identifier checks, the database write, and optional photo upload are in progress.
+- A second rapid submission is ignored; the control is restored on normal completion, validation return, or unexpected client-side error.
+- Unexpected failures instruct the administrator to check the learner register before retrying, reducing accidental duplicate admissions when a request may already have reached the database.
+- Permanent learner-code generation and database uniqueness protections remain the authoritative controls; real authenticated admission/photo tests are still outstanding.
