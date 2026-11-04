@@ -141,3 +141,12 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Commit: `29b321b033d6c60ea1b5f0d9ecf93500ff600609`.
 - Preview deployment `https://cornhill-school-oydeh4nzm-cypher-projects1.vercel.app` reached Vercel `READY`.
 - Production was not changed. A real-device signed-in browser test is still required to confirm the administrator can reach the dashboard on the affected phone.
+
+
+## 2026-11-04 — Secure staff invitations (first release)
+- Added an administrator-only Supabase Edge Function, `staff-invite`, with platform JWT verification plus a server-side check that the caller's database profile role is `Admin`.
+- The function invites staff through Supabase Auth Admin, creates the matching `user_profiles` row using the trusted server credential, and permits only `Teacher` or `Staff` roles. It does not allow invitation-based Admin promotion.
+- Added an administrator staff-screen form for full name, email and role. The invitee receives an email invitation and chooses their own password; no password is handled or stored by the school app.
+- Edge Function deployment status: ACTIVE, JWT verification enabled.
+- Source code is committed at `supabase/functions/staff-invite/index.ts`.
+- Remaining verification: complete one real invitation and acceptance using a designated staff email, then verify Teacher login, class assignment filtering and mark entry in the browser. Email delivery depends on the project's configured Auth SMTP/template and allowed redirect settings.
