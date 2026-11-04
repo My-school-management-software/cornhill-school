@@ -106,3 +106,11 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Teacher report filters are restricted to classes in their teacher assignment records; score visibility remains governed by Supabase RLS. Teachers see only marks allowed by their assigned-subject policies, so a teacher's report preview may be partial where other subjects are assigned to other teachers.
 - No schema migration was required. Cashier shift reconciliation remains deferred because payment creation and payment-table access are currently Admin-only; cashier roles and shift-aware payment posting need a separate security design.
 - No active learners or recorded scores are currently present in the live database, so live report output could not be exercised with real school data. Browser/device testing remains outstanding.
+
+
+## 2026-11-04 — Configurable grading and report approval
+- Added administrator-managed active grade bands with overlap checks; draft report cards now display the configured overall grade and comment.
+- Added an administrator-only report approval action. Approval records the term, class, learner, approving authenticated user and timestamp; the report preview displays approved/draft status.
+- Applied Supabase RLS/grant migration for grade bands and publication records. Grade bands are readable by authenticated users; grade maintenance and report approval are restricted to school administrators, and the approver must match the authenticated user.
+- Added replayable SQL at `supabase/migrations/202611040003_report_approval_grading.sql`.
+- The approval flow is implemented but has not yet been exercised against a real learner/term with a browser session. Do not treat all school reports as approved by default.
