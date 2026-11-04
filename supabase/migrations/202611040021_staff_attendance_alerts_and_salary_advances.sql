@@ -64,7 +64,6 @@ begin
 end $$;
 -- Staff can read and mark only their own attendance alerts.
 create policy "Staff read own attendance alerts" on public.staff_attendance_alerts for select to authenticated using(staff_user_id=(select auth.uid()));
-create policy "Staff mark own attendance alerts read" on public.staff_attendance_alerts for update to authenticated using(staff_user_id=(select auth.uid())) with check(staff_user_id=(select auth.uid()));
 -- Staff may read their own advances; only administrators can create or alter them.
 create policy "Staff read own salary advances" on public.staff_salary_advances for select to authenticated using(staff_user_id=(select auth.uid()));
 -- Staff may read only the global deduction switch; cannot change it.
