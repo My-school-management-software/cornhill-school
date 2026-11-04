@@ -571,7 +571,7 @@ async function setupAttendance(){
  const todayRows=assigned.map(x=>{
   const ev=todayByStaff[x.staffId]||{ins:[],outs:[],count:0},first=ev.ins[0],last=ev.outs[ev.outs.length-1],deadline=minutes(x.schedule.start_time)+x.schedule.grace_minutes;
   const status=first?(last?'Present · clocked out': 'Present · on duty'):(nowMinute>deadline?'Absent · verify':'Not yet due');
-  const late=!!first&&new Date(first).getHours()*60+new Date(first).getMinutes()>minutes(x.schedule.start_time)+x.schedule.grace_minutes;
+  const firstParts=first?new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(first)).split(':').map(Number):null;const firstMinute=firstParts?firstParts[0]*60+firstParts[1]:null;const late=!!first&&firstMinute>minutes(x.schedule.start_time)+x.schedule.grace_minutes;
   return {name:byId[x.staffId]||'Unknown staff',schedule:x.schedule,first,last,status,late,missing:!!first&&!last,absent:!first&&nowMinute>deadline};
  });
  $('attendanceExpected').textContent=assigned.length;
