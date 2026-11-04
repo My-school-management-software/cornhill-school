@@ -253,3 +253,9 @@
 - Teacher learner-list requests now select only classroom essentials (identity, admission identifiers, class, learner type, status and previous school). Administrator requests retain the full learner record.
 - This reduces accidental transfer of guardian and financial fields into the teacher browser session. It is **not** a substitute for database column-level security: the current students SELECT RLS policy authorises assigned teachers to read matching student rows, and PostgreSQL table-level SELECT may still permit direct API column selection. A separate protected admin-only data access design is needed before describing guardian/bursary fields as inaccessible at API level.
 - No database grants, policies, schema, or records were changed. Admin/teacher browser sign-in and printing tests remain pending.
+
+
+## 2026-11-04 — API-level privacy audit (release blocker)
+- Confirmed via PostgreSQL privilege inspection that `authenticated` currently has table-level SELECT on `public.students`, including guardian names/phones, home address, guardian email, bursary details and SMS consent. The current assigned-teacher RLS policy restricts which learner rows teachers can read, but does not restrict columns on those rows. The `anon` role also has table-level SELECT privilege; row-level policy behavior still applies.
+- Therefore the UI hiding fields and teacher query projection are defence-in-depth only; they do **not** prove sensitive columns are inaccessible through direct PostgREST/API requests. Do not release to production until a reviewed column-privilege/admin-RPC design is implemented and tested.
+- No privileges, RLS policies, schema, or records were changed. Production remains untouched.
