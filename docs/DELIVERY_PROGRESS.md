@@ -525,3 +525,12 @@
 - Database migration applied and committed as `20261104174447_learner_status_history_and_graduation.sql`.
 - Source checks confirm the admission photo input, pre-save file validation, private upload, signed profile photo, batch signed photo URLs in marks entry, promotion RPC, class-history display and status-history display are present.
 - Live database currently has no real learner or class rows, so promotion, status changes, photo upload and mark-sheet photo display still need authenticated school-user testing with real sample records.
+
+
+## 2026-11-04 — Stage 1 class structure seeded and database re-verified
+- Completed the live class-level setup for CORNHILL by adding only missing standard levels: Baby, Middle, Top and P1–P7. The operation was idempotent and did not alter existing classes, streams, learners or academic records.
+- Read-after-write verification confirms all ten standard class levels are present in the live Supabase database.
+- Rechecked the permanent learner-code triggers, learner class-history and status-history tables, and the administrator promotion RPC. The source includes admin-only class creation, class registers with learner code/LIN/P7 index, learner photo upload/profile/mark-sheet display, promotion history, and status history.
+- Current live learner count remains zero. No learner identities, guardian details, photographs, payments or marks were fabricated.
+- Stage 1 implementation and class structure are in place. Production acceptance is still conditional on the school administrator testing admission and automatic code generation, Android photo upload, promotion/status changes, teacher class access, and printed class registers using a real authenticated session. These actions cannot be truthfully marked end-to-end tested from source/database checks alone.
+- Preview deployment remains on the older published commit until Vercel's free deployment API limit clears; no plan upgrade or paid deployment was initiated.
