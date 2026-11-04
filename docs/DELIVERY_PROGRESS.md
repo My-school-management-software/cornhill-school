@@ -503,3 +503,14 @@
 - Existing curriculum mappings remain grouped as Nursery, P1–P3 and P4–P7. The standard class names match the curriculum grouping logic.
 - Not yet verified with live school data or an authenticated browser session. The school database previously contained zero learner and class records; the new setup action has not been run against live records. Stage 1 still requires review of admission workflows, parent/guardian details, profile/photo handling, promotion/withdrawal workflows, permissions and real-device testing.
 - Code commit: UI changes saved to the feature/cornhill-v3-foundation branch. Vercel deployment remains subject to the existing free deployment API rate limit.
+
+
+## 2026-11-04 — Stage 1 continuation: private learner photos and promotion history
+- Added a private Supabase Storage bucket `learner-photos`, limited to JPEG/PNG/WebP images up to 4 MB. No public image URLs are used.
+- Added `students.photo_path` and Storage RLS: administrators can upload/replace/delete; administrators and teachers assigned to the learner's class can view the image.
+- Added optional learner photo upload to the admission/edit form and signed-URL display on learner profiles. Invalid type/size is rejected before the learner record is saved; a storage/network failure does not erase a successfully saved learner record and is reported separately.
+- Added `student_class_history` with admin-only read/insert policies and an invoker-rights `promote_learner` RPC. The RPC checks the administrator role, validates the target class and date, locks the learner row, writes the old/new class history, and updates the learner's current class in one database transaction.
+- Added an administrator-only learner profile workflow to promote a learner, record an effective date and notes, and review prior class movements.
+- Database migrations applied and matching SQL files committed: `20261104174140_private_learner_photos.sql` and `20261104174316_learner_class_promotion_history.sql`.
+- Verified the private bucket, `photo_path` column, four Storage policies, class-history table and history policies exist in the live Supabase project. Source checks confirm photo upload, signed-URL display, administrator guard, promotion RPC call and history display are present.
+- Not yet tested with a real authenticated administrator/teacher browser session, actual uploaded learner image, or a real learner promotion. Do not treat this as end-to-end verified until that test is completed.
