@@ -576,3 +576,10 @@
 - Corrected the selector to use the actual database values. Admins can select all staff, teachers or administrators; teachers can select all staff or teachers; other staff can select all staff only. This mirrors the current insert policy.
 - Saved in commit 6fecbf5dc64c98dfdcf3a16b365a8060b9fee002.
 - This is a code-level correction only. Authenticated role-by-role feed, post, comment, reaction and deletion tests remain outstanding, and deployment has not yet been refreshed.
+
+
+### 2026-11-04 — Attendance CSV import failure accounting
+- Hardened the administrator attendance CSV import against an expired/missing authentication session before creating a batch.
+- Import batches now start with zero imported rows and are finalized only after event upserts complete.
+- If an import partially fails, the batch records the confirmed inserted count and marks the remaining unconfirmed valid rows as rejected, with the database error retained in its notes. A failure to finalize the batch is surfaced to the administrator.
+- This is a code-level reliability improvement; no live attendance events were inserted and real device export testing remains outstanding.
