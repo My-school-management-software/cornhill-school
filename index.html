@@ -540,7 +540,7 @@ async function loadExpensePayroll(){
  $('expenseCategory').innerHTML=(cats.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  $('salaryStaff').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).filter(x=>x.employment_status==='Active').map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed staff')+' · '+esc(x.job_title||'Staff')+'</option>').join('');
  $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'</td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+ (x.is_active?'Active':'Inactive')+(x.is_active?' <button type="button" data-close-salary="'+x.id+'">Close agreement</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
- $('payrollPeriodSelect').innerHTML='<option value="">Choose payroll period</option>'+(periods.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.period_name)+' · '+esc(x.period_type)+' · '+esc(x.status)+'</option>').join('');
+ const previouslySelectedPayroll=$('payrollPeriodSelect').value;$('payrollPeriodSelect').innerHTML='<option value="">Choose payroll period</option>'+(periods.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.period_name)+' · '+esc(x.period_type)+' · '+esc(x.status)+'</option>').join('');if((periods.data||[]).some(x=>x.id===previouslySelectedPayroll))$('payrollPeriodSelect').value=previouslySelectedPayroll;
  renderExpenseRows();
 }
 function renderExpenseRows(){
