@@ -202,14 +202,16 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  <h3 style="margin-top:14px">Current teacher assignments</h3>
  <div class="table-wrap"><table><thead><tr><th>Class</th><th>Subject</th><th>Assigned teacher</th><th>Update</th></tr></thead><tbody id="teacherAssignmentRows"></tbody></table></div><p class="muted">Use the selector on an existing row to change its teacher or choose “Not assigned” to remove access. Changes take effect immediately for teacher mark-entry permissions.</p>
  <h3 style="margin-top:20px">5. Create assessment</h3>
- <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="assessmentSubjectSelect" required></select></div><div><label>Assessment title *</label><input name="title" required placeholder="e.g. Beginning of term test"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" step="0.01" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><button class="primary">Create assessment</button></div></form>
+ <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="assessmentSubjectSelect" required></select></div><div><label>Assessment period *</label><select name="period" required><option value="Beginning">Beginning (1)</option><option value="Midterm">Midterm (2)</option><option value="End">End of term (3)</option></select></div><div><label>Assessment title / note</label><input name="title" placeholder="Optional: e.g. oral test, written exercise"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" step="0.01" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><button class="primary">Create assessment</button></div></form>
  </div>
  <h3 style="margin-top:20px">6. Enter learner marks</h3>
  <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score *</label><input name="score" type="number" min="0" step="0.01" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form><div style="margin-top:18px"><h4>Class mark sheet</h4><p class="muted">Choose an assessment above to load its learners. Enter marks in one list and save together. Existing marks are shown so you can safely update them.</p><div id="bulkMarksMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Learner / school code</th><th>LIN</th><th>P7 index</th><th>Score</th><th>Comment</th></tr></thead><tbody id="bulkMarkRows"><tr><td colspan="5">Choose an assessment to load the class mark sheet.</td></tr></tbody></table></div><button type="button" class="primary" id="saveBulkMarks" style="margin-top:12px">Save all entered marks</button></div>
  <div class="excel-marks-panel" style="margin-top:24px">
-  <h3>Excel-style class marks entry</h3>
-  <p class="muted">Choose a term and class, then load the whole class sheet. Enter marks directly into the subject cells and save the sheet together. Blank cells are left unchanged.</p>
+  <h3>Class marks folders · Excel-style entry</h3>
+  <p class="muted">Open a class folder, choose Beginning, Midterm or End of term, and enter marks in the matching subject columns. Codes ending in 1, 2 and 3 represent the three reporting periods.</p>
+  <div id="excelClassFolders" class="module-grid" style="margin:12px 0"></div>
   <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
+   <div style="min-width:170px;flex:1"><label for="excelMarksPhase">Assessment period</label><select id="excelMarksPhase"><option value="Beginning">Beginning · 1</option><option value="Midterm">Midterm · 2</option><option value="End">End of term · 3</option></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksTerm">Academic term</label><select id="excelMarksTerm"></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
@@ -938,7 +940,7 @@ async function renderReportCard(){
  const approved=!!publication.data;
  const approvalLine=approved?'<p><strong>School approval:</strong> Approved on '+esc(new Date(publication.data.approved_at).toLocaleString())+'</p>':'<p class="muted">Draft only — not yet approved or published by the school administrator.</p>';
  const approveButton=profile?.role==='Admin'&&!approved?'<button class="primary" type="button" id="approveReportButton">Approve official report</button>':'';
- $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · '+(approved?'APPROVED':'DRAFT')+'</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>School code:</strong> '+esc(learner.admission_number)+' &nbsp; <strong>LIN:</strong> '+esc(learner.lin||'Not yet issued/entered')+(String(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'').toUpperCase().includes('P7')?' &nbsp; <strong>P7 index:</strong> '+esc(learner.p7_index_number||'Not yet registered'):'')+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+money(x.score)+'</td><td>'+money(x.max)+'</td><td>'+((x.score/x.max)*100).toFixed(1)+'%</td></tr>').join('')+'</tbody></table></div><p><strong>Total marks:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%) · <strong>Grade:</strong> '+esc(overallGrade?.name||'—')+' · '+esc(overallGrade?.comment||'')+'</p><p><strong>Class size:</strong> '+classSize+' active learners · <strong>Class position:</strong> '+(position>0?position+' of '+classSize:'Not ranked — no marks recorded')+'</p>'+aggregateNote+approvalLine+approveButton+' <button class="tab" type="button" id="printOfficialReport">Print report</button></div>';
+ $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · '+(approved?'APPROVED':'DRAFT')+'</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>School code:</strong> '+esc(learner.admission_number)+' &nbsp; <strong>LIN:</strong> '+esc(learner.lin||'Not yet issued/entered')+(String(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'').toUpperCase().includes('P7')?' &nbsp; <strong>P7 index:</strong> '+esc(learner.p7_index_number||'Not yet registered'):'')+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th><th>Teacher comment</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+money(x.score)+'</td><td>'+money(x.max)+'</td><td>'+((x.score/x.max)*100).toFixed(1)+'%</td><td>'+esc(x.comments.join(' · ')||'—')+'</td></tr>').join('')+'</tbody></table></div><p><strong>Total marks:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%) · <strong>Grade:</strong> '+esc(overallGrade?.name||'—')+' · '+esc(overallGrade?.comment||'')+'</p><p><strong>Class size:</strong> '+classSize+' active learners · <strong>Class position:</strong> '+(position>0?position+' of '+classSize:'Not ranked — no marks recorded')+'</p>'+aggregateNote+approvalLine+approveButton+' <button class="tab" type="button" id="printOfficialReport">Print report</button></div>';
  const printButton=$('printOfficialReport');if(printButton)printButton.addEventListener('click',()=>{document.body.classList.add('print-official-report');window.print();document.body.classList.remove('print-official-report')});
  const approve=$('approveReportButton');
  if(approve)approve.addEventListener('click',async()=>{
@@ -993,51 +995,39 @@ function setupExcelMarksFilters(){
  term.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');
  const allowed=profile?.role==='Teacher'?new Set(window.teacherClassIds||[]):null;
  cls.innerHTML='<option value="">Choose class</option>'+classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
+ const folders=$('excelClassFolders');if(folders)folders.innerHTML=classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<button type="button" class="module-card" data-excel-class="'+x.id+'"><strong>📁 '+esc(x.name)+'</strong><span>Open class marks folder</span><em>'+esc(curriculumGroupForClass(x.name)||'Class')+'</em></button>').join('');
 }
-function excelSubjectLabel(assessment,index){
- const subject=assessment.subjects||{};
- const code=(subject.code||'').trim();
- if(code)return code;
- const cls=classes.find(x=>x.id===assessment.class_id);
- const group=curriculumGroupForClass(cls?.name);
- if(group==='Nursery'){
-  const name=(subject.name||'').toLowerCase().replace(/[^a-z]/g,'');
-  const nurseryCodes=[
-   ['number','numbers','numeracy','nu2'],
-   ['languagedevelopment','language','english','en2'],
-   ['reading','literacy','re2'],
-   ['healthhabits','health','hh2'],
-   ['socialdevelopment','social','sd2'],
-   ['writing','wr2'],
-   ['drawing','art','dr2']
-  ];
-  const found=nurseryCodes.findIndex(keys=>keys.includes(name));
-  if(found>=0)return ['NU2','EN2','RE2','HH2','SD2','WR2','DR2'][found];
-  if(index<7)return ['NU2','EN2','RE2','HH2','SD2','WR2','DR2'][index];
- }
- return subject.name||assessment.title||'Subject';
+function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();if(/mid.?term|midterm/.test(t))return 'Midterm';if(/end.?of.?term|end term|end of term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
+function excelSubjectOrder(a){const name=(a.subjects?.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');const group=curriculumGroupForClass(classes.find(c=>c.id===a.class_id)?.name||'');const maps=group==='Nursery'?['number','numeracy','language','reading','health','social','writing','drawing']:group==='P1-P3'?['english','mathematics','literacyi','literacyii','local','religious']:['english','mathematics','science','socialstudies'];const i=maps.findIndex(k=>name.includes(k));return i<0?99:i;}
+function excelSubjectLabel(assessment,index,clsArg){
+ const subject=assessment.subjects||{},name=(subject.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const cls=clsArg||classes.find(x=>x.id===assessment.class_id),group=curriculumGroupForClass(cls?.name||''),phase=excelAssessmentPeriod(assessment),n=phase==='Beginning'?1:phase==='Midterm'?2:3;
+ const mappings=group==='Nursery'?[['number','numeracy','nu'],['language','lod'],['reading','rd'],['health','hh'],['social','sd'],['writing','wr'],['drawing','dr']]:group==='P1-P3'?[['english','eng'],['mathematics','mtc'],['literacyi','lit1'],['literacyii','lit2'],['local','ll'],['religious','re']]:[['english','eng'],['mathematics','mtc'],['science','sci'],['socialstudies','sst']];
+ const found=mappings.find(x=>x.slice(0,-1).some(k=>name.includes(k)));
+ const prefix=found?.[found.length-1]||(subject.code||subject.name||assessment.title||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
+ return prefix+n;
 }
 async function loadExcelMarksGrid(){
  const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value;
  const head=$('excelMarksHead'),body=$('excelMarksBody');
  if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
  const cls=classes.find(x=>x.id===classId);
- const assessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId);
+ const phase=$('excelMarksPhase').value;\n const assessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&excelAssessmentPeriod(x)===phase).sort((a,b)=>excelSubjectOrder(a)-excelSubjectOrder(b));
  if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments have been created for this class and term. Create one assessment per subject first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
  const list=students.filter(x=>x.class_id===classId).sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||a.first_name.localeCompare(b.first_name));
  const ids=assessments.map(x=>x.id);
  const {data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score').in('assessment_id',ids);
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
  const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x.score]));
- window.cornhillExcelMarksContext={termId,classId,assessments,students:list};
- head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th>'+assessments.map((a,i)=>'<th title="'+esc(a.title)+'">'+esc(excelSubjectLabel(a,i))+'<div style="font-size:10px;font-weight:400">'+esc(a.title)+'</div><small>/ '+Number(a.max_score)+'</small></th>').join('')+'</tr>';
+ window.cornhillExcelMarksContext={termId,classId,phase,assessments,students:list};
+ const phaseCode=phase==='Beginning'?1:phase==='Midterm'?2:3;\n const totals=new Map();(data||[]).forEach(mark=>{const n=totals.get(mark.student_id)||{score:0,max:0};const a=assessments.find(z=>z.id===mark.assessment_id);if(a){n.score+=Number(mark.score);n.max+=Number(a.max_score);totals.set(mark.student_id,n)}});\n const ranked=list.map(l=>({id:l.id,pct:(totals.get(l.id)?.max||0)?totals.get(l.id).score/totals.get(l.id).max*100:-1})).filter(x=>x.pct>=0).sort((a,b)=>b.pct-a.pct);\n const positions=new Map();let last=null,rank=0;ranked.forEach((x,i)=>{if(last===null||Math.abs(x.pct-last)>0.000001)rank=i+1;positions.set(x.id,rank);last=x.pct});\n head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>PN'+phaseCode+'</th>'+assessments.map((a,i)=>'<th title="'+esc(a.title)+'">'+esc(excelSubjectLabel(a,i,cls))+'<div style="font-size:10px;font-weight:400">'+esc(a.title)+'</div><small>/ '+Number(a.max_score)+'</small></th>').join('')+'</tr>';
  body.innerHTML=list.map((x,i)=>{
   const initials=([x.first_name,x.last_name].filter(Boolean).map(n=>n[0]).join('').slice(0,2)||'—').toUpperCase();
-  return '<tr><td>'+(i+1)+'</td><td>'+esc(x.admission_number||'—')+'</td><td><span class="excel-photo-placeholder" title="No learner photo stored">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td>'+assessments.map(a=>{const value=saved.get(a.id+'|'+x.id);return '<td><input data-grid-score data-assessment-id="'+a.id+'" data-student-id="'+x.id+'" type="number" min="0" max="'+Number(a.max_score)+'" step="0.01" inputmode="decimal" aria-label="'+esc(a.subjects?.name||a.title)+' mark for '+esc(x.first_name+' '+x.last_name)+'" value="'+(value===undefined?'':esc(value))+'" placeholder="—"></td>'}).join('')+'</tr>'
+  return '<tr><td>'+(i+1)+'</td><td>'+esc(x.admission_number||'—')+'</td><td><span class="excel-photo-placeholder" title="No learner photo stored">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td><td>'+(positions.get(x.id)||'—')+'</td>'+assessments.map(a=>{const value=saved.get(a.id+'|'+x.id);return '<td><input data-grid-score data-assessment-id="'+a.id+'" data-student-id="'+x.id+'" type="number" min="0" max="'+Number(a.max_score)+'" step="0.01" inputmode="decimal" aria-label="'+esc(a.subjects?.name||a.title)+' mark for '+esc(x.first_name+' '+x.last_name)+'" value="'+(value===undefined?'':esc(value))+'" placeholder="—"></td>'}).join('')+'</tr>'
  }).join('')||'<tr><td colspan="'+(4+assessments.length)+'">No learners are registered in this class.</td></tr>';
  message('excelMarksMsg',list.length+' learner(s) and '+assessments.length+' subject assessment(s) loaded. Existing marks are shown.');
 }
-$('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
+$('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);\n$('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});\n$('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});\n$('excelMarksClass').addEventListener('change',()=>{document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
 $('saveExcelMarks').addEventListener('click',async()=>{
  const ctx=window.cornhillExcelMarksContext;
  if(!ctx){message('excelMarksMsg','Load a class sheet first.',true);return}
@@ -1092,7 +1082,7 @@ submitAcademic('academicYearForm','academic_years',v=>({...v,is_current:v.is_cur
 submitAcademic('academicTermForm','academic_terms',v=>v,'Term saved.');
 submitAcademic('subjectForm','subjects',v=>({name:v.name.trim(),code:v.code.trim()||null}),'Subject added.');
 submitAcademic('classSubjectForm','class_subjects',v=>({...v,teacher_user_id:v.teacher_user_id||null}),'Subject assigned to class.');
-submitAcademic('assessmentForm','assessments',v=>({...v,max_score:Number(v.max_score),assessment_date:v.assessment_date||null,created_by:null}),'Assessment created.');
+submitAcademic('assessmentForm','assessments',v=>{const {period,title,...rest}=v;return {...rest,title:period+(title?' · '+title:' Assessment'),max_score:Number(v.max_score),assessment_date:v.assessment_date||null,created_by:null}},'Assessment created.');
 
 
 document.getElementById('teacherAssignmentRows').addEventListener('click',async e=>{const button=e.target.closest('[data-save-assignment]');if(!button)return;const id=button.dataset.saveAssignment;const select=document.querySelector('[data-assignment-teacher="'+CSS.escape(id)+'"]');if(!select)return;button.disabled=true;const {error}=await db.from('class_subjects').update({teacher_user_id:select.value||null}).eq('id',id);button.disabled=false;if(error){message('academicMsg','Could not update teacher assignment: '+error.message,true);return}message('academicMsg',select.value?'Teacher assignment updated.':'Teacher access removed from this class and subject.');await loadAcademics();});
