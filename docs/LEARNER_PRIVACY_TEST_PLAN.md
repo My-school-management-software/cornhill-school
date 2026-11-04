@@ -20,13 +20,17 @@ select
   has_table_privilege('anon', 'public.students', 'SELECT') as anon_table_select,
   has_table_privilege('authenticated', 'public.students', 'SELECT') as authenticated_table_select,
   has_column_privilege('authenticated', 'public.students', 'admission_number', 'SELECT') as auth_can_read_admission_code,
+  has_column_privilege('anon', 'public.students', 'guardian_phone', 'SELECT') as anon_can_read_guardian_phone,
   has_column_privilege('authenticated', 'public.students', 'guardian_phone', 'SELECT') as auth_can_read_guardian_phone,
+  has_column_privilege('authenticated', 'public.students', 'guardian_email', 'SELECT') as auth_can_read_guardian_email,
+  has_column_privilege('authenticated', 'public.students', 'address', 'SELECT') as auth_can_read_address,
+  has_column_privilege('authenticated', 'public.students', 'is_bursary', 'SELECT') as auth_can_read_bursary_flag,
   has_column_privilege('authenticated', 'public.students', 'bursary_fee_ugx', 'SELECT') as auth_can_read_bursary_fee,
   has_column_privilege('authenticated', 'public.students', 'first_name', 'INSERT') as auth_can_insert_first_name,
   has_column_privilege('authenticated', 'public.students', 'guardian_phone', 'UPDATE') as auth_can_update_guardian_phone;
 ```
 
-Expected: `anon_table_select=false`, `authenticated_table_select=false`, safe admission-code SELECT true, guardian/bursary SELECT false, permitted INSERT/UPDATE column grants true. RLS must still restrict writes to administrators.
+Expected: `anon_table_select=false`, `authenticated_table_select=false`, `anon_can_read_guardian_phone=false`, safe admission-code SELECT true, and every listed confidential SELECT check false. Permitted INSERT/UPDATE column grants should be true for the administrator's authenticated role. RLS must still restrict writes to administrators.
 
 Check RPC execution:
 
