@@ -193,3 +193,10 @@
 - Existing academic assessment and class performance modules already support subject marks and provisional class ranking; report currently shows marks totals and percentage. Automatic Uganda division/aggregate rules are not yet implemented because the school's approved grading/aggregate mapping has not been specified. Do not publish guessed divisions.
 - Browser testing and deployment remain outstanding. Development branch only.
 - Commits: UI LIN/class counts `ce13c0c`, report identity `3e5fa28`; migration `877d591` (repeatability fix follows); tracker update pending.
+
+
+## 2026-11-04 — Curriculum-aware mark entry and class position
+- Assessment subject selector now filters to the saved curriculum group for the selected class: Nursery, P1–P3 or P4–P7. Classes not matching the naming conventions retain the full subject list so the school can still operate while class names are being set up.
+- Individual term report now displays total marks, percentage/grade and a position among active learners in the same class who have marks recorded for the selected term. Learners without marks are not ranked.
+- This does not yet calculate Uganda PLE aggregate/division; the school's approved grade-to-aggregate/division mapping must be configured before that result is published. Tied percentages currently receive sequential positions, not shared ranks; this should be improved before official ranking use.
+- Code commit: `6215517`. Browser testing remains pending; no student fixtures were created.
