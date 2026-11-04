@@ -247,3 +247,9 @@
 - Queried the connected Supabase catalogue and confirmed existing unique indexes: `students_lin_unique` on `upper(trim(lin))` when LIN is non-empty, and `students_p7_index_number_unique` on `upper(trim(p7_index_number))` when P7 index is non-empty. The permanent admission number also has its existing unique index.
 - This confirms database-level duplicate protection already exists; no new migration was necessary. The SQL operation was read-only and no production schema or records were changed.
 - Code commits: `d50c111` (guardian contacts), `0089f5d` (bursary privacy). Browser role verification and print testing remain outstanding; production release is not approved by these source changes alone.
+
+
+## 2026-11-04 — Teacher data minimisation follow-up
+- Teacher learner-list requests now select only classroom essentials (identity, admission identifiers, class, learner type, status and previous school). Administrator requests retain the full learner record.
+- This reduces accidental transfer of guardian and financial fields into the teacher browser session. It is **not** a substitute for database column-level security: the current students SELECT RLS policy authorises assigned teachers to read matching student rows, and PostgreSQL table-level SELECT may still permit direct API column selection. A separate protected admin-only data access design is needed before describing guardian/bursary fields as inaccessible at API level.
+- No database grants, policies, schema, or records were changed. Admin/teacher browser sign-in and printing tests remain pending.
