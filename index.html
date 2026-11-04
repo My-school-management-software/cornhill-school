@@ -6,6 +6,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:22px max(18px,calc((100% - 1120px)/2));display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font-size:20px;font-weight:800}.sub{font-size:12px;opacity:.8;margin-top:4px}.wrap{max-width:1120px;margin:24px auto;padding:0 16px}.hidden{display:none!important}.panel,.stat{background:white;border:1px solid #e0e9e1;border-radius:14px;padding:18px;box-shadow:0 3px 14px #183d2010}.login{max-width:440px;margin:50px auto}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}.stat small{color:#607265}.num{font-size:28px;font-weight:800;margin-top:8px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.module-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.module-card{background:#fff;border:1px solid #dce7de;border-radius:12px;padding:16px;text-align:left;display:flex;flex-direction:column;gap:8px;min-height:126px;color:#17452a}.module-card strong{font-size:15px}.module-card span{font-size:12px;font-weight:400;color:#607265;line-height:1.4}.module-card em{font-size:11px;font-style:normal;color:#166534;font-weight:800;margin-top:auto}.module-card:hover{border-color:#166534;background:#f7fbf7}.tab,button{border:0;border-radius:9px;padding:11px 15px;background:#e6efe7;color:#17452a;font-weight:700;cursor:pointer}.tab.active,button.primary{background:#166534;color:white}.danger{background:#fee2e2;color:#991b1b}input,select{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:white;font:inherit;margin:5px 0 12px}label{font-size:13px;font-weight:700;color:#435449}form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}form .full{grid-column:1/-1}h2{font-size:19px;margin:0 0 14px}h3{font-size:15px;margin:0 0 10px}.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px;min-width:620px}th,td{text-align:left;padding:12px;border-bottom:1px solid #edf1ed}th{color:#607265;background:#f8faf8}.muted{color:#647568;font-size:13px}.notice{padding:12px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:12px 0}.error{background:#fff1f2;color:#9f1239}.empty{text-align:center;padding:28px;color:#718075}.actions{display:flex;gap:8px;align-items:center}.actions button{padding:7px 10px;font-size:12px}.badge{font-size:12px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534}.receipt-print{display:none}.receipt-print.thermal-58{--receipt-width:48mm}.receipt-print.thermal-80{--receipt-width:72mm}.receipt-print.statement-print{width:100%;max-width:100%;--receipt-width:100%}@media print{@page{margin:2mm}body *{visibility:hidden!important}.receipt-print,.receipt-print *{visibility:visible!important}.receipt-print{display:block!important;position:absolute;left:0;top:0;margin:0;padding:1.5mm;color:#111;background:white;width:var(--receipt-width,72mm);max-width:var(--receipt-width,72mm);font-family:Arial,sans-serif;font-size:9pt;line-height:1.25;box-sizing:border-box}.receipt-print h1{font-size:12pt;margin:0 0 3mm;text-align:center}.receipt-print h2{font-size:10pt;margin:0 0 2mm;text-align:center}.receipt-print h3{font-size:9pt;margin:3mm 0 1mm}.receipt-print p{margin:1.2mm 0;overflow-wrap:anywhere}.receipt-print table{width:100%;font-size:8pt;border-collapse:collapse}.receipt-print th,.receipt-print td{padding:1mm 0;vertical-align:top}.receipt-print hr{border:0;border-top:1px dashed #333;margin:2mm 0}.receipt-print th:nth-child(n+2),.receipt-print td:nth-child(n+2){text-align:right}.receipt-print .receipt-no-wrap{overflow-wrap:anywhere}}@media(max-width:700px){.module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr 1fr}form{grid-template-columns:1fr}.top{align-items:flex-start}.brand{font-size:17px}.wrap{margin:16px auto}.stat{padding:14px}.num{font-size:23px}}@media(max-width:400px){.module-grid{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+
+.excel-marks-table th,.excel-marks-table td{border:1px solid #d6dce5;padding:6px 8px;white-space:nowrap;background:var(--panel,#fff)}
+.excel-marks-table thead th{position:sticky;top:0;z-index:2;background:#eaf0f8;font-weight:700;text-align:center}
+.excel-marks-table thead th:nth-child(-n+4){z-index:3}
+.excel-marks-table td:nth-child(1),.excel-marks-table td:nth-child(2),.excel-marks-table td:nth-child(3){text-align:center}
+.excel-marks-table td:nth-child(4){font-weight:600;min-width:180px}
+.excel-marks-table input[data-grid-score]{width:76px;min-width:76px;padding:7px 5px;text-align:center;border:1px solid #aab7c8;border-radius:4px;font-size:15px}
+.excel-marks-table input[data-grid-score]:focus{outline:2px solid #2563eb;outline-offset:-1px;background:#eff6ff}
+.excel-photo-placeholder{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#e8edf5;color:#526174;font-size:9px;font-weight:700}
+.excel-marks-table tbody tr:nth-child(even) td{background:#f8fafc}
 </style><style>@media print{body.print-class-register *{visibility:hidden!important}body.print-class-register #classRosterPrint,body.print-class-register #classRosterPrint *{visibility:visible!important}body.print-class-register #classRosterPrint{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0!important;box-shadow:none!important}body.print-class-register #classRosterPrint button{display:none!important}body.print-learner-profile *{visibility:hidden!important}body.print-learner-profile #learnerProfileContent,body.print-learner-profile #learnerProfileContent *{visibility:visible!important}body.print-learner-profile #learnerProfileContent{display:block!important;position:absolute;left:0;top:0;width:100%}}body.print-official-report *{visibility:hidden!important}body.print-official-report #reportCardPreview,body.print-official-report #reportCardPreview *{visibility:visible!important}body.print-official-report #reportCardPreview{display:block!important;position:absolute;left:0;top:0;width:100%}body.print-official-report #reportCardPreview button{display:none!important}</style><style>
 :root{--cornhill-accent:#166534;--cornhill-accent-dark:#14532d;--cornhill-page:#f3f7f3;--cornhill-panel:#fff;--cornhill-ink:#17251c;--cornhill-muted:#607265;--cornhill-line:#dce7de}
 body{background:var(--cornhill-page);color:var(--cornhill-ink)}
@@ -196,6 +206,24 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  </div>
  <h3 style="margin-top:20px">6. Enter learner marks</h3>
  <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score *</label><input name="score" type="number" min="0" step="0.01" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form><div style="margin-top:18px"><h4>Class mark sheet</h4><p class="muted">Choose an assessment above to load its learners. Enter marks in one list and save together. Existing marks are shown so you can safely update them.</p><div id="bulkMarksMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Learner / school code</th><th>LIN</th><th>P7 index</th><th>Score</th><th>Comment</th></tr></thead><tbody id="bulkMarkRows"><tr><td colspan="5">Choose an assessment to load the class mark sheet.</td></tr></tbody></table></div><button type="button" class="primary" id="saveBulkMarks" style="margin-top:12px">Save all entered marks</button></div>
+ <div class="excel-marks-panel" style="margin-top:24px">
+  <h3>Excel-style class marks entry</h3>
+  <p class="muted">Choose a term and class, then load the whole class sheet. Enter marks directly into the subject cells and save the sheet together. Blank cells are left unchanged.</p>
+  <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
+   <div style="min-width:170px;flex:1"><label for="excelMarksTerm">Academic term</label><select id="excelMarksTerm"></select></div>
+   <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
+   <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
+   <button type="button" id="saveExcelMarks">Save all marks</button>
+  </div>
+  <div id="excelMarksMsg" class="notice hidden" style="margin-top:10px"></div>
+  <div class="table-wrap" style="margin-top:12px;max-height:65vh;overflow:auto">
+   <table id="excelMarksTable" class="excel-marks-table" style="min-width:760px;border-collapse:separate;border-spacing:0">
+    <thead id="excelMarksHead"><tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>Choose term and class</th></tr></thead>
+    <tbody id="excelMarksBody"><tr><td colspan="5">Choose a term and class, then load the class sheet.</td></tr></tbody>
+   </table>
+  </div>
+  <p class="muted">Scores are checked against each assessment's maximum. Use the Save all marks button to post the entered marks to the school database.</p>
+ </div>
  <h3 style="margin-top:20px">Grading bands</h3>
  <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
  <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add grading band</button></div></form></div>
@@ -958,6 +986,83 @@ async function loadBulkMarkSheet(){
  body.innerHTML=list.map(x=>{const mark=saved[x.id];return '<tr><td>'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</td><td>'+esc(x.lin||'Not entered')+'</td><td>'+esc(x.p7_index_number||'—')+'</td><td><input aria-label="Score for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-score="'+x.id+'" type="number" min="0" max="'+Number(ass.max_score)+'" step="0.01" inputmode="decimal" placeholder=" / '+Number(ass.max_score)+'" value="'+(mark?esc(mark.score):'')+'" style="max-width:105px"></td><td><input aria-label="Comment for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-comment="'+x.id+'" value="'+(mark?.teacher_comment?esc(mark.teacher_comment):'')+'" placeholder="Optional comment"></td></tr>'}).join('')||'<tr><td colspan="5">No learners are registered in this class.</td></tr>';
  message('bulkMarksMsg',(data||[]).length+' existing mark(s) loaded. Maximum score: '+ass.max_score+'.');
 }
+
+function setupExcelMarksFilters(){
+ const term=$('excelMarksTerm'),cls=$('excelMarksClass');
+ term.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');
+ const allowed=profile?.role==='Teacher'?new Set(window.teacherClassIds||[]):null;
+ cls.innerHTML='<option value="">Choose class</option>'+classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
+}
+function excelSubjectLabel(assessment,index){
+ const subject=assessment.subjects||{};
+ const code=(subject.code||'').trim();
+ if(code)return code;
+ const cls=classes.find(x=>x.id===assessment.class_id);
+ const group=curriculumGroupForClass(cls?.name);
+ if(group==='Nursery'){
+  const name=(subject.name||'').toLowerCase().replace(/[^a-z]/g,'');
+  const nurseryCodes=[
+   ['number','numbers','numeracy','nu2'],
+   ['languagedevelopment','language','english','en2'],
+   ['reading','literacy','re2'],
+   ['healthhabits','health','hh2'],
+   ['socialdevelopment','social','sd2'],
+   ['writing','wr2'],
+   ['drawing','art','dr2']
+  ];
+  const found=nurseryCodes.findIndex(keys=>keys.includes(name));
+  if(found>=0)return ['NU2','EN2','RE2','HH2','SD2','WR2','DR2'][found];
+  if(index<7)return ['NU2','EN2','RE2','HH2','SD2','WR2','DR2'][index];
+ }
+ return subject.name||assessment.title||'Subject';
+}
+async function loadExcelMarksGrid(){
+ const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value;
+ const head=$('excelMarksHead'),body=$('excelMarksBody');
+ if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
+ const cls=classes.find(x=>x.id===classId);
+ const assessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId);
+ if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments have been created for this class and term. Create one assessment per subject first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
+ const list=students.filter(x=>x.class_id===classId).sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||a.first_name.localeCompare(b.first_name));
+ const ids=assessments.map(x=>x.id);
+ const {data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score').in('assessment_id',ids);
+ if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
+ const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x.score]));
+ window.cornhillExcelMarksContext={termId,classId,assessments,students:list};
+ head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th>'+assessments.map((a,i)=>'<th title="'+esc(a.title)+'">'+esc(excelSubjectLabel(a,i))+'<div style="font-size:10px;font-weight:400">'+esc(a.title)+'</div><small>/ '+Number(a.max_score)+'</small></th>').join('')+'</tr>';
+ body.innerHTML=list.map((x,i)=>{
+  const initials=([x.first_name,x.last_name].filter(Boolean).map(n=>n[0]).join('').slice(0,2)||'—').toUpperCase();
+  return '<tr><td>'+(i+1)+'</td><td>'+esc(x.admission_number||'—')+'</td><td><span class="excel-photo-placeholder" title="No learner photo stored">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td>'+assessments.map(a=>{const value=saved.get(a.id+'|'+x.id);return '<td><input data-grid-score data-assessment-id="'+a.id+'" data-student-id="'+x.id+'" type="number" min="0" max="'+Number(a.max_score)+'" step="0.01" inputmode="decimal" aria-label="'+esc(a.subjects?.name||a.title)+' mark for '+esc(x.first_name+' '+x.last_name)+'" value="'+(value===undefined?'':esc(value))+'" placeholder="—"></td>'}).join('')+'</tr>'
+ }).join('')||'<tr><td colspan="'+(4+assessments.length)+'">No learners are registered in this class.</td></tr>';
+ message('excelMarksMsg',list.length+' learner(s) and '+assessments.length+' subject assessment(s) loaded. Existing marks are shown.');
+}
+$('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
+$('saveExcelMarks').addEventListener('click',async()=>{
+ const ctx=window.cornhillExcelMarksContext;
+ if(!ctx){message('excelMarksMsg','Load a class sheet first.',true);return}
+ if(!['Admin','Teacher'].includes(profile?.role)){message('excelMarksMsg','Only authorised administrators and assigned teachers can save marks.',true);return}
+ const user=(await db.auth.getUser()).data.user;
+ if(!user){message('excelMarksMsg','Your session has expired. Sign in again.',true);return}
+ const inputs=[...document.querySelectorAll('[data-grid-score]')],payload=[];
+ for(const input of inputs){
+  const raw=input.value.trim();if(raw==='')continue;
+  const score=Number(raw),assessment=ctx.assessments.find(x=>x.id===input.dataset.assessmentId);
+  if(!Number.isFinite(score)||score<0||score>Number(assessment.max_score)){
+   const learner=ctx.students.find(x=>x.id===input.dataset.studentId);
+   message('excelMarksMsg','Invalid mark for '+(learner?.first_name||'a learner')+'. Maximum for '+(assessment?.subjects?.name||assessment?.title)+' is '+assessment.max_score+'.',true);
+   input.focus();return;
+  }
+  payload.push({assessment_id:assessment.id,student_id:input.dataset.studentId,score,entered_by:user.id});
+ }
+ if(!payload.length){message('excelMarksMsg','There are no marks to save.',true);return}
+ const button=$('saveExcelMarks');button.disabled=true;button.textContent='Saving…';
+ const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
+ button.disabled=false;button.textContent='Save all marks';
+ if(error){message('excelMarksMsg','Could not save marks: '+error.message,true);return}
+ message('excelMarksMsg','Successfully saved '+payload.length+' mark(s).');
+ await loadAcademics();
+ await loadExcelMarksGrid();
+});
 $('assessmentClassSelect').addEventListener('change',filterAssessmentSubjects);
 $('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
 $('saveBulkMarks').addEventListener('click',async()=>{
