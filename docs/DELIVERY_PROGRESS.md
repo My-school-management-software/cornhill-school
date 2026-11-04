@@ -15,3 +15,10 @@
 - This milestone does not yet calculate lateness, absences, overtime, or payroll; it also does not enable phone-based clocking or claim fingerprint-device compatibility. Those require subsequent workflow work and confirmation of the exact fingerprint terminal model/protocol.
 - Jibble remains design reference only; no Jibble account, API, or import path is used.
 - Production remains unchanged.
+
+## 2026-11-04 — Schedule-based daily attendance dashboard
+- Added a daily dashboard using assigned active schedules and Uganda-local calendar day: expected staff, present, late arrivals (after configured grace), absent after grace, and missing clock-outs.
+- Added a staff-by-staff daily review table and retained the 14-day event history.
+- Absence is intentionally marked only after the scheduled start plus grace period; status is a review aid, not an automatic payroll or disciplinary decision.
+- The live attendance events table currently contains no events, and no staff schedules are assigned yet; dashboard calculations are implemented but cannot be validated against real attendance activity until school data is entered.
+- The preview is generated from the development branch only. Production remains unchanged.
