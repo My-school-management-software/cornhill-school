@@ -557,3 +557,14 @@
 - Rechecked the live data counts: 0 learners, 0 posted payments, 0 learner charges and 0 payroll items. No test transactions or fake learners were inserted.
 - Finance UI already includes fee schedules, learner charges, payment posting with optional previous-term allocation, receipt lookup/reprint, fee collection reports, daily collection register, bursary reporting, expenses and payroll screens.
 - Stage 3 is not accepted yet: authenticated bursary admission, split payment allocation, previous-term skip/settlement, receipt reprint, thermal printer output, daily collection reconciliation, expenses and payroll approval/payment need real browser tests. Parent SMS is an outbox foundation and still needs a consented live MTN/Airtel provider connection and delivery test.
+
+
+## 2026-11-04 — Stage 4 inventory, staff attendance and communication access audit
+
+- Rechecked live Supabase row-level security for inventory categories, inventory items and inventory movements. RLS is enabled on all three tables; each currently has one policy.
+- Rechecked staff attendance tables for events, device-user mappings, import batches, incidents, schedule assignments, adjustments, alerts and deduction settings. RLS is enabled on every table returned by the audit; policy counts are present for each.
+- Rechecked staff communication posts, comments and reactions, plus staff work schedules. RLS is enabled on all returned tables.
+- Live data counts remain zero for inventory items/movements, staff attendance events/device mappings, staff communication posts/comments and staff work schedules. No artificial school records were inserted.
+- This confirms database security foundations only. It does not prove that stock receipt/issue, attendance import, schedule assignment, alerts, payroll deductions, or staff feed interactions work in an authenticated browser.
+- Fingerprint terminal integration remains hardware-dependent: the exact device model, firmware, supported export/SDK and a real import/verification test are still required. The app must not claim live fingerprint capture until that test passes.
+- Stage 4 remains under implementation review and is not accepted. Required next checks include role-by-role browser tests, inventory movement reconciliation, attendance import idempotency, staff schedule/adjustment workflows, and payroll attendance-deduction verification.
