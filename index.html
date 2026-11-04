@@ -1499,6 +1499,10 @@ $('studentRows').addEventListener('click',e=>{
 });
 $('studentForm').addEventListener('submit',async e=>{
  e.preventDefault();if(demoMode){message('appMsg','Saving is disabled in demo mode.');return}
+ const submitButton=e.submitter||e.target.querySelector('[type="submit"]');
+ if(submitButton?.dataset.busy==='1')return;
+ if(submitButton){submitButton.dataset.busy='1';submitButton.disabled=true}
+ try{
  if(profile?.role!=='Admin'){message('appMsg','Only the school administrator can register or edit learner records.',true);return}
  const photoFile=$('learnerPhotoInput').files?.[0]||null;
  if(photoFile&&(!['image/jpeg','image/png','image/webp'].includes(photoFile.type)||photoFile.size>4*1024*1024)){message('appMsg','Choose a JPEG, PNG or WebP photograph no larger than 4 MB.',true);return}
@@ -1528,6 +1532,11 @@ $('studentForm').addEventListener('submit',async e=>{
  editingStudentId=null;e.target.reset();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryAmountWrap').classList.add('hidden');$('bursaryNoteWrap').classList.add('hidden');$('bursaryFeeAmount').required=false;e.target.querySelector('button[type="submit"]').textContent='Save student record';
  await refresh();tab('students');
  message('appMsg',(wasEditing?'Learner record updated. Permanent school learner code '+result.data.admission_number+' was retained.':'Student registered successfully. School learner code: '+result.data.admission_number+'. Ministry LIN: '+(result.data.lin||'to be entered when officially issued')+'. P7 index: '+(result.data.p7_index_number||'to be entered when registered')+(record.is_bursary?'. Approved bursary charge of UGX '+money(record.bursary_fee_ugx)+' was created automatically.':'')+'. Please record this code on the learner file.')+photoWarning,!!photoWarning);
+ }catch(err){
+  message('appMsg','Learner record processing stopped unexpectedly. Check the learner register before retrying: '+(err?.message||'Unknown error'),true);
+ }finally{
+  if(submitButton){submitButton.disabled=false;delete submitButton.dataset.busy}
+ }
 });
 $('setupStandardClasses').addEventListener('click',async()=>{
  if(demoMode||profile?.role!=='Admin'){message('appMsg','Only the school administrator can set up the standard classes.',true);return}
