@@ -47,3 +47,15 @@
 - On reconnection, sync must authenticate the current user, re-check teacher class assignment, detect server-side mark changes and present conflicts rather than silently overwriting newer marks.
 - Do not cache Supabase auth/API responses or confidential learner records in the service worker.
 - Fingerprint-device acceptance requires the exact make/model, firmware, supported export/API protocol, USB driver/bridge, and a physical test terminal. A CSV import is not proof of live biometric integration.
+
+## Daily Collections & Records / duplicate receipt tests
+- [ ] Post payments for multiple learners in different classes on one Kampala-local date, with different purposes (fees, sweater, sportswear, graduation and a custom item).
+- [ ] Confirm the database creates/refreshes one `DCR-YYYYMMDD` record for that Uganda date, with correct receipt count, totals by item, overall total and learner/code/class details.
+- [ ] Confirm a payment posted near midnight is grouped by Africa/Kampala local date, not UTC date.
+- [ ] Confirm a reversed receipt remains visible as Reversed and is excluded from posted collection totals.
+- [ ] Search the daily record by learner name, admission code, class, receipt number, payment method and item; confirm no unrelated day is included.
+- [ ] Print the A4 daily sheet and verify all learner rows, category totals, date, record number and signatures fit legibly.
+- [ ] Print a new thermal receipt and a reprinted receipt on both 58 mm and 80 mm rolls; verify payer and school copies have identical receipt numbers and amounts, and both signature lines are visible.
+- [ ] Confirm payer name and custom payment reason persist after refreshing the app and are present on receipt reprints.
+- [ ] Confirm teacher/non-admin accounts cannot read, refresh or modify daily collection records.
+- [ ] Perform these checks with a real test learner before using the feature for actual school collections. Do not create dummy financial payments in the live school ledger.
