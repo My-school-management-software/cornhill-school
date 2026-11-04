@@ -829,8 +829,10 @@ function unebPrimaryDivision(subjectGrades){
  const aggregate=points.reduce((a,b)=>a+b,0);
  let base=aggregate<=12?1:aggregate<=23?2:aggregate<=29?3:aggregate<=34?4:5;
  const english=points[0],math=points[1];
- const penalty=(english===9?2:english===8?1:0)+(math===9?1:0);
- const division=Math.min(5,base+penalty);
+ let division=base;
+ if(english===9&&base<=2)division=3;
+ else if(base===1&&(english===8||math===9))division=2;
+ const penalty=division-base;
  return {ready:true,aggregate,baseDivision:base,division,englishGrade:english,mathGrade:math,penalty,points};
 }
 
