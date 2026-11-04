@@ -41,7 +41,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
 <div id="appMsg" class="notice hidden"></div><div id="demoBanner" class="notice" style="display:none;background:#fff7ed;color:#9a3412">DEMO MODE · Sample records only · Changes are disabled · No real school data is being shown.</div>
 <div class="grid"><div class="stat"><small>Total students</small><div id="totalStudents" class="num">0</div></div><div class="stat"><small>Active students</small><div id="activeStudents" class="num">0</div></div><div class="stat"><small>Classes / levels</small><div id="totalClasses" class="num">0</div></div></div>
-<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="finance" id="financeTab">Finance</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">Staff Attendance</button><button class="tab" data-tab="communication" id="communicationTab">Staff communication</button><button class="tab" data-tab="settings" id="settingsTab">Settings & themes</button></nav>
+<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="finance" id="financeTab">Finance</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">Staff Attendance</button><button class="tab" data-tab="inventory" id="inventoryTab">Inventory</button><button class="tab" data-tab="reports" id="reportsTab">Reports</button><button class="tab" data-tab="communication" id="communicationTab">Staff communication</button><button class="tab" data-tab="settings" id="settingsTab">Settings & themes</button></nav>
 <section id="dashboard" class="panel">
 <h2>School dashboard</h2><p class="muted">Choose a module below. Modules marked “In development” are planned but are not yet connected to working records.</p>
 <div id="teacherPortalSummary" class="notice hidden"></div><div class="module-grid">
@@ -252,6 +252,30 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <div id="staffCommunicationFeed"><p class="muted">Loading staff messages…</p></div>
 <p class="muted">Current release supports text announcements, comments and reactions. Photo/video uploads are not enabled yet; we are keeping the first release light on mobile data and within free storage limits.</p>
 </section>
+<section id="inventory" class="panel hidden">
+<div class="row"><h2>Inventory & stores</h2><span class="badge">Administrator only</span></div>
+<p class="muted">Track school supplies, uniforms, books, food and equipment. Stock changes are recorded in an append-only ledger; the system blocks issues that exceed available stock.</p>
+<div id="inventoryMsg" class="notice hidden"></div>
+<div class="grid"><div class="stat"><small>Items in catalogue</small><div class="num" id="inventoryItemCount">—</div></div><div class="stat"><small>Items below reorder level</small><div class="num" id="inventoryLowCount">—</div></div><div class="stat"><small>Stock units on hand</small><div class="num" id="inventoryUnits">—</div></div></div>
+<h3>1. Create a store category</h3>
+<form id="inventoryCategoryForm"><div><label>Category name *</label><input name="name" required maxlength="80" placeholder="e.g. Textbooks"></div><div><label>Description</label><input name="description" maxlength="250" placeholder="Optional description"></div><div><button class="primary">Save category</button></div></form>
+<h3>2. Add an item</h3>
+<form id="inventoryItemForm"><div><label>Item name *</label><input name="name" required maxlength="120" placeholder="e.g. P.5 Mathematics textbook"></div><div><label>Item code</label><input name="item_code" maxlength="40" placeholder="Optional code"></div><div><label>Category</label><select name="category_id" id="inventoryCategorySelect"><option value="">Uncategorised</option></select></div><div><label>Unit *</label><select name="unit"><option>piece</option><option>pack</option><option>box</option><option>ream</option><option>kg</option><option>litre</option><option>bag</option><option>pair</option><option>set</option></select></div><div><label>Reorder level</label><input name="reorder_level" type="number" min="0" step="0.01" value="0"></div><div class="full"><label>Notes</label><input name="notes" maxlength="500"></div><div class="full"><button class="primary">Add inventory item</button></div></form>
+<h3>3. Record stock received or issued</h3>
+<form id="inventoryMovementForm"><div><label>Item *</label><select name="item_id" id="inventoryItemSelect" required></select></div><div><label>Movement *</label><select name="movement_type"><option value="RECEIVE">Receive into store</option><option value="ISSUE">Issue from store</option></select></div><div><label>Quantity *</label><input name="quantity" type="number" min="0.01" step="0.01" required></div><div><label>Reference</label><input name="reference" maxlength="80" placeholder="Delivery note / requisition"></div><div class="full"><label>Notes</label><input name="notes" maxlength="500"></div><div class="full"><button class="primary">Post stock movement</button></div></form>
+<div class="row" style="justify-content:space-between;margin-top:20px"><h3>Current stock balance</h3><button type="button" id="inventoryRefresh">Refresh stock</button></div>
+<div class="table-wrap"><table><thead><tr><th>Code</th><th>Item</th><th>Category</th><th>On hand</th><th>Reorder at</th><th>Status</th></tr></thead><tbody id="inventoryStockRows"><tr><td colspan="6">Load inventory to view stock.</td></tr></tbody></table></div>
+<p class="muted">This first inventory release tracks quantities, not purchase prices, supplier invoices, depreciation or sales. Stock value and shop sales will be added in the finance integration phase.</p>
+</section>
+<section id="reports" class="panel hidden">
+<div class="row"><h2>School reports</h2><span class="badge">Administrator access</span></div>
+<p class="muted">A reporting workspace for enrolment, academic, finance and attendance summaries. Detailed exports will be enabled as each module's verified data tables are connected.</p>
+<div id="reportsMsg" class="notice hidden"></div>
+<div class="grid"><div class="stat"><small>Active learners</small><div class="num" id="reportActiveLearners">—</div></div><div class="stat"><small>Classes / levels</small><div class="num" id="reportClassCount">—</div></div><div class="stat"><small>Academic assessments</small><div class="num" id="reportAssessmentCount">—</div></div></div>
+<div class="row" style="margin-top:16px"><button type="button" class="primary" id="refreshSchoolReports">Refresh report summary</button><button type="button" id="exportLearnerRegister">Export learner register CSV</button></div>
+<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Class</th><th>Active learners</th></tr></thead><tbody id="reportClassRows"><tr><td colspan="2">Refresh the report summary.</td></tr></tbody></table></div>
+<p class="muted">The learner export includes admission code, name, class, gender and LIN only. Guardian contacts, home addresses and bursary information are excluded.</p>
+</section>
 <section id="settings" class="panel hidden">
 <h2>System settings & appearance</h2>
 <p class="muted">Choose a comfortable look for this device. Appearance preferences are saved only in this browser and do not change other staff members’ devices.</p>
@@ -275,10 +299,10 @@ const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
 if(!db){message('loginMsg','The secure sign-in service could not load. Check your internet connection, then refresh this page. If the problem continues, contact the school administrator.',true);$('signIn').disabled=true;$('signIn').textContent='Sign-in service unavailable'}
-function tab(name){if(demoMode&&['staffProfiles','attendance','communication'].includes(name))return;if(profile?.role==='Teacher'&&!['dashboard','academics','communication','students','classes','learnerProfile'].includes(name))return;if(profile?.role==='Staff'&&!['dashboard','attendance','communication'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','communication','settings','learnerProfile'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='settings')setupAppearance();if(name==='communication')loadStaffCommunication();if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance()}
+function tab(name){if(demoMode&&['staffProfiles','attendance','communication','inventory','reports'].includes(name))return;if(profile?.role==='Teacher'&&!['dashboard','academics','communication','students','classes','learnerProfile'].includes(name))return;if(profile?.role==='Staff'&&!['dashboard','attendance','communication'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','inventory','reports','communication','settings','learnerProfile'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='settings')setupAppearance();if(name==='communication')loadStaffCommunication();if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance();if(name==='inventory')loadInventory();if(name==='reports')loadSchoolReports()}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 const moduleInfo={academics:['Academics','Subjects, assessments, examination entry, grading and report cards.'],finance:['Finance','Fee structures, learner accounts, payment posting, receipts and balances.'],staff:['Staff & HR','Staff profiles, roles, attendance administration and confidential HR records.'],communication:['Communication','Staff announcements, parent communication and the school calendar.'],inventory:['Inventory & sales','Stock control, uniforms, school shop sales and other income.'],reports:['Reports','Academic, enrolment, attendance and financial reports.'],settings:['Settings','School details, user accounts, access permissions and system preferences.']};
-document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance','academics'].includes(key)){tab(key);return}if(key==='finance'){if(demoMode){message('appMsg','Finance is not available in read-only demo mode.');return}tab('finance');return}if(key==='staff'){tab('staffProfiles');return}if(key==='settings'){tab('settings');return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
+document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance','academics'].includes(key)){tab(key);return}if(key==='finance'){if(demoMode){message('appMsg','Finance is not available in read-only demo mode.');return}tab('finance');return}if(key==='staff'){tab('staffProfiles');return}if(key==='settings'){tab('settings');return}if(key==='inventory'){tab('inventory');return}if(key==='reports'){tab('reports');return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
 
 function enterDemoMode(){
  demoMode=true;profile={full_name:'Demo visitor',role:'Demo'};
@@ -844,6 +868,60 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
  $('attendancePreview').insertAdjacentHTML('beforeend','<p class="badge">Import complete · '+inserted+' new · '+duplicates+' duplicates ignored</p>');
 });
 
+async function loadInventory(){
+ if(demoMode||profile?.role!=='Admin'){message('inventoryMsg','Inventory management is available to administrators only.',true);return}
+ clearMessage('inventoryMsg');
+ const [categories,items]=await Promise.all([
+  db.from('inventory_categories').select('id,name').eq('is_active',true).order('name'),
+  db.from('inventory_stock_summary').select('id,item_code,name,unit,reorder_level,is_active,category_name,quantity_on_hand').eq('is_active',true).order('name')
+ ]);
+ const err=categories.error||items.error;
+ if(err){message('inventoryMsg','Inventory database is not ready. Apply the inventory migration in the staging database first. '+err.message,true);return}
+ const cats=categories.data||[],rows=items.data||[];
+ $('inventoryCategorySelect').innerHTML='<option value="">Uncategorised</option>'+cats.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
+ $('inventoryItemSelect').innerHTML=rows.map(x=>'<option value="'+x.id+'">'+esc(x.name)+' · '+esc(String(x.quantity_on_hand))+' '+esc(x.unit)+'</option>').join('')||'<option value="">Add an item first</option>';
+ $('inventoryItemCount').textContent=rows.length;
+ $('inventoryLowCount').textContent=rows.filter(x=>Number(x.quantity_on_hand)<=Number(x.reorder_level)).length;
+ $('inventoryUnits').textContent=rows.reduce((n,x)=>n+Number(x.quantity_on_hand||0),0).toLocaleString('en-UG');
+ $('inventoryStockRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.item_code||'—')+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.category_name||'—')+'</td><td>'+esc(String(x.quantity_on_hand))+' '+esc(x.unit)+'</td><td>'+esc(String(x.reorder_level))+'</td><td>'+(Number(x.quantity_on_hand)<=Number(x.reorder_level)?'<span class="badge">Reorder</span>':'In stock')+'</td></tr>').join('')||'<tr><td colspan="6">No inventory items have been created.</td></tr>';
+}
+$('inventoryCategoryForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(profile?.role!=='Admin'||demoMode)return;const v=Object.fromEntries(new FormData(e.target).entries());const {error}=await db.from('inventory_categories').insert({name:String(v.name).trim(),description:String(v.description||'').trim()||null});if(error){message('inventoryMsg','Could not save category: '+error.message,true);return}e.target.reset();message('inventoryMsg','Inventory category saved.');await loadInventory();
+});
+$('inventoryItemForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(profile?.role!=='Admin'||demoMode)return;const v=Object.fromEntries(new FormData(e.target).entries());const payload={name:String(v.name).trim(),item_code:String(v.item_code||'').trim()||null,category_id:v.category_id||null,unit:v.unit,reorder_level:Number(v.reorder_level||0),notes:String(v.notes||'').trim()||null};const {error}=await db.from('inventory_items').insert(payload);if(error){message('inventoryMsg','Could not add item: '+error.message,true);return}e.target.reset();message('inventoryMsg','Inventory item added. Record its opening stock using “Receive into store”.');await loadInventory();
+});
+$('inventoryMovementForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(profile?.role!=='Admin'||demoMode)return;const v=Object.fromEntries(new FormData(e.target).entries());const payload={item_id:v.item_id,movement_type:v.movement_type,quantity:Number(v.quantity),reference:String(v.reference||'').trim()||null,notes:String(v.notes||'').trim()||null};const {error}=await db.from('inventory_movements').insert(payload);if(error){message('inventoryMsg','Stock movement was not posted: '+error.message,true);return}e.target.reset();message('inventoryMsg','Stock movement posted successfully.');await loadInventory();
+});
+$('inventoryRefresh').addEventListener('click',loadInventory);
+async function loadSchoolReports(){
+ if(demoMode||profile?.role!=='Admin'){message('reportsMsg','School reports are available to administrators only.',true);return}
+ clearMessage('reportsMsg');
+ const [learnerResult,classResult,assessmentResult]=await Promise.all([
+  db.rpc('admin_list_students'),
+  db.from('school_classes').select('id,name').order('name'),
+  db.from('assessments').select('id',{count:'exact',head:true})
+ ]);
+ const err=learnerResult.error||classResult.error||assessmentResult.error;
+ if(err){message('reportsMsg','Could not prepare the report summary: '+err.message,true);return}
+ const learners=Array.isArray(learnerResult.data)?learnerResult.data:(learnerResult.data?.students||[]);
+ const active=learners.filter(x=>x.status==='Active');
+ $('reportActiveLearners').textContent=active.length;
+ $('reportClassCount').textContent=(classResult.data||[]).length;
+ $('reportAssessmentCount').textContent=assessmentResult.count??'—';
+ const counts=new Map();for(const x of active){const label=x.class_name||x.school_classes?.name||'Unassigned';counts.set(label,(counts.get(label)||0)+1)}
+ $('reportClassRows').innerHTML=[...counts.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([name,count])=>'<tr><td>'+esc(name)+'</td><td>'+count+'</td></tr>').join('')||'<tr><td colspan="2">No active learner records.</td></tr>';
+ window.cornhillReportLearners=learners;
+}
+$('refreshSchoolReports').addEventListener('click',loadSchoolReports);
+$('exportLearnerRegister').addEventListener('click',()=>{
+ if(profile?.role!=='Admin'||demoMode)return;const rows=window.cornhillReportLearners||[];if(!rows.length){message('reportsMsg','Refresh the report summary before exporting.',true);return}
+ const headers=['Admission code','First name','Middle name','Last name','Class','Gender','LIN'];
+ const values=rows.map(x=>[x.admission_number,x.first_name,x.middle_name,x.last_name,x.class_name||x.school_classes?.name||'',x.gender,x.lin]);
+ const csv=[headers,...values].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const blob=new Blob(['\\ufeff',csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cornhill-learner-register.csv';a.click();URL.revokeObjectURL(url);
+});
 $('signIn').addEventListener('click',async()=>{clearMessage('loginMsg');const button=$('signIn');if(!db){message('loginMsg','The sign-in service is not available on this connection. Refresh the page or try another internet connection.',true);return}const email=$('email').value.trim();const password=$('password').value;if(!email||!password){message('loginMsg','Enter both your school email address and password.',true);return}button.disabled=true;button.textContent='Signing in…';try{const {data,error}=await db.auth.signInWithPassword({email,password});if(error){message('loginMsg',error.message,true);return}if(!data.session){message('loginMsg','Sign-in was not completed. Please try again.',true);return}await startSession(data.session)}catch(err){message('loginMsg','Could not complete sign-in. Check your internet connection and try again. '+(err?.message||''),true)}finally{button.disabled=false;button.textContent='Sign in'}});
 $('logout').addEventListener('click',async()=>{if(demoMode){demoMode=false;profile=null;location.reload();return}await db.auth.signOut();profile=null;await startSession(null)});
 $('bursaryStatus').addEventListener('change',e=>{const enabled=e.target.value==='true';$('bursaryAmountWrap').classList.toggle('hidden',!enabled);$('bursaryNoteWrap').classList.toggle('hidden',!enabled);$('bursaryFeeAmount').required=enabled;if(!enabled)$('bursaryFeeAmount').value=''});
