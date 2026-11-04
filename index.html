@@ -75,6 +75,18 @@
  </div>
  <h3 style="margin-top:20px">6. Enter learner marks</h3>
  <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score *</label><input name="score" type="number" min="0" step="0.01" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form>
+ <h3 style="margin-top:24px">7. Term report cards and class performance</h3>
+ <p class="muted">Preview individual learner results by term and review class averages. These are draft results for checking; official publication and grading bands require administrator approval.</p>
+ <div class="row" style="align-items:end">
+  <div style="flex:1;min-width:160px"><label>Term</label><select id="reportTermSelect"></select></div>
+  <div style="flex:1;min-width:160px"><label>Class</label><select id="reportClassSelect"></select></div>
+  <div style="flex:1;min-width:180px"><label>Learner</label><select id="reportStudentSelect"></select></div>
+  <button type="button" class="tab" id="buildReportCard">Preview report</button>
+ </div>
+ <div id="reportCardPreview" style="margin-top:14px"></div>
+ <h3 style="margin-top:20px">Class performance summary</h3>
+ <div class="table-wrap"><table><thead><tr><th>Position*</th><th>Learner</th><th>Subjects scored</th><th>Average %</th></tr></thead><tbody id="classPerformanceRows"></tbody></table></div>
+ <p class="muted">*Position is a provisional ranking among learners with entered marks. Missing marks are excluded from each learner's average.</p>
  <h3 style="margin-top:20px">Recent marks</h3><div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Assessment</th><th>Score</th><th>Maximum</th><th>Entered</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
 </section>
 
@@ -254,6 +266,53 @@ async function loadAcademics(){
  $('scoreAssessmentSelect').innerHTML=opts(academic.assessments,x=>(x.title+' · '+(x.school_classes?.name||'')+' · '+(x.subjects?.name||'')));
  $('academicScoreRows').innerHTML=(cscores.data||[]).map(x=>'<tr><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+esc(x.score)+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>Saved</td></tr>').join('')||'<tr><td colspan="6">No marks entered yet.</td></tr>';
  updateScoreLearners();
+ populateReportFilters();
+}
+function populateReportFilters(){
+ const term=$('reportTermSelect'),cls=$('reportClassSelect');
+ term.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');
+ const allowedClassIds=profile?.role==='Teacher'?new Set((window.teacherClassIds||[])):null;
+ const available=classes.filter(x=>!allowedClassIds||allowedClassIds.has(x.id));
+ cls.innerHTML='<option value="">Choose class</option>'+available.map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
+ updateReportLearners();
+}
+function updateReportLearners(){
+ const classId=$('reportClassSelect').value;
+ const list=students.filter(x=>!classId||x.class_id===classId);
+ $('reportStudentSelect').innerHTML='<option value="">Choose learner</option>'+list.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</option>').join('');
+}
+$('reportClassSelect').addEventListener('change',()=>{updateReportLearners();renderClassPerformance()});
+$('reportTermSelect').addEventListener('change',()=>{renderClassPerformance();$('reportCardPreview').innerHTML=''});
+$('buildReportCard').addEventListener('click',renderReportCard);
+async function getTermScores(){
+ const termId=$('reportTermSelect').value,classId=$('reportClassSelect').value;
+ if(!termId||!classId){message('academicMsg','Choose both a term and a class to view results.',true);return null}
+ const {data,error}=await db.from('assessments').select('id,title,max_score,subject_id,subjects(name)').eq('term_id',termId).eq('class_id',classId);
+ if(error){message('academicMsg','Could not load term assessments: '+error.message,true);return null}
+ const ids=(data||[]).map(x=>x.id);
+ if(!ids.length)return {assessments:[],scores:[]};
+ const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment,students(admission_number,first_name,middle_name,last_name)').in('assessment_id',ids);
+ if(result.error){message('academicMsg','Could not load marks: '+result.error.message,true);return null}
+ return {assessments:data||[],scores:result.data||[]};
+}
+async function renderReportCard(){
+ const data=await getTermScores();if(!data)return;
+ const studentId=$('reportStudentSelect').value;
+ if(!studentId){message('academicMsg','Choose a learner for the individual report card.',true);return}
+ const learner=students.find(x=>x.id===studentId);if(!learner)return;
+ const grouped=new Map();
+ data.assessments.forEach(a=>{const rows=data.scores.filter(s=>s.assessment_id===a.id&&s.student_id===studentId);if(!grouped.has(a.subject_id))grouped.set(a.subject_id,{name:a.subjects?.name||'Subject',score:0,max:0,assessments:0,comments:[]});const g=grouped.get(a.subject_id);rows.forEach(s=>{g.score+=Number(s.score);g.max+=Number(a.max_score);g.assessments++;if(s.teacher_comment)g.comments.push(s.teacher_comment)})});
+ const rows=[...grouped.values()].filter(x=>x.assessments),total=rows.reduce((n,x)=>n+x.score,0),max=rows.reduce((n,x)=>n+x.max,0),pct=max?total/max*100:0;
+ $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · DRAFT</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>Code:</strong> '+esc(learner.admission_number)+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+money(x.score)+'</td><td>'+money(x.max)+'</td><td>'+((x.score/x.max)*100).toFixed(1)+'%</td></tr>').join('')+'</tbody></table></div><p><strong>Overall:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%)</p><p class="muted">Draft only — not yet approved or published by the school administrator.</p><button class="tab" type="button" onclick="window.print()">Print draft</button></div>';
+}
+async function renderClassPerformance(){
+ if(demoMode)return;
+ const data=await getTermScores();if(!data)return;
+ const classId=$('reportClassSelect').value;
+ const learners=students.filter(x=>x.class_id===classId),totals=new Map();
+ data.scores.forEach(s=>{const a=data.assessments.find(x=>x.id===s.assessment_id);if(!a)return;const x=totals.get(s.student_id)||{score:0,max:0,subjects:new Set()};x.score+=Number(s.score);x.max+=Number(a.max_score);x.subjects.add(a.subject_id);totals.set(s.student_id,x)});
+ const ranked=learners.map(l=>({l,x:totals.get(l.id)})).filter(x=>x.x&&x.x.max>0).sort((a,b)=>(b.x.score/b.x.max)-(a.x.score/a.x.max));
+ $('classPerformanceRows').innerHTML=ranked.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc([x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '))+'</td><td>'+x.x.subjects.size+'</td><td>'+((x.x.score/x.x.max)*100).toFixed(1)+'%</td></tr>').join('')||'<tr><td colspan="4">No marks entered for this class and term.</td></tr>';
 }
 function updateScoreLearners(){
  const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
