@@ -126,3 +126,15 @@
 - Database migration `202611040012_parent_payment_sms_outbox.sql` applied and committed. Verified outbox schema, payment trigger, and permissions: anonymous users cannot read the queue, authenticated users have SELECT subject to admin RLS, and cannot directly execute the trigger function.
 - JavaScript syntax checks passed. Printer hardware print test and SMS delivery test pending. No live provider credentials or physical printer model have been supplied.
 - Commits: thermal layout `0954f5c`, print action width fix `bdabd48`, parent consent/queue UI `06279d8`, SMS migration `ebb549a`.
+
+
+## 2026-11-04 — Term-based learner statement
+- Learner fee statements now summarise charges, paid amounts and remaining balances by academic year/term, followed by the full itemised charge ledger and receipt history.
+- Thermal receipt width selection is excluded from learner statements so statements remain full-width while individual receipts use the selected 58/80 mm roll.
+- JavaScript syntax check passed. Real data and print-driver testing pending.
+- Commits: `b2cff8b`, statement-width correction `eb81900`.
+
+## Roadmap note — staff social communication and offline operation
+- Staff communication is planned as an authenticated internal feed with announcements, image posts, comments/reactions and short-video posts, plus role/class targeting and moderation. Short video support is technically possible but must be constrained by upload size, storage, compression and bandwidth; it is not a promise of Instagram-scale streaming.
+- Offline-first work must use a local operation queue with idempotent sync and conflict handling; payment posting must never silently duplicate or be treated as complete while offline. Cash payments may be captured as pending local drafts and only become official receipts after server confirmation.
+- Parent SMS uses explicit opt-in and a queued outbox; an approved provider account, sender ID and credentials are still required before sending.
