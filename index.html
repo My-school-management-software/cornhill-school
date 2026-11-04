@@ -16,7 +16,7 @@
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
 <div id="appMsg" class="notice hidden"></div><div id="demoBanner" class="notice" style="display:none;background:#fff7ed;color:#9a3412">DEMO MODE · Sample records only · Changes are disabled · No real school data is being shown.</div>
 <div class="grid"><div class="stat"><small>Total students</small><div id="totalStudents" class="num">0</div></div><div class="stat"><small>Active students</small><div id="activeStudents" class="num">0</div></div><div class="stat"><small>Classes / levels</small><div id="totalClasses" class="num">0</div></div></div>
-<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="finance" id="financeTab">Finance</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">USB Attendance</button></nav>
+<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="finance" id="financeTab">Finance</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">Staff Attendance</button></nav>
 <section id="dashboard" class="panel">
 <h2>School dashboard</h2><p class="muted">Choose a module below. Modules marked “In development” are planned but are not yet connected to working records.</p>
 <div id="teacherPortalSummary" class="notice hidden"></div><div class="module-grid">
@@ -25,7 +25,7 @@
 <button class="module-card" data-module="academics"><strong>📚 Academics</strong><span>Subjects, marks, exams and report cards</span><em>Foundation available</em></button>
 <button class="module-card" data-module="finance"><strong>💳 Finance</strong><span>Fee structures, learner accounts, payments and receipts</span><em>Foundation available</em></button>
 <button class="module-card" data-module="staff"><strong>👩‍🏫 Staff & HR</strong><span>Staff profiles, roles and documents</span><em>In development</em></button>
-<button class="module-card" data-module="attendance"><strong>🕒 Staff attendance</strong><span>Fingerprint machine USB attendance imports</span><em>Foundation available</em></button>
+<button class="module-card" data-module="attendance"><strong>🕒 Staff attendance</strong><span>Staff attendance, work schedules and the single office fingerprint terminal</span><em>Foundation available</em></button>
 <button class="module-card" data-module="communication"><strong>💬 Communication</strong><span>Staff notices, parent messages and calendar</span><em>In development</em></button>
 <button class="module-card" data-module="inventory"><strong>📦 Inventory & sales</strong><span>Uniforms, stock and school shop</span><em>In development</em></button>
 <button class="module-card" data-module="reports"><strong>📊 Reports</strong><span>School, academic and financial reports</span><em>In development</em></button>
@@ -120,6 +120,26 @@
 <div class="full"><button class="primary" type="submit">Save staff ID mapping</button></div>
 </form>
 <div id="deviceMapList" class="muted"></div>
+<hr style="border:0;border-top:1px solid #e5ece6;margin:20px 0">
+<h3>Work schedules</h3>
+<p class="muted">Create the school's working patterns and assign each staff member. Schedule times are interpreted in Uganda time (EAT).</p>
+<form id="workScheduleForm">
+<div><label>Schedule name *</label><input name="name" required placeholder="e.g. Teaching staff"></div>
+<div><label>Start time *</label><input name="start_time" type="time" value="07:30" required></div>
+<div><label>End time *</label><input name="end_time" type="time" value="16:30" required></div>
+<div><label>Late grace period (minutes)</label><input name="grace_minutes" type="number" min="0" max="240" value="10"></div>
+<div><label>Unpaid break allowance (minutes)</label><input name="break_minutes" type="number" min="0" max="480" value="60"></div>
+<div class="full"><label>Working days</label><select name="weekdays"><option value="1,2,3,4,5">Monday–Friday</option><option value="1,2,3,4,5,6">Monday–Saturday</option><option value="0,1,2,3,4,5,6">Every day</option><option value="1,2,3,4">Monday–Thursday</option></select></div>
+<div class="full"><button class="primary" type="submit">Create work schedule</button></div>
+</form>
+<div class="table-wrap"><table><thead><tr><th>Schedule</th><th>Hours</th><th>Grace</th><th>Break</th><th>Working days</th></tr></thead><tbody id="workScheduleRows"></tbody></table></div>
+<h3 style="margin-top:18px">Assign schedules to staff</h3>
+<form id="scheduleAssignmentForm">
+<div><label>Staff member *</label><select name="staff_user_id" id="scheduleStaffSelect" required><option value="">Choose staff member</option></select></div>
+<div><label>Work schedule *</label><select name="schedule_id" id="workScheduleSelect" required><option value="">Create a schedule first</option></select></div>
+<div class="full"><button class="primary" type="submit">Save staff schedule</button></div>
+</form>
+<div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Assigned schedule</th><th>Hours</th></tr></thead><tbody id="scheduleAssignmentRows"></tbody></table></div>
 <hr style="border:0;border-top:1px solid #e5ece6;margin:20px 0">
 <h3>Attendance summary · Last 14 days</h3>
 <p class="muted">Daily clock-in and clock-out overview from imported fingerprint records. Missing clock events are flagged for review; this is not an automatic payroll decision.</p>
@@ -502,7 +522,18 @@ async function setupAttendance(){
  ]);
  if(staff.error||maps.error){message('attendanceMsg','Apply the staff attendance migration in Supabase before using this screen.',true);return}
  $('staffUserSelect').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.full_name||x.id)+' ('+esc(x.role)+')</option>').join('');
+ $('scheduleStaffSelect').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.full_name||x.id)+' ('+esc(x.role)+')</option>').join('');
  const byId=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||x.id]));
+ const [schedules,assignments]=await Promise.all([
+  db.from('staff_work_schedules').select('id,name,start_time,end_time,grace_minutes,break_minutes,weekdays,is_active').order('name'),
+  db.from('staff_attendance_schedule_assignments').select('staff_user_id,schedule_id').order('assigned_at',{ascending:false})
+ ]);
+ if(schedules.error||assignments.error){message('attendanceMsg','Attendance mappings loaded, but work schedules could not be read: '+(schedules.error||assignments.error).message,true);return}
+ const scheduleById=Object.fromEntries((schedules.data||[]).map(x=>[x.id,x]));
+ const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+ $('workScheduleSelect').innerHTML='<option value="">Choose work schedule</option>'+(schedules.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+' · '+esc(String(x.start_time).slice(0,5))+'–'+esc(String(x.end_time).slice(0,5))+'</option>').join('');
+ $('workScheduleRows').innerHTML=(schedules.data||[]).map(x=>'<tr><td>'+esc(x.name)+(x.is_active?'':' (inactive)')+'</td><td>'+esc(String(x.start_time).slice(0,5))+'–'+esc(String(x.end_time).slice(0,5))+'</td><td>'+x.grace_minutes+' min</td><td>'+x.break_minutes+' min</td><td>'+esc((x.weekdays||[]).map(d=>days[d]).join(', '))+'</td></tr>').join('')||'<tr><td colspan="5">No work schedules created yet.</td></tr>';
+ $('scheduleAssignmentRows').innerHTML=(assignments.data||[]).map(x=>{const z=scheduleById[x.schedule_id];return '<tr><td>'+esc(byId[x.staff_user_id]||'Unknown staff')+'</td><td>'+esc(z?.name||'Unavailable')+'</td><td>'+(z?esc(String(z.start_time).slice(0,5)+'–'+String(z.end_time).slice(0,5)):'—')+'</td></tr>'}).join('')||'<tr><td colspan="3">No staff schedules assigned yet.</td></tr>';
  $('deviceMapList').innerHTML=(maps.data||[]).map(x=>'<div style="padding:7px;border-bottom:1px solid #eee">Device '+esc(x.device_serial)+' · ID '+esc(x.device_user_id)+' → '+esc(byId[x.staff_user_id]||'Unknown staff')+'</div>').join('')||'No machine IDs mapped yet.';
  const since=new Date(Date.now()-14*86400000).toISOString();
  const events=await db.from('staff_attendance_events').select('staff_user_id,event_type,occurred_at').gte('occurred_at',since).order('occurred_at',{ascending:true}).limit(5000);
@@ -520,6 +551,21 @@ async function setupAttendance(){
  const fmt=v=>v?new Date(v).toLocaleTimeString('en-UG',{timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'}):'—';
  $('attendanceSummaryRows').innerHTML=rows.map(g=>'<tr><td>'+esc(g.day)+'</td><td>'+esc(g.staff)+'</td><td>'+fmt(g.ins[0])+'</td><td>'+fmt(g.outs[g.outs.length-1])+'</td><td>'+g.count+'</td><td>'+(g.ins.length&&g.outs.length?'<span class="badge">Complete events</span>':'<span class="badge">Check record</span>')+'</td></tr>').join('')||'<tr><td colspan="6">No attendance events recorded in the last 14 days.</td></tr>';
 }
+$('workScheduleForm').addEventListener('submit',async e=>{
+ e.preventDefault();clearMessage('attendanceMsg');const f=new FormData(e.target),user=(await db.auth.getUser()).data.user;
+ const weekdays=String(f.get('weekdays')).split(',').map(Number);
+ const payload={name:f.get('name').trim(),start_time:f.get('start_time'),end_time:f.get('end_time'),grace_minutes:Number(f.get('grace_minutes')||0),break_minutes:Number(f.get('break_minutes')||0),weekdays,created_by:user.id};
+ const {error}=await db.from('staff_work_schedules').insert(payload);
+ if(error){message('attendanceMsg','Could not create work schedule: '+error.message,true);return}
+ e.target.reset();await setupAttendance();message('attendanceMsg','Work schedule created.');
+});
+$('scheduleAssignmentForm').addEventListener('submit',async e=>{
+ e.preventDefault();clearMessage('attendanceMsg');const f=new FormData(e.target),user=(await db.auth.getUser()).data.user;
+ const payload={staff_user_id:f.get('staff_user_id'),schedule_id:f.get('schedule_id'),assigned_by:user.id};
+ const {error}=await db.from('staff_attendance_schedule_assignments').upsert(payload,{onConflict:'staff_user_id'});
+ if(error){message('attendanceMsg','Could not assign work schedule: '+error.message,true);return}
+ e.target.reset();await setupAttendance();message('attendanceMsg','Staff work schedule assigned.');
+});
 $('deviceMapForm').addEventListener('submit',async e=>{
  e.preventDefault();clearMessage('attendanceMsg');const f=new FormData(e.target);
  const payload={device_serial:f.get('device_serial').trim(),device_user_id:f.get('device_user_id').trim(),staff_user_id:f.get('staff_user_id'),created_by:(await db.auth.getUser()).data.user.id};
