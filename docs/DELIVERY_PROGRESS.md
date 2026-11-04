@@ -88,3 +88,11 @@
 - Allows printing the retrieved receipt without creating another payment or receipt. Reversed receipts are clearly marked as invalid for payment.
 - JavaScript syntax check passed. Live browser/RLS verification remains pending.
 - Commit: `73a37df`.
+
+
+## 2026-11-04 — Fee collection report by class and term
+- Added academic-term and class filters to the administrator Finance reports.
+- Report groups actual learner charges by class/stream, counts distinct learners, and totals charges, posted payment allocations and outstanding charge balances.
+- Uses charge-level allocations, so unrelated payments and unallocated account credit are not incorrectly counted as fees collected for a term.
+- Added report summary totals and print action. JavaScript syntax check passed; live browser and relationship/RLS verification pending.
+- Commit: `e3ffac0`.
