@@ -997,7 +997,7 @@ function setupExcelMarksFilters(){
  cls.innerHTML='<option value="">Choose class</option>'+classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
  const folders=$('excelClassFolders');if(folders)folders.innerHTML=classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<button type="button" class="module-card" data-excel-class="'+x.id+'"><strong>📁 '+esc(x.name)+'</strong><span>Open class marks folder</span><em>'+esc(curriculumGroupForClass(x.name)||'Class')+'</em></button>').join('');
 }
-function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();if(/mid.?term|midterm/.test(t))return 'Midterm';if(/end.?of.?term|end term|end of term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
+function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();if(/mid.?term|midterm/.test(t))return 'Midterm';if(/^end\b|end.?of.?term|end term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
 function excelSubjectOrder(a){const name=(a.subjects?.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');const group=curriculumGroupForClass(classes.find(c=>c.id===a.class_id)?.name||'');const maps=group==='Nursery'?['number','numeracy','language','reading','health','social','writing','drawing']:group==='P1-P3'?['english','mathematics','literacyi','literacyii','local','religious']:['english','mathematics','science','socialstudies'];const i=maps.findIndex(k=>name.includes(k));return i<0?99:i;}
 function excelSubjectLabel(assessment,index,clsArg){
  const subject=assessment.subjects||{},name=(subject.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -1012,7 +1012,8 @@ async function loadExcelMarksGrid(){
  const head=$('excelMarksHead'),body=$('excelMarksBody');
  if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
  const cls=classes.find(x=>x.id===classId);
- const phase=$('excelMarksPhase').value;\n const assessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&excelAssessmentPeriod(x)===phase).sort((a,b)=>excelSubjectOrder(a)-excelSubjectOrder(b));
+ const phase=$('excelMarksPhase').value;
+ const assessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&excelAssessmentPeriod(x)===phase).sort((a,b)=>excelSubjectOrder(a)-excelSubjectOrder(b));
  if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments have been created for this class and term. Create one assessment per subject first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
  const list=students.filter(x=>x.class_id===classId).sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||a.first_name.localeCompare(b.first_name));
  const ids=assessments.map(x=>x.id);
@@ -1020,14 +1021,21 @@ async function loadExcelMarksGrid(){
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
  const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x.score]));
  window.cornhillExcelMarksContext={termId,classId,phase,assessments,students:list};
- const phaseCode=phase==='Beginning'?1:phase==='Midterm'?2:3;\n const totals=new Map();(data||[]).forEach(mark=>{const n=totals.get(mark.student_id)||{score:0,max:0};const a=assessments.find(z=>z.id===mark.assessment_id);if(a){n.score+=Number(mark.score);n.max+=Number(a.max_score);totals.set(mark.student_id,n)}});\n const ranked=list.map(l=>({id:l.id,pct:(totals.get(l.id)?.max||0)?totals.get(l.id).score/totals.get(l.id).max*100:-1})).filter(x=>x.pct>=0).sort((a,b)=>b.pct-a.pct);\n const positions=new Map();let last=null,rank=0;ranked.forEach((x,i)=>{if(last===null||Math.abs(x.pct-last)>0.000001)rank=i+1;positions.set(x.id,rank);last=x.pct});\n head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>PN'+phaseCode+'</th>'+assessments.map((a,i)=>'<th title="'+esc(a.title)+'">'+esc(excelSubjectLabel(a,i,cls))+'<div style="font-size:10px;font-weight:400">'+esc(a.title)+'</div><small>/ '+Number(a.max_score)+'</small></th>').join('')+'</tr>';
+ const phaseCode=phase==='Beginning'?1:phase==='Midterm'?2:3;
+ const totals=new Map();(data||[]).forEach(mark=>{const n=totals.get(mark.student_id)||{score:0,max:0};const a=assessments.find(z=>z.id===mark.assessment_id);if(a){n.score+=Number(mark.score);n.max+=Number(a.max_score);totals.set(mark.student_id,n)}});
+ const ranked=list.map(l=>({id:l.id,pct:(totals.get(l.id)?.max||0)?totals.get(l.id).score/totals.get(l.id).max*100:-1})).filter(x=>x.pct>=0).sort((a,b)=>b.pct-a.pct);
+ const positions=new Map();let last=null,rank=0;ranked.forEach((x,i)=>{if(last===null||Math.abs(x.pct-last)>0.000001)rank=i+1;positions.set(x.id,rank);last=x.pct});
+ head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>PN'+phaseCode+'</th>'+assessments.map((a,i)=>'<th title="'+esc(a.title)+'">'+esc(excelSubjectLabel(a,i,cls))+'<div style="font-size:10px;font-weight:400">'+esc(a.title)+'</div><small>/ '+Number(a.max_score)+'</small></th>').join('')+'</tr>';
  body.innerHTML=list.map((x,i)=>{
   const initials=([x.first_name,x.last_name].filter(Boolean).map(n=>n[0]).join('').slice(0,2)||'—').toUpperCase();
   return '<tr><td>'+(i+1)+'</td><td>'+esc(x.admission_number||'—')+'</td><td><span class="excel-photo-placeholder" title="No learner photo stored">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td><td>'+(positions.get(x.id)||'—')+'</td>'+assessments.map(a=>{const value=saved.get(a.id+'|'+x.id);return '<td><input data-grid-score data-assessment-id="'+a.id+'" data-student-id="'+x.id+'" type="number" min="0" max="'+Number(a.max_score)+'" step="0.01" inputmode="decimal" aria-label="'+esc(a.subjects?.name||a.title)+' mark for '+esc(x.first_name+' '+x.last_name)+'" value="'+(value===undefined?'':esc(value))+'" placeholder="—"></td>'}).join('')+'</tr>'
  }).join('')||'<tr><td colspan="'+(4+assessments.length)+'">No learners are registered in this class.</td></tr>';
  message('excelMarksMsg',list.length+' learner(s) and '+assessments.length+' subject assessment(s) loaded. Existing marks are shown.');
 }
-$('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);\n$('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});\n$('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});\n$('excelMarksClass').addEventListener('change',()=>{document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
+$('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
+$('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
+$('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
+$('excelMarksClass').addEventListener('change',()=>{document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
 $('saveExcelMarks').addEventListener('click',async()=>{
  const ctx=window.cornhillExcelMarksContext;
  if(!ctx){message('excelMarksMsg','Load a class sheet first.',true);return}
