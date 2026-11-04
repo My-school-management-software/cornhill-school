@@ -147,3 +147,13 @@
 - If a feature cannot be delivered safely and reliably within a free tier, stop before incurring a charge, explain the limitation, and implement a free/local alternative where practical. Ask the owner before any action that could create a cost; default is not to proceed.
 - Prioritise a complete, reliable core school system over optional integrations that require paid services. Clearly distinguish implemented features from those awaiting free-tier capacity, external credentials, or physical hardware.
 - Production remains untouched; this is a development-branch delivery policy.
+
+
+## 2026-11-04 — Native staff communication feed (first release)
+- Added a private staff feed with text announcements, role targeting (all staff, teachers, administrators), comments and helpful reactions.
+- Added separate posts, comments and reactions tables with RLS enabled. Authors can create and delete their own posts/comments/reactions; administrators can moderate posts/comments/reactions. Feed visibility is enforced by the database for each audience, not just by hidden UI controls.
+- Added the Staff communication tab for administrators, teachers and staff. The UI escapes post/comment text before rendering and uses the authenticated user's ID for authorship.
+- Applied and verified the database tables and RLS policies in the connected Supabase project. UI and migration source are committed on `feature/cornhill-v3-foundation`.
+- This release is text-only. Image and short-video uploads are deliberately deferred to avoid unbounded free storage/bandwidth use and to keep mobile data use low. No paid storage or media service has been enabled.
+- Browser testing with separate Admin/Teacher/Staff accounts is still required. Production remains unchanged; no deployment was attempted.
+- Commits: database migration `849c9f4` (role policy correction `59ec411`); feed UI `d45628f` (role access correction `2f1168e`, audience correction `239ed3b`).
