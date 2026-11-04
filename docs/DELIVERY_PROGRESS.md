@@ -96,3 +96,5 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Added an index supporting teacher assignment lookups. Applied the policies to Supabase and committed replayable SQL at `supabase/migrations/202611040002_teacher_mark_entry.sql`.
 - Inline JavaScript syntax check passed.
 - Current database has one Admin profile, zero assigned teacher-subject rows and no teacher accounts to exercise the workflow. Admin must create teacher accounts and assign class subjects before teachers see assessments. No teacher browser login test has been possible yet.
+
+- Added the previously missing replayable finance schema migration at `supabase/migrations/202611040001_finance_foundation.sql`, including fee catalogue/schedules, charges, payment allocations, receipts, account balances, RLS and the SECURITY INVOKER payment-posting function. The schema had already been applied and verified directly; this commit now preserves the SQL for future environment setup.
