@@ -109,6 +109,10 @@
 </form>
 <div id="deviceMapList" class="muted"></div>
 <hr style="border:0;border-top:1px solid #e5ece6;margin:20px 0">
+<h3>Attendance summary · Last 14 days</h3>
+<p class="muted">Daily clock-in and clock-out overview from imported fingerprint records. Missing clock events are flagged for review; this is not an automatic payroll decision.</p>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Staff member</th><th>First clock-in</th><th>Last clock-out</th><th>Events</th><th>Review</th></tr></thead><tbody id="attendanceSummaryRows"></tbody></table></div>
+<hr style="border:0;border-top:1px solid #e5ece6;margin:20px 0">
 <h3>2. Upload attendance export</h3>
 <p class="muted">CSV columns required: <code>device_user_id,event_type,occurred_at</code>. Optional columns: <code>external_event_id</code>. Event types: clock_in, clock_out, break_start, break_end. Include a header row. Export times should be local Uganda time (EAT) or ISO timestamps with timezone.</p>
 <form id="attendanceImportForm">
@@ -435,6 +439,21 @@ async function setupAttendance(){
  $('staffUserSelect').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.full_name||x.id)+' ('+esc(x.role)+')</option>').join('');
  const byId=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||x.id]));
  $('deviceMapList').innerHTML=(maps.data||[]).map(x=>'<div style="padding:7px;border-bottom:1px solid #eee">Device '+esc(x.device_serial)+' · ID '+esc(x.device_user_id)+' → '+esc(byId[x.staff_user_id]||'Unknown staff')+'</div>').join('')||'No machine IDs mapped yet.';
+ const since=new Date(Date.now()-14*86400000).toISOString();
+ const events=await db.from('staff_attendance_events').select('staff_user_id,event_type,occurred_at').gte('occurred_at',since).order('occurred_at',{ascending:true}).limit(5000);
+ if(events.error){message('attendanceMsg','Staff mappings loaded, but the attendance summary could not load: '+events.error.message,true);return}
+ const grouped={};
+ for(const ev of events.data||[]){
+  const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Kampala',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ev.occurred_at));
+  const key=ev.staff_user_id+'|'+day;
+  if(!grouped[key])grouped[key]={staff:byId[ev.staff_user_id]||'Unknown staff',day,ins:[],outs:[],count:0};
+  const g=grouped[key];g.count++;
+  if(ev.event_type==='clock_in')g.ins.push(ev.occurred_at);
+  if(ev.event_type==='clock_out')g.outs.push(ev.occurred_at);
+ }
+ const rows=Object.values(grouped).sort((a,b)=>b.day.localeCompare(a.day)||a.staff.localeCompare(b.staff));
+ const fmt=v=>v?new Date(v).toLocaleTimeString('en-UG',{timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'}):'—';
+ $('attendanceSummaryRows').innerHTML=rows.map(g=>'<tr><td>'+esc(g.day)+'</td><td>'+esc(g.staff)+'</td><td>'+fmt(g.ins[0])+'</td><td>'+fmt(g.outs[g.outs.length-1])+'</td><td>'+g.count+'</td><td>'+(g.ins.length&&g.outs.length?'<span class="badge">Complete events</span>':'<span class="badge">Check record</span>')+'</td></tr>').join('')||'<tr><td colspan="6">No attendance events recorded in the last 14 days.</td></tr>';
 }
 $('deviceMapForm').addEventListener('submit',async e=>{
  e.preventDefault();clearMessage('attendanceMsg');const f=new FormData(e.target);
