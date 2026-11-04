@@ -935,7 +935,7 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
  const status=document.getElementById('connectionStatus');
  function updateConnection(){if(!status)return;const offline=!navigator.onLine;status.classList.toggle('hidden',!offline);status.textContent=offline?'You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.':'You are back online. Reconnect and refresh if records did not load.';if(!offline){status.classList.remove('hidden');setTimeout(()=>{if(navigator.onLine)status.classList.add('hidden')},4500)}}
  window.addEventListener('online',updateConnection);window.addEventListener('offline',updateConnection);updateConnection();
- if('serviceWorker' in navigator && location.protocol==='https:'){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}
+ 
 })();
 </script>
 </body></html>
