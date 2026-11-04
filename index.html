@@ -826,12 +826,13 @@ $('runCashReport').addEventListener('click',async()=>{
  const from=$('cashReportFrom').value,to=$('cashReportTo').value;if(!from||!to||from>to){message('cashReportMsg','Choose a valid date range.',true);return}
  $('runCashReport').disabled=true;$('runCashReport').textContent='Generating…';
  try{
-  const {data,error}=await db.from('school_payments').select('id,receipt_no,amount_ugx,status,payment_method,received_at,students(admission_number,first_name,last_name)').gte('received_at',from+'T00:00:00+03:00').lt('received_at',to+'T00:00:00+03:00'.replace('T00:00:00+03:00','T00:00:00+03:00'));
+  const untilDate=new Date(to+'T00:00:00Z');untilDate.setUTCDate(untilDate.getUTCDate()+1);const until=untilDate.toISOString().slice(0,10)+'T00:00:00+03:00';
+  const {data,error}=await db.from('school_payments').select('id,receipt_no,amount_ugx,status,payment_method,received_at,students(admission_number,first_name,last_name)').gte('received_at',from+'T00:00:00+03:00').lt('received_at',until);
   if(error)throw error;
   const posted=(data||[]).filter(p=>p.status==='Posted'),reversed=(data||[]).filter(p=>p.status==='Reversed');
   const methods=new Map();for(const p of posted){const m=p.payment_method||'Other';if(!methods.has(m))methods.set(m,{count:0,total:0});const x=methods.get(m);x.count++;x.total+=Number(p.amount_ugx||0)}
   const gross=posted.reduce((n,p)=>n+Number(p.amount_ugx||0),0),rev=reversed.reduce((n,p)=>n+Number(p.amount_ugx||0),0);
-  $('cashReportCount').textContent=posted.length;$('cashReportGross').textContent=money(gross);$('cashReportReversed').textContent=money(rev);$('cashReportNet').textContent=money(gross);
+  $('cashReportCount').textContent=posted.length;$('cashReportGross').textContent=money(gross);$('cashReportReversed').textContent=money(rev);$('cashReportNet').textContent=money(gross-rev);
   $('cashReportRows').innerHTML=[...methods.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([m,x])=>'<tr><td>'+esc(m)+'</td><td>'+x.count+'</td><td>'+money(x.total)+'</td></tr>').join('')||'<tr><td colspan="3">No posted collections in this date range.</td></tr>';
   $('printCashReport').disabled=!(data||[]).length;
   $('cashReportArea').dataset.heading='Daily Cash Collection Report · '+from+' to '+to;
