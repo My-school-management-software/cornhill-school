@@ -75,6 +75,10 @@
  </div>
  <h3 style="margin-top:20px">6. Enter learner marks</h3>
  <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score *</label><input name="score" type="number" min="0" step="0.01" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form>
+ <h3 style="margin-top:20px">Grading bands</h3>
+ <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
+ <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add grading band</button></div></form></div>
+ <div class="table-wrap"><table><thead><tr><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Comment</th></tr></thead><tbody id="gradeBandRows"></tbody></table></div>
  <h3 style="margin-top:24px">7. Term report cards and class performance</h3>
  <p class="muted">Preview individual learner results by term and review class averages. These are draft results for checking; official publication and grading bands require administrator approval.</p>
  <div class="row" style="align-items:end">
@@ -240,10 +244,29 @@ $('staffProfileForm').addEventListener('submit',async e=>{
 });
 
 
+let gradeBands=[];
+function gradeFor(percent){return gradeBands.find(x=>x.is_active!==false&&percent>=Number(x.min_percent)&&percent<=Number(x.max_percent))||null}
+async function loadGradeBands(){
+ const {data,error}=await db.from('academic_grade_bands').select('id,name,min_percent,max_percent,comment,is_active').eq('is_active',true).order('min_percent',{ascending:false});
+ if(error){message('academicMsg','Grading bands unavailable: '+error.message,true);return}
+ gradeBands=data||[];
+ $('gradeBandRows').innerHTML=gradeBands.map(x=>'<tr><td><strong>'+esc(x.name)+'</strong></td><td>'+Number(x.min_percent).toFixed(2)+'%</td><td>'+Number(x.max_percent).toFixed(2)+'%</td><td>'+esc(x.comment||'—')+'</td></tr>').join('')||'<tr><td colspan="4">No active grading bands.</td></tr>';
+}
+$('gradeBandForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(profile?.role!=='Admin')return;
+ const v=Object.fromEntries(new FormData(e.target).entries());
+ const low=Number(v.min_percent),high=Number(v.max_percent);
+ if(low>high){message('academicMsg','Minimum must not exceed maximum.',true);return}
+ if(gradeBands.some(x=>low<=Number(x.max_percent)&&high>=Number(x.min_percent))){message('academicMsg','This range overlaps an existing active grade.',true);return}
+ const {error}=await db.from('academic_grade_bands').insert({name:v.name.trim(),min_percent:low,max_percent:high,comment:v.comment.trim()||null});
+ if(error){message('academicMsg','Could not add grade: '+error.message,true);return}
+ e.target.reset();await loadGradeBands();message('academicMsg','Grading band saved.');
+});
 async function loadAcademics(){
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
- $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
+ $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');\n $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');\n await loadGradeBands();
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Administrator access':'Assigned teacher · Mark entry only';
  const [y,t,s,a,staff,cscores]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
@@ -307,8 +330,8 @@ async function renderReportCard(){
  const learner=students.find(x=>x.id===studentId);if(!learner)return;
  const grouped=new Map();
  data.assessments.forEach(a=>{const rows=data.scores.filter(s=>s.assessment_id===a.id&&s.student_id===studentId);if(!grouped.has(a.subject_id))grouped.set(a.subject_id,{name:a.subjects?.name||'Subject',score:0,max:0,assessments:0,comments:[]});const g=grouped.get(a.subject_id);rows.forEach(s=>{g.score+=Number(s.score);g.max+=Number(a.max_score);g.assessments++;if(s.teacher_comment)g.comments.push(s.teacher_comment)})});
- const rows=[...grouped.values()].filter(x=>x.assessments),total=rows.reduce((n,x)=>n+x.score,0),max=rows.reduce((n,x)=>n+x.max,0),pct=max?total/max*100:0;
- $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · DRAFT</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>Code:</strong> '+esc(learner.admission_number)+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+money(x.score)+'</td><td>'+money(x.max)+'</td><td>'+((x.score/x.max)*100).toFixed(1)+'%</td></tr>').join('')+'</tbody></table></div><p><strong>Overall:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%)</p><p class="muted">Draft only — not yet approved or published by the school administrator.</p><button class="tab" type="button" onclick="window.print()">Print draft</button></div>';
+ const rows=[...grouped.values()].filter(x=>x.assessments),total=rows.reduce((n,x)=>n+x.score,0),max=rows.reduce((n,x)=>n+x.max,0),pct=max?total/max*100:0;const overallGrade=gradeFor(pct);
+ $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · DRAFT</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>Code:</strong> '+esc(learner.admission_number)+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+money(x.score)+'</td><td>'+money(x.max)+'</td><td>'+((x.score/x.max)*100).toFixed(1)+'%</td></tr>').join('')+'</tbody></table></div><p><strong>Overall:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%) · Grade: '+esc(overallGrade?.name||'—')+' · '+esc(overallGrade?.comment||'')+'</p><p class="muted">Draft only — not yet approved or published by the school administrator.</p><button class="tab" type="button" onclick="window.print()">Print draft</button></div>';
 }
 async function renderClassPerformance(){
  if(demoMode)return;
