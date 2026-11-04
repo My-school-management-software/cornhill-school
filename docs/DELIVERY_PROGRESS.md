@@ -157,3 +157,11 @@
 - This release is text-only. Image and short-video uploads are deliberately deferred to avoid unbounded free storage/bandwidth use and to keep mobile data use low. No paid storage or media service has been enabled.
 - Browser testing with separate Admin/Teacher/Staff accounts is still required. Production remains unchanged; no deployment was attempted.
 - Commits: database migration `849c9f4` (role policy correction `59ec411`); feed UI `d45628f` (role access correction `2f1168e`, audience correction `239ed3b`).
+
+
+## 2026-11-04 — Finance collection audit improvement
+- Expanded the daily collection report with a receipt-by-receipt audit table: Kampala-local timestamp, receipt number, learner/admission number, payment method, posting status and UGX amount.
+- The report now pages through all matching receipts in batches of 1,000 instead of relying on the default first page, so larger date ranges are not silently truncated at the PostgREST row limit.
+- Posted collections remain grouped by payment method; reversed receipts remain visible in the audit and separately totalled, and are excluded from net collections.
+- The database currently has no active learners and no school payment rows, so a real receipt-based browser test cannot yet be run without creating test data. No financial records were added or changed.
+- UI commit: `c91fa1c`. Development branch only; production remains untouched.
