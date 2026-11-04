@@ -864,7 +864,7 @@ async function loadAcademics(){
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
   db.from('academic_terms').select('*,academic_years(name)').order('starts_on',{ascending:false}),
   profile?.role==='Admin'?db.from('subjects').select('*').eq('is_active',true).order('name'):(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}),
-  db.from('assessments').select('*,subjects(name),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
+  db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name').order('full_name'):Promise.resolve({data:[],error:null}),
   db.from('assessment_scores').select('id,score,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100),
   profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId)
@@ -894,6 +894,7 @@ function populateReportFilters(){
  const allowedClassIds=profile?.role==='Teacher'?new Set((window.teacherClassIds||[])):null;
  const available=classes.filter(x=>!allowedClassIds||allowedClassIds.has(x.id));
  cls.innerHTML='<option value="">Choose class</option>'+available.map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
+ setupExcelMarksFilters();
  updateReportLearners();
 }
 function updateReportLearners(){
