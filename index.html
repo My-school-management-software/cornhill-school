@@ -523,7 +523,7 @@ async function loadExpensePayroll(){
  window.cornhillExpenseRows=expenses.data||[];
  $('expenseCategory').innerHTML=(cats.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  $('salaryStaff').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).filter(x=>x.employment_status==='Active').map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed staff')+' · '+esc(x.job_title||'Staff')+'</option>').join('');
- $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'</td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+ (x.is_active?'Active':'Inactive')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
+ $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'</td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+ (x.is_active?'Active':'Inactive')+(x.is_active?' <button type="button" data-close-salary="'+x.id+'">Close agreement</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
  $('payrollPeriodSelect').innerHTML='<option value="">Choose payroll period</option>'+(periods.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.period_name)+' · '+esc(x.period_type)+' · '+esc(x.status)+'</option>').join('');
  renderExpenseRows();
 }
@@ -542,6 +542,13 @@ $('expenseForm').addEventListener('submit',async e=>{
  const {error}=await db.from('school_expenses').insert({expense_no:expenseNo,expense_date:date,category_id:f.get('category_id'),description:String(f.get('description')).trim(),amount_ugx:Number(f.get('amount_ugx')),payee_name:String(f.get('payee_name')||'').trim()||null,payment_method:f.get('payment_method'),payment_reference:String(f.get('payment_reference')||'').trim()||null,receipt_reference:String(f.get('receipt_reference')||'').trim()||null,recorded_by:currentUserId});
  if(error){message('expenseMsg','Expense was not saved: '+error.message,true);return}
  e.target.reset();$('expenseDate').value=kampalaToday();await loadExpensePayroll();message('expenseMsg','Expense saved in the school expenditure register.');
+});
+$('salaryAgreementRows').addEventListener('click',async e=>{
+ const btn=e.target.closest('[data-close-salary]');if(!btn)return;
+ if(!confirm('Close this salary agreement? Past payroll records will remain unchanged, but future payroll periods will not use this agreement.'))return;
+ const {error}=await db.from('staff_salary_agreements').update({is_active:false}).eq('id',btn.dataset.closeSalary);
+ if(error){message('payrollMsg','Salary agreement could not be closed: '+error.message,true);return}
+ await loadExpensePayroll();message('payrollMsg','Salary agreement closed. You can now enter a new agreement with updated salary or effective dates.');
 });
 $('salaryAgreementForm').addEventListener('submit',async e=>{
  e.preventDefault();if(demoMode||profile?.role!=='Admin')return;const f=new FormData(e.target),start=f.get('effective_from'),end=f.get('effective_to')||null,amount=Number(f.get('base_salary_ugx'));
