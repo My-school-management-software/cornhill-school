@@ -314,7 +314,7 @@ function enterDemoMode(){
  classes=[{id:'class-p3',name:'Primary 3',stream:'East'},{id:'class-p4',name:'Primary 4',stream:'West'},{id:'class-p7',name:'Primary 7',stream:''}];
  $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');$('logout').textContent='Exit demo';
  $('demoBanner').style.display='block';$('welcome').textContent='Welcome to the Cornhill demo';$('role').textContent='Demo · Read only';
- $('staffProfilesTab').classList.add('hidden');$('attendanceTab').classList.add('hidden');
+ $('staffProfilesTab').classList.add('hidden');$('attendanceTab').classList.add('hidden');$('inventoryTab').classList.add('hidden');$('reportsTab').classList.add('hidden');
  document.querySelectorAll('#app form button[type="submit"],#app form button:not([type])').forEach(b=>{b.disabled=true;b.title='Disabled in read-only demo mode'});
  document.querySelectorAll('#app form input,#app form select,#app form textarea').forEach(el=>el.disabled=true);
  render();tab('dashboard');message('appMsg','You are viewing sample records. Sign-in and database security have not been disabled.');
@@ -920,7 +920,7 @@ $('exportLearnerRegister').addEventListener('click',()=>{
  const headers=['Admission code','First name','Middle name','Last name','Class','Gender','LIN'];
  const values=rows.map(x=>[x.admission_number,x.first_name,x.middle_name,x.last_name,x.class_name||x.school_classes?.name||'',x.gender,x.lin]);
  const csv=[headers,...values].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
- const blob=new Blob(['\\ufeff',csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cornhill-learner-register.csv';a.click();URL.revokeObjectURL(url);
+ const blob=new Blob([String.fromCharCode(65279),csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cornhill-learner-register.csv';a.click();URL.revokeObjectURL(url);
 });
 $('signIn').addEventListener('click',async()=>{clearMessage('loginMsg');const button=$('signIn');if(!db){message('loginMsg','The sign-in service is not available on this connection. Refresh the page or try another internet connection.',true);return}const email=$('email').value.trim();const password=$('password').value;if(!email||!password){message('loginMsg','Enter both your school email address and password.',true);return}button.disabled=true;button.textContent='Signing in…';try{const {data,error}=await db.auth.signInWithPassword({email,password});if(error){message('loginMsg',error.message,true);return}if(!data.session){message('loginMsg','Sign-in was not completed. Please try again.',true);return}await startSession(data.session)}catch(err){message('loginMsg','Could not complete sign-in. Check your internet connection and try again. '+(err?.message||''),true)}finally{button.disabled=false;button.textContent='Sign in'}});
 $('logout').addEventListener('click',async()=>{if(demoMode){demoMode=false;profile=null;location.reload();return}await db.auth.signOut();profile=null;await startSession(null)});
