@@ -67,7 +67,13 @@
  <p class="muted">Enter the receipt number exactly as printed. The system retrieves the original posted payment record; it does not create a new payment or receipt.</p>
  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:220px"><label for="receiptLookupNumber">Receipt number</label><input id="receiptLookupNumber" placeholder="e.g. CHR-2026-000001" autocomplete="off"></div><button type="button" class="primary" id="receiptLookupButton">Find receipt</button><button type="button" id="receiptLookupPrint" disabled>Print receipt</button></div>
  <div id="receiptLookupMsg" class="notice hidden"></div><div id="receiptLookupArea" class="receipt-print"></div>
- <h3 style="margin-top:24px">9. Recent charges and receipts</h3>
+ <h3 style="margin-top:24px">9. Fee collection report by class and term</h3>
+ <p class="muted">Compare charges, posted payments allocated to those charges and outstanding balances. This report uses the selected term's actual fee charges.</p>
+ <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:180px"><label for="feeReportTerm">Academic term</label><select id="feeReportTerm"><option value="">All terms</option></select></div><div style="flex:1;min-width:180px"><label for="feeReportClass">Class</label><select id="feeReportClass"><option value="">All classes</option></select></div><button type="button" class="primary" id="runFeeReport">Generate report</button><button type="button" id="printFeeReport" disabled>Print report</button></div>
+ <div id="feeReportMsg" class="notice hidden"></div>
+ <div class="grid"><div class="stat"><small>Charges (UGX)</small><div id="feeReportCharges" class="num">0</div></div><div class="stat"><small>Allocated payments (UGX)</small><div id="feeReportPaid" class="num">0</div></div><div class="stat"><small>Outstanding (UGX)</small><div id="feeReportBalance" class="num">0</div></div></div>
+ <div id="feeReportArea" class="table-wrap"><table><thead><tr><th>Class</th><th>Learners</th><th>Charges (UGX)</th><th>Paid (UGX)</th><th>Outstanding (UGX)</th></tr></thead><tbody id="feeReportRows"><tr><td colspan="5">Choose filters and generate the report.</td></tr></tbody></table></div>
+ <h3 style="margin-top:24px">10. Recent charges and receipts</h3>
  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Learner</th><th>Description / method</th><th>Amount (UGX)</th></tr></thead><tbody id="financeActivityRows"></tbody></table></div>
 </section>
 <section id="academics" class="panel hidden">
@@ -273,6 +279,7 @@ async function loadFinance(){
  const failed=[items,sched,accounts,charges,payments,learners].find(x=>x.error);
  if(failed){message('financeMsg','Finance could not load: '+failed.error.message,true);return}
  financeItems=items.data||[];financeStudents=learners.data||[];
+ await loadFeeReportOptions();
  $('feeItemRows').innerHTML=financeItems.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.category)+'</td><td>'+(x.is_active?'Active':'Inactive')+'</td></tr>').join('')||'<tr><td colspan="3">No fee items yet.</td></tr>';
  const opts='<option value="">Choose fee item</option>'+financeItems.filter(x=>x.is_active).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  $('scheduleFeeItem').innerHTML=opts;$('chargeFeeItem').innerHTML=opts;
@@ -746,4 +753,37 @@ $('receiptLookupButton').addEventListener('click',async()=>{
  finally{$('receiptLookupButton').disabled=false;$('receiptLookupButton').textContent='Find receipt'}
 });
 $('receiptLookupPrint').addEventListener('click',()=>{if($('receiptLookupArea').innerHTML)window.print()});
+async function loadFeeReportOptions(){
+ if(demoMode||profile?.role!=='Admin')return;
+ const [terms,classes]=await Promise.all([db.from('academic_terms').select('id,name,academic_years(name)').order('starts_on',{ascending:false}),db.from('school_classes').select('id,name,stream').order('name')]);
+ const failed=[terms,classes].find(x=>x.error);if(failed){message('feeReportMsg','Could not load report filters: '+failed.error.message,true);return}
+ $('feeReportTerm').innerHTML='<option value="">All terms</option>'+(terms.data||[]).map(t=>'<option value="'+t.id+'">'+esc(t.academic_years?.name||'')+' · '+esc(t.name)+'</option>').join('');
+ $('feeReportClass').innerHTML='<option value="">All classes</option>'+(classes.data||[]).map(c=>'<option value="'+c.id+'">'+esc(c.name)+(c.stream?' · '+esc(c.stream):'')+'</option>').join('');
+}
+$('runFeeReport').addEventListener('click',async()=>{
+ if(demoMode||profile?.role!=='Admin'){message('feeReportMsg','Only administrators can generate finance reports.',true);return}
+ $('runFeeReport').disabled=true;$('runFeeReport').textContent='Generating…';
+ try{
+  let query=db.from('learner_charges').select('id,student_id,amount_ugx,term_id,students!inner(class_id,school_classes(name,stream),status),payment_allocations(amount_ugx,school_payments(status))').order('created_at',{ascending:true});
+  const term=$('feeReportTerm').value,cls=$('feeReportClass').value;if(term)query=query.eq('term_id',term);if(cls)query=query.eq('students.class_id',cls);
+  const {data,error}=await query;if(error)throw error;
+  const groups=new Map();let totalCharge=0,totalPaid=0;
+  for(const c of data||[]){
+   const paid=(c.payment_allocations||[]).filter(a=>a.school_payments?.status==='Posted').reduce((n,a)=>n+Number(a.amount_ugx||0),0);
+   const amount=Number(c.amount_ugx||0);totalCharge+=amount;totalPaid+=paid;
+   const cl=c.students?.school_classes;const label=cl?(cl.name+(cl.stream?' · '+cl.stream:'')):'Unassigned';
+   if(!groups.has(label))groups.set(label,{learners:new Set(),charges:0,paid:0});
+   const g=groups.get(label);g.learners.add(c.student_id);g.charges+=amount;g.paid+=paid;
+  }
+  const rows=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([name,g])=>'<tr><td>'+esc(name)+'</td><td>'+g.learners.size+'</td><td>'+money(g.charges)+'</td><td>'+money(g.paid)+'</td><td><strong>'+money(Math.max(0,g.charges-g.paid))+'</strong></td></tr>').join('');
+  $('feeReportCharges').textContent=money(totalCharge);$('feeReportPaid').textContent=money(totalPaid);$('feeReportBalance').textContent=money(Math.max(0,totalCharge-totalPaid));
+  $('feeReportRows').innerHTML=rows||'<tr><td colspan="5">No fee charges found for these filters.</td></tr>';
+  $('printFeeReport').disabled=!(data||[]).length;
+  const termLabel=$('feeReportTerm').selectedOptions[0]?.textContent||'All terms',classLabel=$('feeReportClass').selectedOptions[0]?.textContent||'All classes';
+  $('feeReportArea').dataset.heading='Fee Collection Report · '+termLabel+' · '+classLabel;
+  message('feeReportMsg','Report generated from '+(data||[]).length+' fee charge record(s).');
+ }catch(err){message('feeReportMsg','Could not generate report: '+(err?.message||'Unknown error'),true)}
+ finally{$('runFeeReport').disabled=false;$('runFeeReport').textContent='Generate report'}
+});
+$('printFeeReport').addEventListener('click',()=>{if(!$('feeReportRows').innerHTML.includes('No fee charges'))window.print()});
 </script></body></html>
