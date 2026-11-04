@@ -4,6 +4,13 @@
 -- Apply only after reviewing the paired frontend RPC changes and testing accounts.
 
 revoke all privileges on table public.students from public, anon, authenticated;
+revoke all privileges (id, admission_number, first_name, last_name, gender,
+  date_of_birth, class_id, guardian_name, guardian_phone, address, status,
+  created_at, admission_year, middle_name, admission_date, learner_type,
+  previous_school, guardian_relationship, guardian_email, alternate_guardian_name,
+  alternate_guardian_phone, is_bursary, bursary_fee_ugx, bursary_notes,
+  guardian_sms_opt_in, lin, p7_index_number)
+on table public.students from public, anon, authenticated;
 
 -- Staff and teachers may read only the non-confidential roster fields.
 grant select (
