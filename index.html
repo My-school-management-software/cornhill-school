@@ -512,15 +512,21 @@ $('dailyRecordDate').value=kampalaToday();
 $('expenseDate').value=kampalaToday();
 async function loadExpensePayroll(){
  if(demoMode||profile?.role!=='Admin')return;
- const [cats,staff,agreements,periods,expenses]=await Promise.all([
+ const [cats,staff,agreements,periods]=await Promise.all([
   db.from('expense_categories').select('id,name,is_active').eq('is_active',true).order('name'),
   db.from('user_profiles').select('id,full_name,job_title,employment_status').order('full_name'),
   db.from('staff_salary_agreements').select('id,staff_user_id,salary_basis,base_salary_ugx,effective_from,effective_to,is_active,user_profiles(full_name,job_title)').order('effective_from',{ascending:false}),
-  db.from('payroll_periods').select('id,period_name,period_type,period_start,period_end,status').order('period_start',{ascending:false}),
-  db.from('school_expenses').select('id,expense_no,expense_date,description,amount_ugx,payee_name,payment_method,status,expense_categories(name)').order('expense_date',{ascending:false}).limit(250)
+  db.from('payroll_periods').select('id,period_name,period_type,period_start,period_end,status').order('period_start',{ascending:false})
  ]);
- const bad=[cats,staff,agreements,periods,expenses].find(x=>x.error);if(bad){message('expenseMsg','Expense and payroll data could not load: '+bad.error.message,true);return}
- window.cornhillExpenseRows=expenses.data||[];
+ const bad=[cats,staff,agreements,periods].find(x=>x.error);if(bad){message('expenseMsg','Expense and payroll data could not load: '+bad.error.message,true);return}
+ let expenseRows=[],expenseError=null;
+ for(let offset=0; ; offset+=1000){
+  const page=await db.from('school_expenses').select('id,expense_no,expense_date,description,amount_ugx,payee_name,payment_method,status,expense_categories(name)').order('expense_date',{ascending:false}).range(offset,offset+999);
+  if(page.error){expenseError=page.error;break}
+  expenseRows.push(...(page.data||[]));if((page.data||[]).length<1000)break;
+ }
+ if(expenseError){message('expenseMsg','Expense records could not load: '+expenseError.message,true);return}
+ window.cornhillExpenseRows=expenseRows;
  $('expenseCategory').innerHTML=(cats.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  $('salaryStaff').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).filter(x=>x.employment_status==='Active').map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed staff')+' · '+esc(x.job_title||'Staff')+'</option>').join('');
  $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'</td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+ (x.is_active?'Active':'Inactive')+(x.is_active?' <button type="button" data-close-salary="'+x.id+'">Close agreement</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
