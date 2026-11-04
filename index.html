@@ -31,6 +31,20 @@ body[data-theme="midnight"] th{background:#273449;color:#dbeafe}
 body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:cornhillFade .24s ease-out}
 @keyframes cornhillFade{from{opacity:.72;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:none}}
+</style><style>
+.receipt-copy-label{font-size:9pt!important;text-align:center;border-bottom:1px dashed #555;padding-bottom:1mm;margin:0 0 2mm!important}
+.receipt-signatures{font-size:8pt;margin-top:3mm}.receipt-signatures p{margin:2mm 0}
+.receipt-cut{border:0;border-top:1px dashed #555;margin:4mm 0}
+@media print{
+ @page{size:A4 portrait;margin:10mm}
+ body.print-daily-collection *{visibility:hidden!important}
+ body.print-daily-collection #dailyCollectionPrint,body.print-daily-collection #dailyCollectionPrint *{visibility:visible!important}
+ body.print-daily-collection #dailyCollectionPrint{display:block!important;position:absolute;left:0;top:0;width:100%;max-width:100%;margin:0;padding:0;color:#111;background:white;font-size:9pt}
+ body.print-daily-collection #dailyCollectionPrint table{width:100%;border-collapse:collapse}
+ body.print-daily-collection #dailyCollectionPrint th,body.print-daily-collection #dailyCollectionPrint td{border:1px solid #555;padding:4px;vertical-align:top}
+ body.print-daily-collection #dailyCollectionPrint h1{font-size:16pt}
+ body.print-daily-collection #dailyCollectionPrint h2{font-size:13pt}
+}
 </style></head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -80,7 +94,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  <p class="muted">Choose the paper roll used by your portable ESC/POS thermal printer. Android print services or a compatible local printer bridge may be needed for Bluetooth printing.</p>
  <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><div><label for="receiptPaperWidth">Receipt paper width</label><select id="receiptPaperWidth"><option value="58">58 mm portable printer</option><option value="80">80 mm portable printer</option></select></div><button type="button" id="testThermalReceipt">Print test receipt</button><span class="muted" id="printerStatus">System print dialog fallback</span></div>
  <h3 style="margin-top:24px">4. Record a payment</h3>
- <form id="schoolPaymentForm"><div><label>Learner *</label><select name="student_id" id="paymentStudent" required></select></div><div><label>Amount received (UGX) *</label><input name="amount_ugx" id="paymentAmount" type="number" min="1" step="1" required></div><div><label>Payment method *</label><select name="payment_method"><option>Cash</option><option>Mobile Money</option><option>Bank Transfer</option><option>Card</option><option>Other</option></select></div><div><label>Transaction reference</label><input name="payment_reference" placeholder="Mobile money / bank reference"></div><div class="full"><label>Optional fee allocation</label><p class="muted">Choose which previous or current term charges this payment covers. You may skip an old balance, pay part of it, or split this payment across terms. Unticked fees use oldest-first automatic allocation.</p><div id="paymentDueList" class="notice">Choose a learner to view outstanding fees.</div></div><div class="full"><label>Notes</label><input name="notes" placeholder="Optional notes"></div><div class="full"><button class="primary">Post payment and issue receipt</button></div></form>
+ <form id="schoolPaymentForm"><div><label>Learner *</label><select name="student_id" id="paymentStudent" required></select></div><div><label>Payment reason / item *</label><select name="collection_item" id="paymentCollectionItem" required><option value="">Choose payment reason</option><option>School fees</option><option>Sweater</option><option>Sportswear</option><option>Graduation</option><option>Examination</option><option value="Other / specify">Other / specify</option></select></div><div><label>Other reason (if selected)</label><input name="payment_custom_item" id="paymentCustomItem" placeholder="Enter the payment reason"></div><div><label>Name of person bringing money</label><input name="payer_name" id="paymentPayerName" placeholder="Parent / guardian / learner"></div><div><label>Amount received (UGX) *</label><input name="amount_ugx" id="paymentAmount" type="number" min="1" step="1" required></div><div><label>Payment method *</label><select name="payment_method"><option>Cash</option><option>Mobile Money</option><option>Bank Transfer</option><option>Card</option><option>Other</option></select></div><div><label>Transaction reference</label><input name="payment_reference" placeholder="Mobile money / bank reference"></div><div class="full"><label>Optional fee allocation</label><p class="muted">Choose which previous or current term charges this payment covers. You may skip an old balance, pay part of it, or split this payment across terms. Unticked fees use oldest-first automatic allocation.</p><div id="paymentDueList" class="notice">Choose a learner to view outstanding fees.</div></div><div class="full"><label>Notes</label><input name="notes" placeholder="Optional notes"></div><div class="full"><button class="primary">Post payment and issue receipt</button></div></form>
  <div id="receiptArea" class="receipt-print"></div>
  <h3 style="margin-top:24px">5. Learner account balances</h3>
  <div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Charges (UGX)</th><th>Applied (UGX)</th><th>Credit (UGX)</th><th>Balance (UGX)</th></tr></thead><tbody id="financeAccountRows"></tbody></table></div>
@@ -113,7 +127,25 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  <div class="grid"><div class="stat"><small>Posted receipts</small><div id="cashReportCount" class="num">0</div></div><div class="stat"><small>Gross collected (UGX)</small><div id="cashReportGross" class="num">0</div></div><div class="stat"><small>Reversed (UGX)</small><div id="cashReportReversed" class="num">0</div></div><div class="stat"><small>Net collections (UGX)</small><div id="cashReportNet" class="num">0</div></div></div>
  <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportCashReportCsv">Export receipt audit CSV</button></div>
  <div id="cashReportArea"><h4>Totals by payment method</h4><div class="table-wrap"><table><thead><tr><th>Payment method</th><th>Receipts</th><th>Amount (UGX)</th></tr></thead><tbody id="cashReportRows"><tr><td colspan="3">Choose dates and generate the report.</td></tr></tbody></table></div><h4 style="margin-top:16px">Receipt-by-receipt audit</h4><div class="table-wrap"><table><thead><tr><th>Time</th><th>Receipt</th><th>Learner</th><th>Method</th><th>Status</th><th>Amount (UGX)</th></tr></thead><tbody id="cashReportReceiptRows"><tr><td colspan="6">Generate a report to view receipt details.</td></tr></tbody></table></div></div>
- <h3 style="margin-top:24px">11. Recent charges and receipts</h3>
+  <h3 style="margin-top:28px">11. Daily Collections & Records</h3>
+ <p class="muted">A permanent daily cashbook. Every posted payment is automatically added to its Uganda-date record; reversals are retained and shown separately. Search by learner, admission code, class, receipt or payment item, then print the complete daily A4 sheet.</p>
+ <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+  <div><label for="dailyRecordDate">Collection date (Uganda time)</label><input id="dailyRecordDate" type="date"></div>
+  <div style="flex:1;min-width:210px"><label for="dailyRecordSearch">Find learner / code / receipt / class / item</label><input id="dailyRecordSearch" placeholder="Type a name, code, receipt or item"></div>
+  <button type="button" class="primary" id="loadDailyCollectionRecord">Open daily record</button>
+  <button type="button" id="printDailyCollectionRecord" disabled>Print A4 daily sheet</button>
+ </div>
+ <div id="dailyRecordMsg" class="notice hidden"></div>
+ <div class="grid">
+  <div class="stat"><small>Posted receipts</small><div id="dailyRecordCount" class="num">0</div></div>
+  <div class="stat"><small>Total received (UGX)</small><div id="dailyRecordTotal" class="num">0</div></div>
+  <div class="stat"><small>Reversed receipts</small><div id="dailyRecordReversedCount" class="num">0</div></div>
+  <div class="stat"><small>Reversed amount (UGX)</small><div id="dailyRecordReversedTotal" class="num">0</div></div>
+ </div>
+ <div class="table-wrap"><table><thead><tr><th>Payment item</th><th>Amount received (UGX)</th></tr></thead><tbody id="dailyRecordItemTotals"><tr><td colspan="2">Open a date to view its record.</td></tr></tbody></table></div>
+ <div class="table-wrap"><table><thead><tr><th>Time</th><th>Receipt</th><th>Learner</th><th>Class</th><th>Reason / item</th><th>Method</th><th>Status</th><th>Amount (UGX)</th></tr></thead><tbody id="dailyRecordRows"><tr><td colspan="8">Open a daily record.</td></tr></tbody></table></div>
+ <div id="dailyCollectionPrint" class="receipt-print statement-print"></div>
+ <h3 style="margin-top:24px">12. Recent charges and receipts</h3>
  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Learner</th><th>Description / method</th><th>Amount (UGX)</th></tr></thead><tbody id="financeActivityRows"></tbody></table></div>
 </section>
 <section id="academics" class="panel hidden">
@@ -351,6 +383,10 @@ function downloadCSV(filename,headers,rows){
  const blob=new Blob([String.fromCharCode(65279),csv],{type:'text/csv;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 }
+function dualReceiptMarkup(body,payerName,receiverName){
+ const signatures='<div class="receipt-signatures"><p><strong>Received by:</strong> '+esc(receiverName||'School bursar')+'</p><p>Receiver signature: ____________________</p><p><strong>Received from:</strong> '+esc(payerName||'____________________')+'</p><p>Payer signature: ____________________</p></div>';
+ return '<div class="receipt-copy"><h2 class="receipt-copy-label">PARENT / PAYER COPY</h2>'+body+signatures+'</div><hr class="receipt-cut"><div class="receipt-copy"><h2 class="receipt-copy-label">SCHOOL RETAINED COPY</h2>'+body+signatures+'</div>';
+}
 async function loadFinance(){
  if(!demoMode&&profile?.role==='Admin'){const sms=await db.from('school_sms_outbox').select('id,created_at,recipient_phone,status,school_payments(receipt_no)').order('created_at',{ascending:false}).limit(30);if(sms.error){$('parentSmsRows').innerHTML='<tr><td colspan="4">SMS queue unavailable: '+esc(sms.error.message)+'</td></tr>'}else{$('parentSmsRows').innerHTML=(sms.data||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString())+'</td><td>'+esc(x.school_payments?.receipt_no||'—')+'</td><td>'+esc(x.recipient_phone)+'</td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="4">No parent SMS queued yet.</td></tr>'}}
  if(demoMode){
@@ -377,6 +413,7 @@ async function loadFinance(){
  const failed=[items,sched,accounts,charges,payments,learners].find(x=>x.error);
  if(failed){message('financeMsg','Finance could not load: '+failed.error.message,true);return}
  financeItems=items.data||[];financeStudents=learners.data||[];
+ const itemOptions=[...new Set(['School fees','Sweater','Sportswear','Graduation','Examination',...financeItems.map(x=>x.name).filter(Boolean),'Other / specify'])];$('paymentCollectionItem').innerHTML='<option value="">Choose payment reason</option>'+itemOptions.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
  await loadFeeReportOptions();
  $('feeItemRows').innerHTML=financeItems.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.category)+'</td><td>'+(x.is_active?'Active':'Inactive')+'</td></tr>').join('')||'<tr><td colspan="3">No fee items yet.</td></tr>';
  const opts='<option value="">Choose fee item</option>'+financeItems.filter(x=>x.is_active).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
@@ -399,6 +436,45 @@ async function loadFinance(){
  const activity=[...(charges.data||[]).map(x=>({date:x.created_at,ref:x.invoice_no,learner:x.students,detail:x.description,amount:x.amount_ugx})),...(payments.data||[]).map(x=>({date:x.received_at,ref:x.receipt_no,learner:x.students,detail:x.payment_method,amount:x.amount_ugx}))].sort((x,y)=>new Date(y.date)-new Date(x.date)).slice(0,30);
  $('financeActivityRows').innerHTML=activity.map(x=>'<tr><td>'+new Date(x.date).toLocaleDateString()+'</td><td><strong>'+esc(x.ref)+'</strong></td><td>'+esc(x.learner?.admission_number||'')+' · '+esc([x.learner?.first_name,x.learner?.middle_name,x.learner?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.detail)+'</td><td>'+money(x.amount)+'</td></tr>').join('')||'<tr><td colspan="5">No charges or payments recorded yet.</td></tr>';
 }
+function renderDailyCollectionRecord(record){
+ const entries=Array.isArray(record.entries)?record.entries:[];
+ const totals=record.totals_by_item&&typeof record.totals_by_item==='object'?record.totals_by_item:{};
+ $('dailyRecordCount').textContent=String(record.posted_receipt_count||0);
+ $('dailyRecordTotal').textContent=money(record.total_received_ugx||0);
+ $('dailyRecordReversedCount').textContent=String(record.reversed_receipt_count||0);
+ $('dailyRecordReversedTotal').textContent=money(record.reversed_total_ugx||0);
+ $('dailyRecordItemTotals').innerHTML=Object.entries(totals).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>'<tr><td>'+esc(k)+'</td><td>'+money(v)+'</td></tr>').join('')||'<tr><td colspan="2">No posted collections for this date.</td></tr>';
+ window.cornhillDailyCollectionEntries=entries;
+ renderDailyCollectionSearch();
+ const dateLabel=new Date(record.collection_date+'T00:00:00+03:00').toLocaleDateString('en-UG',{timeZone:'Africa/Kampala',day:'2-digit',month:'long',year:'numeric'});
+ const rows=entries.map(x=>'<tr><td>'+esc(new Date(x.received_at).toLocaleTimeString('en-UG',{timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'}))+'</td><td>'+esc(x.receipt_no)+'</td><td>'+esc(x.admission_number)+'<br>'+esc(x.learner_name)+'</td><td>'+esc(x.class_name)+'</td><td>'+esc(x.collection_item)+'</td><td>'+esc(x.payment_method)+'</td><td>'+esc(x.status)+'</td><td style="text-align:right">'+money(x.amount_ugx)+'</td></tr>').join('');
+ const itemRows=Object.entries(totals).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>'<tr><td>'+esc(k)+'</td><td style="text-align:right">UGX '+money(v)+'</td></tr>').join('');
+ $('dailyCollectionPrint').innerHTML='<div style="font-family:Arial,sans-serif;color:#111;background:white"><h1 style="text-align:center;margin:0">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center;margin:4px 0">DAILY COLLECTION REGISTER</h2><p><strong>Record:</strong> '+esc(record.record_no)+' &nbsp; <strong>Date:</strong> '+esc(dateLabel)+'</p><p><strong>Posted receipts:</strong> '+esc(record.posted_receipt_count)+' &nbsp; <strong>Total received:</strong> UGX '+money(record.total_received_ugx)+'</p><p><strong>Reversed receipts:</strong> '+esc(record.reversed_receipt_count)+' &nbsp; <strong>Reversed amount:</strong> UGX '+money(record.reversed_total_ugx)+'</p><h3>Collections by payment item</h3><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left">Payment item</th><th style="text-align:right">Total received (UGX)</th></tr></thead><tbody>'+itemRows+'</tbody></table><h3>Daily receipt details</h3><table style="width:100%;border-collapse:collapse;font-size:9pt"><thead><tr><th>Time</th><th>Receipt</th><th>Learner / code</th><th>Class</th><th>Reason / item</th><th>Method</th><th>Status</th><th>Amount (UGX)</th></tr></thead><tbody>'+rows+'</tbody></table><p style="text-align:right"><strong>Daily total received: UGX '+money(record.total_received_ugx)+'</strong></p><p>Prepared by: '+esc(profile?.full_name||'School administrator')+' &nbsp; Signature: ____________________</p><p style="text-align:center">Official school financial record · Generated from saved payment receipts</p></div>';
+ $('printDailyCollectionRecord').disabled=false;
+}
+function renderDailyCollectionSearch(){
+ const all=window.cornhillDailyCollectionEntries||[],q=String($('dailyRecordSearch').value||'').trim().toLowerCase();
+ const rows=all.filter(x=>!q||[x.learner_name,x.admission_number,x.receipt_no,x.class_name,x.collection_item,x.payment_method].some(v=>String(v||'').toLowerCase().includes(q)));
+ $('dailyRecordRows').innerHTML=rows.map(x=>'<tr><td>'+esc(new Date(x.received_at).toLocaleTimeString('en-UG',{timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'}))+'</td><td>'+esc(x.receipt_no)+'</td><td>'+esc(x.admission_number)+' · '+esc(x.learner_name)+'</td><td>'+esc(x.class_name)+'</td><td>'+esc(x.collection_item)+'</td><td>'+esc(x.payment_method)+'</td><td>'+esc(x.status)+'</td><td>'+money(x.amount_ugx)+'</td></tr>').join('')||'<tr><td colspan="8">No matching receipts found for this date.</td></tr>';
+}
+async function loadDailyCollectionRecord(){
+ if(demoMode||profile?.role!=='Admin'){message('dailyRecordMsg','Only the school administrator can access daily collection records.',true);return}
+ const date=$('dailyRecordDate').value;if(!date){message('dailyRecordMsg','Choose a collection date.',true);return}
+ $('loadDailyCollectionRecord').disabled=true;$('loadDailyCollectionRecord').textContent='Loading…';
+ try{
+  const {error:refreshError}=await db.rpc('refresh_daily_collection_record',{p_date:date});
+  if(refreshError)throw refreshError;
+  const {data,error}=await db.from('daily_collection_records').select('*').eq('collection_date',date).maybeSingle();
+  if(error)throw error;
+  if(!data){window.cornhillDailyCollectionEntries=[];$('dailyRecordRows').innerHTML='<tr><td colspan="8">No payments were recorded on this date.</td></tr>';$('dailyRecordItemTotals').innerHTML='<tr><td colspan="2">No collections recorded.</td></tr>';$('dailyCollectionPrint').innerHTML='';$('printDailyCollectionRecord').disabled=true;$('dailyRecordCount').textContent='0';$('dailyRecordTotal').textContent='0';$('dailyRecordReversedCount').textContent='0';$('dailyRecordReversedTotal').textContent='0';message('dailyRecordMsg','No daily record exists yet for '+date+'.');return}
+  renderDailyCollectionRecord(data);message('dailyRecordMsg','Daily record '+data.record_no+' loaded. The saved database record is ready to print.');
+ }catch(err){message('dailyRecordMsg','Could not load daily record: '+(err?.message||'Unknown error'),true)}
+ finally{$('loadDailyCollectionRecord').disabled=false;$('loadDailyCollectionRecord').textContent='Open daily record'}
+}
+$('dailyRecordSearch').addEventListener('input',renderDailyCollectionSearch);
+$('loadDailyCollectionRecord').addEventListener('click',loadDailyCollectionRecord);
+$('printDailyCollectionRecord').addEventListener('click',()=>{if($('dailyCollectionPrint').innerHTML){document.body.classList.add('print-daily-collection');window.print();document.body.classList.remove('print-daily-collection')}});
+$('dailyRecordDate').value=kampalaToday();
 $('feeItemForm').addEventListener('submit',async e=>{e.preventDefault();if(demoMode)return;const f=new FormData(e.target);const {error}=await db.from('fee_items').insert({name:f.get('name').trim(),category:f.get('category')});if(error){message('financeMsg','Could not add fee item: '+error.message,true);return}e.target.reset();await loadFinance();message('financeMsg','Fee item added.')});
 $('feeScheduleForm').addEventListener('submit',async e=>{e.preventDefault();if(demoMode)return;const f=new FormData(e.target);const {error}=await db.from('fee_schedules').insert({fee_item_id:f.get('fee_item_id'),class_group:f.get('class_group').trim()||null,learner_type:f.get('learner_type'),amount_ugx:Number(f.get('amount_ugx'))});if(error){message('financeMsg','Could not save fee schedule: '+error.message,true);return}e.target.reset();await loadFinance();message('financeMsg','Fee schedule saved. It is a template; it does not automatically charge learners.')});
 $('learnerChargeForm').addEventListener('submit',async e=>{e.preventDefault();if(demoMode)return;const f=new FormData(e.target);const {error}=await db.from('learner_charges').insert({invoice_no:'',student_id:f.get('student_id'),fee_item_id:f.get('fee_item_id')||null,description:f.get('description').trim(),amount_ugx:Number(f.get('amount_ugx')),due_date:f.get('due_date')||null,created_by:currentUserId});if(error){message('financeMsg','Could not create charge: '+error.message,true);return}e.target.reset();await loadFinance();message('financeMsg','Learner charge created successfully.')});
@@ -421,12 +497,17 @@ $('schoolPaymentForm').addEventListener('submit',async e=>{
  const {data,error}=await db.rpc('post_school_payment_with_allocations',{p_student_id:f.get('student_id'),p_amount_ugx:amount,p_payment_method:f.get('payment_method'),p_payment_reference:f.get('payment_reference')||null,p_notes:f.get('notes')||null,p_allocations:allocations.length?allocations:null});
  if(error){message('financeMsg','Payment was not posted: '+error.message,true);return}
  const result=Array.isArray(data)?data[0]:data;if(!result){message('financeMsg','Payment could not be confirmed. Check the receipt register before retrying.',true);return}
+ const selectedItem=f.get('collection_item'),collectionItem=selectedItem==='Other / specify'?String(f.get('payment_custom_item')||'').trim():selectedItem;
+ const payerName=String(f.get('payer_name')||'').trim();
+ if(!collectionItem){message('financeMsg','Payment was posted, but its reason was not supplied. Please contact the administrator before printing.',true);return}
+ const {error:detailSaveError}=await db.from('school_payments').update({collection_item:collectionItem,payer_name:payerName||null}).eq('id',result.payment_id);
  const {data:allocRows,error:allocError}=await db.from('payment_allocations').select('amount_ugx,learner_charges(id,description,amount_ugx,academic_terms(name,academic_years(name)),payment_allocations(amount_ugx,school_payments(status)))').eq('payment_id',result.payment_id);
  const learner=financeStudents.find(x=>x.id===f.get('student_id')),name=learner?[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '):'Learner';
  const allocated=(allocRows||[]).reduce((n,a)=>n+Number(a.amount_ugx||0),0);
  const detail=allocError?'<p>See learner statement for allocation details.</p>':(allocRows||[]).map(a=>{const c=a.learner_charges||{},paid=(c.payment_allocations||[]).filter(x=>x.school_payments?.status==='Posted').reduce((n,x)=>n+Number(x.amount_ugx||0),0),remaining=Math.max(0,Number(c.amount_ugx||0)-paid);return '<p>'+esc(c.academic_terms?.academic_years?.name||'')+' · '+esc(c.academic_terms?.name||'Previous / unassigned term')+' — '+esc(c.description||'Fee')+': <strong>Paid now UGX '+money(a.amount_ugx)+'</strong>; remaining on this charge: UGX '+money(remaining)+'</p>'}).join('');
- $('receiptArea').innerHTML='<div style="font-family:Arial,sans-serif"><h1 style="text-align:center">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center">OFFICIAL PAYMENT RECEIPT</h2><hr><p><strong>Receipt:</strong> '+esc(result.receipt_no)+'</p><p><strong>Date:</strong> '+esc(new Date().toLocaleString())+'</p><p><strong>Learner:</strong> '+esc(name)+'</p><p><strong>Learner code:</strong> '+esc(learner?.admission_number||'')+'</p><p><strong>Total received:</strong> UGX '+money(amount)+'</p><h3>Allocated by term</h3>'+(detail||'<p>No fee allocation.</p>')+'<hr><p><strong>Total allocated:</strong> UGX '+money(allocated)+'</p><p><strong>Unallocated credit:</strong> UGX '+money(result.unallocated_amount_ugx)+'</p><p><strong>Method:</strong> '+esc(f.get('payment_method'))+'</p><p><strong>Reference:</strong> '+esc(f.get('payment_reference')||'—')+'</p><hr><p style="text-align:center">Thank you.</p></div>';
- e.target.reset();$('paymentDueList').textContent='Choose a learner to view outstanding fees.';await loadFinance();message('financeMsg','Payment posted. Receipt '+result.receipt_no+' is ready.');applyReceiptPaperWidth();window.print();
+ const receiptBody='<div style="font-family:Arial,sans-serif"><h1 style="text-align:center">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center">OFFICIAL PAYMENT RECEIPT</h2><hr><p><strong>Receipt:</strong> '+esc(result.receipt_no)+'</p><p><strong>Date:</strong> '+esc(new Date().toLocaleString())+'</p><p><strong>Learner:</strong> '+esc(name)+'</p><p><strong>Learner code:</strong> '+esc(learner?.admission_number||'')+'</p><p><strong>Payment reason / item:</strong> '+esc(collectionItem)+'</p><p><strong>Person bringing money:</strong> '+esc(payerName||'—')+'</p><p><strong>Total received:</strong> UGX '+money(amount)+'</p><h3>Allocated by term</h3>'+(detail||'<p>No fee allocation.</p>')+'<hr><p><strong>Total allocated:</strong> UGX '+money(allocated)+'</p><p><strong>Unallocated credit:</strong> UGX '+money(result.unallocated_amount_ugx)+'</p><p><strong>Method:</strong> '+esc(f.get('payment_method'))+'</p><p><strong>Reference:</strong> '+esc(f.get('payment_reference')||'—')+'</p><hr><p style="text-align:center">Thank you.</p></div>';
+ $('receiptArea').innerHTML=dualReceiptMarkup(receiptBody,payerName,profile?.full_name||'School bursar');
+ e.target.reset();$('paymentDueList').textContent='Choose a learner to view outstanding fees.';await loadFinance();message('financeMsg',detailSaveError?'Payment posted, but the payer/reason details need administrator correction. Receipt '+result.receipt_no+' was created.':'Payment posted. Two receipt copies are ready: one for the payer and one for the school. Receipt '+result.receipt_no+'.');applyReceiptPaperWidth();window.print();
 });
 
 let schoolPositions=[];
@@ -1028,14 +1109,16 @@ $('receiptLookupButton').addEventListener('click',async()=>{
  const number=$('receiptLookupNumber').value.trim();if(!number){message('receiptLookupMsg','Enter a receipt number.',true);return}
  $('receiptLookupButton').disabled=true;$('receiptLookupButton').textContent='Searching…';
  try{
-  const {data,error}=await db.from('school_payments').select('id,receipt_no,student_id,amount_ugx,unallocated_amount_ugx,payment_method,payment_reference,notes,status,received_at,students(admission_number,first_name,middle_name,last_name)').eq('receipt_no',number).maybeSingle();
+  const {data,error}=await db.from('school_payments').select('id,receipt_no,student_id,amount_ugx,unallocated_amount_ugx,payment_method,payment_reference,notes,status,received_at,collection_item,payer_name,received_by,students(admission_number,first_name,middle_name,last_name)').eq('receipt_no',number).maybeSingle();
   if(error)throw error;if(!data){message('receiptLookupMsg','No receipt found with that number.',true);return}
   const {data:allocs,error:allocError}=await db.from('payment_allocations').select('amount_ugx,learner_charges(id,description,amount_ugx,academic_terms(name,academic_years(name)),payment_allocations(amount_ugx,school_payments(status)))').eq('payment_id',data.id);
   if(allocError)throw allocError;
   const learner=data.students||{},name=[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '),reversed=data.status==='Reversed';
+  const {data:receiverProfile}=await db.from('user_profiles').select('full_name').eq('id',data.received_by).maybeSingle();const receiverName=receiverProfile?.full_name||'School bursar';
   const lines=(allocs||[]).map(a=>{const c=a.learner_charges||{},paid=(c.payment_allocations||[]).filter(x=>x.school_payments?.status==='Posted').reduce((n,x)=>n+Number(x.amount_ugx||0),0),remaining=Math.max(0,Number(c.amount_ugx||0)-paid),term=c.academic_terms?(c.academic_terms.academic_years?.name+' · '+c.academic_terms.name):'Previous / unassigned term';return '<tr><td>'+esc(term)+'<br>'+esc(c.description||'Fee')+'</td><td>UGX '+money(a.amount_ugx)+'</td><td>UGX '+money(remaining)+'</td></tr>'}).join('');
   const totalAllocated=(allocs||[]).reduce((n,a)=>n+Number(a.amount_ugx||0),0);
-  $('receiptLookupArea').innerHTML='<div style="background:white;color:#111;font-family:Arial,sans-serif"><h1 style="text-align:center">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center">OFFICIAL PAYMENT RECEIPT</h2><hr><p><strong>Receipt number:</strong> '+esc(data.receipt_no)+'</p><p><strong>Date received:</strong> '+esc(new Date(data.received_at).toLocaleString())+'</p><p><strong>Learner:</strong> '+esc(name)+'</p><p><strong>Admission number:</strong> '+esc(learner.admission_number||'')+'</p><p><strong>Total received:</strong> UGX '+money(data.amount_ugx)+'</p><h3>Allocation and remaining balance</h3><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left">Term / fee</th><th>Paid on this receipt</th><th>Remaining fee balance</th></tr></thead><tbody>'+(lines||'<tr><td colspan="3">No fee allocation; amount held as learner credit.</td></tr>')+'</tbody></table><p><strong>Total allocated:</strong> UGX '+money(totalAllocated)+'</p><p><strong>Unallocated learner credit:</strong> UGX '+money(data.unallocated_amount_ugx)+'</p><p><strong>Payment method:</strong> '+esc(data.payment_method)+'</p><p><strong>Transaction reference:</strong> '+esc(data.payment_reference||'—')+'</p><p><strong>Status:</strong> '+(reversed?'REVERSED — NOT VALID FOR PAYMENT':'POSTED')+'</p>'+(data.notes?'<p><strong>Notes:</strong> '+esc(data.notes)+'</p>':'')+'<hr><p style="text-align:center">Thank you.</p></div>';
+  const lookupReceiptBody='<div style="background:white;color:#111;font-family:Arial,sans-serif"><h1 style="text-align:center">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center">OFFICIAL PAYMENT RECEIPT</h2><hr><p><strong>Receipt number:</strong> '+esc(data.receipt_no)+'</p><p><strong>Date received:</strong> '+esc(new Date(data.received_at).toLocaleString())+'</p><p><strong>Learner:</strong> '+esc(name)+'</p><p><strong>Admission number:</strong> '+esc(learner.admission_number||'')+'</p><p><strong>Payment reason / item:</strong> '+esc(data.collection_item||'School fees')+'</p><p><strong>Person bringing money:</strong> '+esc(data.payer_name||'—')+'</p><p><strong>Total received:</strong> UGX '+money(data.amount_ugx)+'</p><h3>Allocation and remaining balance</h3><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left">Term / fee</th><th>Paid on this receipt</th><th>Remaining fee balance</th></tr></thead><tbody>'+(lines||'<tr><td colspan="3">No fee allocation; amount held as learner credit.</td></tr>')+'</tbody></table><p><strong>Total allocated:</strong> UGX '+money(totalAllocated)+'</p><p><strong>Unallocated learner credit:</strong> UGX '+money(data.unallocated_amount_ugx)+'</p><p><strong>Payment method:</strong> '+esc(data.payment_method)+'</p><p><strong>Transaction reference:</strong> '+esc(data.payment_reference||'—')+'</p><p><strong>Status:</strong> '+(reversed?'REVERSED — NOT VALID FOR PAYMENT':'POSTED')+'</p>'+(data.notes?'<p><strong>Notes:</strong> '+esc(data.notes)+'</p>':'')+'<hr><p style="text-align:center">Thank you.</p></div>';
+  $('receiptLookupArea').innerHTML=dualReceiptMarkup(lookupReceiptBody,data.payer_name,receiverName);
   $('receiptLookupPrint').disabled=false;message('receiptLookupMsg',reversed?'Receipt found, but it has been reversed.':'Receipt and remaining fee balances retrieved.');
  }catch(err){message('receiptLookupMsg','Could not retrieve receipt: '+(err?.message||'Unknown error'),true)}
  finally{$('receiptLookupButton').disabled=false;$('receiptLookupButton').textContent='Find receipt'}
