@@ -452,3 +452,15 @@
 - Source commits: `67781aff` (Settings expansion) and `81a0aef6` (receipt-width and Uganda-timezone greeting integration).
 - Static JavaScript parse checks passed for both inline scripts. HTML ID check found no duplicate IDs outside script/template source. Actual sign-in, password email delivery and phone/browser testing still require an authenticated school account and the next available preview deployment.
 - Device preferences remain local to each browser. School-wide configuration, shared class PINs, SMS/push delivery and full offline record synchronisation are not claimed as completed.
+
+
+## 2026-11-04 — Printer and fingerprint hardware buying guide
+- Added a hardware buying guide in Settings with five receipt-printer candidates: Xprinter XP-P300 (58mm portable), Epson TM-P20II (58mm premium mobile), Xprinter XP-80U (80mm counter), Rongta RP80 series (80mm counter) and Epson TM-T20III (80mm counter).
+- Added five standalone attendance terminal candidates: ZKTeco K40, K50, MB20, F18 and SpeedFace-V5L. Budget recommendation for the school's approximately 30 staff is ZKTeco K40, subject to checking exact hardware/firmware, warranty and attendance export/API before purchase.
+- Added five small USB fingerprint-reader candidates: ZKTeco ZK9500, ZK6500, ZK8500R and SecuGen Hamster Pro 20 / Pro 10. These are fingerprint capture devices, not standalone attendance clocks. ZKTeco documents a Windows SDK for ZK9500/ZK6500/ZK8500R; SecuGen documents Windows drivers/SDKs for Hamster Pro models.
+- Local Uganda price indications from supplier listings: generic Xprinter 58mm Bluetooth/USB portable unit about UGX 150,000 and Xprinter mini 80mm unit about UGX 320,000; one Kampala listing shows ZKTeco K40 around UGX 380,000. These are indicative listings only, not confirmed quotes for every exact model.
+- Preferred printer buying order: compare XP-P300 for portable receipts; XP-80U for the bursar's counter; Epson TM-T20III if a more established counter-printer brand and network connection are preferred. Ask for exact model and interface, test Windows 10/11 and Android, and get a written warranty.
+- Explicitly documented that none of these devices is yet physically tested or certified as integrated with Cornhill. A fingerprint terminal must demonstrate attendance export or SDK/protocol access on the main Windows computer before it is purchased. Small USB scanners need a local integration bridge/SDK; the web browser alone cannot access them.
+- Added biometric privacy note: avoid storing raw fingerprint images in the school database; use protected templates/device identifiers with appropriate notice, lawful basis and access controls.
+- Commit: `b8a1be95`.
+- Static JavaScript parse checks and HTML duplicate-ID checks are run after the guide is added; browser/hardware integration tests remain pending.
