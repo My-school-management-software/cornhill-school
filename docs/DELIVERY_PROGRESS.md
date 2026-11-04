@@ -212,3 +212,11 @@
 - Code commits: `7532f24`, `e1aa730`. No live learner marks were available for browser/E2E validation. Aggregate/division remains intentionally uncomputed until the school's approved grade-to-point and division thresholds are configured; no PLE rules have been guessed.
 
 - Follow-up report correction: report preview now explicitly prints active class size and learner position; P4–P7 reports state aggregate/division is awaiting school-approved configuration rather than displaying an invented result. Class performance excludes inactive learners. Fix commit: `024a791`.
+
+
+## 2026-11-04 — Learner record editing and safe class placement
+- Added an administrator-only Edit action to each learner register row.
+- Editing loads the existing learner details into the admission form and saves changes to the same learner record; it does not create a duplicate admission.
+- The update path does not regenerate or replace the permanent school admission number. Class/stream placement can be corrected through the existing class selector.
+- Existing bursary validation is retained; editing bursary details updates the learner record and does not create a second admission-time bursary charge.
+- Code commit: 287aaaa. Source change is committed to `feature/cornhill-v3-foundation`; browser/E2E verification remains pending. Production remains untouched.
