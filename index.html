@@ -266,7 +266,9 @@ $('gradeBandForm').addEventListener('submit',async e=>{
 async function loadAcademics(){
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
- $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');\n $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');\n await loadGradeBands();
+ $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
+ $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
+ await loadGradeBands();
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Administrator access':'Assigned teacher · Mark entry only';
  const [y,t,s,a,staff,cscores]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
@@ -331,7 +333,25 @@ async function renderReportCard(){
  const grouped=new Map();
  data.assessments.forEach(a=>{const rows=data.scores.filter(s=>s.assessment_id===a.id&&s.student_id===studentId);if(!grouped.has(a.subject_id))grouped.set(a.subject_id,{name:a.subjects?.name||'Subject',score:0,max:0,assessments:0,comments:[]});const g=grouped.get(a.subject_id);rows.forEach(s=>{g.score+=Number(s.score);g.max+=Number(a.max_score);g.assessments++;if(s.teacher_comment)g.comments.push(s.teacher_comment)})});
  const rows=[...grouped.values()].filter(x=>x.assessments),total=rows.reduce((n,x)=>n+x.score,0),max=rows.reduce((n,x)=>n+x.max,0),pct=max?total/max*100:0;const overallGrade=gradeFor(pct);
- $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · DRAFT</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>Code:</strong> '+esc(learner.admission_number)+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+money(x.score)+'</td><td>'+money(x.max)+'</td><td>'+((x.score/x.max)*100).toFixed(1)+'%</td></tr>').join('')+'</tbody></table></div><p><strong>Overall:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%) · Grade: '+esc(overallGrade?.name||'—')+' · '+esc(overallGrade?.comment||'')+'</p><p class="muted">Draft only — not yet approved or published by the school administrator.</p><button class="tab" type="button" onclick="window.print()">Print draft</button></div>';
+ const termId=$('reportTermSelect').value;
+ const publication=await db.from('report_card_publications').select('id,approved_at,approved_by').eq('term_id',termId).eq('student_id',studentId).maybeSingle();
+ if(publication.error){message('academicMsg','Could not check report approval: '+publication.error.message,true);return}
+ const approved=!!publication.data;
+ const approvalLine=approved?'<p><strong>School approval:</strong> Approved on '+esc(new Date(publication.data.approved_at).toLocaleString())+'</p>':'<p class="muted">Draft only — not yet approved or published by the school administrator.</p>';
+ const approveButton=profile?.role==='Admin'&&!approved?'<button class="primary" type="button" id="approveReportButton">Approve official report</button>':'';
+ $('reportCardPreview').innerHTML='<div class="panel"><div style="text-align:center"><h2>CORNHILL NURSERY AND PRIMARY SCHOOL</h2><h3>TERM PROGRESS REPORT · '+(approved?'APPROVED':'DRAFT')+'</h3></div><p><strong>Learner:</strong> '+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+' &nbsp; <strong>Code:</strong> '+esc(learner.admission_number)+'</p><p><strong>Class:</strong> '+esc(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'')+' &nbsp; <strong>Term:</strong> '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</p><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Score</th><th>Maximum</th><th>Average</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+money(x.score)+'</td><td>'+money(x.max)+'</td><td>'+((x.score/x.max)*100).toFixed(1)+'%</td></tr>').join('')+'</tbody></table></div><p><strong>Overall:</strong> '+money(total)+' / '+money(max)+' ('+pct.toFixed(1)+'%) · Grade: '+esc(overallGrade?.name||'—')+' · '+esc(overallGrade?.comment||'')+'</p>'+approvalLine+approveButton+' <button class="tab" type="button" onclick="window.print()">Print report</button></div>';
+ const approve=$('approveReportButton');
+ if(approve)approve.addEventListener('click',async()=>{
+  if(profile?.role!=='Admin')return;
+  if(!confirm('Approve this learner report as an official school report?'))return;
+  approve.disabled=true;
+  const auth=await db.auth.getUser(),user=auth.data?.user;
+  if(auth.error||!user){message('academicMsg','Your session could not be verified. Sign in again.',true);approve.disabled=false;return}
+  const {error}=await db.from('report_card_publications').upsert({term_id:termId,class_id:$('reportClassSelect').value,student_id:studentId,approved_by:user.id},{onConflict:'term_id,student_id'});
+  if(error){message('academicMsg','Report approval failed: '+error.message,true);approve.disabled=false;return}
+  message('academicMsg','Report approved and recorded.');
+  await renderReportCard();
+ });
 }
 async function renderClassPerformance(){
  if(demoMode)return;
@@ -379,7 +399,9 @@ function parseCSV(text){
   if(c==='"'&&quoted&&n==='"'){field+='"';i++}
   else if(c==='"'){quoted=!quoted}
   else if(c===','&&!quoted){row.push(field.trim());field=''}
-  else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(field.trim());if(row.some(v=>v!==''))rows.push(row);row=[];field=''}
+  else if((c==='
+'||c==='\r')&&!quoted){if(c==='\r'&&n==='
+')i++;row.push(field.trim());if(row.some(v=>v!==''))rows.push(row);row=[];field=''}
   else field+=c;
  }
  if(field.length||row.length){row.push(field.trim());rows.push(row)}
