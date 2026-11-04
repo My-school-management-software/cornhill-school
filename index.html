@@ -1334,8 +1334,9 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
  });
  $('attendancePreview').innerHTML='<p><strong>'+valid.length+'</strong> valid rows · <strong>'+issues.length+'</strong> rows needing correction</p>'+(issues.length?'<div class="notice error">'+issues.slice(0,12).map(esc).join('<br>')+(issues.length>12?'<br>More errors not shown.':'')+'</div>':'')+'<p class="muted">Review the results above. Valid rows will be imported; invalid rows are skipped.</p>';
  if(!valid.length){message('attendanceMsg','No valid rows to import. Correct the CSV or staff ID mappings.',true);return}
- const user=(await db.auth.getUser()).data.user;
- const batch=await db.from('staff_attendance_import_batches').insert({source:'usb_csv',source_file_name:file.name,device_model:model||null,device_serial:serial,imported_rows:valid.length,rejected_rows:issues.length,created_by:user.id,notes:'Imported through Cornhill USB attendance screen'}).select('id').single();
+ const authResult=await db.auth.getUser(),user=authResult.data?.user;
+ if(authResult.error||!user){message('attendanceMsg','Your sign-in session has expired. Sign in again before importing attendance.',true);return}
+ const batch=await db.from('staff_attendance_import_batches').insert({source:'usb_csv',source_file_name:file.name,device_model:model||null,device_serial:serial,imported_rows:0,rejected_rows:issues.length,created_by:user.id,notes:'Import started; counts are finalized after event rows are saved.'}).select('id').single();
  if(batch.error){message('attendanceMsg','Could not create import batch: '+batch.error.message,true);return}
  const records=valid.map(x=>({...x,import_batch_id:batch.data.id,recorded_by:user.id}));
  const withExternal=records.filter(x=>x.external_event_id), withoutExternal=records.filter(x=>!x.external_event_id);
@@ -1348,9 +1349,13 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
   const result=await db.from('staff_attendance_events').upsert(withoutExternal,{onConflict:'device_serial,device_user_id,event_type,occurred_at',ignoreDuplicates:true}).select('id');
   if(result.error)importError=result.error;else inserted+=(result.data||[]).length;
  }
- if(importError){message('attendanceMsg','The import batch was created but attendance rows could not be saved. Check the batch before retrying. Error: '+importError.message,true);return}
+ if(importError){
+  const failedUpdate=await db.from('staff_attendance_import_batches').update({imported_rows:inserted,rejected_rows:issues.length+(valid.length-inserted),notes:'Import incomplete. '+inserted+' events saved before the error; '+(valid.length-inserted)+' valid rows were not confirmed. Error: '+importError.message}).eq('id',batch.data.id);
+  message('attendanceMsg','The import did not finish. '+inserted+' events were saved before the error; '+(valid.length-inserted)+' valid rows were not confirmed. Check the batch before retrying. '+(failedUpdate.error?' Batch status update also failed: '+failedUpdate.error.message:''),true);return
+ }
  const duplicates=valid.length-inserted;
- await db.from('staff_attendance_import_batches').update({imported_rows:inserted,notes:'Imported through Cornhill USB attendance screen; '+duplicates+' duplicate rows ignored.'}).eq('id',batch.data.id);
+ const finalized=await db.from('staff_attendance_import_batches').update({imported_rows:inserted,rejected_rows:issues.length,notes:'Import completed; '+duplicates+' duplicate rows ignored.'}).eq('id',batch.data.id);
+ if(finalized.error){message('attendanceMsg','Attendance rows were saved, but the import batch summary could not be updated: '+finalized.error.message,true);return}
  message('attendanceMsg','Imported '+inserted+' new attendance events. '+duplicates+' previously imported duplicates ignored; '+issues.length+' invalid rows skipped.');
  $('attendancePreview').insertAdjacentHTML('beforeend','<p class="badge">Import complete · '+inserted+' new · '+duplicates+' duplicates ignored</p>');
 });
