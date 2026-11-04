@@ -368,3 +368,15 @@
 - The migration was first tested in a transaction and rolled back, then applied. No user profile records were modified.
 
 - Role-boundary check: ran a transaction as PostgreSQL role `authenticated` with a non-admin JWT subject. An attempted update of the existing Admin profile returned no rows (RLS denied it), and a call to `admin_list_students()` was rejected with SQLSTATE 42501. The transaction was rolled back; no profile data changed.
+
+## 2026-11-04 — Daily Collections & Records and duplicate receipts
+- Added and applied migrations `202611040017_daily_collection_register_and_receipt_copies` and `202611040018_payment_payer_details`.
+- Added `school_payments.collection_item` and `payer_name` so every new receipt can identify the purpose (fees, sweater, sportswear, graduation, examination, or a custom item) and the person who brought the money.
+- Added `daily_collection_records` with RLS enabled and administrator-only policy. The saved record stores a date-based record number, posted/reversed totals, totals grouped by payment item, and a JSON snapshot of each receipt with learner name/code/class, receipt number, item, method, status, timestamp and receiver name.
+- Added a database trigger that refreshes the corresponding Africa/Kampala daily record whenever a payment is inserted or its status, received time, amount or collection item changes. Reversals remain in the audit record and are separately totalled; only Posted payments count as collections.
+- Added an administrator screen for opening a date's saved record, searching within that day's entries by learner name, admission code, receipt, class, item or method, viewing totals by item, and printing the complete daily register on A4.
+- Payment entry now requires a payment reason/item and optionally captures the payer's name. For custom reasons the bursar can select “Other / specify” and enter the exact item.
+- New receipts and receipt reprints now render two consecutive copies (payer copy and school-retained copy), with receiver name, receiver signature line, payer name and payer signature line. Both copies share the same receipt number and payment details.
+- Database migration dry-runs completed inside transactions followed by ROLLBACK before application. Verified RLS enabled, administrator-only policy, authenticated execute permission on refresh RPC, anon denied, and trigger enabled. A simulated Admin call succeeded; a non-admin call was rejected with SQLSTATE 42501.
+- Frontend inline JavaScript syntax checks passed; static markup has no duplicate IDs. No live payment was posted for testing because the school currently has no learner records. Actual payment-trigger and thermal-printer behavior still require an enrolled test learner and a physical printer.
+- Security advisor still reports the pre-existing/intentional SECURITY DEFINER administrator learner RPCs and the existing disabled leaked-password protection. The new daily-record functions are SECURITY INVOKER and add no new SECURITY DEFINER warnings.
