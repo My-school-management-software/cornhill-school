@@ -96,3 +96,22 @@
 - [ ] Test allowances and deductions, including invalid deductions greater than gross pay.
 - [ ] Confirm staff/non-admin accounts cannot view salary agreements, payroll, or expenses.
 - [ ] Perform final payroll tests with the actual authorized staff list and approved salary amounts; never use guessed salaries.
+
+
+## Scheduled staff attendance alerts
+- [ ] Confirm the five-minute cornhill-staff-attendance-alerts job is active and recent runs succeed.
+- [ ] Assign a real active staff schedule; verify a warning is created while the application is closed.
+- [ ] Verify Uganda timezone, weekday assignment, grace period and overnight schedule behaviour.
+- [ ] Confirm the staff member sees their warning after signing in.
+- [ ] Keep the deduction switch OFF and confirm incidents remain pending with zero approved amount.
+- [ ] In a controlled test, enable the switch and confirm future incidents with a daily rate are included in payroll, capped at one daily-rate amount per staff member per scheduled day.
+- [ ] Confirm administrator review decisions are not overwritten by later scheduler runs.
+
+## Offline shell and printing
+- [ ] Open the PWA online once, turn on airplane mode and verify the app shell opens from cache with the offline warning.
+- [ ] Confirm no learner, finance, authentication or payment API data is served from service-worker cache.
+- [ ] Reconnect and confirm the app reloads the current online version.
+- [ ] Print the daily collection register to A4 and verify learner names, classes, receipt numbers, payment items, cash totals and signatures.
+- [ ] Print parent and school receipt copies on actual 58mm and 80mm printers; verify cut length, signature lines and amount-in-words wrapping.
+- [ ] Test Android Bluetooth/USB printer pairing and driver. Browser CSS alone does not guarantee printer compatibility.
+- [ ] Full offline marks drafts and conflict-safe synchronization remain outstanding. Do not record money or issue receipts offline.
