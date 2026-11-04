@@ -494,13 +494,13 @@ $('schoolPaymentForm').addEventListener('submit',async e=>{
  const allocations=[...document.querySelectorAll('.paymentAllocateCheck:checked')].map(ch=>({charge_id:ch.dataset.charge,amount_ugx:Number(document.querySelector('.paymentAllocateAmount[data-charge="'+ch.dataset.charge+'"]').value)}));
  if(allocations.some(a=>!Number.isSafeInteger(a.amount_ugx)||a.amount_ugx<=0)){message('financeMsg','Enter an amount for each selected fee.',true);return}
  if(allocations.reduce((n,a)=>n+a.amount_ugx,0)>amount){message('financeMsg','Allocated amounts cannot exceed the payment received.',true);return}
+ const selectedItem=f.get('collection_item'),collectionItem=selectedItem==='Other / specify'?String(f.get('payment_custom_item')||'').trim():selectedItem;
+ const payerName=String(f.get('payer_name')||'').trim();
+ if(!collectionItem){message('financeMsg','Enter the payment reason before posting the payment.',true);return}
  const {data,error}=await db.rpc('post_school_payment_with_allocations',{p_student_id:f.get('student_id'),p_amount_ugx:amount,p_payment_method:f.get('payment_method'),p_payment_reference:f.get('payment_reference')||null,p_notes:f.get('notes')||null,p_allocations:allocations.length?allocations:null});
  if(error){message('financeMsg','Payment was not posted: '+error.message,true);return}
  const result=Array.isArray(data)?data[0]:data;if(!result){message('financeMsg','Payment could not be confirmed. Check the receipt register before retrying.',true);return}
- const selectedItem=f.get('collection_item'),collectionItem=selectedItem==='Other / specify'?String(f.get('payment_custom_item')||'').trim():selectedItem;
- const payerName=String(f.get('payer_name')||'').trim();
- if(!collectionItem){message('financeMsg','Payment was posted, but its reason was not supplied. Please contact the administrator before printing.',true);return}
- const {error:detailSaveError}=await db.from('school_payments').update({collection_item:collectionItem,payer_name:payerName||null}).eq('id',result.payment_id);
+  const {error:detailSaveError}=await db.from('school_payments').update({collection_item:collectionItem,payer_name:payerName||null}).eq('id',result.payment_id);
  const {data:allocRows,error:allocError}=await db.from('payment_allocations').select('amount_ugx,learner_charges(id,description,amount_ugx,academic_terms(name,academic_years(name)),payment_allocations(amount_ugx,school_payments(status)))').eq('payment_id',result.payment_id);
  const learner=financeStudents.find(x=>x.id===f.get('student_id')),name=learner?[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '):'Learner';
  const allocated=(allocRows||[]).reduce((n,a)=>n+Number(a.amount_ugx||0),0);
