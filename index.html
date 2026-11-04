@@ -45,6 +45,16 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  body.print-daily-collection #dailyCollectionPrint h1{font-size:16pt}
  body.print-daily-collection #dailyCollectionPrint h2{font-size:13pt}
 }
+</style><style>
+@media print{
+ body.print-expenses *{visibility:hidden!important}
+ body.print-expenses #expensePrint,body.print-expenses #expensePrint *{visibility:visible!important}
+ body.print-expenses #expensePrint{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0;padding:0;color:#111;background:white;font-size:9pt}
+ body.print-expenses #expensePrint table{width:100%;border-collapse:collapse}
+ body.print-expenses #expensePrint th,body.print-expenses #expensePrint td{border:1px solid #555;padding:4px;vertical-align:top}
+ body.print-expenses #expensePrint h1{font-size:16pt}
+ body.print-expenses #expensePrint h2{font-size:13pt}
+}
 </style></head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -540,6 +550,11 @@ function renderExpenseRows(){
  const total=rows.filter(x=>x.status==='Posted').reduce((n,x)=>n+Number(x.amount_ugx||0),0);
  $('expensePeriodTotal').textContent=money(total);$('expenseSalaryTotal').textContent=money(salary);$('expenseOtherTotal').textContent=money(total-salary);
  $('expenseRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.expense_date)+'</td><td>'+esc(x.expense_no)+'</td><td>'+esc(x.expense_categories?.name||'—')+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.payee_name||'—')+'</td><td>'+esc(x.payment_method)+'</td><td>'+money(x.amount_ugx)+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==='Posted'?'<button type="button" data-void-expense="'+x.id+'">Void</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="9">No expenses in this period.</td></tr>';
+ const byCategory={};rows.filter(x=>x.status==='Posted').forEach(x=>{const k=x.expense_categories?.name||'Uncategorised';byCategory[k]=(byCategory[k]||0)+Number(x.amount_ugx||0)});
+ $('expenseCategoryTotals').innerHTML=Object.entries(byCategory).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>'<tr><td>'+esc(k)+'</td><td>'+money(v)+'</td></tr>').join('')||'<tr><td colspan="2">No posted expenses in this period.</td></tr>';
+ const detailRows=rows.map(x=>'<tr><td>'+esc(x.expense_date)+'</td><td>'+esc(x.expense_no)+'</td><td>'+esc(x.expense_categories?.name||'—')+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.payee_name||'—')+'</td><td>'+esc(x.payment_method)+'</td><td style="text-align:right">'+money(x.amount_ugx)+'</td><td>'+esc(x.status)+'</td></tr>').join('');
+ const categoryRows=Object.entries(byCategory).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>'<tr><td>'+esc(k)+'</td><td style="text-align:right">UGX '+money(v)+'</td></tr>').join('');
+ $('expensePrint').innerHTML='<div style="font-family:Arial,sans-serif;color:#111;background:white"><h1 style="text-align:center">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center">SCHOOL EXPENDITURE REGISTER</h2><p><strong>Period:</strong> '+esc(from||'All dates')+' to '+esc(to||'Current')+'</p><p><strong>Total posted expenditure:</strong> UGX '+money(total)+' &nbsp; <strong>Salaries & wages:</strong> UGX '+money(salary)+' &nbsp; <strong>Other:</strong> UGX '+money(total-salary)+'</p><h3>Totals by category</h3><table style="width:100%;border-collapse:collapse"><thead><tr><th>Category</th><th>Total (UGX)</th></tr></thead><tbody>'+categoryRows+'</tbody></table><h3>Expense details</h3><table style="width:100%;border-collapse:collapse;font-size:9pt"><thead><tr><th>Date</th><th>Expense no.</th><th>Category</th><th>Description</th><th>Payee</th><th>Method</th><th>Amount (UGX)</th><th>Status</th></tr></thead><tbody>'+detailRows+'</tbody></table><p>Prepared by: '+esc(profile?.full_name||'School administrator')+' &nbsp; Signature: ____________________</p></div>';
 }
 $('expenseRows').addEventListener('click',async e=>{
  const btn=e.target.closest('[data-void-expense]');if(!btn)return;
@@ -613,6 +628,7 @@ $('payrollItemRows').addEventListener('click',async e=>{
 });
 $('loadExpenseReport').addEventListener('click',renderExpenseRows);
 $('expenseFrom').addEventListener('change',renderExpenseRows);$('expenseTo').addEventListener('change',renderExpenseRows);
+$('printExpenseReport').addEventListener('click',()=>{if($('expensePrint').innerHTML){document.body.classList.add('print-expenses');window.print();document.body.classList.remove('print-expenses')}});
 $('exportExpenseReport').addEventListener('click',()=>{
  const rows=(window.cornhillExpenseRows||[]).filter(x=>(!$('expenseFrom').value||x.expense_date>=$('expenseFrom').value)&&(!$('expenseTo').value||x.expense_date<=$('expenseTo').value));
  const header=['Date','Expense number','Category','Description','Payee','Method','Reference','Amount UGX','Status'];
