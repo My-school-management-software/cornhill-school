@@ -1651,9 +1651,12 @@ $('sendStaffReset').addEventListener('click',async()=>{const email=$('staffReset
 
 async function loadStaffCommunication(){
  if(demoMode||!profile||!currentUserId)return;
- $('staffPostAudience').value='all_staff';
- $('staffPostAudience').querySelector('option[value="Admin"]').disabled=profile.role!=='Admin';
- $('staffPostAudience').querySelector('option[value="Teacher"]').disabled=profile.role!=='Admin';
+ const audienceSelect=$('staffPostAudience');
+ audienceSelect.value='all_staff';
+ const teachersOption=audienceSelect.querySelector('option[value="teachers"]');
+ const adminsOption=audienceSelect.querySelector('option[value="admins"]');
+ if(teachersOption)teachersOption.disabled=!['Admin','Teacher'].includes(profile.role);
+ if(adminsOption)adminsOption.disabled=profile.role!=='Admin';
  const {data:posts,error}=await db.from('staff_communication_posts').select('id,author_user_id,body,audience,is_pinned,created_at').order('is_pinned',{ascending:false}).order('created_at',{ascending:false}).limit(50);
  if(error){message('staffCommMsg','Could not load staff messages: '+error.message,true);$('staffCommunicationFeed').innerHTML='';return}
  const ids=(posts||[]).map(p=>p.id);
