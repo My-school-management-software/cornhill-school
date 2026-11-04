@@ -55,7 +55,11 @@
  <div id="receiptArea" class="receipt-print"></div>
  <h3 style="margin-top:24px">5. Learner account balances</h3>
  <div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Charges (UGX)</th><th>Applied (UGX)</th><th>Credit (UGX)</th><th>Balance (UGX)</th></tr></thead><tbody id="financeAccountRows"></tbody></table></div>
- <h3 style="margin-top:24px">6. Recent charges and receipts</h3>
+ <h3 style="margin-top:24px">6. Bursary register and balances</h3>
+ <p class="muted">Approved bursary amounts, payments received and outstanding balances. Bursary learners remain in the normal fee ledger and receipt register.</p>
+ <div class="grid"><div class="stat"><small>Bursary learners</small><div id="bursaryLearnerCount" class="num">0</div></div><div class="stat"><small>Approved bursary charges (UGX)</small><div id="bursaryApprovedTotal" class="num">0</div></div><div class="stat"><small>Outstanding bursary balance (UGX)</small><div id="bursaryOutstandingTotal" class="num">0</div></div></div>
+ <div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Approved fee (UGX)</th><th>Total paid (UGX)</th><th>Balance (UGX)</th></tr></thead><tbody id="bursaryRegisterRows"></tbody></table></div>
+ <h3 style="margin-top:24px">7. Recent charges and receipts</h3>
  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Learner</th><th>Description / method</th><th>Amount (UGX)</th></tr></thead><tbody id="financeActivityRows"></tbody></table></div>
 </section>
 <section id="academics" class="panel hidden">
@@ -256,7 +260,7 @@ async function loadFinance(){
   db.from('learner_account_balances').select('*').order('learner_name'),
   db.from('learner_charges').select('id,invoice_no,description,amount_ugx,created_at,students(admission_number,first_name,middle_name,last_name)').order('created_at',{ascending:false}).limit(25),
   db.from('school_payments').select('id,receipt_no,amount_ugx,payment_method,received_at,students(admission_number,first_name,middle_name,last_name)').order('received_at',{ascending:false}).limit(25),
-  db.from('students').select('id,admission_number,first_name,middle_name,last_name').eq('status','Active').order('first_name').limit(2000)
+  db.from('students').select('id,admission_number,first_name,middle_name,last_name,is_bursary,bursary_fee_ugx').eq('status','Active').order('first_name').limit(2000)
  ]);
  const failed=[items,sched,accounts,charges,payments,learners].find(x=>x.error);
  if(failed){message('financeMsg','Finance could not load: '+failed.error.message,true);return}
@@ -267,6 +271,15 @@ async function loadFinance(){
  const learnerOpts='<option value="">Choose learner</option>'+financeStudents.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number)+' · '+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</option>').join('');
  $('chargeStudent').innerHTML=learnerOpts;$('paymentStudent').innerHTML=learnerOpts;
  $('feeScheduleRows').innerHTML=(sched.data||[]).map(x=>'<tr><td>'+esc(x.fee_items?.name||'—')+'</td><td>'+esc(x.class_group||'All classes')+'</td><td>'+esc(x.learner_type)+'</td><td>'+money(x.amount_ugx)+'</td></tr>').join('')||'<tr><td colspan="4">No fee schedules configured.</td></tr>';
+ const bursaryLearners=financeStudents.filter(x=>x.is_bursary);
+ const accountByLearner=new Map((accounts.data||[]).map(x=>[x.student_id,x]));
+ const bursaryApproved=bursaryLearners.reduce((n,x)=>n+Number(x.bursary_fee_ugx||0),0);
+ const bursaryPaid=bursaryLearners.reduce((n,x)=>n+Number(accountByLearner.get(x.id)?.total_paid_ugx||0),0);
+ const bursaryBalance=bursaryLearners.reduce((n,x)=>n+Number(accountByLearner.get(x.id)?.balance_ugx||0),0);
+ $('bursaryLearnerCount').textContent=String(bursaryLearners.length);
+ $('bursaryApprovedTotal').textContent=money(bursaryApproved);
+ $('bursaryOutstandingTotal').textContent=money(bursaryBalance);
+ $('bursaryRegisterRows').innerHTML=bursaryLearners.map(x=>{const a=accountByLearner.get(x.id)||{};return '<tr><td>'+esc(x.admission_number)+'</td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td><td>'+money(x.bursary_fee_ugx)+'</td><td>'+money(a.total_paid_ugx||0)+'</td><td><strong>'+money(a.balance_ugx||0)+'</strong></td></tr>'}).join('')||'<tr><td colspan="5">No bursary learners registered.</td></tr>';
  const a=accounts.data||[];const sum=k=>a.reduce((n,x)=>n+Number(x[k]||0),0);
  $('financeCharges').textContent=money(sum('total_charged_ugx'));$('financePaid').textContent=money(sum('total_paid_ugx'));$('financeBalance').textContent=money(sum('balance_ugx'));
  $('financeAccountRows').innerHTML=a.map(x=>'<tr><td>'+esc(x.admission_number)+'</td><td>'+esc(x.learner_name)+'</td><td>'+money(x.total_charged_ugx)+'</td><td>'+money(x.total_paid_ugx)+'</td><td>'+money(x.credit_ugx)+'</td><td><strong>'+money(x.balance_ugx)+'</strong></td></tr>').join('')||'<tr><td colspan="6">No learner accounts yet.</td></tr>';
