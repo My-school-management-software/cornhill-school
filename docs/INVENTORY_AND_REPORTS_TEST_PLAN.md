@@ -115,3 +115,23 @@
 - [ ] Print parent and school receipt copies on actual 58mm and 80mm printers; verify cut length, signature lines and amount-in-words wrapping.
 - [ ] Test Android Bluetooth/USB printer pairing and driver. Browser CSS alone does not guarantee printer compatibility.
 - [ ] Full offline marks drafts and conflict-safe synchronization remain outstanding. Do not record money or issue receipts offline.
+
+
+## Settings and welcome-message test checklist — 4 November 2026
+- [ ] Sign in as Admin and open Settings & themes; confirm the screen shows all eight sections.
+- [ ] Change among all 8 themes and verify the selected theme persists after refresh on the same browser.
+- [ ] Change among the 24 fonts; test Compact, Standard, Large and Extra large text sizes on Windows and Android.
+- [ ] Test Comfortable and Compact display spacing on a narrow phone screen.
+- [ ] Confirm reduced-motion default is OFF; enable subtle motion and verify the interface remains usable.
+- [ ] Change the device time-zone preference to Africa/Kampala and check morning/afternoon/evening greetings at the corresponding local time.
+- [ ] Check date greetings on 1 January, 8 March, 1 May, 3 June, 9 June, 9 October, the second Sunday in May, 25 December and 26 December.
+- [ ] Enter a custom greeting, save, refresh and verify it appears; switch greetings OFF and verify the standard dashboard message appears.
+- [ ] Change receipt width in Settings to 58mm and 80mm; verify the existing receipt print control uses the selected width.
+- [ ] Change own password with a real test account; confirm the old password no longer works and the new password works.
+- [ ] As Admin, request a reset link for a test teacher account; confirm the email arrives and the link completes the reset flow.
+- [ ] Confirm a Teacher cannot open administrator Settings and cannot reset another account.
+- [ ] Review About details and the privacy/security policy with school leadership before treating the policy as formally approved.
+- [ ] Confirm class and subject access follows each teacher's individual account assignment; do not introduce shared passwords.
+- [ ] Verify that local preferences on one device do not falsely appear as school-wide settings on other devices.
+
+Note: source syntax and static HTML ID checks passed for this change. Actual account, email, mobile and print tests await a new preview deployment and authorised test accounts. The latest available Vercel READY preview predates the Settings commits.
