@@ -59,7 +59,11 @@
  <p class="muted">Approved bursary amounts, payments received and outstanding balances. Bursary learners remain in the normal fee ledger and receipt register.</p>
  <div class="grid"><div class="stat"><small>Bursary learners</small><div id="bursaryLearnerCount" class="num">0</div></div><div class="stat"><small>Approved bursary charges (UGX)</small><div id="bursaryApprovedTotal" class="num">0</div></div><div class="stat"><small>Outstanding bursary balance (UGX)</small><div id="bursaryOutstandingTotal" class="num">0</div></div></div>
  <div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Approved fee (UGX)</th><th>Total paid (UGX)</th><th>Balance (UGX)</th></tr></thead><tbody id="bursaryRegisterRows"></tbody></table></div>
- <h3 style="margin-top:24px">7. Recent charges and receipts</h3>
+ <h3 style="margin-top:24px">7. Learner fee statement</h3>
+ <p class="muted">Choose a learner to produce an itemised statement showing charges, payments, receipt numbers and the remaining balance. Use Print to give the statement to a parent or guardian.</p>
+ <div class="form-row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:220px"><label for="statementStudent">Learner</label><select id="statementStudent"><option value="">Choose learner</option></select></div><button type="button" class="primary" id="loadLearnerStatement">Load statement</button><button type="button" id="printLearnerStatement" disabled>Print statement</button></div>
+ <div id="learnerStatementMsg" class="notice hidden"></div><div id="learnerStatementArea" class="receipt-print"></div>
+ <h3 style="margin-top:24px">8. Recent charges and receipts</h3>
  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Learner</th><th>Description / method</th><th>Amount (UGX)</th></tr></thead><tbody id="financeActivityRows"></tbody></table></div>
 </section>
 <section id="academics" class="panel hidden">
@@ -269,7 +273,7 @@ async function loadFinance(){
  const opts='<option value="">Choose fee item</option>'+financeItems.filter(x=>x.is_active).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  $('scheduleFeeItem').innerHTML=opts;$('chargeFeeItem').innerHTML=opts;
  const learnerOpts='<option value="">Choose learner</option>'+financeStudents.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number)+' · '+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</option>').join('');
- $('chargeStudent').innerHTML=learnerOpts;$('paymentStudent').innerHTML=learnerOpts;
+ $('chargeStudent').innerHTML=learnerOpts;$('paymentStudent').innerHTML=learnerOpts;$('statementStudent').innerHTML=learnerOpts;
  $('feeScheduleRows').innerHTML=(sched.data||[]).map(x=>'<tr><td>'+esc(x.fee_items?.name||'—')+'</td><td>'+esc(x.class_group||'All classes')+'</td><td>'+esc(x.learner_type)+'</td><td>'+money(x.amount_ugx)+'</td></tr>').join('')||'<tr><td colspan="4">No fee schedules configured.</td></tr>';
  const bursaryLearners=financeStudents.filter(x=>x.is_bursary);
  const accountByLearner=new Map((accounts.data||[]).map(x=>[x.student_id,x]));
@@ -701,4 +705,24 @@ $('classForm').addEventListener('submit',async e=>{e.preventDefault();if(demoMod
 $('demoAccess').addEventListener('click',()=>{try{enterDemoMode()}catch(err){message('loginMsg','The demo could not start: '+(err?.message||'Unknown startup error'),true)}});
 if(db)db.auth.onAuthStateChange((_event,session)=>{startSession(session).catch(err=>{if(session)message('appMsg','Your account signed in, but the school dashboard could not finish loading. '+(err?.message||''),true)})});
 if('serviceWorker' in navigator && location.protocol === 'https:'){navigator.serviceWorker.register('/service-worker.js').catch(()=>{});}
+$('loadLearnerStatement').addEventListener('click',async()=>{
+ if(demoMode)return;
+ if(profile?.role!=='Admin'){message('learnerStatementMsg','Only administrators can view financial statements.',true);return}
+ const id=$('statementStudent').value;if(!id){message('learnerStatementMsg','Choose a learner first.',true);return}
+ const learner=financeStudents.find(x=>x.id===id);if(!learner){message('learnerStatementMsg','Learner record was not found. Reload Finance and try again.',true);return}
+ $('loadLearnerStatement').disabled=true;$('loadLearnerStatement').textContent='Loading…';
+ try{
+  const {data,error}=await db.from('learner_charges').select('id,invoice_no,description,amount_ugx,created_at,due_date,payment_allocations(amount_ugx,school_payments(receipt_no,received_at,payment_method,status))').eq('student_id',id).order('created_at',{ascending:true});
+  if(error)throw error;
+  const charges=data||[];let totalCharges=0,totalPaid=0;
+  const rows=charges.map(c=>{const allocated=(c.payment_allocations||[]).filter(a=>a.school_payments?.status==='posted');const paid=allocated.reduce((n,a)=>n+Number(a.amount_ugx||0),0);totalCharges+=Number(c.amount_ugx||0);totalPaid+=paid;return '<tr><td>'+esc(c.created_at?new Date(c.created_at).toLocaleDateString():'')+'</td><td>'+esc(c.invoice_no)+'</td><td>'+esc(c.description)+'</td><td>'+money(c.amount_ugx)+'</td><td>'+money(paid)+'</td><td>'+money(Math.max(0,Number(c.amount_ugx)-paid))+'</td></tr>'}).join('');
+  const receiptRows=charges.flatMap(c=>(c.payment_allocations||[]).filter(a=>a.school_payments?.status==='posted').map(a=>({receipt:a.school_payments.receipt_no,date:a.school_payments.received_at,method:a.school_payments.payment_method,amount:a.amount_ugx}))).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const credit=Number((await db.from('learner_account_balances').select('credit_ugx').eq('student_id',id).maybeSingle()).data?.credit_ugx||0);
+  const name=[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ');
+  $('learnerStatementArea').innerHTML='<div style="max-width:900px;margin:auto;background:white;color:#111;padding:22px;font-family:Arial,sans-serif"><h1 style="text-align:center">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center">LEARNER FEE STATEMENT</h2><hr><p><strong>Learner:</strong> '+esc(name)+' &nbsp; <strong>Admission No:</strong> '+esc(learner.admission_number)+'</p><p><strong>Account type:</strong> '+(learner.is_bursary?'Bursary':'Regular')+(learner.is_bursary?' &nbsp; <strong>Approved bursary fee:</strong> UGX '+money(learner.bursary_fee_ugx):'')+'</p><p><strong>Statement date:</strong> '+new Date().toLocaleDateString()+'</p><table style="width:100%;border-collapse:collapse" border="1" cellpadding="7"><thead><tr><th>Date</th><th>Invoice</th><th>Description</th><th>Charge (UGX)</th><th>Paid (UGX)</th><th>Balance (UGX)</th></tr></thead><tbody>'+ (rows||'<tr><td colspan="6">No charges recorded.</td></tr>')+'</tbody><tfoot><tr><th colspan="3">TOTAL</th><th>'+money(totalCharges)+'</th><th>'+money(totalPaid)+'</th><th>'+money(Math.max(0,totalCharges-totalPaid))+'</th></tr></tfoot></table><h3>Payment receipts allocated to charges</h3><table style="width:100%;border-collapse:collapse" border="1" cellpadding="7"><thead><tr><th>Receipt No.</th><th>Date</th><th>Method</th><th>Allocated (UGX)</th></tr></thead><tbody>'+ (receiptRows.map(x=>'<tr><td>'+esc(x.receipt)+'</td><td>'+esc(new Date(x.date).toLocaleDateString())+'</td><td>'+esc(x.method)+'</td><td>'+money(x.amount)+'</td></tr>').join('')||'<tr><td colspan="4">No allocated payments.</td></tr>')+'</tbody></table><p><strong>Unallocated account credit:</strong> UGX '+money(credit)+'</p><p><strong>Net amount due:</strong> UGX '+money(Math.max(0,totalCharges-totalPaid-credit))+'</p><hr><p style="text-align:center">Generated by the Cornhill School Management System.</p></div>';
+  $('printLearnerStatement').disabled=false;message('learnerStatementMsg','Statement loaded successfully.');
+ }catch(err){message('learnerStatementMsg','Could not load statement: '+(err?.message||'Unknown error'),true)}
+ finally{$('loadLearnerStatement').disabled=false;$('loadLearnerStatement').textContent='Load statement'}
+});
+$('printLearnerStatement').addEventListener('click',()=>{if($('learnerStatementArea').innerHTML)window.print()});
 </script></body></html>
