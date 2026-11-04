@@ -1,3 +1,23 @@
+
+
+## Staff attendance alerts, deductions and advances (2026-11-04)
+- [ ] Confirm the deduction switch starts OFF for the school.
+- [ ] Assign an active work schedule and verify a late/missed clock-in creates one staff warning for that Uganda date.
+- [ ] Verify a missing clock-out alert appears only after scheduled end plus grace period.
+- [ ] Verify staff can read their own alerts but cannot read another staff member's alerts or change incident amounts.
+- [ ] With deduction switch OFF, verify incidents stay pending and no payroll deduction is added automatically.
+- [ ] Review a pending incident as Admin, approve/reject it and verify only approved amounts are included in a newly prepared payroll period.
+- [ ] Enable the switch and verify future incidents with a daily rate are auto-approved; verify no deduction is generated when no daily rate is configured.
+- [ ] Record an advance, verify outstanding balance, recover it in two payroll payments and confirm the remaining amount decreases oldest-first.
+- [ ] Attempt recovery greater than outstanding advances and confirm the database rejects the payment.
+- [ ] Confirm net salary and the linked Salaries & wages expense equal base + allowances - other/attendance deductions - advance recovery.
+- [ ] Confirm staff warning delivery when the app is closed is not claimed until a server-side scheduler and approved messaging provider are configured.
+
+## Cash-first daily collection A4 register
+- [ ] Print a sample day with multiple learners and verify each learner's name, code, class, receipt, item/reason, payment method and amount appear.
+- [ ] Confirm Cash is the default payment method and A4 shows the cash total separately from other methods.
+- [ ] Reconcile the A4 posted total and cash total to the underlying payment ledger; reversed receipts must remain visible but excluded from posted cash totals.
+
 # Inventory and school reports verification plan
 
 ## Safety boundary
