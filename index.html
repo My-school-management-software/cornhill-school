@@ -84,7 +84,7 @@
  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div><label for="cashReportFrom">From</label><input id="cashReportFrom" type="date"></div><div><label for="cashReportTo">To</label><input id="cashReportTo" type="date"></div><button type="button" class="primary" id="runCashReport">Generate collection report</button><button type="button" id="printCashReport" disabled>Print report</button></div>
  <div id="cashReportMsg" class="notice hidden"></div>
  <div class="grid"><div class="stat"><small>Posted receipts</small><div id="cashReportCount" class="num">0</div></div><div class="stat"><small>Gross collected (UGX)</small><div id="cashReportGross" class="num">0</div></div><div class="stat"><small>Reversed (UGX)</small><div id="cashReportReversed" class="num">0</div></div><div class="stat"><small>Net collections (UGX)</small><div id="cashReportNet" class="num">0</div></div></div>
- <div id="cashReportArea" class="table-wrap"><table><thead><tr><th>Payment method</th><th>Receipts</th><th>Amount (UGX)</th></tr></thead><tbody id="cashReportRows"><tr><td colspan="3">Choose dates and generate the report.</td></tr></tbody></table></div>
+ <div id="cashReportArea"><h4>Totals by payment method</h4><div class="table-wrap"><table><thead><tr><th>Payment method</th><th>Receipts</th><th>Amount (UGX)</th></tr></thead><tbody id="cashReportRows"><tr><td colspan="3">Choose dates and generate the report.</td></tr></tbody></table></div><h4 style="margin-top:16px">Receipt-by-receipt audit</h4><div class="table-wrap"><table><thead><tr><th>Time</th><th>Receipt</th><th>Learner</th><th>Method</th><th>Status</th><th>Amount (UGX)</th></tr></thead><tbody id="cashReportReceiptRows"><tr><td colspan="6">Generate a report to view receipt details.</td></tr></tbody></table></div></div>
  <h3 style="margin-top:24px">11. Recent charges and receipts</h3>
  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Learner</th><th>Description / method</th><th>Amount (UGX)</th></tr></thead><tbody id="financeActivityRows"></tbody></table></div>
 </section>
@@ -845,16 +845,16 @@ $('runCashReport').addEventListener('click',async()=>{
  $('runCashReport').disabled=true;$('runCashReport').textContent='Generating…';
  try{
   const untilDate=new Date(to+'T00:00:00Z');untilDate.setUTCDate(untilDate.getUTCDate()+1);const until=untilDate.toISOString().slice(0,10)+'T00:00:00+03:00';
-  const {data,error}=await db.from('school_payments').select('id,receipt_no,amount_ugx,status,payment_method,received_at,students(admission_number,first_name,last_name)').gte('received_at',from+'T00:00:00+03:00').lt('received_at',until);
-  if(error)throw error;
-  const posted=(data||[]).filter(p=>p.status==='Posted'),reversed=(data||[]).filter(p=>p.status==='Reversed');
+  let data=[],offset=0;while(true){const page=await db.from('school_payments').select('id,receipt_no,amount_ugx,status,payment_method,received_at,students(admission_number,first_name,last_name)').gte('received_at',from+'T00:00:00+03:00').lt('received_at',until).order('received_at',{ascending:true}).range(offset,offset+999);if(page.error)throw page.error;data.push(...(page.data||[]));if((page.data||[]).length<1000)break;offset+=1000}
+  const posted=data.filter(p=>p.status==='Posted'),reversed=data.filter(p=>p.status==='Reversed');
   const methods=new Map();for(const p of posted){const m=p.payment_method||'Other';if(!methods.has(m))methods.set(m,{count:0,total:0});const x=methods.get(m);x.count++;x.total+=Number(p.amount_ugx||0)}
   const gross=posted.reduce((n,p)=>n+Number(p.amount_ugx||0),0),rev=reversed.reduce((n,p)=>n+Number(p.amount_ugx||0),0);
   $('cashReportCount').textContent=posted.length;$('cashReportGross').textContent=money(gross);$('cashReportReversed').textContent=money(rev);$('cashReportNet').textContent=money(gross-rev);
   $('cashReportRows').innerHTML=[...methods.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([m,x])=>'<tr><td>'+esc(m)+'</td><td>'+x.count+'</td><td>'+money(x.total)+'</td></tr>').join('')||'<tr><td colspan="3">No posted collections in this date range.</td></tr>';
-  $('printCashReport').disabled=!(data||[]).length;
+  $('cashReportReceiptRows').innerHTML=data.map(p=>'<tr><td>'+esc(new Date(p.received_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}))+'</td><td><strong>'+esc(p.receipt_no)+'</strong></td><td>'+esc(p.students?.admission_number||'')+' · '+esc([p.students?.first_name,p.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(p.payment_method||'Other')+'</td><td>'+esc(p.status)+'</td><td>'+money(p.amount_ugx)+'</td></tr>').join('')||'<tr><td colspan="6">No receipts in this date range.</td></tr>';
+  $('printCashReport').disabled=!data.length;
   $('cashReportArea').dataset.heading='Daily Cash Collection Report · '+from+' to '+to;
-  message('cashReportMsg','Report generated from '+(data||[]).length+' receipt record(s). Reversed receipts are excluded from gross collections.');
+  message('cashReportMsg','Report generated from '+data.length+' receipt record(s), including a full receipt audit. Reversed receipts are shown separately and excluded from net collections.');
  }catch(err){message('cashReportMsg','Could not generate report: '+(err?.message||'Unknown error'),true)}
  finally{$('runCashReport').disabled=false;$('runCashReport').textContent='Generate collection report'}
 });
