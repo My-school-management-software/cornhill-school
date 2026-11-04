@@ -493,3 +493,13 @@
 - Static verification of the latest page: both inline JavaScript blocks parse; only one Supabase JS CDN script remains. Corrected dashboard module status labels to reflect what is available and what still awaits integration.
 - Remaining external acceptance tests: real browser/device interaction, staging isolation (no branch exists), complete offline transaction synchronisation, and physical fingerprint-terminal/SDK integration. Do not claim these passed without a staging environment, browser automation, or the actual terminal.
 - Supabase security advisor also reports three SECURITY DEFINER RPCs callable by authenticated users and leaked-password protection disabled. Review each RPC's internal admin checks before changing grants; enable breached-password protection in Auth settings before production use.
+
+
+## 2026-11-04 — Stage 1 learner and class structure update
+- Added an administrator-only one-click setup for CORNHILL's ten standard class levels: Baby, Middle, Top and P1–P7. It checks existing class/stream pairs first and creates only missing standard levels; existing classes and learner records are not changed.
+- Class levels are displayed in nursery-to-P7 order, with both active and total learner counts and existing stream names.
+- Expanded learner register search to include learner name, permanent school admission code, Ministry LIN and P7 examination index number.
+- Expanded printable class registers to show the permanent admission code, Ministry LIN and P7 examination index number alongside learner details.
+- Existing curriculum mappings remain grouped as Nursery, P1–P3 and P4–P7. The standard class names match the curriculum grouping logic.
+- Not yet verified with live school data or an authenticated browser session. The school database previously contained zero learner and class records; the new setup action has not been run against live records. Stage 1 still requires review of admission workflows, parent/guardian details, profile/photo handling, promotion/withdrawal workflows, permissions and real-device testing.
+- Code commit: UI changes saved to the feature/cornhill-v3-foundation branch. Vercel deployment remains subject to the existing free deployment API rate limit.
