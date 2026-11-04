@@ -514,3 +514,14 @@
 - Database migrations applied and matching SQL files committed: `20261104174140_private_learner_photos.sql` and `20261104174316_learner_class_promotion_history.sql`.
 - Verified the private bucket, `photo_path` column, four Storage policies, class-history table and history policies exist in the live Supabase project. Source checks confirm photo upload, signed-URL display, administrator guard, promotion RPC call and history display are present.
 - Not yet tested with a real authenticated administrator/teacher browser session, actual uploaded learner image, or a real learner promotion. Do not treat this as end-to-end verified until that test is completed.
+
+
+## 2026-11-04 — Stage 1 continuation: learner exit records and mark-sheet photos
+- Extended learner statuses with `Withdrawn` and `Graduated`, retaining Active, Inactive and Transferred.
+- Added a status-history audit table and trigger. Every status change is recorded with previous status, new status, effective date and authenticated user; only administrators can read the history.
+- Added administrator-only status-history display to learner profiles.
+- Connected stored private learner photographs to the Excel-style class mark sheet. The sheet requests short-lived signed URLs in one batch and falls back to initials when no photograph is stored or a photo cannot be loaded.
+- When replacing a learner photo, the old private object is removed after the new path is saved; if the database update fails, the newly uploaded object is removed and the old photo remains.
+- Database migration applied and committed as `20261104174447_learner_status_history_and_graduation.sql`.
+- Source checks confirm the admission photo input, pre-save file validation, private upload, signed profile photo, batch signed photo URLs in marks entry, promotion RPC, class-history display and status-history display are present.
+- Live database currently has no real learner or class rows, so promotion, status changes, photo upload and mark-sheet photo display still need authenticated school-user testing with real sample records.
