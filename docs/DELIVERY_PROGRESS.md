@@ -74,3 +74,14 @@ This tracker separates code committed to the development branch, database change
 - **Live:** the tested version is deployed for school use.
 
 We will update this tracker with every meaningful coding milestone and will not mark a feature complete merely because its plan or code has been committed.
+
+
+## 2026-11-04 — Finance foundation
+- Added finance UI: fee item catalogue, fee schedule templates, learner charges with database-generated invoice numbers, payment entry, printable receipts, learner account balances, and recent charge/payment activity.
+- Applied Supabase finance schema: `fee_items`, `fee_schedules`, `learner_charges`, `school_payments`, and `payment_allocations`; added indexes and row-level security.
+- Added atomic `post_school_payment` RPC. It checks authenticated Admin access, serializes payment posting per learner, allocates payments to oldest unpaid charges, and carries excess as learner credit.
+- Added security-invoker account balance view. No real learner/finance rows were created during tests.
+- Verified with a rolled-back database test: a UGX 10,000 charge and UGX 6,000 payment produced UGX 6,000 allocated, UGX 4,000 balance, and UGX 0 unallocated credit. Invoice/receipt numbering was verified.
+- Supabase security advisor: finance RPC is SECURITY INVOKER; one existing warning remains for the pre-existing public `is_school_admin()` SECURITY DEFINER helper, and leaked-password protection is disabled in Auth. Performance advisor still reports older academic/attendance foreign-key index and permissive-policy notices.
+- Finance migration SQL has been applied directly to the live Supabase project. A replayable migration file still needs to be committed; browser verification and cashier workflows remain outstanding.
+- Fee schedules are templates only and do not bulk-charge learners. Confirm billing period and the meaning of boarding amounts before setting school-wide defaults or generating term invoices.
