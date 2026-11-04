@@ -1100,46 +1100,64 @@ $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksCon
 $('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
 $('excelMarksClass').addEventListener('change',()=>{document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
 $('saveExcelMarks').addEventListener('click',async()=>{
- const ctx=window.cornhillExcelMarksContext;
- if(!ctx){message('excelMarksMsg','Load a class sheet first.',true);return}
- if(!['Admin','Teacher'].includes(profile?.role)){message('excelMarksMsg','Only authorised administrators and assigned teachers can save marks.',true);return}
- const user=(await db.auth.getUser()).data.user;
- if(!user){message('excelMarksMsg','Your session has expired. Sign in again.',true);return}
- const inputs=[...document.querySelectorAll('[data-grid-score]')],payload=[];
- for(const input of inputs){
-  const raw=input.value.trim();if(raw==='')continue;
-  const assessment=ctx.assessments.find(x=>x.id===input.dataset.assessmentId),absent=raw.toUpperCase()==='X',score=Number(raw);
-  if(!absent&&(!Number.isFinite(score)||score<0||score>Number(assessment.max_score))){
-   const learner=ctx.students.find(x=>x.id===input.dataset.studentId);
-   message('excelMarksMsg','Invalid mark for '+(learner?.first_name||'a learner')+'. Maximum for '+(assessment?.subjects?.name||assessment?.title)+' is '+assessment.max_score+'.',true);
-   input.focus();return;
+ const button=$('saveExcelMarks');if(button.dataset.busy==='1')return;
+ button.dataset.busy='1';button.disabled=true;button.textContent='Saving…';
+ try{
+  const ctx=window.cornhillExcelMarksContext;
+  if(!ctx){message('excelMarksMsg','Load a class sheet first.',true);return}
+  if(!['Admin','Teacher'].includes(profile?.role)){message('excelMarksMsg','Only authorised administrators and assigned teachers can save marks.',true);return}
+  const auth=await db.auth.getUser(),user=auth.data?.user;
+  if(auth.error||!user){message('excelMarksMsg','Your session has expired. Sign in again.',true);return}
+  const inputs=[...document.querySelectorAll('[data-grid-score]')],payload=[];
+  for(const input of inputs){
+   const raw=input.value.trim();if(raw==='')continue;
+   const assessment=ctx.assessments.find(x=>x.id===input.dataset.assessmentId);
+   if(!assessment){message('excelMarksMsg','An assessment linked to this cell is no longer available. Reload the class sheet.',true);return}
+   const absent=raw.toUpperCase()==='X',score=Number(raw);
+   if(!absent&&(!Number.isFinite(score)||score<0||score>Number(assessment.max_score))){
+    const learner=ctx.students.find(x=>x.id===input.dataset.studentId);
+    message('excelMarksMsg','Invalid mark for '+(learner?.first_name||'a learner')+'. Maximum for '+(assessment.subjects?.name||assessment.title)+' is '+assessment.max_score+'.',true);
+    input.focus();return;
+   }
+   payload.push({assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:null,entered_by:user.id});
   }
-  payload.push({assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:null,entered_by:user.id});
- }
- if(!payload.length){message('excelMarksMsg','There are no marks to save.',true);return}
- const button=$('saveExcelMarks');button.disabled=true;button.textContent='Saving…';
- const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
- button.disabled=false;button.textContent='Save all marks';
- if(error){message('excelMarksMsg','Could not save marks: '+error.message,true);return}
- message('excelMarksMsg','Successfully saved '+payload.length+' mark(s).');
- await loadAcademics();
- await loadExcelMarksGrid();
+  if(!payload.length){message('excelMarksMsg','There are no marks to save.',true);return}
+  const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
+  if(error){message('excelMarksMsg','Could not save marks: '+error.message,true);return}
+  message('excelMarksMsg','Successfully saved '+payload.length+' mark(s).');
+  await loadAcademics();await loadExcelMarksGrid();
+ }catch(err){message('excelMarksMsg','Mark sheet save stopped unexpectedly. Check the saved marks before retrying: '+(err?.message||'Unknown error'),true)}
+ finally{button.disabled=false;button.textContent='Save all marks';delete button.dataset.busy}
 });
 $('assessmentClassSelect').addEventListener('change',filterAssessmentSubjects);
 $('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
 $('saveBulkMarks').addEventListener('click',async()=>{
- if(!['Admin','Teacher'].includes(profile?.role)){message('bulkMarksMsg','Only administrators and assigned teachers can save marks.',true);return}
- const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);if(!ass){message('bulkMarksMsg','Choose an assessment first.',true);return}
- const user=(await db.auth.getUser()).data.user;if(!user){message('bulkMarksMsg','Your session has expired. Sign in again.',true);return}
- const rows=[...document.querySelectorAll('[data-bulk-score]')],payload=[];
- for(const input of rows){const raw=input.value.trim();if(raw==='')continue;const absent=raw.toUpperCase()==='X',score=Number(raw),studentId=input.dataset.bulkScore,comment=document.querySelector('[data-bulk-comment="'+CSS.escape(studentId)+'"]')?.value.trim()||null;if(!absent&&(!Number.isFinite(score)||score<0||score>Number(ass.max_score))){message('bulkMarksMsg','Check the score for '+(students.find(x=>x.id===studentId)?.first_name||'a learner')+'. Scores must be between 0 and '+ass.max_score+'.',true);input.focus();return}payload.push({assessment_id:id,student_id:studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:comment,entered_by:user.id})}
- if(!payload.length){message('bulkMarksMsg','Enter at least one score before saving.',true);return}
- const button=$('saveBulkMarks');button.disabled=true;button.textContent='Saving…';
- const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
- button.disabled=false;button.textContent='Save all entered marks';
- if(error){message('bulkMarksMsg','Could not save the mark sheet: '+error.message,true);return}
- message('bulkMarksMsg','Saved '+payload.length+' learner mark(s).');await loadAcademics();await loadBulkMarkSheet();
+ const button=$('saveBulkMarks');if(button.dataset.busy==='1')return;
+ button.dataset.busy='1';button.disabled=true;button.textContent='Saving…';
+ try{
+  if(!['Admin','Teacher'].includes(profile?.role)){message('bulkMarksMsg','Only administrators and assigned teachers can save marks.',true);return}
+  const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
+  if(!ass){message('bulkMarksMsg','Choose an assessment first.',true);return}
+  const auth=await db.auth.getUser(),user=auth.data?.user;
+  if(auth.error||!user){message('bulkMarksMsg','Your session has expired. Sign in again.',true);return}
+  const rows=[...document.querySelectorAll('[data-bulk-score]')],payload=[];
+  for(const input of rows){
+   const raw=input.value.trim();if(raw==='')continue;
+   const absent=raw.toUpperCase()==='X',score=Number(raw),studentId=input.dataset.bulkScore;
+   const comment=document.querySelector('[data-bulk-comment="'+CSS.escape(studentId)+'"]')?.value.trim()||null;
+   if(!absent&&(!Number.isFinite(score)||score<0||score>Number(ass.max_score))){
+    message('bulkMarksMsg','Check the score for '+(students.find(x=>x.id===studentId)?.first_name||'a learner')+'. Scores must be between 0 and '+ass.max_score+'.',true);input.focus();return
+   }
+   payload.push({assessment_id:id,student_id:studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:comment,entered_by:user.id});
+  }
+  if(!payload.length){message('bulkMarksMsg','Enter at least one score before saving.',true);return}
+  const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
+  if(error){message('bulkMarksMsg','Could not save the mark sheet: '+error.message,true);return}
+  message('bulkMarksMsg','Saved '+payload.length+' learner mark(s).');await loadAcademics();await loadBulkMarkSheet();
+ }catch(err){message('bulkMarksMsg','Bulk mark save stopped unexpectedly. Check the mark sheet before retrying: '+(err?.message||'Unknown error'),true)}
+ finally{button.disabled=false;button.textContent='Save all entered marks';delete button.dataset.busy}
 });
+
 async function submitAcademic(formId,table,transform,success){
  $(formId).addEventListener('submit',async e=>{
   e.preventDefault();if(profile?.role!=='Admin'){message('academicMsg','Only administrators can make academic changes at present.',true);return}
