@@ -483,3 +483,13 @@
 - No hardware has been physically tested with CORNHILL yet. Attendance and printer integration remain pending acquisition of a test unit.
 - Source commit: `02ab0c7c`.
 - Validation: inline JavaScript syntax checks run after the guide update; browser/device/print/attendance hardware tests remain outstanding.
+
+
+## 2026-11-04 — Deployment and database verification
+- Supabase project `Cornhill-school management system` is ACTIVE_HEALTHY. The database migration history currently includes the learner, academics, finance, payroll, staff attendance, inventory and reporting-related migrations through `scheduled_staff_attendance_warnings` (version `20261104154742`). The inventory ledger migration `202611040015_inventory_stock_ledger` is recorded as applied in this project.
+- The project has no Supabase development/staging branches. No staging migration could be run independently; do not treat the production migration history as a staging test.
+- Read-only row-count check: learners 0, classes 0, staff profiles 1, inventory items 0, assessments 0, payments 0. The zero dashboard counts reflect genuinely empty learner/class tables, not a hidden sample-data display.
+- The latest Vercel preview for commit `8c5cb90` reached READY. An authenticated deployment fetch returned the CORNHILL HTML document successfully. This verifies deployment delivery/HTTP response only, not interactive browser workflows.
+- Static verification of the latest page: both inline JavaScript blocks parse; only one Supabase JS CDN script remains. Corrected dashboard module status labels to reflect what is available and what still awaits integration.
+- Remaining external acceptance tests: real browser/device interaction, staging isolation (no branch exists), complete offline transaction synchronisation, and physical fingerprint-terminal/SDK integration. Do not claim these passed without a staging environment, browser automation, or the actual terminal.
+- Supabase security advisor also reports three SECURITY DEFINER RPCs callable by authenticated users and leaked-password protection disabled. Review each RPC's internal admin checks before changing grants; enable breached-password protection in Auth settings before production use.
