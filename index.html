@@ -1359,7 +1359,7 @@ function applyReceiptPaperWidth(){
 }
 $('receiptPaperWidth').addEventListener('change',()=>{localStorage.setItem(RECEIPT_PAPER_KEY,$('receiptPaperWidth').value);applyReceiptPaperWidth()});
 $('testThermalReceipt').addEventListener('click',()=>{
- const sample=$('receiptLookupArea');sample.innerHTML='<div><h1>CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2>THERMAL PRINTER TEST</h2><hr><p><strong>Paper:</strong> '+$('receiptPaperWidth').value+' mm</p><p><strong>Connection:</strong> Portable ESC/POS printer</p><p>Test print only — no payment recorded.</p><hr><p style="text-align:center">Printer setup check</p></div>';applyReceiptPaperWidth();window.print();sample.innerHTML='';
+ const sample=$('receiptLookupArea');sample.innerHTML='<div><h1>CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2>THERMAL PRINTER TEST</h2><hr><p><strong>Paper:</strong> '+$('receiptPaperWidth').value+' mm</p><p><strong>Output:</strong> Browser print dialog / compatible thermal printer driver</p><p>Test print only — no payment recorded.</p><hr><p style="text-align:center">Printer setup check</p></div>';applyReceiptPaperWidth();window.print();sample.innerHTML='';
 });
 applyReceiptPaperWidth();
 
