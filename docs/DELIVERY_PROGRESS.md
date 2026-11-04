@@ -630,5 +630,5 @@
 
 ### 2026-11-04 — Absent-mark scope and report-card consistency
 - Restricted the X (Absent) marker to P4–P7 in individual, bulk class-sheet and Excel-style mark entry. Nursery and P1–P3 must receive a numeric mark instead.
-- In P4–P7 report cards, a subject with any assessment marked X now displays X for its subject average and grade rather than displaying a calculated grade alongside an absence marker. The UNEB aggregate/division remains unavailable when a core subject is X.
+- In P4–P7 report cards, a subject with any assessment marked X now displays X for its subject average and grade rather than displaying a calculated grade alongside an absence marker. The UNEB aggregate/division remains unavailable when any subject is X, including non-core subjects.
 - This is a source-code correction only. Existing stored marks were not changed; authenticated browser tests across Nursery, P1–P3 and P4–P7 remain outstanding.
