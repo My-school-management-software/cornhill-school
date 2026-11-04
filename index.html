@@ -205,8 +205,9 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <div class="card"><div class="muted">Late arrivals</div><strong id="attendanceLate" style="font-size:25px">—</strong></div>
 <div class="card"><div class="muted">Absent after grace</div><strong id="attendanceAbsent" style="font-size:25px">—</strong></div>
 <div class="card"><div class="muted">Missing clock-outs</div><strong id="attendanceMissing" style="font-size:25px">—</strong></div>
+<div class="card"><div class="muted">Potential extra time · review</div><strong id="attendanceOvertime" style="font-size:25px">—</strong><small class="muted">Minutes</small></div>
 </div>
-<div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Schedule</th><th>First in</th><th>Last out</th><th>Status</th></tr></thead><tbody id="todayAttendanceRows"></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Schedule</th><th>First in</th><th>Last out</th><th>Extra time · review</th><th>Status</th></tr></thead><tbody id="todayAttendanceRows"></tbody></table></div>
 <h3 style="margin-top:20px">Attendance history · Last 14 days</h3>
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Staff member</th><th>First clock-in</th><th>Last clock-out</th><th>Events</th><th>Review</th></tr></thead><tbody id="attendanceSummaryRows"></tbody></table></div>
 <hr style="border:0;border-top:1px solid #e5ece6;margin:20px 0">
@@ -721,14 +722,24 @@ async function setupAttendance(){
   const ev=todayByStaff[x.staffId]||{ins:[],outs:[],count:0},first=ev.ins[0],last=ev.outs[ev.outs.length-1],deadline=minutes(x.schedule.start_time)+x.schedule.grace_minutes;
   const status=first?(last?'Present · clocked out': 'Present · on duty'):(nowMinute>deadline?'Absent · verify':'Not yet due');
   const firstParts=first?new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(first)).split(':').map(Number):null;const firstMinute=firstParts?firstParts[0]*60+firstParts[1]:null;const late=!!first&&firstMinute>minutes(x.schedule.start_time)+x.schedule.grace_minutes;
-  return {name:byId[x.staffId]||'Unknown staff',schedule:x.schedule,first,last,status,late,missing:!!first&&!last,absent:!first&&nowMinute>deadline};
+  let overtimeMinutes=0;
+  if(last){
+   const startMinute=minutes(x.schedule.start_time),endMinute=minutes(x.schedule.end_time);
+   const endDate=new Date(today+'T00:00:00+03:00');
+   if(endMinute<=startMinute)endDate.setUTCDate(endDate.getUTCDate()+1);
+   const endDay=endDate.toISOString().slice(0,10);
+   const scheduledEnd=new Date(endDay+'T'+String(x.schedule.end_time).slice(0,5)+':00+03:00');
+   overtimeMinutes=Math.max(0,Math.floor((new Date(last)-scheduledEnd)/60000));
+  }
+  return {name:byId[x.staffId]||'Unknown staff',schedule:x.schedule,first,last,status,late,missing:!!first&&!last,absent:!first&&nowMinute>deadline,overtimeMinutes};
  });
  $('attendanceExpected').textContent=assigned.length;
  $('attendancePresent').textContent=todayRows.filter(x=>x.first).length;
  $('attendanceLate').textContent=todayRows.filter(x=>x.late).length;
  $('attendanceAbsent').textContent=todayRows.filter(x=>x.absent).length;
  $('attendanceMissing').textContent=todayRows.filter(x=>x.missing).length;
- $('todayAttendanceRows').innerHTML=todayRows.sort((a,b)=>a.name.localeCompare(b.name)).map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.schedule.name)+' · '+esc(String(x.schedule.start_time).slice(0,5))+'</td><td>'+fmt(x.first)+'</td><td>'+fmt(x.last)+'</td><td>'+esc(x.status)+(x.late?' · Late':'')+'</td></tr>').join('')||'<tr><td colspan="5">No staff have an active schedule for today. Assign schedules to begin daily attendance monitoring.</td></tr>';
+ $('attendanceOvertime').textContent=todayRows.reduce((total,x)=>total+x.overtimeMinutes,0);
+ $('todayAttendanceRows').innerHTML=todayRows.sort((a,b)=>a.name.localeCompare(b.name)).map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.schedule.name)+' · '+esc(String(x.schedule.start_time).slice(0,5))+'</td><td>'+fmt(x.first)+'</td><td>'+fmt(x.last)+'</td><td>'+(x.overtimeMinutes?x.overtimeMinutes+' min':'—')+'</td><td>'+esc(x.status)+(x.late?' · Late':'')+'</td></tr>').join('')||'<tr><td colspan="6">No staff have an active schedule for today. Assign schedules to begin daily attendance monitoring.</td></tr>';
  const grouped={};
  for(const ev of events.data||[]){
   const day=dayKey(new Date(ev.occurred_at)),key=ev.staff_user_id+'|'+day;
