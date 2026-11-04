@@ -37,7 +37,7 @@
 
 
 <section id="finance" class="panel hidden">
- <div class="row"><h2>Finance · fees, payments and receipts</h2><span class="badge">Administrator access</span></div>
+ <div class="row"><h2>Finance · fees, payments and receipts</h2><span class="badge" id="financeAccessBadge">Administrator access</span></div>
  <p class="muted">Amounts are recorded in Uganda shillings (UGX). Payments are allocated to the learner's oldest outstanding charges first. Any excess remains as account credit.</p>
  <div id="financeMsg" class="notice hidden"></div>
  <div class="grid"><div class="stat"><small>Total charges (UGX)</small><div id="financeCharges" class="num">0</div></div><div class="stat"><small>Applied to fees (UGX)</small><div id="financePaid" class="num">0</div></div><div class="stat"><small>Outstanding balance (UGX)</small><div id="financeBalance" class="num">0</div></div></div>
@@ -113,7 +113,7 @@ let students=[],classes=[],profile=null,staffProfiles=[],demoMode=false,currentU
 const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
-function tab(name){if(demoMode&&['staffProfiles','attendance'].includes(name))return;if(demoMode&&name==='finance'){message('appMsg','Finance is not shown in demo mode. Sign in to view real financial records.');return}document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance()}
+function tab(name){if(demoMode&&['staffProfiles','attendance'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance()}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 const moduleInfo={academics:['Academics','Subjects, assessments, examination entry, grading and report cards.'],finance:['Finance','Fee structures, learner accounts, payment posting, receipts and balances.'],staff:['Staff & HR','Staff profiles, roles, attendance administration and confidential HR records.'],communication:['Communication','Staff announcements, parent communication and the school calendar.'],inventory:['Inventory & sales','Stock control, uniforms, school shop sales and other income.'],reports:['Reports','Academic, enrolment, attendance and financial reports.'],settings:['Settings','School details, user accounts, access permissions and system preferences.']};
 document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance','academics'].includes(key)){tab(key);return}if(key==='finance'){if(demoMode){message('appMsg','Finance is not available in read-only demo mode.');return}tab('finance');return}if(key==='staff'){tab('staffProfiles');return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
@@ -158,7 +158,18 @@ $('search').addEventListener('input',render);
 let financeItems=[],financeStudents=[];
 const money=v=>new Intl.NumberFormat('en-UG',{maximumFractionDigits:0}).format(Number(v||0));
 async function loadFinance(){
- if(demoMode)return;
+ if(demoMode){
+  $('financeAccessBadge').textContent='Demo · Read only';
+  $('financeCharges').textContent='385,000';$('financePaid').textContent='80,000';$('financeBalance').textContent='55,000';
+  $('feeItemRows').innerHTML='<tr><td>Tuition</td><td>Tuition</td><td>Active</td></tr><tr><td>Boarding</td><td>Boarding</td><td>Active</td></tr><tr><td>Breakfast</td><td>Meals</td><td>Active</td></tr><tr><td>Uniform</td><td>Other</td><td>Active</td></tr>';
+  $('feeScheduleRows').innerHTML='<tr><td>Tuition</td><td>Baby–Middle</td><td>Day</td><td>40,000</td></tr><tr><td>Boarding</td><td>P3–P4</td><td>Boarding</td><td>205,000</td></tr><tr><td>Breakfast</td><td>Nursery–P6</td><td>Any</td><td>20,000</td></tr>';
+  $('financeAccountRows').innerHTML='<tr><td>CHF26-000001</td><td>Amina N. Kato</td><td>120,000</td><td>80,000</td><td>0</td><td><strong>40,000</strong></td></tr><tr><td>CHM26-000002</td><td>Daniel Mugisha</td><td>205,000</td><td>0</td><td>250,000</td><td><strong>-45,000</strong></td></tr><tr><td>CHF26-000003</td><td>Grace A. Nabirye</td><td>60,000</td><td>0</td><td>0</td><td><strong>60,000</strong></td></tr>';
+  $('financeActivityRows').innerHTML='<tr><td>04/11/2026</td><td>INV-2026-000001</td><td>CHF26-000001 · Amina Kato</td><td>Term tuition</td><td>120,000</td></tr><tr><td>04/11/2026</td><td>CHR-2026-000001</td><td>CHF26-000001 · Amina Kato</td><td>Mobile Money</td><td>80,000</td></tr>';
+  $('scheduleFeeItem').innerHTML='<option>Tuition</option>'; $('chargeFeeItem').innerHTML='<option>Tuition</option>';
+  const demoOpts='<option value="">Choose learner</option>'+students.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number)+' · '+esc(x.first_name+' '+x.last_name)+'</option>').join('');
+  $('chargeStudent').innerHTML=demoOpts;$('paymentStudent').innerHTML=demoOpts;
+  return;
+ }
  if(profile?.role!=='Admin'){message('financeMsg','Only the school administrator can access financial records.',true);return}
  const [items,sched,accounts,charges,payments,learners]=await Promise.all([
   db.from('fee_items').select('id,name,category,is_active').order('name'),
