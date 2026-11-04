@@ -323,3 +323,18 @@
 - Added `docs/INVENTORY_AND_REPORTS_TEST_PLAN.md` (commit `857e772`) covering admin-only access, receipt/issue ledger arithmetic, negative-stock rejection, append-only movements, CSV privacy and role restrictions.
 
 - Final source verification after the follow-up commits: both inline JavaScript blocks pass parsing; no missing literal element IDs or duplicate static HTML IDs; inventory/report tab wiring, admin guards, learner-report RPC use, UTF-8 CSV BOM, RLS enablement on all three inventory tables, security-invoker stock view, append-only movement grants and negative-stock trigger are present.
+
+
+## 2026-11-04 — Consolidated finance and academic report exports
+- Added UTF-8 CSV export for the selected academic class/term performance table, including competition positions for tied percentages, learner code/name, subjects scored, total/max marks and average percentage.
+- Added CSV export for the fee collection report by class, including term/class filter labels, learner counts, charges, allocated posted payments and outstanding balances.
+- Added CSV export for the daily cash collection receipt audit, including Uganda-local received time, receipt number, learner code/name, payment method, status and amount in UGX.
+- Exports use one CSV encoder with quote escaping and a UTF-8 BOM. Academic export follows the existing assigned-class report filter; finance exports are administrator-only.
+- Static verification: both inline JavaScript blocks parse with new Function; 218 static HTML IDs have no duplicates; all literal element references resolve except three intentionally dynamic report/profile buttons that are created in their respective rendered templates.
+- Source commit: b32122c. Browser download tests and reconciliation against live records remain outstanding.
+
+## Remaining completion blockers (not represented as finished)
+- Supabase currently has no development branches. The connected organization is on the Free plan; provisioning a Supabase branch can incur hourly compute/usage charges and requires a cost quote/confirmation. Therefore no staging database exists in the connected project yet, and migrations 202611040014_student_data_column_privileges.sql and 202611040015_inventory_stock_ledger.sql remain unapplied. Production was not modified.
+- Full offline data sync is not enabled. The current service worker caches only the app shell and deliberately excludes API/auth data. A safe offline marks outbox still needs conflict detection, re-authentication, permission re-check and device data-protection decisions; offline finance payments must never be silently queued or receipted.
+- Fingerprint attendance has a CSV import path and device-user mapping, but no live terminal integration has been verified. The exact fingerprint device make/model, firmware, export/API protocol and USB driver/bridge are required to build and test a reliable adapter.
+- No real browser end-to-end run has been performed. Static parsing is not browser testing; the latest preview/deployment must be checked and tested with administrator, teacher and staff accounts before release.
