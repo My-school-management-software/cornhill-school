@@ -757,7 +757,13 @@ async function loadPaymentDueCharges(){
 }
 $('paymentStudent').addEventListener('change',loadPaymentDueCharges);
 $('schoolPaymentForm').addEventListener('submit',async e=>{
- e.preventDefault();if(demoMode)return;const f=new FormData(e.target),amount=Number(f.get('amount_ugx'));
+ e.preventDefault();if(demoMode)return;
+ const submitButton=e.submitter||e.target.querySelector('[type="submit"]');
+ if(submitButton?.dataset.busy==='1')return;
+ if(submitButton){submitButton.dataset.busy='1';submitButton.disabled=true}
+ try{
+ const f=new FormData(e.target),amount=Number(f.get('amount_ugx'));
+ if(!Number.isSafeInteger(amount)||amount<=0){message('financeMsg','Enter a valid payment amount in whole Uganda shillings.',true);return}
  const allocations=[...document.querySelectorAll('.paymentAllocateCheck:checked')].map(ch=>({charge_id:ch.dataset.charge,amount_ugx:Number(document.querySelector('.paymentAllocateAmount[data-charge="'+ch.dataset.charge+'"]').value)}));
  if(allocations.some(a=>!Number.isSafeInteger(a.amount_ugx)||a.amount_ugx<=0)){message('financeMsg','Enter an amount for each selected fee.',true);return}
  if(allocations.reduce((n,a)=>n+a.amount_ugx,0)>amount){message('financeMsg','Allocated amounts cannot exceed the payment received.',true);return}
@@ -775,6 +781,11 @@ $('schoolPaymentForm').addEventListener('submit',async e=>{
  const receiptBody='<div style="font-family:Arial,sans-serif"><h1 style="text-align:center">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center">OFFICIAL PAYMENT RECEIPT</h2><hr><p><strong>Receipt:</strong> '+esc(result.receipt_no)+'</p><p><strong>Date:</strong> '+esc(new Date().toLocaleString())+'</p><p><strong>Learner:</strong> '+esc(name)+'</p><p><strong>Learner code:</strong> '+esc(learner?.admission_number||'')+'</p><p><strong>Payment reason / item:</strong> '+esc(collectionItem)+'</p><p><strong>Person bringing money:</strong> '+esc(payerName||'—')+'</p><p><strong>Total received:</strong> UGX '+money(amount)+'</p><p><strong>Amount in words:</strong> '+esc(amountInWordsUGX(amount))+'</p><h3>Allocated by term</h3>'+(detail||'<p>No fee allocation.</p>')+'<hr><p><strong>Total allocated:</strong> UGX '+money(allocated)+'</p><p><strong>Unallocated credit:</strong> UGX '+money(result.unallocated_amount_ugx)+'</p><p><strong>Method:</strong> '+esc(f.get('payment_method'))+'</p><p><strong>Reference:</strong> '+esc(f.get('payment_reference')||'—')+'</p><hr><p style="text-align:center">Thank you.</p></div>';
  $('receiptArea').innerHTML=dualReceiptMarkup(receiptBody,payerName,profile?.full_name||'School bursar');
  e.target.reset();$('paymentDueList').textContent='Choose a learner to view outstanding fees.';await loadFinance();message('financeMsg',detailSaveError?'Payment posted, but the payer/reason details need administrator correction. Receipt '+result.receipt_no+' was created.':'Payment posted. Two receipt copies are ready: one for the payer and one for the school. Receipt '+result.receipt_no+'.');applyReceiptPaperWidth();window.print();
+ }catch(err){
+  message('financeMsg','Payment processing stopped unexpectedly. Check the receipt register before trying again: '+(err?.message||'Unknown error'),true);
+ }finally{
+  if(submitButton){submitButton.disabled=false;delete submitButton.dataset.busy}
+ }
 });
 
 let schoolPositions=[];
