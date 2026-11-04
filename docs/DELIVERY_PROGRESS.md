@@ -122,3 +122,12 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Applied the database index migration and verified it with a transaction test: first event accepted, identical repeat rejected by the unique index, and all test rows rolled back.
 - Existing security advisor notices remain: the public `is_school_admin()` SECURITY DEFINER helper is executable by authenticated users, and leaked-password protection is disabled. These were pre-existing and were not broadened by this change.
 - A real terminal CSV and authenticated browser test are still required; no attendance data was retained by the database test.
+
+
+## 2026-11-04 — Staff administration and attendance overview
+- Added an administrator attendance summary for the last 14 days, grouped by Uganda-local date and staff member, showing first clock-in, last clock-out, event count and incomplete-event review flags. This is a review aid, not an automated payroll/absence decision.
+- Added a current class/subject/teacher assignment register to the academic setup screen. Existing assignment creation remains administrator-only.
+- Fixed a role-schema mismatch: academic screens already distinguish the `Teacher` role, but the live `user_profiles.role` check previously allowed only `Admin` and `Staff`. The database now accepts `Admin`, `Teacher` and `Staff`; administrator-only RLS remains in place for profile and assignment management.
+- Verified the updated role constraint directly in PostgreSQL. Existing user accounts were not promoted or changed.
+- Account creation/invitations still require a trusted server-side Auth Admin workflow; no service-role credential is exposed in the browser and no account has been created as part of this change.
+- Attendance summary and assignment screens still require a signed-in administrator browser test with real staff, class and event records.
