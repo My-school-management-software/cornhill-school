@@ -135,3 +135,15 @@
 - [ ] Verify that local preferences on one device do not falsely appear as school-wide settings on other devices.
 
 Note: source syntax and static HTML ID checks passed for this change. Actual account, email, mobile and print tests await a new preview deployment and authorised test accounts. The latest available Vercel READY preview predates the Settings commits.
+
+
+## Hardware purchase and compatibility checks
+- [ ] Confirm the exact printer model and connection type (USB, Bluetooth, Wi-Fi or Ethernet) on the carton and invoice.
+- [ ] For portable printers, test Bluetooth pairing with Android and USB printing from Windows 10/11.
+- [ ] For office printers, test USB/Ethernet printing, 80mm roll loading, auto-cutter and full-length receipt.
+- [ ] Print a sample receipt with long learner name, admission code, UGX amount in figures and words, two receipt copies and signature lines.
+- [ ] Confirm the seller provides a warranty and Windows driver; for Bluetooth, ask for the Android print protocol/app or SDK.
+- [ ] Before purchasing a ZKTeco K40/K50/MB20/F18/SpeedFace terminal, obtain exact model and firmware details, user/transaction capacity, TCP/IP/USB export demo, protocol/SDK documentation, warranty and power requirements.
+- [ ] Ask the supplier to demonstrate exporting attendance logs to a Windows 10/11 computer over the exact proposed connection.
+- [ ] For a USB reader (ZK9500/ZK6500/ZK8500R/SecuGen), verify the original SDK/driver and test on the exact Windows build; do not assume it is an attendance clock or plug-and-play in the browser.
+- [ ] Confirm biometric data handling, staff notice/consent or other lawful basis, access restrictions and deletion/retention policy before registering fingerprints.
