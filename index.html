@@ -835,7 +835,7 @@ function unebPrimaryDivision(subjectGrades){
  const absentCore=normalized.filter(x=>x.grade?.absent).map(x=>x.label);
  if(absentCore.length)return {ready:false,reason:'Aggregate not calculated: learner was marked X (Absent) in '+absentCore.join(', ')+'.'};
  const points=normalized.map(x=>unebGradePoint(x.grade.grade));
- if(points.some(x=>x===null))return {ready:false,reason:'Check the active grade bands: each core subject grade must map to D1–F9.'};
+ if(points.some(x=>x===null))return {ready:false,reason:'Configure all nine UNEB grade percentage boundaries for each of the four core subjects before calculating the aggregate.'};
  const aggregate=points.reduce((a,b)=>a+b,0);
  let base=aggregate<=12?1:aggregate<=23?2:aggregate<=29?3:aggregate<=34?4:5;
  const english=points[0],math=points[1];
