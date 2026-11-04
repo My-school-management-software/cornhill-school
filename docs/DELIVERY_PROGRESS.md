@@ -547,3 +547,13 @@
 - Security advisor still reports existing WARN findings for callable SECURITY DEFINER functions and disabled leaked-password protection. No new error-level finding was reported in this check.
 - Not yet deployed to the preview: the Vercel deployment API rate limit previously blocked deployment. This code must not be described as live until the deployed commit is verified.
 - Still required before Stage 2 acceptance: configure approved subject cut-offs, run authenticated admin/teacher mark-entry tests, verify grade boundaries and aggregates with sample test marks, and test printed reports on Android and desktop.
+
+
+## 2026-11-04 — Stage 3 finance database audit
+
+- Confirmed the live database contains the core finance tables for fee items, fee schedules, learner charges, school payments, payment allocations, daily collection records, expenses, expense categories, salary agreements, payroll periods and payroll items.
+- Confirmed row-level security is enabled on each of those tables.
+- Confirmed the bursary workflow is charge-based: an approved bursary amount on learner admission creates a normal learner charge, so receipts, allocations and outstanding balances can use the same ledger. No separate bursary table is expected.
+- Rechecked the live data counts: 0 learners, 0 posted payments, 0 learner charges and 0 payroll items. No test transactions or fake learners were inserted.
+- Finance UI already includes fee schedules, learner charges, payment posting with optional previous-term allocation, receipt lookup/reprint, fee collection reports, daily collection register, bursary reporting, expenses and payroll screens.
+- Stage 3 is not accepted yet: authenticated bursary admission, split payment allocation, previous-term skip/settlement, receipt reprint, thermal printer output, daily collection reconciliation, expenses and payroll approval/payment need real browser tests. Parent SMS is an outbox foundation and still needs a consented live MTN/Airtel provider connection and delivery test.
