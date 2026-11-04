@@ -321,3 +321,5 @@
 
 - Follow-up UI correction `24f566b`: CSV uses an actual UTF-8 BOM for spreadsheet compatibility, and the Inventory/Reports tabs are hidden in read-only demo mode.
 - Added `docs/INVENTORY_AND_REPORTS_TEST_PLAN.md` (commit `857e772`) covering admin-only access, receipt/issue ledger arithmetic, negative-stock rejection, append-only movements, CSV privacy and role restrictions.
+
+- Final source verification after the follow-up commits: both inline JavaScript blocks pass parsing; no missing literal element IDs or duplicate static HTML IDs; inventory/report tab wiring, admin guards, learner-report RPC use, UTF-8 CSV BOM, RLS enablement on all three inventory tables, security-invoker stock view, append-only movement grants and negative-stock trigger are present.
