@@ -169,20 +169,6 @@
 <p class="muted" style="text-align:center;margin:20px 0">Cornhill School · Student and class management · Amounts in UGX in future finance modules</p>
 </section></main>
 <script>
-(function(){
-  function report(message){
-    var box=document.getElementById('loginMsg');
-    if(box){box.textContent=message;box.classList.remove('hidden');box.classList.add('error');}
-  }
-  document.addEventListener('click',function(event){
-    var target=event.target;
-    if(!target||!target.closest)return;
-    if(target.closest('#demoAccess')) report('The demo button received your tap. Checking whether the school app has started…');
-    if(target.closest('#signIn')) report('The sign-in button received your tap. Checking whether the sign-in service has started…');
-  },true);
-})();
-</script>
-<script>
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
 const db=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
