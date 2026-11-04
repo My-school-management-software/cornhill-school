@@ -70,6 +70,8 @@
  <form id="subjectForm"><div><label>Subject name *</label><input name="name" required placeholder="e.g. Mathematics"></div><div><label>Subject code</label><input name="code" placeholder="e.g. MTC"></div><div class="full"><button class="primary">Add subject</button></div></form>
  <h3 style="margin-top:20px">4. Assign subject to class and teacher</h3>
  <form id="classSubjectForm"><div><label>Class *</label><select name="class_id" id="academicClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="academicSubjectSelect" required></select></div><div class="full"><label>Teacher (optional)</label><select name="teacher_user_id" id="academicTeacherSelect"><option value="">Not assigned</option></select></div><div class="full"><button class="primary">Assign subject</button></div></form>
+ <h3 style="margin-top:14px">Current teacher assignments</h3>
+ <div class="table-wrap"><table><thead><tr><th>Class</th><th>Subject</th><th>Assigned teacher</th></tr></thead><tbody id="teacherAssignmentRows"></tbody></table></div>
  <h3 style="margin-top:20px">5. Create assessment</h3>
  <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="assessmentSubjectSelect" required></select></div><div><label>Assessment title *</label><input name="title" required placeholder="e.g. Beginning of term test"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" step="0.01" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><button class="primary">Create assessment</button></div></form>
  </div>
@@ -274,15 +276,16 @@ async function loadAcademics(){
  $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Administrator access':'Assigned teacher · Mark entry only';
- const [y,t,s,a,staff,cscores]=await Promise.all([
+ const [y,t,s,a,staff,cscores,assignments]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
   db.from('academic_terms').select('*,academic_years(name)').order('starts_on',{ascending:false}),
   db.from('subjects').select('*').eq('is_active',true).order('name'),
   db.from('assessments').select('*,subjects(name),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
   db.from('user_profiles').select('id,full_name').order('full_name'),
-  db.from('assessment_scores').select('id,score,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100)
+  db.from('assessment_scores').select('id,score,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100),
+  db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)')
  ]);
- const err=[y,t,s,a,staff,cscores].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
+ const err=[y,t,s,a,staff,cscores,assignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
  if(profile?.role==='Teacher'){
   const assigned=await db.from('class_subjects').select('class_id').eq('teacher_user_id',currentUserId);
   if(assigned.error){message('academicMsg','Could not load your class assignments: '+assigned.error.message,true);return}
@@ -296,6 +299,8 @@ async function loadAcademics(){
  $('academicSubjectSelect').innerHTML=opts(academic.subjects,x=>x.name);
  $('assessmentSubjectSelect').innerHTML=$('academicSubjectSelect').innerHTML;
  $('academicTeacherSelect').innerHTML='<option value="">Not assigned</option>'+opts(staff.data||[],x=>x.full_name||'Staff member');
+ const staffNames=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||'Staff member']));
+ $('teacherAssignmentRows').innerHTML=(assignments.data||[]).map(x=>'<tr><td>'+esc(x.school_classes?.name||'—')+'</td><td>'+esc(x.subjects?.name||'—')+'</td><td>'+esc(staffNames[x.teacher_user_id]||'Not assigned')+'</td></tr>').join('')||'<tr><td colspan="3">No class-subject assignments yet.</td></tr>';
  $('assessmentTermSelect').innerHTML=opts(academic.terms,x=>x.name+' · '+(x.academic_years?.name||''));
  $('scoreAssessmentSelect').innerHTML=opts(academic.assessments,x=>(x.title+' · '+(x.school_classes?.name||'')+' · '+(x.subjects?.name||'')));
  $('academicScoreRows').innerHTML=(cscores.data||[]).map(x=>'<tr><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+esc(x.score)+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>Saved</td></tr>').join('')||'<tr><td colspan="6">No marks entered yet.</td></tr>';
