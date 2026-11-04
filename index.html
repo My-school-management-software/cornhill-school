@@ -884,7 +884,7 @@ $('studentForm').addEventListener('submit',async e=>{
   if(possibleDuplicate&&!confirm('A learner with the same first name, last name and date of birth already exists ('+possibleDuplicate.admission_number+'). Continue only if this is a different learner.'))return;
  }
  if(wasEditing){const existing=students.find(x=>x.id===editingStudentId);if(existing){record.is_bursary=!!existing.is_bursary;record.bursary_fee_ugx=Number(existing.bursary_fee_ugx||0);record.bursary_notes=existing.bursary_notes||null;}}
- const result=wasEditing?await db.from('students').update(record).eq('id',editingStudentId).select('admission_number').single():await db.from('students').insert(record).select('admission_number,lin,p7_index_number,is_bursary,bursary_fee_ugx').single();
+ const result=wasEditing?await db.from('students').update(record).eq('id',editingStudentId).select('admission_number').single():await db.from('students').insert(record).select('admission_number,lin,p7_index_number').single();
  if(result.error){message('appMsg',(wasEditing?'Could not update learner: ':'Could not save learner: ')+result.error.message,true);return}
  editingStudentId=null;e.target.reset();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryAmountWrap').classList.add('hidden');$('bursaryNoteWrap').classList.add('hidden');$('bursaryFeeAmount').required=false;e.target.querySelector('button[type="submit"]').textContent='Save student record';
  await refresh();tab('students');
