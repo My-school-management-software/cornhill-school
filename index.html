@@ -395,7 +395,8 @@ $('schoolPaymentForm').addEventListener('submit',async e=>{
  e.target.reset();$('paymentDueList').textContent='Choose a learner to view outstanding fees.';await loadFinance();message('financeMsg','Payment posted. Receipt '+result.receipt_no+' is ready.');applyReceiptPaperWidth();window.print();
 });
 
-let schoolPositions=[];\nasync function loadStaffProfiles(){
+let schoolPositions=[];
+async function loadStaffProfiles(){
  if(demoMode)return;
  if(profile?.role!=='Admin'){message('staffProfileMsg','Only school administrators can manage staff profiles.',true);return}
  const {data,error}=await db.from('user_profiles').select('id,full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').order('full_name');
