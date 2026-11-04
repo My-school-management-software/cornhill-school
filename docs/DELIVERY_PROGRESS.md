@@ -318,3 +318,6 @@
 - Both inline JavaScript blocks parse successfully. Static element-reference scan found no missing literal element IDs. Two duplicate-ID matches are template-string fragments, not static markup IDs.
 - Commits: inventory schema `9dbc722` plus negative-stock guard `13bc010`; inventory and reporting UI `74e5255`.
 - Important: migration and screens are committed to the development branch only. The inventory migration has not been applied to Supabase. Browser workflow, role testing, CSV download, and staging migration tests remain pending. No live data or database permissions were changed.
+
+- Follow-up UI correction `24f566b`: CSV uses an actual UTF-8 BOM for spreadsheet compatibility, and the Inventory/Reports tabs are hidden in read-only demo mode.
+- Added `docs/INVENTORY_AND_REPORTS_TEST_PLAN.md` (commit `857e772`) covering admin-only access, receipt/issue ledger arithmetic, negative-stock rejection, append-only movements, CSV privacy and role restrictions.
