@@ -16,7 +16,7 @@
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
 <div id="appMsg" class="notice hidden"></div><div id="demoBanner" class="notice" style="display:none;background:#fff7ed;color:#9a3412">DEMO MODE · Sample records only · Changes are disabled · No real school data is being shown.</div>
 <div class="grid"><div class="stat"><small>Total students</small><div id="totalStudents" class="num">0</div></div><div class="stat"><small>Active students</small><div id="activeStudents" class="num">0</div></div><div class="stat"><small>Classes / levels</small><div id="totalClasses" class="num">0</div></div></div>
-<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="finance" id="financeTab">Finance</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">Staff Attendance</button></nav>
+<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="finance" id="financeTab">Finance</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">Staff Attendance</button><button class="tab" data-tab="communication" id="communicationTab">Staff communication</button></nav>
 <section id="dashboard" class="panel">
 <h2>School dashboard</h2><p class="muted">Choose a module below. Modules marked “In development” are planned but are not yet connected to working records.</p>
 <div id="teacherPortalSummary" class="notice hidden"></div><div class="module-grid">
@@ -212,6 +212,19 @@
 <h3 style="margin-top:20px">My correction requests</h3><div id="myAttendanceAdjustments" class="table-wrap"></div>
 </div>
 </section>
+<section id="communication" class="panel hidden">
+<h2>Staff communication</h2>
+<p class="muted">A private staff noticeboard for school updates, reminders and discussion. Only signed-in school staff can access posts allowed for their role.</p>
+<div id="staffCommMsg" class="notice hidden"></div>
+<form id="staffPostForm">
+<div class="full"><label>Announcement or message *</label><textarea name="body" rows="4" maxlength="5000" required placeholder="Write a staff update, reminder or announcement…"></textarea></div>
+<div><label>Who can see this?</label><select name="audience" id="staffPostAudience"><option value="all_staff">All staff</option><option value="Teacher">Teachers only</option><option value="Admin">Administrators only</option></select></div>
+<div><button class="primary" type="submit">Publish message</button></div>
+</form>
+<div class="row" style="justify-content:space-between;margin:18px 0"><h3>School staff feed</h3><button type="button" id="refreshStaffFeed">Refresh</button></div>
+<div id="staffCommunicationFeed"><p class="muted">Loading staff messages…</p></div>
+<p class="muted">Current release supports text announcements, comments and reactions. Photo/video uploads are not enabled yet; we are keeping the first release light on mobile data and within free storage limits.</p>
+</section>
 <p class="muted" style="text-align:center;margin:20px 0">Cornhill School · Student and class management · Amounts in UGX in future finance modules</p>
 </section></main>
 <script>
@@ -223,7 +236,7 @@ const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
 if(!db){message('loginMsg','The secure sign-in service could not load. Check your internet connection, then refresh this page. If the problem continues, contact the school administrator.',true);$('signIn').disabled=true;$('signIn').textContent='Sign-in service unavailable'}
-function tab(name){if(demoMode&&['staffProfiles','attendance'].includes(name))return;if(profile?.role==='Teacher'&&!['dashboard','academics'].includes(name))return;if(profile?.role==='Staff'&&!['dashboard','attendance'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance()}
+function tab(name){if(demoMode&&['staffProfiles','attendance','communication'].includes(name))return;if(profile?.role==='Teacher'&&!['dashboard','academics','communication'].includes(name))return;if(profile?.role==='Staff'&&!['dashboard','attendance','communication'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','communication'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='communication')loadStaffCommunication();if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance()}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 const moduleInfo={academics:['Academics','Subjects, assessments, examination entry, grading and report cards.'],finance:['Finance','Fee structures, learner accounts, payment posting, receipts and balances.'],staff:['Staff & HR','Staff profiles, roles, attendance administration and confidential HR records.'],communication:['Communication','Staff announcements, parent communication and the school calendar.'],inventory:['Inventory & sales','Stock control, uniforms, school shop sales and other income.'],reports:['Reports','Academic, enrolment, attendance and financial reports.'],settings:['Settings','School details, user accounts, access permissions and system preferences.']};
 document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.module;if(['students','classes','attendance','academics'].includes(key)){tab(key);return}if(key==='finance'){if(demoMode){message('appMsg','Finance is not available in read-only demo mode.');return}tab('finance');return}if(key==='staff'){tab('staffProfiles');return}const info=moduleInfo[key];if(info){$('moduleTitle').textContent=info[0];$('moduleDescription').textContent=info[1];tab('modulePreview')}}));
@@ -856,4 +869,39 @@ $('testThermalReceipt').addEventListener('click',()=>{
  const sample=$('receiptLookupArea');sample.innerHTML='<div><h1>CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2>THERMAL PRINTER TEST</h2><hr><p><strong>Paper:</strong> '+$('receiptPaperWidth').value+' mm</p><p><strong>Connection:</strong> Portable ESC/POS printer</p><p>Test print only — no payment recorded.</p><hr><p style="text-align:center">Printer setup check</p></div>';applyReceiptPaperWidth();window.print();sample.innerHTML='';
 });
 applyReceiptPaperWidth();
+
+async function loadStaffCommunication(){
+ if(demoMode||!profile||!currentUserId)return;
+ $('staffPostAudience').value='all_staff';
+ $('staffPostAudience').querySelector('option[value="Admin"]').disabled=profile.role!=='Admin';
+ $('staffPostAudience').querySelector('option[value="Teacher"]').disabled=profile.role!=='Admin';
+ const {data:posts,error}=await db.from('staff_communication_posts').select('id,author_user_id,body,audience,is_pinned,created_at').order('is_pinned',{ascending:false}).order('created_at',{ascending:false}).limit(50);
+ if(error){message('staffCommMsg','Could not load staff messages: '+error.message,true);$('staffCommunicationFeed').innerHTML='';return}
+ const ids=(posts||[]).map(p=>p.id);
+ let comments=[],reactions=[];
+ if(ids.length){const [c,r]=await Promise.all([db.from('staff_communication_comments').select('id,post_id,author_user_id,body,created_at').in('post_id',ids).order('created_at'),db.from('staff_communication_reactions').select('post_id,user_id,reaction').in('post_id',ids)]);if(c.error||r.error){message('staffCommMsg','Could not load comments or reactions: '+(c.error||r.error).message,true)}else{comments=c.data||[];reactions=r.data||[]}}
+ $('staffCommunicationFeed').innerHTML=(posts||[]).map(p=>{
+  const pc=comments.filter(c=>c.post_id===p.id),pr=reactions.filter(r=>r.post_id===p.id),mine=pr.some(r=>r.user_id===currentUserId);
+  return '<article class="card" style="margin:12px 0;padding:16px"><div class="row" style="justify-content:space-between"><strong>'+(p.author_user_id===currentUserId?'You':'Staff colleague')+'</strong><small class="muted">'+esc(new Date(p.created_at).toLocaleString('en-UG'))+' · '+esc(p.audience==='all_staff'?'All staff':p.audience==='Teacher'?'Teachers':'Administrators')+'</small></div><p style="white-space:pre-wrap;margin:12px 0">'+esc(p.body)+'</p><div class="row"><button type="button" data-react="'+p.id+'" '+(mine?'disabled':'')+'>👍 '+pr.length+' Helpful</button>'+(profile.role==='Admin'||p.author_user_id===currentUserId?'<button type="button" data-delete-post="'+p.id+'">Delete</button>':'')+'</div><div style="margin-top:12px">'+pc.map(c=>'<div style="border-left:3px solid var(--line,#ddd);padding:6px 10px;margin:6px 0"><small class="muted">'+(c.author_user_id===currentUserId?'You':'Staff colleague')+' · '+esc(new Date(c.created_at).toLocaleString('en-UG'))+'</small><div>'+esc(c.body)+'</div></div>').join('')+'</div><form data-comment-form="'+p.id+'" style="display:flex;gap:8px;margin-top:10px"><input name="body" required maxlength="2000" placeholder="Write a comment…" style="flex:1"><button type="submit">Comment</button></form></article>';
+ }).join('')||'<p class="muted">No staff messages yet. Publish the first announcement.</p>';
+}
+$('staffPostForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(demoMode||!currentUserId)return;
+ const form=e.currentTarget,body=form.elements.body.value.trim(),audience=form.elements.audience.value;
+ if(!body)return;
+ const {error}=await db.from('staff_communication_posts').insert({author_user_id:currentUserId,body,audience});
+ if(error){message('staffCommMsg','Message was not published: '+error.message,true);return}
+ form.reset();message('staffCommMsg','Message published to the selected staff group.');await loadStaffCommunication();
+});
+$('refreshStaffFeed').addEventListener('click',loadStaffCommunication);
+$('staffCommunicationFeed').addEventListener('submit',async e=>{
+ const form=e.target.closest('form[data-comment-form]');if(!form)return;e.preventDefault();
+ const post_id=form.dataset.commentForm,body=form.elements.body.value.trim();if(!body)return;
+ const {error}=await db.from('staff_communication_comments').insert({post_id,author_user_id:currentUserId,body});
+ if(error){message('staffCommMsg','Comment was not saved: '+error.message,true);return}await loadStaffCommunication();
+});
+$('staffCommunicationFeed').addEventListener('click',async e=>{
+ const react=e.target.closest('[data-react]');if(react){const {error}=await db.from('staff_communication_reactions').insert({post_id:react.dataset.react,user_id:currentUserId,reaction:'helpful'});if(error){message('staffCommMsg','Reaction was not saved: '+error.message,true);return}await loadStaffCommunication();return}
+ const del=e.target.closest('[data-delete-post]');if(del&&confirm('Delete this staff message and its comments?')){const {error}=await db.from('staff_communication_posts').delete().eq('id',del.dataset.deletePost);if(error){message('staffCommMsg','Message could not be deleted: '+error.message,true);return}await loadStaffCommunication()}
+});
 </script></body></html>
