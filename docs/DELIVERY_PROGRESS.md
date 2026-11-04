@@ -583,3 +583,9 @@
 - Import batches now start with zero imported rows and are finalized only after event upserts complete.
 - If an import partially fails, the batch records the confirmed inserted count and marks the remaining unconfirmed valid rows as rejected, with the database error retained in its notes. A failure to finalize the batch is surfaced to the administrator.
 - This is a code-level reliability improvement; no live attendance events were inserted and real device export testing remains outstanding.
+
+
+### 2026-11-04 — Attendance CSV structure validation
+- Hardened CSV parsing to reject unterminated quotes, quotes in invalid positions, blank or duplicate headers, and inconsistent row column counts.
+- The import screen now verifies that the file contains a recognized device-user ID column, event-type column, and date/time column before processing rows.
+- This prevents malformed exports from being silently interpreted with shifted or missing fields. Real device export testing remains required.
