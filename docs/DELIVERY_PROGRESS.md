@@ -589,3 +589,10 @@
 - Hardened CSV parsing to reject unterminated quotes, quotes in invalid positions, blank or duplicate headers, and inconsistent row column counts.
 - The import screen now verifies that the file contains a recognized device-user ID column, event-type column, and date/time column before processing rows.
 - This prevents malformed exports from being silently interpreted with shifted or missing fields. Real device export testing remains required.
+
+
+### 2026-11-04 — Finance payment submission guard
+- Payment posting now blocks a second submission while the first request is processing and disables the submit control until processing exits.
+- Payment amounts must be positive whole UGX values within JavaScript's safe-integer range before the payment RPC is called.
+- Unexpected client-side failures are surfaced with a warning to check the receipt register before retrying, because the server may already have committed a payment.
+- The existing database RPC remains the atomic payment/allocation operation. This UI guard does not replace database idempotency; authenticated double-submit and receipt tests remain required.
