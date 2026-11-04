@@ -203,3 +203,10 @@
 
 - Offline service-worker review found an older `service-worker.js` already registered by the app. Removed the second registration to avoid competing service workers; retained the existing same-origin-only, GET-only shell cache. Fix commit: `2a81f8e`.
 - Preview deployment check: no deployment exists for the current feature commit. Vercel team plan confirmed Hobby (free). Preview creation was rejected with HTTP 402 `payment_required`, specifically the 24-hour `api-deployments-young-hobby-team-24h` limit (retry after 24 hours). No upgrade, billing, payment method, or paid service was enabled. Production remains untouched.
+
+
+## 2026-11-04 — Academic reporting and mark-sheet improvements
+- Individual report ranking now uses competition ranking for tied percentages (equal scores share a position); the report shows active class size, total marks, percentage and grade.
+- Class performance now shows school admission code, subjects scored, total marks and average percentage, with tied learners sharing positions.
+- Bulk class mark sheet now displays each learner's LIN and P7 examination index number beside the school admission code.
+- Code commits: `7532f24`, `e1aa730`. No live learner marks were available for browser/E2E validation. Aggregate/division remains intentionally uncomputed until the school's approved grade-to-point and division thresholds are configured; no PLE rules have been guessed.
