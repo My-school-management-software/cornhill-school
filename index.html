@@ -164,7 +164,23 @@
 </form>
 <div id="attendancePreview" class="table-wrap"></div>
 </div>
-<div id="attendanceStaff" class="hidden"><h3>My attendance records</h3><div id="myAttendance" class="table-wrap"></div></div>
+<div id="attendanceReview" class="hidden">
+<h3>Staff attendance correction requests</h3>
+<p class="muted">Review staff explanations for missed or incorrect attendance events. Approvals are recorded in the audit fields; the original clock events remain unchanged.</p>
+<div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Date</th><th>Request</th><th>Proposed time</th><th>Reason</th><th>Review note</th><th>Action</th></tr></thead><tbody id="attendanceAdjustmentRows"></tbody></table></div>
+</div>
+<div id="attendanceStaff" class="hidden"><h3>My attendance records</h3><div id="myAttendance" class="table-wrap"></div>
+<h3 style="margin-top:20px">Request an attendance correction</h3>
+<p class="muted">Use this form if you missed a clock-in/out or need an attendance record checked. Your request goes to the school administrator for review.</p>
+<form id="attendanceAdjustmentForm">
+<div><label>Attendance date *</label><input name="attendance_date" type="date" required></div>
+<div><label>Request type *</label><select name="adjustment_type" required><option value="missed_clock_in">Missed clock-in</option><option value="missed_clock_out">Missed clock-out</option><option value="time_correction">Correct recorded time</option><option value="absence_excuse">Explain absence</option><option value="other">Other attendance issue</option></select></div>
+<div><label>Proposed time (if applicable)</label><input name="proposed_time" type="datetime-local"></div>
+<div class="full"><label>Reason / explanation *</label><textarea name="reason" rows="3" required minlength="8" maxlength="1000" placeholder="Explain what happened and the correct time, if known."></textarea></div>
+<div class="full"><button class="primary" type="submit">Submit correction request</button></div>
+</form>
+<h3 style="margin-top:20px">My correction requests</h3><div id="myAttendanceAdjustments" class="table-wrap"></div>
+</div>
 </section>
 <p class="muted" style="text-align:center;margin:20px 0">Cornhill School · Student and class management · Amounts in UGX in future finance modules</p>
 </section></main>
@@ -509,6 +525,9 @@ async function setupAttendance(){
  $('attendanceStaff').classList.toggle('hidden',admin);
  if(!admin){
   const {data,error}=await db.from('staff_attendance_events').select('event_type,occurred_at,source').order('occurred_at',{ascending:false}).limit(100);
+  const adjustments=await db.from('staff_attendance_adjustments').select('attendance_date,adjustment_type,proposed_time,reason,status,review_note,created_at').eq('staff_user_id',currentUserId).order('created_at',{ascending:false}).limit(50);
+  if(adjustments.error){message('attendanceMsg','Your attendance loaded, but correction requests could not be read: '+adjustments.error.message,true);return}
+  $('myAttendanceAdjustments').innerHTML=(adjustments.data||[]).map(x=>'<div style="padding:9px;border-bottom:1px solid #eee"><strong>'+esc(x.attendance_date)+' · '+esc(x.adjustment_type.replace(/_/g,' '))+'</strong><br>'+esc(x.reason)+'<br><span class="badge">'+esc(x.status)+'</span>'+(x.review_note?'<br><span class="muted">Administrator: '+esc(x.review_note)+'</span>':'')+'</div>').join('')||'<p class="empty">You have not submitted any correction requests.</p>';
   if(error){message('attendanceMsg','Attendance database is not ready yet. The administrator must apply the attendance migration.',true);return}
   $('myAttendance').innerHTML=(data||[]).map(x=>'<div style="padding:9px;border-bottom:1px solid #eee">'+esc(x.event_type)+' · '+esc(new Date(x.occurred_at).toLocaleString())+'</div>').join('')||'<p class="empty">No attendance records yet.</p>';return;
  }
@@ -531,6 +550,10 @@ async function setupAttendance(){
  $('workScheduleRows').innerHTML=(schedules.data||[]).map(x=>'<tr><td>'+esc(x.name)+(x.is_active?'':' (inactive)')+'</td><td>'+esc(String(x.start_time).slice(0,5))+'–'+esc(String(x.end_time).slice(0,5))+'</td><td>'+x.grace_minutes+' min</td><td>'+x.break_minutes+' min</td><td>'+esc((x.weekdays||[]).map(d=>days[d]).join(', '))+'</td></tr>').join('')||'<tr><td colspan="5">No work schedules created yet.</td></tr>';
  $('scheduleAssignmentRows').innerHTML=(assignments.data||[]).map(x=>{const z=scheduleById[x.schedule_id];return '<tr><td>'+esc(byId[x.staff_user_id]||'Unknown staff')+'</td><td>'+esc(z?.name||'Unavailable')+'</td><td>'+(z?esc(String(z.start_time).slice(0,5)+'–'+String(z.end_time).slice(0,5)):'—')+'</td></tr>'}).join('')||'<tr><td colspan="3">No staff schedules assigned yet.</td></tr>';
  $('deviceMapList').innerHTML=(maps.data||[]).map(x=>'<div style="padding:7px;border-bottom:1px solid #eee">Device '+esc(x.device_serial)+' · ID '+esc(x.device_user_id)+' → '+esc(byId[x.staff_user_id]||'Unknown staff')+'</div>').join('')||'No machine IDs mapped yet.';
+ const reviewPanel=$('attendanceReview');reviewPanel.classList.remove('hidden');
+ const requests=await db.from('staff_attendance_adjustments').select('id,staff_user_id,attendance_date,adjustment_type,proposed_time,reason,status,created_at').order('created_at',{ascending:false}).limit(100);
+ if(requests.error){message('attendanceMsg','Attendance loaded, but correction requests could not be read: '+requests.error.message,true);return}
+ $('attendanceAdjustmentRows').innerHTML=(requests.data||[]).map(x=>'<tr><td>'+esc(byId[x.staff_user_id]||'Unknown staff')+'</td><td>'+esc(x.attendance_date)+'</td><td>'+esc(x.adjustment_type.replace(/_/g,' '))+'</td><td>'+esc(x.proposed_time?fmt(x.proposed_time):'—')+'</td><td>'+esc(x.reason)+'</td><td>'+(x.status==='pending'?'<input aria-label="Review note" data-review-note="'+x.id+'" maxlength="500" placeholder="Optional note">':esc(x.review_note||'—'))+'</td><td>'+(x.status==='pending'?'<button type="button" class="primary" data-adjustment-review="approved" data-adjustment-id="'+x.id+'">Approve</button> <button type="button" data-adjustment-review="rejected" data-adjustment-id="'+x.id+'">Reject</button>':'<span class="badge">'+esc(x.status)+'</span>')+'</td></tr>').join('')||'<tr><td colspan="7">No correction requests have been submitted.</td></tr>';
  const since=new Date(Date.now()-14*86400000).toISOString();
  const events=await db.from('staff_attendance_events').select('staff_user_id,event_type,occurred_at').gte('occurred_at',since).order('occurred_at',{ascending:true}).limit(5000);
  if(events.error){message('attendanceMsg','Staff mappings loaded, but the attendance summary could not load: '+events.error.message,true);return}
@@ -566,6 +589,28 @@ async function setupAttendance(){
  const rows=Object.values(grouped).sort((a,b)=>b.day.localeCompare(a.day)||a.staff.localeCompare(b.staff));
  $('attendanceSummaryRows').innerHTML=rows.map(g=>'<tr><td>'+esc(g.day)+'</td><td>'+esc(g.staff)+'</td><td>'+fmt(g.ins[0])+'</td><td>'+fmt(g.outs[g.outs.length-1])+'</td><td>'+g.count+'</td><td>'+(g.ins.length&&g.outs.length?'<span class="badge">Complete events</span>':'<span class="badge">Check record</span>')+'</td></tr>').join('')||'<tr><td colspan="6">No attendance events recorded in the last 14 days.</td></tr>';
 }
+$('attendanceAdjustmentForm').addEventListener('submit',async e=>{
+ e.preventDefault();clearMessage('attendanceMsg');
+ if(!currentUserId){message('attendanceMsg','Please sign in again before submitting a request.',true);return}
+ const f=new FormData(e.target),proposed=String(f.get('proposed_time')||'').trim();
+ const payload={staff_user_id:currentUserId,attendance_date:f.get('attendance_date'),adjustment_type:f.get('adjustment_type'),proposed_time:proposed?parseAttendanceTime(proposed):null,reason:String(f.get('reason')||'').trim(),requested_by:currentUserId,status:'pending'};
+ if(proposed&&!payload.proposed_time){message('attendanceMsg','Enter a valid proposed date and time.',true);return}
+ const {error}=await db.from('staff_attendance_adjustments').insert(payload);
+ if(error){message('attendanceMsg','Could not submit correction request: '+error.message,true);return}
+ e.target.reset();await setupAttendance();message('attendanceMsg','Your correction request has been sent to the administrator.');
+});
+$('attendanceAdjustmentRows').addEventListener('click',async e=>{
+ const button=e.target.closest('[data-adjustment-review]');if(!button)return;
+ if(profile?.role!=='Admin')return;
+ const id=button.dataset.adjustmentId,status=button.dataset.adjustmentReview;
+ if(!id||!['approved','rejected'].includes(status))return;
+ const note=document.querySelector('[data-review-note="'+id+'"]')?.value?.trim()||'';
+ button.disabled=true;
+ const user=(await db.auth.getUser()).data.user;
+ const {error}=await db.from('staff_attendance_adjustments').update({status,reviewed_by:user.id,reviewed_at:new Date().toISOString(),review_note:note||null}).eq('id',id).eq('status','pending');
+ if(error){button.disabled=false;message('attendanceMsg','Could not review request: '+error.message,true);return}
+ await setupAttendance();message('attendanceMsg','Attendance correction request '+status+'.');
+});
 $('workScheduleForm').addEventListener('submit',async e=>{
  e.preventDefault();clearMessage('attendanceMsg');const f=new FormData(e.target),user=(await db.auth.getUser()).data.user;
  const weekdays=String(f.get('weekdays')).split(',').map(Number);
