@@ -1,9 +1,9 @@
 
 
 ## 2026-11-04 — Jibble attendance source foundation
-- Added `jibble_csv` as a distinct allowed source for attendance import batches and events; Jibble-imported events must be linked to an import batch, just like USB terminal imports.
-- Applied the migration to Supabase and queried the live check constraints to verify the new source is accepted.
-- Added replayable SQL at `supabase/migrations/202611040007_jibble_attendance_source.sql`.
-- This is database preparation only: the current screen still imports the fingerprint-terminal CSV format, not a Jibble export. The Jibble parser/import UI must be built and tested against a real sample export before this can be called an operational Jibble integration.
-- Jibble remains the primary time-tracking record. One fingerprint terminal at the main office remains a separate verification/import source until its exact model and export format are confirmed. No device API or direct Jibble-to-fingerprint connection is assumed.
-- Production remains unchanged.
+- Added `jibble_csv` temporarily while interpreting Jibble as a data source; this was contrary to the intended product direction and was corrected immediately.
+- Corrective migration `supabase/migrations/202611040008_keep_attendance_native.sql` was applied. Live constraints were queried and verified: import sources are now `usb_csv` and `manual`; event source also retains the future `device_api` option. No Jibble source remains accepted.
+- Jibble is a product-design reference only. Cornhill will not depend on Jibble, import Jibble data, connect to Jibble APIs, or require a Jibble account.
+- Product design lessons to implement natively in Cornhill: one-tap staff clock-in/out, a shared main-office attendance terminal, identity verification using the single fingerprint device, shift schedules, break tracking, late/early/absence flags, overtime calculations, leave requests and approvals, timesheet review/locking, role-based manager permissions, audit trail, and exportable attendance reports.
+- Keep the school's single fingerprint terminal connected to the main office computer. Device model/driver/export format must be confirmed before direct device integration is claimed.
+- No production deployment was made.
