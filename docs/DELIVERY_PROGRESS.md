@@ -30,3 +30,13 @@
 - Removed the temporary standalone demo fallback and reconnected the demo button to the native `enterDemoMode()` initializer, with a visible startup error if it fails.
 - Commit: `189b203` fixes the syntax error; follow-up commit `4a4b971` restores the native demo flow.
 - Not yet browser-tested on Android. A Vercel deployment attempt was blocked by the team's 24-hour deployment API limit; no new preview is available for this correction yet. Production remains unchanged.
+
+
+## 2026-11-04 — Native staff attendance correction workflow
+- Added a staff-facing correction request form for missed clock-ins, missed clock-outs, time corrections, absence explanations, and other attendance issues.
+- Staff can see their own requests and review outcomes/administrator notes. The existing row-level policies restrict staff to their own requests.
+- Added an administrator review queue with approve/reject actions and optional review notes. The reviewer identity and timestamp are recorded on each decision.
+- The workflow uses the existing `staff_attendance_adjustments` table and its RLS policies; no new database migration or Jibble integration is required.
+- Original attendance events remain append-only; a correction request is a review record, not an automatic edit to clock events or payroll.
+- JavaScript syntax check passed after the UI changes. Browser testing with real staff/admin accounts remains outstanding.
+- Commit: `6e899bc`. Production remains unchanged; Vercel deployment limit still blocks preview publication.
