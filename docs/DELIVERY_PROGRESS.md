@@ -63,3 +63,11 @@
 - Existing payment posting RPC remains the single payment route for bursary and regular learners: partial payments reduce the balance and create the same numbered official receipt. No separate bursary cashbook or payment path was introduced.
 - Database verification confirmed all three bursary columns and the admission trigger exist. JavaScript syntax check passed for the admission UI change.
 - Commits: admission UI `5b554d7`; migration file `cab5fd0`. Browser/E2E admission, balance and receipt test is still pending; Vercel preview deployment remains unavailable due to the team's deployment limit. Production untouched.
+
+
+## 2026-11-04 — Bursary register and finance reporting
+- Added a bursary register to the administrator Finance section with learner code/name, approved bursary amount, total payments received and outstanding balance.
+- Added bursary summary totals for learner count, approved charges and outstanding balances. Figures are derived from bursary learner records and the existing learner account balance view; payment entries remain in the ordinary school payment ledger and official receipt sequence.
+- Extended the finance learner query to retrieve bursary status and approved amount. No duplicate bursary payment table or separate receipt system was created.
+- JavaScript syntax check passed. Actual browser verification remains pending because the preview deployment quota is still blocked.
+- Commit: `1ca91a8`. Production remains untouched.
