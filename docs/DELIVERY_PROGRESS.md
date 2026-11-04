@@ -174,3 +174,12 @@
 - This is an offline shell foundation, not full offline operation or background data synchronisation. No financial action is queued or falsely marked as successful offline. IndexedDB draft queues, conflict handling and idempotent server sync remain future work.
 - Source re-fetched from the feature branch after commits. Browser/offline simulation testing and deployment remain outstanding.
 - Commits: `11bbb7c` app UI/registration; `c1bde4c` service worker.
+
+
+## 2026-11-04 — School leadership and position assignment
+- Added an administrator-managed `school_position_catalogue` with seeded positions: Director, Headteacher, Deputy Headteacher, DOS, Main Bursar, Deputy Bursar, Matron, Patron, Senior Woman, Senior Man, Cook, Store Manager, Deputy Store Manager, Nursery Head, Lower Primary Section Head (P1–P4), Upper Primary Section Head (P5–P7), Class Teacher and Subject Teacher.
+- Added authenticated staff read access and administrator-only catalogue management through RLS.
+- Updated Staff Profiles so administrators select a school position when editing each employee. Department/class assignment remains editable, with quick suggestions for Nursery, Baby/Middle/Top, P1–P7, Lower/Upper Primary, Boarding, Catering and Stores. This supports multiple class teachers by recording each class in the assignment field.
+- Existing account security roles (Admin, Teacher, Staff) remain separate from job titles; a title does not automatically grant financial or administrative permissions.
+- Database catalogue and RLS were applied and verified. Browser testing with staff accounts and a real class roster remains outstanding.
+- Commits: UI `795fb81`, `7bfd85e`; migration `201f614`, repeatability fix `42bb03a`.
