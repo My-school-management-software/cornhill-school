@@ -131,3 +131,13 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Verified the updated role constraint directly in PostgreSQL. Existing user accounts were not promoted or changed.
 - Account creation/invitations still require a trusted server-side Auth Admin workflow; no service-role credential is exposed in the browser and no account has been created as part of this change.
 - Attendance summary and assignment screens still require a signed-in administrator browser test with real staff, class and event records.
+
+
+## 2026-11-04 — Sign-in session recovery
+- Investigated the reported sign-in stall against Supabase Auth logs and the deployed frontend source.
+- Confirmed the school administrator's Auth account has a matching `user_profiles` row with role `Admin`; a successful password-login event exists in the Auth logs.
+- Found the frontend initialized sessions through both `getSession()` and `onAuthStateChange()`, allowing an older initial session result to race with a newer sign-in and potentially return the screen to the login state.
+- Removed the competing initial session path and now let the Supabase auth-state listener be the single session entry point. Added input validation, a visible signing-in state, disabled duplicate submissions, and readable network/error feedback.
+- Commit: `29b321b033d6c60ea1b5f0d9ecf93500ff600609`.
+- Preview deployment `https://cornhill-school-oydeh4nzm-cypher-projects1.vercel.app` reached Vercel `READY`.
+- Production was not changed. A real-device signed-in browser test is still required to confirm the administrator can reach the dashboard on the affected phone.
