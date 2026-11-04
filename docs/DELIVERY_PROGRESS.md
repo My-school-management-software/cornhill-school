@@ -617,3 +617,12 @@
 - Both now prevent repeat clicks while a save is in progress, validate the authenticated session before writing, validate each score against its assessment maximum, and handle missing assessment references without throwing.
 - Save controls are restored in `finally` even when validation exits early or an unexpected error occurs. Unexpected failures instruct staff to check the saved mark sheet before retrying.
 - The database upsert remains keyed by assessment and learner. These client-side guards do not replace RLS or teacher-to-class assignment checks; real role-based browser testing remains outstanding.
+
+
+### 2026-11-04 — Academic save reliability and Supabase advisor review
+- Both the Excel-style class-folder mark saver and the separate bulk mark-sheet saver now guard against repeat clicks, verify the auth session, reject stale assessment references, validate score bounds, and restore the save button in `finally` after errors or validation exits.
+- Supabase security advisors currently report three SECURITY DEFINER RPCs: `admin_list_active_finance_students`, `admin_list_students`, and `is_school_admin`. Reviewed their definitions: both data-returning RPCs explicitly require a non-null `auth.uid()` and `public.is_school_admin()` before returning learner records; the helper checks the signed-in profile role. These are intentional privileged paths, but their execute grants and admin checks must remain under review.
+- Supabase Auth leaked-password protection is currently disabled; enable it in the project's Auth password-security settings before production use.
+- Performance advisors report 38 foreign keys without covering indexes, 29 currently unused indexes, and 19 tables with multiple permissive policies. These are review findings, not automatic instructions to add/drop indexes or merge policies; changes require query-plan and authorization review first.
+- Supabase's Nov 4, 2026 CLI v3 release changes hosted/local command defaults; any future CLI deployment or migration pipeline must explicitly target the remote project and confirm hosted changes. No schema change was made as part of this audit.
+- No live learner, marks, payment or attendance rows were added. Browser and role-based acceptance tests remain outstanding.
