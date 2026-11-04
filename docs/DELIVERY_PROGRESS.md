@@ -473,3 +473,13 @@
 - This preview includes the Settings expansion, school About/policy and greeting options, and the printer/fingerprint hardware buying guide.
 - Deployment state was checked through Vercel and returned `READY`. User browser access still depends on the project's existing preview access protection.
 - No production deployment or paid plan change was made.
+
+
+## 2026-11-04 — Hardware guide price and compatibility correction
+- Updated the in-app hardware buying guide with current Uganda listing context and stronger purchase safeguards.
+- XP-P300: manufacturer documentation confirms 58mm direct thermal printing with USB + Bluetooth. A Kampala marketplace listing specifically identifies XP-P300 around UGX 350,000; generic 58mm printers listed at lower prices are not assumed to be the same model. Exact XP-80U/Epson local prices remain unverified.
+- ZKTeco K40: official regional listings differ by variant/firmware and SSR configuration (some show 1,000 fingerprints/80,000 records; others up to 3,000/100,000). Local advertised prices also vary substantially (approximately UGX 380,000–745,000 in listings reviewed). The buying guide now requires the seller to demonstrate the exact model/firmware and a real export before purchase.
+- Clarified that K40 USB-host commonly supports USB flash-drive export; it does not prove direct USB-cable PC integration. TCP/IP is the preferred route to investigate for the school connector.
+- No hardware has been physically tested with CORNHILL yet. Attendance and printer integration remain pending acquisition of a test unit.
+- Source commit: `02ab0c7c`.
+- Validation: inline JavaScript syntax checks run after the guide update; browser/device/print/attendance hardware tests remain outstanding.
