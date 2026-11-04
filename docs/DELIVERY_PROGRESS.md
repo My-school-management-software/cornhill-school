@@ -286,3 +286,9 @@
 - Expanded `docs/LEARNER_PRIVACY_TEST_PLAN.md` to verify anonymous guardian-phone access and authenticated guardian phone/email, address and bursary-field SELECT privileges are all false after applying the migration.
 - Commits: migration correction `01a809f`; test-plan correction `30ae312`.
 - This correction is still development-branch source only. No Supabase privileges or records were changed; migration must be tested in staging and explicitly approved before application.
+
+
+## 2026-11-04 — Frontend syntax verification follow-up
+- Full inline JavaScript parse check found another literal backslash-n sequence immediately before `loadStaffProfiles()`. It prevented the main application script from parsing, which would stop the application before staff features load.
+- Replaced the literal escape sequence with a real line break. Re-ran JavaScript parsing on both inline scripts successfully. Static HTML ID check found no missing literal `$('id')` references; two duplicate-ID matches are dynamic HTML template strings, not duplicate static markup IDs.
+- Commit: `57fcf85`. This is a source-level syntax check only; browser sign-in and workflow tests remain pending.
