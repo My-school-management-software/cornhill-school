@@ -123,7 +123,7 @@
  </div>
  <div id="reportCardPreview" style="margin-top:14px"></div>
  <h3 style="margin-top:20px">Class performance summary</h3>
- <div class="table-wrap"><table><thead><tr><th>Position*</th><th>Learner</th><th>Subjects scored</th><th>Average %</th></tr></thead><tbody id="classPerformanceRows"></tbody></table></div>
+ <div class="table-wrap"><table><thead><tr><th>Position*</th><th>Learner</th><th>Subjects scored</th><th>Total marks</th><th>Average %</th></tr></thead><tbody id="classPerformanceRows"></tbody></table></div>
  <p class="muted">*Position is a provisional ranking among learners with entered marks. Missing marks are excluded from each learner's average.</p>
  <h3 style="margin-top:20px">Recent marks</h3><div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Assessment</th><th>Score</th><th>Maximum</th><th>Entered</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
 </section>
@@ -511,7 +511,8 @@ async function renderReportCard(){
  const rows=[...grouped.values()].filter(x=>x.assessments),total=rows.reduce((n,x)=>n+x.score,0),max=rows.reduce((n,x)=>n+x.max,0),pct=max?total/max*100:0;const overallGrade=gradeFor(pct);
  const classLearners=students.filter(x=>x.class_id===learner.class_id&&x.status==='Active');
  const ranking=classLearners.map(l=>{const score=data.scores.filter(z=>z.student_id===l.id);let got=0,possible=0;score.forEach(z=>{const a=data.assessments.find(v=>v.id===z.assessment_id);if(a){got+=Number(z.score);possible+=Number(a.max_score)}});return {id:l.id,got,possible,percentage:possible?got/possible*100:-1}}).filter(x=>x.percentage>=0).sort((a,b)=>b.percentage-a.percentage);
- const position=ranking.findIndex(x=>x.id===studentId)+1;
+ const learnerRank=ranking.findIndex(x=>x.id===studentId);
+ const position=learnerRank<0?0:ranking.findIndex(x=>x.percentage===ranking[learnerRank].percentage)+1;
  const classSize=classLearners.length;
  const termId=$('reportTermSelect').value;
  const publication=await db.from('report_card_publications').select('id,approved_at,approved_by').eq('term_id',termId).eq('student_id',studentId).maybeSingle();
@@ -540,7 +541,8 @@ async function renderClassPerformance(){
  const learners=students.filter(x=>x.class_id===classId),totals=new Map();
  data.scores.forEach(s=>{const a=data.assessments.find(x=>x.id===s.assessment_id);if(!a)return;const x=totals.get(s.student_id)||{score:0,max:0,subjects:new Set()};x.score+=Number(s.score);x.max+=Number(a.max_score);x.subjects.add(a.subject_id);totals.set(s.student_id,x)});
  const ranked=learners.map(l=>({l,x:totals.get(l.id)})).filter(x=>x.x&&x.x.max>0).sort((a,b)=>(b.x.score/b.x.max)-(a.x.score/a.x.max));
- $('classPerformanceRows').innerHTML=ranked.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc([x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '))+'</td><td>'+x.x.subjects.size+'</td><td>'+((x.x.score/x.x.max)*100).toFixed(1)+'%</td></tr>').join('')||'<tr><td colspan="4">No marks entered for this class and term.</td></tr>';
+ let lastPct=null,lastRank=0;
+ $('classPerformanceRows').innerHTML=ranked.map((x,i)=>{const pct=x.x.score/x.x.max*100;if(lastPct===null||Math.abs(pct-lastPct)>0.000001)lastRank=i+1;lastPct=pct;return '<tr><td>'+lastRank+'</td><td>'+esc(x.l.admission_number)+' · '+esc([x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '))+'</td><td>'+x.x.subjects.size+'</td><td>'+money(x.x.score)+' / '+money(x.x.max)+'</td><td>'+pct.toFixed(1)+'%</td></tr>'}).join('')||'<tr><td colspan="5">No marks entered for this class and term.</td></tr>';
 }
 function updateScoreLearners(){
  const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
