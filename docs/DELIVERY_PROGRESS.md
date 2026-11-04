@@ -111,3 +111,10 @@
 - Reprints retrieve the original payment allocations and current posted allocations for each linked charge; reversed receipts remain explicitly marked invalid.
 - Frontend JavaScript syntax check passed. Live browser printing and real-payment verification still pending.
 - Commit: `72f3f24`.
+
+
+## 2026-11-04 — Daily collection and payment-method report
+- Added administrator date-range report of posted receipts, gross collections by Cash/Mobile Money/Bank Transfer/Card/Other, reversed receipt totals, and net collections.
+- Date boundaries use Africa/Kampala local midnight and an exclusive next-day boundary, including the full selected end date.
+- JavaScript syntax check passed. Live browser query and print testing pending; database has no payment records at this time.
+- Commits: `bbdcdd3`, date-boundary correction `8d47e77`.
