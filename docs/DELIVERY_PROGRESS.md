@@ -40,3 +40,5 @@
 - Original attendance events remain append-only; a correction request is a review record, not an automatic edit to clock events or payroll.
 - JavaScript syntax check passed after the UI changes. Browser testing with real staff/admin accounts remains outstanding.
 - Commit: `6e899bc`. Production remains unchanged; Vercel deployment limit still blocks preview publication.
+
+- Follow-up attendance calculation fix: late-arrival comparisons now explicitly convert clock-in times to `Africa/Kampala` before comparing against the scheduled start and grace period. This avoids relying on the administrator's browser timezone. Commit: `520b6f8`; JavaScript syntax check passed.
