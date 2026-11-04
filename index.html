@@ -826,7 +826,7 @@ function unebPrimaryDivision(subjectGrades){
  const required=['English','Mathematics','Science','Social Studies'];
  const normalized=required.map(label=>({label,grade:subjectGrades.find(x=>{const n=String(x.name||'').toLowerCase();return label==='English'?n.includes('english'):label==='Mathematics'?n.includes('mathematics')||n.includes('math'):label==='Science'?n.includes('science'):n.includes('social studies')||n==='sst'})}));
  if(normalized.some(x=>!x.grade))return {ready:false,reason:'Enter marks and grades for English, Mathematics, Science and Social Studies to calculate the aggregate.'};
- const absentCore=normalized.filter(x=>x.grade&&!x.grade.max).map(x=>x.label);
+ const absentCore=normalized.filter(x=>x.grade?.absent).map(x=>x.label);
  if(absentCore.length)return {ready:false,reason:'Aggregate not calculated: learner was marked X (Absent) in '+absentCore.join(', ')+'.'};
  const points=normalized.map(x=>unebGradePoint(x.grade.grade));
  if(points.some(x=>x===null))return {ready:false,reason:'Check the active grade bands: each core subject grade must map to D1–F9.'};
@@ -953,8 +953,8 @@ async function renderReportCard(){
  const position=learnerRank<0?0:ranking.findIndex(x=>x.percentage===ranking[learnerRank].percentage)+1;
  const classSize=classLearners.length;
  const classGroup=curriculumGroupForClass(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'');
- const uneb=classGroup==='P4-P7'?unebPrimaryDivision(rows.map(x=>({name:x.name,max:x.max,grade:x.max?gradeFor((x.score/x.max)*100)?.name||'':''}))):null;
- const aggregateNote=classGroup==='P4-P7'?(uneb?.ready?'<p><strong>UNEB-style aggregate:</strong> '+uneb.aggregate+' &nbsp; <strong>Base division:</strong> '+(uneb.baseDivision===5?'U':uneb.baseDivision)+' &nbsp; <strong>Adjusted division:</strong> '+(uneb.division===5?'U':uneb.division)+'</p><p class="muted">English '+(uneb.englishGrade===9?'F9: moves down two divisions.':uneb.englishGrade===8?'P8: moves down one division.':'grade '+uneb.englishGrade+': no English adjustment.')+' Mathematics '+(uneb.mathGrade===9?'F9: moves down one division.':'grade '+uneb.mathGrade+': no Mathematics adjustment.')+'</p>':'<p><strong>Aggregate / division:</strong> Not calculated yet. '+esc(uneb?.reason||'')+'</p>'):'';
+ const uneb=classGroup==='P4-P7'?unebPrimaryDivision(rows.map(x=>({name:x.name,max:x.max,absent:!!x.absentAssessments,grade:x.max?gradeFor((x.score/x.max)*100)?.name||'':''}))):null;
+ const aggregateNote=classGroup==='P4-P7'?(uneb?.ready?'<p><strong>UNEB-style aggregate:</strong> '+uneb.aggregate+' &nbsp; <strong>Base division:</strong> '+(uneb.baseDivision===5?'U':uneb.baseDivision)+' &nbsp; <strong>Adjusted division:</strong> '+(uneb.division===5?'U':uneb.division)+'</p><p class="muted">English '+(uneb.englishGrade===9?'F9: moves down two divisions.':uneb.englishGrade===8?'P8: moves down one division.':'grade '+uneb.englishGrade+': no English adjustment.')+' Mathematics '+(uneb.mathGrade===9?'F9: moves down one division.':'grade '+uneb.mathGrade+': no Mathematics adjustment.')+'</p>':'<p><strong>UNEB-style aggregate:</strong> X &nbsp; <strong>Division:</strong> X</p><p class="muted">'+esc(uneb?.reason||'Aggregate or division is not available.')+'</p>'):'';
  const termId=$('reportTermSelect').value;
  let publication={data:null,error:null};
  if(profile?.role==='Admin')publication=await db.from('report_card_publications').select('id,approved_at,approved_by').eq('term_id',termId).eq('student_id',studentId).maybeSingle();
