@@ -96,3 +96,11 @@
 - Uses charge-level allocations, so unrelated payments and unallocated account credit are not incorrectly counted as fees collected for a term.
 - Added report summary totals and print action. JavaScript syntax check passed; live browser and relationship/RLS verification pending.
 - Commit: `e3ffac0`.
+
+
+## 2026-11-04 — Optional previous-term fee settlement
+- Added a secure payment-posting RPC that accepts explicit charge allocations, validates learner ownership and outstanding amounts, and retains the existing oldest-first automatic allocation when no choices are made.
+- Payment entry now lists each outstanding charge with its academic year/term, allows staff to skip older balances, pay part/all of a previous term, or split one payment across several terms. Unallocated amounts remain account credit.
+- New receipts itemise the allocation by term and fee description, total allocated and unallocated credit.
+- Migration applied to Supabase and committed; frontend JavaScript syntax check passed. Real payment/receipt browser testing remains pending.
+- Commits: migration `d986278`; UI `688965d`.
