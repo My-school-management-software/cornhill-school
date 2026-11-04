@@ -162,3 +162,14 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Added a class-wide mark sheet to the academic mark-entry screen. Selecting an assessment loads learners in its class and any previously saved scores/comments.
 - Teachers and administrators can enter or revise multiple learner marks and save them together. Empty rows are skipped; scores are checked in the browser against the assessment maximum before saving. Database RLS and constraints remain the authoritative security/validation layer.
 - Existing single-learner mark entry remains available. End-to-end testing with a real assigned teacher and populated class is still outstanding; production remains unchanged.
+
+
+## 2026-11-04 — Assigned-class teacher workspace and roster security
+- Added a teacher landing summary showing only the classes and subjects assigned to the signed-in teacher, with a direct link to academic mark entry.
+- Teacher navigation now hides learner registration, full learner directory, class administration, finance, staff profiles and other administrator modules. The teacher academic setup and grade-band maintenance controls remain hidden.
+- Teacher academic selectors are scoped to their assigned subjects/classes; staff-profile enumeration is not queried for Teacher accounts.
+- Applied and committed two RLS migrations:
+  - `202611040005_teacher_class_roster_access.sql`: learner and class SELECT access is limited to administrators or teachers assigned to that class; class-subject rows are visible to administrators or the assigned teacher.
+  - `202611040006_teacher_roster_write_hardening.sql`: learner and class create/update/delete operations are administrator-only.
+- Verified the live PostgreSQL policies after application. The Supabase security advisor still reports the pre-existing callable SECURITY DEFINER helper `public.is_school_admin()` and disabled leaked-password protection; these were not introduced by this milestone.
+- Code and database policy changes are committed on the development branch. Real teacher login and cross-class denial tests still require a teacher account and populated class assignments. Production remains unchanged.
