@@ -71,3 +71,12 @@
 - Extended the finance learner query to retrieve bursary status and approved amount. No duplicate bursary payment table or separate receipt system was created.
 - JavaScript syntax check passed. Actual browser verification remains pending because the preview deployment quota is still blocked.
 - Commit: `1ca91a8`. Production remains untouched.
+
+
+## 2026-11-04 — Printable learner fee statements
+- Added an administrator-only learner selector and statement generator in Finance.
+- Itemises invoices/charges, amounts, allocated payments and per-charge balances; includes the learner's bursary designation and approved amount where applicable.
+- Lists every posted receipt for the learner (including payments that remain as unallocated credit), method/date/receipt number, current account credit and net amount due.
+- Added print action for parent/guardian statements. Reuses existing ledger and receipt data; no duplicate finance records.
+- JavaScript syntax check passed. Browser print/layout and live RLS query testing remain pending until preview deployment is available.
+- Commits: `8c63d83` (statement UI), `b3ca395` (all posted receipts and credit).
