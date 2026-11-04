@@ -826,6 +826,8 @@ function unebPrimaryDivision(subjectGrades){
  const required=['English','Mathematics','Science','Social Studies'];
  const normalized=required.map(label=>({label,grade:subjectGrades.find(x=>{const n=String(x.name||'').toLowerCase();return label==='English'?n.includes('english'):label==='Mathematics'?n.includes('mathematics')||n.includes('math'):label==='Science'?n.includes('science'):n.includes('social studies')||n==='sst'})}));
  if(normalized.some(x=>!x.grade))return {ready:false,reason:'Enter marks and grades for English, Mathematics, Science and Social Studies to calculate the aggregate.'};
+ const absentCore=normalized.filter(x=>x.grade&&!x.grade.max).map(x=>x.label);
+ if(absentCore.length)return {ready:false,reason:'Aggregate not calculated: learner was marked X (Absent) in '+absentCore.join(', ')+'.'};
  const points=normalized.map(x=>unebGradePoint(x.grade.grade));
  if(points.some(x=>x===null))return {ready:false,reason:'Check the active grade bands: each core subject grade must map to D1–F9.'};
  const aggregate=points.reduce((a,b)=>a+b,0);
