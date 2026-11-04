@@ -102,6 +102,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  <div id="feeReportMsg" class="notice hidden"></div>
  <div class="grid"><div class="stat"><small>Charges (UGX)</small><div id="feeReportCharges" class="num">0</div></div><div class="stat"><small>Allocated payments (UGX)</small><div id="feeReportPaid" class="num">0</div></div><div class="stat"><small>Outstanding (UGX)</small><div id="feeReportBalance" class="num">0</div></div></div>
  <div id="feeReportArea" class="table-wrap"><table><thead><tr><th>Class</th><th>Learners</th><th>Charges (UGX)</th><th>Paid (UGX)</th><th>Outstanding (UGX)</th></tr></thead><tbody id="feeReportRows"><tr><td colspan="5">Choose filters and generate the report.</td></tr></tbody></table></div>
+ <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportFeeReportCsv">Export fee report CSV</button></div>
  <h3 style="margin-top:24px">Parent payment SMS queue</h3>
  <p class="muted">Payments are queued for parents who have explicitly opted in. Messages are not sent until an approved SMS provider and sender ID are configured.</p>
  <div class="table-wrap"><table><thead><tr><th>Queued</th><th>Receipt</th><th>Phone</th><th>Message status</th></tr></thead><tbody id="parentSmsRows"><tr><td colspan="4">No queued messages loaded.</td></tr></tbody></table></div>
@@ -110,6 +111,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div><label for="cashReportFrom">From</label><input id="cashReportFrom" type="date"></div><div><label for="cashReportTo">To</label><input id="cashReportTo" type="date"></div><button type="button" class="primary" id="runCashReport">Generate collection report</button><button type="button" id="printCashReport" disabled>Print report</button></div>
  <div id="cashReportMsg" class="notice hidden"></div>
  <div class="grid"><div class="stat"><small>Posted receipts</small><div id="cashReportCount" class="num">0</div></div><div class="stat"><small>Gross collected (UGX)</small><div id="cashReportGross" class="num">0</div></div><div class="stat"><small>Reversed (UGX)</small><div id="cashReportReversed" class="num">0</div></div><div class="stat"><small>Net collections (UGX)</small><div id="cashReportNet" class="num">0</div></div></div>
+ <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportCashReportCsv">Export receipt audit CSV</button></div>
  <div id="cashReportArea"><h4>Totals by payment method</h4><div class="table-wrap"><table><thead><tr><th>Payment method</th><th>Receipts</th><th>Amount (UGX)</th></tr></thead><tbody id="cashReportRows"><tr><td colspan="3">Choose dates and generate the report.</td></tr></tbody></table></div><h4 style="margin-top:16px">Receipt-by-receipt audit</h4><div class="table-wrap"><table><thead><tr><th>Time</th><th>Receipt</th><th>Learner</th><th>Method</th><th>Status</th><th>Amount (UGX)</th></tr></thead><tbody id="cashReportReceiptRows"><tr><td colspan="6">Generate a report to view receipt details.</td></tr></tbody></table></div></div>
  <h3 style="margin-top:24px">11. Recent charges and receipts</h3>
  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Learner</th><th>Description / method</th><th>Amount (UGX)</th></tr></thead><tbody id="financeActivityRows"></tbody></table></div>
@@ -148,8 +150,9 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  </div>
  <div id="reportCardPreview" style="margin-top:14px"></div>
  <h3 style="margin-top:20px">Class performance summary</h3>
+ <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportAcademicClassCsv">Export class results CSV</button></div>
  <div class="table-wrap"><table><thead><tr><th>Position*</th><th>Learner</th><th>Subjects scored</th><th>Total marks</th><th>Average %</th></tr></thead><tbody id="classPerformanceRows"></tbody></table></div>
- <p class="muted">*Position is a provisional ranking among learners with entered marks. Missing marks are excluded from each learner's average.</p>
+ <p class="muted">*Position is a provisional ranking among learners with entered marks. Missing marks are excluded from each learner's average. Export is limited to the selected class and term.</p>
  <h3 style="margin-top:20px">Recent marks</h3><div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Assessment</th><th>Score</th><th>Maximum</th><th>Entered</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
 </section>
 
@@ -342,6 +345,12 @@ $('search').addEventListener('input',render);
 
 let financeItems=[],financeStudents=[];
 const money=v=>new Intl.NumberFormat('en-UG',{maximumFractionDigits:0}).format(Number(v||0));
+function downloadCSV(filename,headers,rows){
+ const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ const csv=[headers,...rows].map(row=>row.map(quote).join(',')).join('\r\n');
+ const blob=new Blob([String.fromCharCode(65279),csv],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
 async function loadFinance(){
  if(!demoMode&&profile?.role==='Admin'){const sms=await db.from('school_sms_outbox').select('id,created_at,recipient_phone,status,school_payments(receipt_no)').order('created_at',{ascending:false}).limit(30);if(sms.error){$('parentSmsRows').innerHTML='<tr><td colspan="4">SMS queue unavailable: '+esc(sms.error.message)+'</td></tr>'}else{$('parentSmsRows').innerHTML=(sms.data||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString())+'</td><td>'+esc(x.school_payments?.receipt_no||'—')+'</td><td>'+esc(x.recipient_phone)+'</td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="4">No parent SMS queued yet.</td></tr>'}}
  if(demoMode){
@@ -609,8 +618,15 @@ async function renderClassPerformance(){
  data.scores.forEach(s=>{const a=data.assessments.find(x=>x.id===s.assessment_id);if(!a)return;const x=totals.get(s.student_id)||{score:0,max:0,subjects:new Set()};x.score+=Number(s.score);x.max+=Number(a.max_score);x.subjects.add(a.subject_id);totals.set(s.student_id,x)});
  const ranked=learners.map(l=>({l,x:totals.get(l.id)})).filter(x=>x.x&&x.x.max>0).sort((a,b)=>(b.x.score/b.x.max)-(a.x.score/a.x.max));
  let lastPct=null,lastRank=0;
- $('classPerformanceRows').innerHTML=ranked.map((x,i)=>{const pct=x.x.score/x.x.max*100;if(lastPct===null||Math.abs(pct-lastPct)>0.000001)lastRank=i+1;lastPct=pct;return '<tr><td>'+lastRank+'</td><td>'+esc(x.l.admission_number)+' · '+esc([x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '))+'</td><td>'+x.x.subjects.size+'</td><td>'+money(x.x.score)+' / '+money(x.x.max)+'</td><td>'+pct.toFixed(1)+'%</td></tr>'}).join('')||'<tr><td colspan="5">No marks entered for this class and term.</td></tr>';
+ window.cornhillClassPerformanceRows=ranked.map((x,i)=>{const pct=x.x.score/x.x.max*100;if(lastPct===null||Math.abs(pct-lastPct)>0.000001)lastRank=i+1;lastPct=pct;return {position:lastRank,admission_code:x.l.admission_number,learner:[x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '),subjects_scored:x.x.subjects.size,total_marks:x.x.score,maximum_marks:x.x.max,average_percent:Number(pct.toFixed(1))}});
+ $('classPerformanceRows').innerHTML=window.cornhillClassPerformanceRows.map(x=>'<tr><td>'+x.position+'</td><td>'+esc(x.admission_code)+' · '+esc(x.learner)+'</td><td>'+x.subjects_scored+'</td><td>'+money(x.total_marks)+' / '+money(x.maximum_marks)+'</td><td>'+x.average_percent.toFixed(1)+'%</td></tr>').join('')||'<tr><td colspan="5">No marks entered for this class and term.</td></tr>';
 }
+$('exportAcademicClassCsv').addEventListener('click',()=>{
+ if(!['Admin','Teacher'].includes(profile?.role)||demoMode)return;
+ const rows=window.cornhillClassPerformanceRows||[];if(!rows.length){message('academicMsg','Generate class performance for a term and class before exporting.',true);return}
+ const term=$('reportTermSelect').selectedOptions[0]?.textContent||'Selected term',cls=$('reportClassSelect').selectedOptions[0]?.textContent||'Selected class';
+ downloadCSV('cornhill-academic-results.csv',['Term','Class','Position','Admission code','Learner','Subjects scored','Total marks','Maximum marks','Average percent'],rows.map(x=>[term,cls,x.position,x.admission_code,x.learner,x.subjects_scored,x.total_marks,x.maximum_marks,x.average_percent]));
+});
 function updateScoreLearners(){
  const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
  const list=students.filter(x=>!ass||x.class_id===ass.class_id);
@@ -1047,7 +1063,9 @@ $('runFeeReport').addEventListener('click',async()=>{
    if(!groups.has(label))groups.set(label,{learners:new Set(),charges:0,paid:0});
    const g=groups.get(label);g.learners.add(c.student_id);g.charges+=amount;g.paid+=paid;
   }
-  const rows=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([name,g])=>'<tr><td>'+esc(name)+'</td><td>'+g.learners.size+'</td><td>'+money(g.charges)+'</td><td>'+money(g.paid)+'</td><td><strong>'+money(Math.max(0,g.charges-g.paid))+'</strong></td></tr>').join('');
+  const reportGroups=[...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  window.cornhillFeeReportRows=reportGroups.map(([name,g])=>({class_name:name,learners:g.learners.size,charges_ugx:g.charges,paid_ugx:g.paid,outstanding_ugx:Math.max(0,g.charges-g.paid)}));
+  const rows=window.cornhillFeeReportRows.map(g=>'<tr><td>'+esc(g.class_name)+'</td><td>'+g.learners+'</td><td>'+money(g.charges_ugx)+'</td><td>'+money(g.paid_ugx)+'</td><td><strong>'+money(g.outstanding_ugx)+'</strong></td></tr>').join('');
   $('feeReportCharges').textContent=money(totalCharge);$('feeReportPaid').textContent=money(totalPaid);$('feeReportBalance').textContent=money(Math.max(0,totalCharge-totalPaid));
   $('feeReportRows').innerHTML=rows||'<tr><td colspan="5">No fee charges found for these filters.</td></tr>';
   $('printFeeReport').disabled=!(data||[]).length;
@@ -1058,6 +1076,11 @@ $('runFeeReport').addEventListener('click',async()=>{
  finally{$('runFeeReport').disabled=false;$('runFeeReport').textContent='Generate report'}
 });
 $('printFeeReport').addEventListener('click',()=>{if(!$('feeReportRows').innerHTML.includes('No fee charges'))window.print()});
+$('exportFeeReportCsv').addEventListener('click',()=>{
+ if(profile?.role!=='Admin'||demoMode)return;const rows=window.cornhillFeeReportRows||[];if(!rows.length){message('feeReportMsg','Generate a fee report before exporting.',true);return}
+ const term=$('feeReportTerm').selectedOptions[0]?.textContent||'All terms',cls=$('feeReportClass').selectedOptions[0]?.textContent||'All classes';
+ downloadCSV('cornhill-fee-collection-report.csv',['Academic term','Selected class','Class group','Learners charged','Charges UGX','Paid UGX','Outstanding UGX'],rows.map(x=>[term,cls,x.class_name,x.learners,x.charges_ugx,x.paid_ugx,x.outstanding_ugx]));
+});
 function kampalaToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Kampala',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
 $('cashReportFrom').value=kampalaToday();$('cashReportTo').value=kampalaToday();
 $('runCashReport').addEventListener('click',async()=>{
@@ -1067,7 +1090,8 @@ $('runCashReport').addEventListener('click',async()=>{
  try{
   const untilDate=new Date(to+'T00:00:00Z');untilDate.setUTCDate(untilDate.getUTCDate()+1);const until=untilDate.toISOString().slice(0,10)+'T00:00:00+03:00';
   let data=[],offset=0;while(true){const page=await db.from('school_payments').select('id,receipt_no,amount_ugx,status,payment_method,received_at,students(admission_number,first_name,last_name)').gte('received_at',from+'T00:00:00+03:00').lt('received_at',until).order('received_at',{ascending:true}).range(offset,offset+999);if(page.error)throw page.error;data.push(...(page.data||[]));if((page.data||[]).length<1000)break;offset+=1000}
-  const posted=data.filter(p=>p.status==='Posted'),reversed=data.filter(p=>p.status==='Reversed');
+  window.cornhillCashReportRows=data.map(p=>({received_at:p.received_at,receipt_no:p.receipt_no,admission_code:p.students?.admission_number||'',learner:[p.students?.first_name,p.students?.last_name].filter(Boolean).join(' '),payment_method:p.payment_method||'Other',status:p.status,amount_ugx:Number(p.amount_ugx||0)}));
+   const posted=data.filter(p=>p.status==='Posted'),reversed=data.filter(p=>p.status==='Reversed');
   const methods=new Map();for(const p of posted){const m=p.payment_method||'Other';if(!methods.has(m))methods.set(m,{count:0,total:0});const x=methods.get(m);x.count++;x.total+=Number(p.amount_ugx||0)}
   const gross=posted.reduce((n,p)=>n+Number(p.amount_ugx||0),0),rev=reversed.reduce((n,p)=>n+Number(p.amount_ugx||0),0);
   $('cashReportCount').textContent=posted.length;$('cashReportGross').textContent=money(gross);$('cashReportReversed').textContent=money(rev);$('cashReportNet').textContent=money(gross-rev);
@@ -1080,6 +1104,10 @@ $('runCashReport').addEventListener('click',async()=>{
  finally{$('runCashReport').disabled=false;$('runCashReport').textContent='Generate collection report'}
 });
 $('printCashReport').addEventListener('click',()=>window.print());
+$('exportCashReportCsv').addEventListener('click',()=>{
+ if(profile?.role!=='Admin'||demoMode)return;const rows=window.cornhillCashReportRows||[];if(!rows.length){message('cashReportMsg','Generate a collection report before exporting.',true);return}
+ downloadCSV('cornhill-cash-collection-audit.csv',['Received (Uganda time)','Receipt number','Admission code','Learner','Payment method','Status','Amount UGX'],rows.map(x=>[new Date(x.received_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}),x.receipt_no,x.admission_code,x.learner,x.payment_method,x.status,x.amount_ugx]));
+});
 const RECEIPT_PAPER_KEY='cornhill_receipt_paper_width';
 function applyReceiptPaperWidth(){
  const width=localStorage.getItem(RECEIPT_PAPER_KEY)==='58'?'58':'80';$('receiptPaperWidth').value=width;
