@@ -104,3 +104,10 @@
 - New receipts itemise the allocation by term and fee description, total allocated and unallocated credit.
 - Migration applied to Supabase and committed; frontend JavaScript syntax check passed. Real payment/receipt browser testing remains pending.
 - Commits: migration `d986278`; UI `688965d`.
+
+
+## 2026-11-04 — Receipt balance detail
+- New payment receipts and receipt reprints now show each allocated fee charge, the amount paid on this receipt, and the remaining balance on that charge after the payment.
+- Reprints retrieve the original payment allocations and current posted allocations for each linked charge; reversed receipts remain explicitly marked invalid.
+- Frontend JavaScript syntax check passed. Live browser printing and real-payment verification still pending.
+- Commit: `72f3f24`.
