@@ -8,7 +8,9 @@ create table if not exists public.school_position_catalogue (
 );
 alter table public.school_position_catalogue enable row level security;
 grant select,insert,update,delete on public.school_position_catalogue to authenticated;
+drop policy if exists school_positions_read on public.school_position_catalogue;
 create policy school_positions_read on public.school_position_catalogue for select to authenticated using (public.is_school_admin() or exists(select 1 from public.user_profiles p where p.id=(select auth.uid()) and p.role in ('Teacher','Staff')));
+drop policy if exists school_positions_admin_manage on public.school_position_catalogue;
 create policy school_positions_admin_manage on public.school_position_catalogue for all to authenticated using (public.is_school_admin()) with check (public.is_school_admin());
 insert into public.school_position_catalogue(title,department,display_order) values
 ('Director','School Leadership',10),('Headteacher','School Leadership',20),('Deputy Headteacher','School Leadership',30),('Director of Studies (DOS)','Academics',40),
