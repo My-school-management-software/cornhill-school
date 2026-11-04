@@ -174,6 +174,8 @@ const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
 const db=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
 let students=[],classes=[],profile=null,staffProfiles=[],demoMode=false,currentUserId=null,academic={years:[],terms:[],subjects:[],assessments:[]};
 const $=id=>document.getElementById(id);
+// Bind demo access before the rest of the application initializes, so an unrelated startup error cannot leave the button inert.
+$('demoAccess').addEventListener('click',()=>{try{enterDemoMode()}catch(err){const box=$('loginMsg');box.textContent='Demo could not start: '+(err?.message||'An application startup error occurred.');box.classList.remove('hidden');box.classList.add('error');}});
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
 if(!db){message('loginMsg','The secure sign-in service could not load. Check your internet connection, then refresh this page. If the problem continues, contact the school administrator.',true);$('signIn').disabled=true;$('signIn').textContent='Sign-in service unavailable'}
@@ -197,7 +199,6 @@ function enterDemoMode(){
  document.querySelectorAll('#app form input,#app form select,#app form textarea').forEach(el=>el.disabled=true);
  render();tab('dashboard');message('appMsg','You are viewing sample records. Sign-in and database security have not been disabled.');
 }
-$('demoAccess').addEventListener('click',enterDemoMode);
 
 async function startSession(session){demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
