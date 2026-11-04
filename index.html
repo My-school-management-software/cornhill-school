@@ -1159,13 +1159,24 @@ submitAcademic('assessmentForm','assessments',v=>{const {period,title,...rest}=v
 document.getElementById('teacherAssignmentRows').addEventListener('click',async e=>{const button=e.target.closest('[data-save-assignment]');if(!button)return;const id=button.dataset.saveAssignment;const select=document.querySelector('[data-assignment-teacher="'+CSS.escape(id)+'"]');if(!select)return;button.disabled=true;const {error}=await db.from('class_subjects').update({teacher_user_id:select.value||null}).eq('id',id);button.disabled=false;if(error){message('academicMsg','Could not update teacher assignment: '+error.message,true);return}message('academicMsg',select.value?'Teacher assignment updated.':'Teacher access removed from this class and subject.');await loadAcademics();});
 
 $('scoreForm').addEventListener('submit',async e=>{
- e.preventDefault();if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Only administrators and assigned teachers can enter marks.',true);return}
- const v=Object.fromEntries(new FormData(e.target).entries()),user=(await db.auth.getUser()).data.user,absent=String(v.score).trim().toUpperCase()==='X',score=Number(v.score),assessment=academic.assessments.find(x=>x.id===v.assessment_id);
+ e.preventDefault();
+ const submitButton=e.submitter||e.target.querySelector('[type="submit"]');
+ if(submitButton?.dataset.busy==='1')return;
+ if(submitButton){submitButton.dataset.busy='1';submitButton.disabled=true}
+ try{
+ if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Only administrators and assigned teachers can enter marks.',true);return}
+ const v=Object.fromEntries(new FormData(e.target).entries()),auth=await db.auth.getUser(),user=auth.data?.user,absent=String(v.score).trim().toUpperCase()==='X',score=Number(v.score),assessment=academic.assessments.find(x=>x.id===v.assessment_id);
  if(!absent&&(!Number.isFinite(score)||score<0||score>Number(assessment?.max_score))){message('academicMsg','Enter a valid score up to '+(assessment?.max_score??'the assessment maximum')+', or enter X if the learner was absent.',true);return}
+ if(auth.error||!user){message('academicMsg','Your sign-in session has expired. Sign in again before saving marks.',true);return}
  const payload={assessment_id:v.assessment_id,student_id:v.student_id,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:(v.teacher_comment||null),entered_by:user.id};
  const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
  if(error){message('academicMsg','Could not save mark: '+error.message,true);return}
  e.target.reset();await loadAcademics();message('academicMsg','Learner mark saved.');
+ }catch(err){
+  message('academicMsg','Mark entry stopped unexpectedly. Check the class mark sheet before retrying: '+(err?.message||'Unknown error'),true);
+ }finally{
+  if(submitButton){submitButton.disabled=false;delete submitButton.dataset.busy}
+ }
 });
 
 function parseCSV(text){
