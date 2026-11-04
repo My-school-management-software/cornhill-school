@@ -150,3 +150,9 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Edge Function deployment status: ACTIVE, JWT verification enabled.
 - Source code is committed at `supabase/functions/staff-invite/index.ts`.
 - Remaining verification: complete one real invitation and acceptance using a designated staff email, then verify Teacher login, class assignment filtering and mark entry in the browser. Email delivery depends on the project's configured Auth SMTP/template and allowed redirect settings.
+
+
+## 2026-11-04 — Editable teacher assignments
+- Extended the administrator's class/subject assignment register with an inline teacher selector for every existing assignment.
+- Administrators can reassign a subject to another staff account or choose “Not assigned” to remove that teacher's access. The change updates `class_subjects.teacher_user_id`, which is the same assignment relationship used by teacher assessment/score RLS.
+- This is committed to the development branch; live admin browser verification and a real Teacher login test are still required. Production remains unchanged.
