@@ -308,3 +308,13 @@
 - Verification: both inline JavaScript blocks parse; test samples confirm an unzoned 08:15 EAT timestamp maps to 05:15 UTC, a +03:00 ISO timestamp maps to the same instant, a Z timestamp is preserved, and an impossible February 30 date is rejected.
 - Commits: self-service filter `a1a9730`; strict timestamp validation `b1444ba`.
 - This is source-level verification only. No Supabase schema, permissions or records were changed, and real device export/browser testing remains outstanding.
+
+
+## 2026-11-04 — Consolidated inventory and school reporting foundation
+- Added an Inventory tab for administrators: categories, item catalogue, units, reorder thresholds, receiving and issuing stock, current stock balances, and low-stock flags.
+- Added a database migration `202611040015_inventory_stock_ledger.sql` with categories, items, append-only stock movements, a security-invoker stock summary view, administrator-only RLS policies and explicit grants. A database trigger locks the item row and rejects issues that would make stock negative.
+- Added a School Reports tab with active learner totals, class count, assessment count, class-by-class learner summary, and CSV export of a privacy-limited learner register (admission code, names, class, gender and LIN; no guardian contacts, address or bursary fields).
+- The learner report calls the existing administrator-only `admin_list_students()` RPC; it does not read sensitive learner columns directly from the frontend.
+- Both inline JavaScript blocks parse successfully. Static element-reference scan found no missing literal element IDs. Two duplicate-ID matches are template-string fragments, not static markup IDs.
+- Commits: inventory schema `9dbc722` plus negative-stock guard `13bc010`; inventory and reporting UI `74e5255`.
+- Important: migration and screens are committed to the development branch only. The inventory migration has not been applied to Supabase. Browser workflow, role testing, CSV download, and staging migration tests remain pending. No live data or database permissions were changed.
