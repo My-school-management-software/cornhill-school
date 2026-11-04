@@ -889,7 +889,7 @@ async function loadAcademics(){
   profile?.role==='Admin'?db.from('subjects').select('*').eq('is_active',true).order('name'):(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}),
   db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name').order('full_name'):Promise.resolve({data:[],error:null}),
-  db.from('assessment_scores').select('id,score,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100),
+  db.from('assessment_scores').select('id,score,teacher_comment,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100),
   profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId)
  ]);
  const err=[y,t,s,a,staff,cscores,assignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
@@ -907,7 +907,7 @@ async function loadAcademics(){
  $('teacherAssignmentRows').innerHTML=(assignments.data||[]).map(x=>'<tr><td>'+esc(x.school_classes?.name||'—')+'</td><td>'+esc(x.subjects?.name||'—')+'</td><td>'+esc(staffNames[x.teacher_user_id]||'Not assigned')+'</td><td><select data-assignment-teacher="'+esc(x.id)+'"><option value="">Not assigned</option>'+ (staff.data||[]).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===x.teacher_user_id?'selected':'')+'>'+esc(p.full_name||'Staff member')+'</option>').join('')+'</select> <button type="button" class="primary" data-save-assignment="'+esc(x.id)+'">Save</button></td></tr>').join('')||'<tr><td colspan="4">No class-subject assignments yet.</td></tr>';
  $('assessmentTermSelect').innerHTML=opts(academic.terms,x=>x.name+' · '+(x.academic_years?.name||''));
  $('scoreAssessmentSelect').innerHTML=opts(academic.assessments,x=>(x.title+' · '+(x.school_classes?.name||'')+' · '+(x.subjects?.name||'')));
- $('academicScoreRows').innerHTML=(cscores.data||[]).map(x=>'<tr><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+esc(x.score)+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>Saved</td></tr>').join('')||'<tr><td colspan="6">No marks entered yet.</td></tr>';
+ $('academicScoreRows').innerHTML=(cscores.data||[]).map(x=>'<tr><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>Saved</td></tr>').join('')||'<tr><td colspan="6">No marks entered yet.</td></tr>';
  updateScoreLearners();
  populateReportFilters();
 }
@@ -953,7 +953,7 @@ async function renderReportCard(){
  const position=learnerRank<0?0:ranking.findIndex(x=>x.percentage===ranking[learnerRank].percentage)+1;
  const classSize=classLearners.length;
  const classGroup=curriculumGroupForClass(learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'');
- const uneb=classGroup==='P4-P7'?unebPrimaryDivision(rows.map(x=>({name:x.name,grade:gradeFor((x.score/x.max)*100)?.name||''}))):null;
+ const uneb=classGroup==='P4-P7'?unebPrimaryDivision(rows.map(x=>({name:x.name,max:x.max,grade:x.max?gradeFor((x.score/x.max)*100)?.name||'':''}))):null;
  const aggregateNote=classGroup==='P4-P7'?(uneb?.ready?'<p><strong>UNEB-style aggregate:</strong> '+uneb.aggregate+' &nbsp; <strong>Base division:</strong> '+(uneb.baseDivision===5?'U':uneb.baseDivision)+' &nbsp; <strong>Adjusted division:</strong> '+(uneb.division===5?'U':uneb.division)+'</p><p class="muted">English '+(uneb.englishGrade===9?'F9: moves down two divisions.':uneb.englishGrade===8?'P8: moves down one division.':'grade '+uneb.englishGrade+': no English adjustment.')+' Mathematics '+(uneb.mathGrade===9?'F9: moves down one division.':'grade '+uneb.mathGrade+': no Mathematics adjustment.')+'</p>':'<p><strong>Aggregate / division:</strong> Not calculated yet. '+esc(uneb?.reason||'')+'</p>'):'';
  const termId=$('reportTermSelect').value;
  let publication={data:null,error:null};
@@ -982,7 +982,7 @@ async function renderClassPerformance(){
  const data=await getTermScores();if(!data)return;
  const classId=$('reportClassSelect').value;
  const learners=students.filter(x=>x.class_id===classId&&x.status==='Active'),totals=new Map();
- data.scores.forEach(s=>{const a=data.assessments.find(x=>x.id===s.assessment_id);if(!a)return;const x=totals.get(s.student_id)||{score:0,max:0,subjects:new Set()};x.score+=Number(s.score);x.max+=Number(a.max_score);x.subjects.add(a.subject_id);totals.set(s.student_id,x)});
+ data.scores.forEach(s=>{const a=data.assessments.find(x=>x.id===s.assessment_id);if(!a)return;const x=totals.get(s.student_id)||{score:0,max:0,subjects:new Set()};if(!isAbsentMark(s)){x.score+=Number(s.score);x.max+=Number(a.max_score);x.subjects.add(a.subject_id)}totals.set(s.student_id,x)});
  const ranked=learners.map(l=>({l,x:totals.get(l.id)})).filter(x=>x.x&&x.x.max>0).sort((a,b)=>(b.x.score/b.x.max)-(a.x.score/a.x.max));
  let lastPct=null,lastRank=0;
  window.cornhillClassPerformanceRows=ranked.map((x,i)=>{const pct=x.x.score/x.x.max*100;if(lastPct===null||Math.abs(pct-lastPct)>0.000001)lastRank=i+1;lastPct=pct;return {position:lastRank,admission_code:x.l.admission_number,learner:[x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '),subjects_scored:x.x.subjects.size,total_marks:x.x.score,maximum_marks:x.x.max,average_percent:Number(pct.toFixed(1))}});
