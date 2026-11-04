@@ -54,3 +54,12 @@
 - Database migration applied to Supabase project `yemhortbudwbcrzsoozk`; verified all three columns and the insert trigger exist. Frontend JavaScript syntax check passed.
 - Commits: `5b554d7` admission UI; `a798769` learner list; `3f07edb` migration file. Production remains untouched; preview deployment remains blocked by Vercel's rate limit.
 - Not yet tested with a real learner/payment in the browser. The next deployment should verify admission creates exactly one bursary charge, a part-payment creates a receipt, and the remaining balance is correct.
+
+
+## 2026-11-04 — Bursary learner admission and school-fee account
+- Added a bursary status selector to learner admission. Selecting bursary reveals a required approved total payable amount in UGX and an optional administrative approval/sponsor note.
+- Admission validates the amount as a positive whole number of UGX and stores bursary status and approved amount on the learner record. Regular-fee learners default to non-bursary with a zero bursary amount.
+- Applied Supabase migration `202611040010_learner_bursary_admission.sql`: adds bursary columns and validation, and creates the learner's approved bursary charge automatically when the learner is admitted. This charge enters the ordinary learner account balance.
+- Existing payment posting RPC remains the single payment route for bursary and regular learners: partial payments reduce the balance and create the same numbered official receipt. No separate bursary cashbook or payment path was introduced.
+- Database verification confirmed all three bursary columns and the admission trigger exist. JavaScript syntax check passed for the admission UI change.
+- Commits: admission UI `5b554d7`; migration file `cab5fd0`. Browser/E2E admission, balance and receipt test is still pending; Vercel preview deployment remains unavailable due to the team's deployment limit. Production untouched.
