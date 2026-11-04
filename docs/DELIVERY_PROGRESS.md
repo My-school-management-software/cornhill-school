@@ -464,3 +464,12 @@
 - Added biometric privacy note: avoid storing raw fingerprint images in the school database; use protected templates/device identifiers with appropriate notice, lawful basis and access controls.
 - Commit: `b8a1be95`.
 - Static JavaScript parse checks and HTML duplicate-ID checks are run after the guide is added; browser/hardware integration tests remain pending.
+
+
+## 2026-11-04 — Latest hardware guide preview deployment
+- Vercel automatically created a new READY preview from the hardware guide commit `b8a1be95b3c9e3f3eaed774bee713155faf9e53d`.
+- Preview URL: `https://cornhill-school-9zsdo8wae-cypher-projects1.vercel.app`.
+- Deployment ID: `dpl_35wweC2hinreXp6QwQujqLBobVBx`.
+- This preview includes the Settings expansion, school About/policy and greeting options, and the printer/fingerprint hardware buying guide.
+- Deployment state was checked through Vercel and returned `READY`. User browser access still depends on the project's existing preview access protection.
+- No production deployment or paid plan change was made.
