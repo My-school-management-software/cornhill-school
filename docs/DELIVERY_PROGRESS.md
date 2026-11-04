@@ -80,3 +80,11 @@
 - Added print action for parent/guardian statements. Reuses existing ledger and receipt data; no duplicate finance records.
 - JavaScript syntax check passed. Browser print/layout and live RLS query testing remain pending until preview deployment is available.
 - Commits: `8c63d83` (statement UI), `b3ca395` (all posted receipts and credit).
+
+
+## 2026-11-04 — Receipt lookup and reprint
+- Added administrator-only exact receipt-number lookup in Finance.
+- Retrieves the original payment, learner identity, amount, payment method/reference, date, notes, unallocated credit and Posted/Reversed status.
+- Allows printing the retrieved receipt without creating another payment or receipt. Reversed receipts are clearly marked as invalid for payment.
+- JavaScript syntax check passed. Live browser/RLS verification remains pending.
+- Commit: `73a37df`.
