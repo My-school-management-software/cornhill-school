@@ -85,3 +85,5 @@ We will update this tracker with every meaningful coding milestone and will not 
 - Supabase security advisor: finance RPC is SECURITY INVOKER; one existing warning remains for the pre-existing public `is_school_admin()` SECURITY DEFINER helper, and leaked-password protection is disabled in Auth. Performance advisor still reports older academic/attendance foreign-key index and permissive-policy notices.
 - Finance migration SQL has been applied directly to the live Supabase project. A replayable migration file still needs to be committed; browser verification and cashier workflows remain outstanding.
 - Fee schedules are templates only and do not bulk-charge learners. Confirm billing period and the meaning of boarding amounts before setting school-wide defaults or generating term invoices.
+
+- Preview deployment for the finance milestone is READY: https://cornhill-school-1yeg5ud2m-cypher-projects1.vercel.app (commit `487c09b1c3ed2993e1488ff3b6fc989fef02a069`). Inline JavaScript syntax check passed. No interactive browser/device test has yet been performed.
