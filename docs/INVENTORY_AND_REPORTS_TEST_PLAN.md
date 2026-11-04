@@ -59,3 +59,20 @@
 - [ ] Confirm payer name and custom payment reason persist after refreshing the app and are present on receipt reprints.
 - [ ] Confirm teacher/non-admin accounts cannot read, refresh or modify daily collection records.
 - [ ] Perform these checks with a real test learner before using the feature for actual school collections. Do not create dummy financial payments in the live school ledger.
+
+## Receipts amount in words
+- [ ] Verify new payment receipts show both UGX figures and correctly spelt English amount, including UGX 1, 20, 105, 1,000, 125,000 and larger school payment amounts.
+- [ ] Verify receipt lookup/reprint also shows the same amount in words as the original payment.
+
+## School expenses and payroll
+- [ ] Create expense entries for examinations, tests, food, utilities, teaching materials, transport and repairs; verify categories, UGX totals, CSV and A4 print.
+- [ ] Void a test expense with a reason; confirm it remains in the register, displays Voided and is excluded from posted totals.
+- [ ] Add a staff profile and a monthly salary agreement; create a monthly payroll period and verify only active monthly agreements covering the dates are included.
+- [ ] Repeat for termly and yearly salary agreements and confirm they are not mixed across payroll frequency.
+- [ ] Close an old salary agreement, enter a new effective salary and confirm past payroll remains unchanged and the new agreement applies only to its dates.
+- [ ] Confirm overlapping active agreements for the same staff member and frequency are rejected.
+- [ ] Confirm payroll cannot be paid before approval; approve it and record an actual salary payment.
+- [ ] Confirm one salary expense is created automatically with the correct staff name, UGX net pay, date and payment method; verify repeated attempts cannot create duplicate linked expenses.
+- [ ] Test allowances and deductions, including invalid deductions greater than gross pay.
+- [ ] Confirm staff/non-admin accounts cannot view salary agreements, payroll, or expenses.
+- [ ] Perform final payroll tests with the actual authorized staff list and approved salary amounts; never use guessed salaries.
