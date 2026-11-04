@@ -210,3 +210,5 @@
 - Class performance now shows school admission code, subjects scored, total marks and average percentage, with tied learners sharing positions.
 - Bulk class mark sheet now displays each learner's LIN and P7 examination index number beside the school admission code.
 - Code commits: `7532f24`, `e1aa730`. No live learner marks were available for browser/E2E validation. Aggregate/division remains intentionally uncomputed until the school's approved grade-to-point and division thresholds are configured; no PLE rules have been guessed.
+
+- Follow-up report correction: report preview now explicitly prints active class size and learner position; P4–P7 reports state aggregate/division is awaiting school-approved configuration rather than displaying an invented result. Class performance excludes inactive learners. Fix commit: `024a791`.
