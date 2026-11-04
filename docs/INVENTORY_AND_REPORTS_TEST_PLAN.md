@@ -32,3 +32,18 @@
 ## Current status
 - Source syntax checks and static element-reference checks pass.
 - No browser end-to-end or staging database test has yet been performed.
+
+
+## Finance and academic report export checks
+1. Generate class performance for a selected term/class; export CSV and confirm tied percentages retain shared competition positions.
+2. Confirm academic CSV contains only the selected class/term and includes code, learner name, subject count, marks, maximum and average percentage.
+3. Generate fee collection report with and without term/class filters; export CSV and reconcile each class row to the displayed totals.
+4. Generate cash collection report for a Uganda-local date range; export receipt audit CSV and reconcile receipt numbers, statuses, methods and UGX amounts.
+5. Open all three exports in spreadsheet software; confirm UTF-8 names and correct comma/quote escaping.
+6. Verify teachers can export only the class results already available to their assigned class, while finance exports remain administrator-only.
+
+## Offline and fingerprint acceptance gates
+- Offline academic drafts must be retained without sending financial payments or issuing receipts while disconnected.
+- On reconnection, sync must authenticate the current user, re-check teacher class assignment, detect server-side mark changes and present conflicts rather than silently overwriting newer marks.
+- Do not cache Supabase auth/API responses or confidential learner records in the service worker.
+- Fingerprint-device acceptance requires the exact make/model, firmware, supported export/API protocol, USB driver/bridge, and a physical test terminal. A CSV import is not proof of live biometric integration.
