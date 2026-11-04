@@ -610,3 +610,10 @@
 - The save button is locked during processing to prevent rapid duplicate submissions; it is restored in a `finally` block on success, validation exits, and unexpected errors.
 - Unexpected errors advise the teacher to check the class mark sheet before retrying. Existing database RLS remains responsible for confirming that a teacher is assigned to the assessment's class and subject.
 - This is a client-side reliability improvement, not a substitute for authenticated teacher/admin acceptance tests.
+
+
+### 2026-11-04 — Class mark-sheet save reliability
+- Hardened both the Excel-style class-folder save and the separate bulk mark-sheet save controls.
+- Both now prevent repeat clicks while a save is in progress, validate the authenticated session before writing, validate each score against its assessment maximum, and handle missing assessment references without throwing.
+- Save controls are restored in `finally` even when validation exits early or an unexpected error occurs. Unexpected failures instruct staff to check the saved mark sheet before retrying.
+- The database upsert remains keyed by assessment and learner. These client-side guards do not replace RLS or teacher-to-class assignment checks; real role-based browser testing remains outstanding.
