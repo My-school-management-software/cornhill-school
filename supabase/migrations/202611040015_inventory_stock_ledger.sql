@@ -31,7 +31,7 @@ create table if not exists public.inventory_movements (
 create index if not exists inventory_movements_item_date_idx on public.inventory_movements(item_id, occurred_at desc);
 create index if not exists inventory_items_category_idx on public.inventory_items(category_id);
 create or replace function public.inventory_prevent_negative_stock()
-returns trigger language plpgsql set search_path = '' as $
+returns trigger language plpgsql set search_path = '' as $$
 declare current_qty numeric(12,2);
 begin
  perform 1 from public.inventory_items where id=new.item_id for update;
@@ -41,7 +41,7 @@ begin
   raise exception 'Insufficient stock. Available quantity: %', current_qty;
  end if;
  return new;
-end $;
+end $$;
 drop trigger if exists inventory_prevent_negative_stock on public.inventory_movements;
 create trigger inventory_prevent_negative_stock before insert on public.inventory_movements
 for each row execute function public.inventory_prevent_negative_stock();
