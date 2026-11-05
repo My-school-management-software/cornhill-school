@@ -676,3 +676,10 @@
 - Tightened direct-message updates so authenticated users can update only `read_at`; they can no longer edit the sender, recipient, message body or creation timestamp. Removed anonymous table privileges from direct messages, media messages and call signals.
 - Added migration `20261105160000_harden_staff_message_permissions.sql`. Verified the authenticated role cannot update a message body but can mark a received message as read.
 - No messages, media uploads or call signals were created during the audit. Actual two-account text, unread badge, voice/video recording, storage playback and live-call tests remain required in an authenticated browser. WebRTC calls may require a secure TURN relay on restrictive networks; no paid relay service has been enabled.
+
+## 2026-11-05 — School reporting, appearance and offline-scope audit
+
+- Verified the current appearance settings provide 8 themes, 24 font choices, 4 text sizes, 10 dashboard layouts, comfortable/compact density, and optional motion effects. These preferences are saved locally in the browser.
+- Verified the administrator reporting screen loads active learner totals, class totals and assessment counts, groups active learners by class, and exports the learner register as CSV. The report screen is administrator-only.
+- Verified the service worker registers on HTTPS and the app shell displays an offline notice. Important limitation: there is no IndexedDB-backed learner/academic offline cache or queued write/synchronisation layer yet. Finance and payments correctly remain online-only; the offline shell must not imply that offline payments or live learner updates are supported.
+- Next offline work must be designed around an explicit local queue, per-record sync status, conflict handling, and no duplicate payment posting. Do not enable offline financial writes until idempotency and reconciliation tests pass.
