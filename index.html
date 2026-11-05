@@ -1206,9 +1206,9 @@ $('prepareExcelAssessments').addEventListener('click',async()=>{
   if(!subjectIds.length)throw new Error('No active curriculum subjects are configured for '+group+'.');
   const {data:existing,error:existingError}=await db.from('assessments').select('subject_id,title').eq('class_id',classId).eq('term_id',termId);
   if(existingError)throw existingError;
-  const phases=['Beginning Assessment','Midterm Assessment','End of Term Assessment'];
-  if(/P\.?\s*7|PRIMARY\s*7/i.test(cls.name))phases.push('Fourth Assessment');
-  const present=new Set((existing||[]).map(x=>x.subject_id+'|'+String(x.title||'').toLowerCase()));
+  const phases=[{phase:'Beginning',title:'Beginning Assessment'},{phase:'Midterm',title:'Midterm Assessment'},{phase:'End',title:'End of Term Assessment'}];
+  if(/P\.?\s*7|PRIMARY\s*7/i.test(cls.name))phases.push({phase:'Fourth',title:'Fourth Assessment'});
+  const present=new Set((existing||[]).map(x=>x.subject_id+'|'+excelAssessmentPeriod(x)));
   const userResult=await db.auth.getUser();if(userResult.error||!userResult.data?.user)throw new Error('Your administrator session has expired. Sign in again.');
   const missing=[];
   for(const subjectId of subjectIds)for(const phase of phases)if(!present.has(subjectId+'|'+phase.phase))missing.push({term_id:termId,class_id:classId,subject_id:subjectId,title:phase.title,assessment_type:'Coursework',max_score:100,assessment_date:null,created_by:userResult.data.user.id});
