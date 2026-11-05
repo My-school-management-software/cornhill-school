@@ -1002,7 +1002,7 @@ $('confirmBulkLearners').addEventListener('click',async()=>{
  const genders=bulkLearnerRows.map((r,i)=>$('bulkImportPreview').querySelector('[data-bulk-gender="'+i+'"]')?.value||'');
  const birthYears=bulkLearnerRows.map((r,i)=>Number($('bulkImportPreview').querySelector('[data-bulk-birth-year="'+i+'"]')?.value));
  if(genders.some(g=>!['Male','Female'].includes(g))||birthYears.some(y=>!Number.isInteger(y)||y<1900||y>new Date().getFullYear())){message('bulkImportMsg','Enter a valid year of birth and select Male or Female for every learner before importing. No learner has been imported yet.',true);return}
- const confirmImport=confirm('Import '+bulkLearnerRows.length+' learner(s)? Each permanent code will be generated using the selected gender.');
+ const confirmImport=confirm('Import '+bulkLearnerRows.length+' learner(s)? Each permanent code will use birth year, gender, admission sequence and random letters.');
  if(!confirmImport)return;
  const button=$('confirmBulkLearners');button.disabled=true;button.textContent='Importing…';
  try{
