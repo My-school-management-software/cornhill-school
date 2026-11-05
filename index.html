@@ -2478,17 +2478,27 @@ async function uploadStaffMediaMessage(blob,kind,seconds,recipient){
 $('staffRecordingStop').addEventListener('click',stopStaffMediaRecording);
 $('recordVoiceNote').addEventListener('click',()=>staffMediaRecorder?stopStaffMediaRecording():startStaffMediaRecording('audio'));
 $('recordVideoMessage').addEventListener('click',()=>staffMediaRecorder?stopStaffMediaRecording():startStaffMediaRecording('video'));
+let contactUnreadBusy=false;
 async function renderDirectMessageContacts(){
- const host=$('directMessageContactList'),select=$('directMessageRecipient');if(!host||!select)return;
- const [textUnread,mediaUnread]=await Promise.all([
-  db.from('staff_direct_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null),
-  db.from('staff_media_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null)
- ]);
- const counts={};[...(textUnread.data||[]),...(mediaUnread.data||[])].forEach(m=>counts[m.sender_user_id]=(counts[m.sender_user_id]||0)+1);
- host.innerHTML=staffDirectoryCache.map(person=>{
-  const active=select.value===person.id,count=counts[person.id]||0,initials=(person.full_name||'C').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
-  return '<button type="button" class="direct-message-contact '+(active?'active':'')+'" data-staff-contact="'+esc(person.id)+'"><span class="direct-message-contact-avatar">'+esc(initials)+'</span><span class="direct-message-contact-copy"><strong>'+esc(person.full_name)+'</strong><small>'+esc(person.role||'Staff')+'</small></span>'+(count?'<span class="direct-message-contact-unread">'+count+'</span>':'')+'</button>';
- }).join('')||'<p class="muted">No other staff members are available yet.</p>';
+ const host=$('directMessageContactList'),select=$('directMessageRecipient');
+ if(!host||!select||contactUnreadBusy||!currentUserId)return;
+ contactUnreadBusy=true;
+ try{
+  const [textUnread,mediaUnread]=await Promise.all([
+   db.from('staff_direct_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null),
+   db.from('staff_media_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null)
+  ]);
+  const error=textUnread.error||mediaUnread.error;
+  if(error){host.innerHTML='<p class="muted">Could not refresh unread counts: '+esc(error.message)+'</p>';return}
+  const counts={};
+  [...(textUnread.data||[]),...(mediaUnread.data||[])].forEach(m=>counts[m.sender_user_id]=(counts[m.sender_user_id]||0)+1);
+  host.innerHTML=staffDirectoryCache.map(person=>{
+   const active=select.value===person.id,count=counts[person.id]||0;
+   const initials=(person.full_name||'C').split(/\\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
+   return '<button type="button" class="direct-message-contact '+(active?'active':'')+'" data-staff-contact="'+esc(person.id)+'"><span class="direct-message-contact-avatar">'+esc(initials)+'</span><span class="direct-message-contact-copy"><strong>'+esc(person.full_name)+'</strong><small>'+esc(person.role||'Staff')+'</small></span>'+(count?'<span class="direct-message-contact-unread">'+count+'</span>':'')+'</button>';
+  }).join('')||'<p class="muted">No other staff members are available yet.</p>';
+ }catch(error){host.innerHTML='<p class="muted">Could not refresh unread counts: '+esc(error.message||'Please retry.')+'</p>'}
+ finally{contactUnreadBusy=false}
 }
 $('directMessageContactList').addEventListener('click',async e=>{
  const button=e.target.closest('[data-staff-contact]');if(!button)return;
