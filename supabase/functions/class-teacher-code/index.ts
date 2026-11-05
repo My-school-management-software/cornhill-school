@@ -19,14 +19,32 @@ Deno.serve(async(req:Request)=>{
  const email="teacher."+classKey.toLowerCase()+"@cornhill.school";
  const {data:list,error:le}=await admin.auth.admin.listUsers({page:1,perPage:1000});if(le)return out(500,{error:"Could not check existing teacher account."});
  const old=list.users.find(u=>(u.email||"").toLowerCase()===email);let uid:string;
- if(old){uid=old.id;const {error}=await admin.auth.admin.updateUserById(uid,{password:code,email_confirm:true,user_metadata:{name:teacherName,class_key:classKey}});if(error)return out(400,{error:"Could not reset code: "+error.message})}
- else{const {data,error}=await admin.auth.admin.createUser({email,password:code,email_confirm:true,user_metadata:{name:teacherName,class_key:classKey}});if(error||!data.user)return out(400,{error:"Could not create teacher account: "+(error?.message||"Unknown error")});uid=data.user.id}
- const {error:pe}=await admin.from("user_profiles").upsert({id:uid,full_name:teacherName,role:"Teacher",employment_status:"Active",job_title:"Class Teacher",department:cls.name},{onConflict:"id"});if(pe)return out(500,{error:"Teacher profile could not be saved."});
- const {error:ae}=await admin.from("class_teacher_access").upsert({class_id:cls.id,user_id:uid},{onConflict:"class_id"});if(ae)return out(500,{error:"Class access could not be saved: "+ae.message});
- const group=["Baby","Middle","Top"].includes(classKey)?"Nursery":["P1","P2","P3"].includes(classKey)?"P1-P3":"P4-P7";
- const {data:curr,error:currErr}=await admin.from("school_curriculum_subjects").select("subject_id").eq("school_level_group",group);if(currErr||!curr?.length)return out(500,{error:"Class curriculum subjects could not be loaded."});
+ if(old){
+  uid=old.id;
+  const {data:existingProfile}=await admin.from("user_profiles").select("role").eq("id",uid).maybeSingle();
+  if(existingProfile?.role==="Admin")return out(409,{error:"This reserved class login belongs to an administrator and cannot be converted into a teacher account."});
+  const {error}=await admin.auth.admin.updateUserById(uid,{password:code,email_confirm:true,user_metadata:{name:teacherName,class_key:classKey}});
+  if(error)return out(400,{error:"Could not reset code: "+error.message});
+ }else{
+  const {data,error}=await admin.auth.admin.createUser({email,password:code,email_confirm:true,user_metadata:{name:teacherName,class_key:classKey}});
+  if(error||!data.user)return out(400,{error:"Could not create teacher account: "+(error?.message||"Unknown error")});
+  uid=data.user.id;
+ }
+ const {data:curr,error:currErr}=await admin.from("school_curriculum_subjects").select("subject_id").eq("school_level_group",group);
+ if(currErr||!curr?.length)return out(500,{error:"Class curriculum subjects could not be loaded."});
+ const {error:pe}=await admin.from("user_profiles").upsert({id:uid,full_name:teacherName,role:"Teacher",employment_status:"Active",job_title:"Class Teacher",department:cls.name},{onConflict:"id"});
+ if(pe)return out(500,{error:"Teacher profile could not be saved."});
+ // A teacher identity may belong to one class only. Remove any stale assignment before assigning this class.
+ const {error:oldAccessErr}=await admin.from("class_teacher_access").delete().eq("user_id",uid).neq("class_id",cls.id);
+ if(oldAccessErr)return out(500,{error:"Could not clear an old class assignment: "+oldAccessErr.message});
+ const {error:ae}=await admin.from("class_teacher_access").upsert({class_id:cls.id,user_id:uid},{onConflict:"class_id"});
+ if(ae)return out(500,{error:"Class access could not be saved: "+ae.message});
+ // Replace the class subject map so the class teacher receives only this class's curriculum subjects.
+ const {error:clearSubjectsErr}=await admin.from("class_subjects").delete().eq("class_id",cls.id);
+ if(clearSubjectsErr)return out(500,{error:"Could not refresh class subject assignments: "+clearSubjectsErr.message});
  const rows=curr.map(x=>({class_id:cls.id,subject_id:x.subject_id,teacher_user_id:uid}));
- const {error:se}=await admin.from("class_subjects").upsert(rows,{onConflict:"class_id,subject_id"});if(se)return out(500,{error:"Class subjects could not be assigned: "+se.message});
+ const {error:se}=await admin.from("class_subjects").insert(rows);
+ if(se)return out(500,{error:"Class subjects could not be assigned: "+se.message});
  const {error:de}=await admin.from("class_login_directory").update({teacher_name:teacherName,updated_at:new Date().toISOString()}).eq("class_key",classKey);if(de)return out(500,{error:"Class teacher name could not be updated."});
  return out(200,{success:true,class_key:classKey,teacher_name:teacherName,subjects_assigned:rows.length});
 });
