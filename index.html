@@ -2148,6 +2148,38 @@ async function loadSchoolReports(){
  finally{$('refreshSchoolReports').disabled=false}
 }
 $('refreshSchoolReports').addEventListener('click',loadSchoolReports);
+$('recordsPeriod').addEventListener('change',()=>{if(window.cornhillRecordsCache)loadSchoolReports()});
+$('recordsYear').addEventListener('change',()=>{if(window.cornhillRecordsCache)loadSchoolReports()});
+$('printSchoolRecords').addEventListener('click',()=>{if(profile?.role!=='Admin'||demoMode)return;document.body.classList.add('records-printing');window.print();setTimeout(()=>document.body.classList.remove('records-printing'),800)});
+$('printBackupChecklist').addEventListener('click',()=>{if(profile?.role!=='Admin'||demoMode)return;document.body.classList.add('records-printing');window.print();setTimeout(()=>document.body.classList.remove('records-printing'),800)});
+$('downloadSchoolBackup').addEventListener('click',async()=>{
+ if(profile?.role!=='Admin'||demoMode){$('backupStatus').textContent='Only a signed-in administrator can create a school backup.';return}
+ const button=$('downloadSchoolBackup');button.disabled=true;$('backupStatus').textContent='Collecting school records securely. Please keep this page open…';
+ const tables=['school_classes','academic_years','academic_terms','subjects','academic_grade_bands','uneb_subject_grade_bands','school_curriculum_subjects','class_subjects','assessments','assessment_scores','report_card_publications','student_class_history','student_status_history','fee_items','fee_schedules','learner_charges','school_payments','payment_allocations','school_expenses','expense_categories','payroll_periods','payroll_items','staff_salary_agreements','staff_salary_advances','staff_attendance_events','staff_attendance_adjustments','staff_attendance_incidents','staff_work_schedules','staff_attendance_schedule_assignments','inventory_categories','inventory_items','inventory_movements'];
+ try{
+  const backup={school:'CORNHILL NURSERY AND PRIMARY SCHOOL',format:'cornhill-records-backup-v1',created_at:new Date().toISOString(),created_by:profile?.full_name||'Administrator',scope:'Application records snapshot; not a complete database or Storage backup.',records:{}};
+  const learnerResult=await db.rpc('admin_list_students');if(learnerResult.error)throw new Error('Learner records: '+learnerResult.error.message);
+  backup.records.students=Array.isArray(learnerResult.data)?learnerResult.data:(learnerResult.data?.students||[]);
+  const failures=[];
+  for(const table of tables){
+   const rows=[];let from=0,done=false;
+   while(!done){
+    const {data,error}=await db.from(table).select('*').range(from,from+999);
+    if(error){failures.push(table+': '+error.message);break}
+    rows.push(...(data||[]));if(!data||data.length<1000)done=true;else from+=1000;
+   }
+   if(failures.length)break;backup.records[table]=rows;
+  }
+  if(failures.length)throw new Error('Backup stopped to prevent an incomplete file. Access problem: '+failures.join('; '));
+  const counts=Object.fromEntries(Object.entries(backup.records).map(([k,v])=>[k,v.length]));
+  backup.record_counts=counts;const json=JSON.stringify(backup,null,2);
+  const blob=new Blob([json],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a'),stamp=new Date().toISOString().replace(/[:.]/g,'-');
+  a.href=url;a.download='cornhill-school-records-backup-'+stamp+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  const history=JSON.parse(localStorage.getItem('cornhill-backup-history')||'[]');history.unshift({created_at:backup.created_at,filename:a.download,record_counts:counts});localStorage.setItem('cornhill-backup-history',JSON.stringify(history.slice(0,20)));
+  $('backupStatus').textContent='Backup file generated: '+a.download+' · '+Object.values(counts).reduce((a,b)=>a+b,0).toLocaleString('en-UG')+' records across '+Object.keys(counts).length+' datasets. Confirm that your browser saved it, then copy it to a separate device or secure drive.';
+ }catch(error){$('backupStatus').textContent='Backup was NOT created: '+(error.message||'Unknown error')+' Please check administrator access and retry.'}
+ finally{button.disabled=false}
+});
 $('exportLearnerRegister').addEventListener('click',()=>{
  if(profile?.role!=='Admin'||demoMode)return;const rows=window.cornhillReportLearners||[];if(!rows.length){message('reportsMsg','Refresh the report summary before exporting.',true);return}
  const headers=['Admission code','First name','Middle name','Last name','Class','Gender','LIN'];
