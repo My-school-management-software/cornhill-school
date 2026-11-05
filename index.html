@@ -1252,6 +1252,7 @@ async function loadAcademics(){
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
+ $('downloadBlankReportTemplates').classList.toggle('hidden',profile?.role!=='Admin');
  $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
