@@ -91,7 +91,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
 <header class="top"><div><div class="brand">🌿 CORNHILL NURSERY AND PRIMARY SCHOOL</div><div class="sub">School Management System · Uganda</div></div><button id="logout" class="hidden">Sign out</button></header>
 <main class="wrap">
-<section id="login" class="panel login"><h2>Welcome to CORNHILL</h2><p class="muted">Select your class to open its teacher sign-in. The administrator has a separate secure sign-in.</p><div id="loginMsg" class="notice hidden"></div><div id="classLoginDirectory" class="login-class-grid"><p class="muted">Loading class list…</p></div><div id="selectedTeacherLogin" class="hidden" style="margin-top:16px;padding:15px;border:1px solid var(--cornhill-line);border-radius:14px;background:var(--cornhill-page)"><div class="row"><div><strong id="selectedLoginClassName">Class teacher</strong><p id="selectedLoginTeacherName" class="muted" style="margin:5px 0 12px"></p></div><button type="button" id="backToClassList" class="tab">Back</button></div><label for="email">Teacher email address</label><input id="email" type="email" autocomplete="username" placeholder="Your school email address"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password"><button id="signIn" class="primary" style="width:100%">Sign in to this class</button><p class="muted">Your account must be assigned to this class by the administrator. Class selection alone does not grant access.</p></div><div style="border-top:1px solid var(--cornhill-line);margin-top:20px;padding-top:16px"><button id="adminLoginOpen" class="tab" style="width:100%">Administrator · <span id="adminLoginName">Full school access</span></button><div id="adminLoginPanel" class="hidden" style="margin-top:14px"><label for="adminEmail">Administrator email</label><input id="adminEmail" type="email" autocomplete="username" placeholder="Administrator email"><label for="adminPassword">Password</label><input id="adminPassword" type="password" autocomplete="current-password" placeholder="Administrator password"><button id="adminSignIn" class="primary" style="width:100%">Administrator sign in</button></div></div><button id="demoAccess" class="tab" style="width:100%;margin-top:14px">Explore read-only demo</button><p class="muted">Demo access uses sample information only. Changes to real school records are disabled.</p></section>
+<section id="login" class="panel login"><h2>Welcome to CORNHILL</h2><p class="muted">Select your class to open its teacher sign-in. The administrator has a separate secure sign-in.</p><div id="loginMsg" class="notice hidden"></div><div id="classLoginDirectory" class="login-class-grid"><p class="muted">Loading class list…</p></div><div id="selectedTeacherLogin" class="hidden" style="margin-top:16px;padding:15px;border:1px solid var(--cornhill-line);border-radius:14px;background:var(--cornhill-page)"><div class="row"><div><strong id="selectedLoginClassName">Class teacher</strong><p id="selectedLoginTeacherName" class="muted" style="margin:5px 0 12px"></p></div><button type="button" id="backToClassList" class="tab">Back</button></div><label for="teacherClassCode">Private class teacher code</label><input id="teacherClassCode" type="password" autocomplete="current-password" minlength="10" maxlength="72" placeholder="Enter the code given by the administrator"><button id="signIn" class="primary" style="width:100%">Sign in to this class</button><p class="muted">Each class has its own private code. Select the correct class before signing in.</p></div><div style="border-top:1px solid var(--cornhill-line);margin-top:20px;padding-top:16px"><button id="adminLoginOpen" class="tab" style="width:100%">Administrator · <span id="adminLoginName">Full school access</span></button><div id="adminLoginPanel" class="hidden" style="margin-top:14px"><label for="adminEmail">Administrator email</label><input id="adminEmail" type="email" autocomplete="username" placeholder="Administrator email"><label for="adminPassword">Password</label><input id="adminPassword" type="password" autocomplete="current-password" placeholder="Administrator password"><button id="adminSignIn" class="primary" style="width:100%">Administrator sign in</button></div></div><button id="demoAccess" class="tab" style="width:100%;margin-top:14px">Explore read-only demo</button><p class="muted">Demo access uses sample information only. Changes to real school records are disabled.</p></section>
 <section id="app" class="hidden">
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p id="welcomeMessage" class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
 <div id="appMsg" class="notice hidden"></div><div id="staffAttendanceNotice" class="notice hidden" role="status" aria-live="polite" style="background:#fff7ed;color:#9a3412;border-left:4px solid #d97706"></div><div id="demoBanner" class="notice" style="display:none;background:#fff7ed;color:#9a3412">DEMO MODE · Sample records only · Changes are disabled · No real school data is being shown.</div>
@@ -280,7 +280,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  <h3 style="margin-top:20px">Recent marks</h3><div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Assessment</th><th>Score</th><th>Maximum</th><th>Entered</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
 </section>
 
-<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div id="classTeacherNamesAdmin" style="margin:18px 0;padding:15px;border:1px solid var(--cornhill-line);border-radius:12px"><h3>Names shown on the sign-in screen</h3><p class="muted">Set the administrator display name and each class teacher display name. These names are public labels only; they do not create accounts or grant permissions.</p><div><label>Administrator display name</label><input id="adminDisplayNameField" maxlength="120" placeholder="Enter administrator name"></div><div id="classTeacherNameFields" class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))"><p class="muted">Loading class names…</p></div><button type="button" id="saveClassTeacherNames" class="primary">Save class teacher names</button><div id="classTeacherNamesMsg" class="notice hidden"></div></div>
+<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div id="classTeacherNamesAdmin" style="margin:18px 0;padding:15px;border:1px solid var(--cornhill-line);border-radius:12px"><h3>Names shown on the sign-in screen</h3><p class="muted">Set the administrator display name and each class teacher display name. These names are public labels only; they do not create accounts or grant permissions.</p><div><label>Administrator display name</label><input id="adminDisplayNameField" maxlength="120" placeholder="Enter administrator name"></div><div id="classTeacherNameFields" class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))"><p class="muted">Loading class names…</p></div><button type="button" id="saveClassTeacherNames" class="primary">Save class teacher names</button><p class="muted">Create or reset a class teacher login below each class. Use a private code of at least 10 characters and share it only with that teacher. Resetting a code immediately invalidates the old code.</p><div id="classTeacherNamesMsg" class="notice hidden"></div></div>
 <h3 style="margin-top:18px">Invite a staff member</h3>
 <p class="muted">Send a secure email invitation. The staff member sets their own password. Teachers receive the Teacher role; other employees receive Staff access.</p>
 <form id="staffInviteForm">
@@ -823,8 +823,28 @@ async function loadClassTeacherNamesAdmin(){
  const host=$('classTeacherNameFields');if(!host||profile?.role!=='Admin')return;
  const {data,error}=await db.from('class_login_directory').select('class_key,class_label,teacher_name,administrator_name').order('display_order');
  if(error){message('classTeacherNamesMsg','Could not load class names: '+error.message,true);return}
- $('adminDisplayNameField').value=data?.[0]?.administrator_name||'';host.innerHTML=(data||[]).map(x=>'<div><label>'+esc(x.class_label)+'</label><input data-class-teacher-name="'+esc(x.class_key)+'" maxlength="120" value="'+esc(x.teacher_name||'')+'" placeholder="Enter class teacher name"></div>').join('');
+ $('adminDisplayNameField').value=data?.[0]?.administrator_name||'';host.innerHTML=(data||[]).map(x=>'<div class="panel" style="padding:12px"><label>'+esc(x.class_label)+'</label><input data-class-teacher-name="'+esc(x.class_key)+'" maxlength="120" value="'+esc(x.teacher_name||'')+'" placeholder="Enter class teacher name"><label>Private teacher code</label><input type="password" data-class-teacher-code="'+esc(x.class_key)+'" minlength="10" maxlength="72" autocomplete="new-password" placeholder="At least 10 characters"><button type="button" data-save-class-code="'+esc(x.class_key)+'" style="width:100%;margin-top:8px">Create / reset code</button></div>').join('');
 }
+$('classTeacherNameFields').addEventListener('click',async e=>{
+ const button=e.target.closest('[data-save-class-code]');if(!button)return;
+ if(profile?.role!=='Admin'||demoMode){message('classTeacherNamesMsg','Only the administrator can create or reset teacher codes.',true);return}
+ const key=button.dataset.saveClassCode;
+ const nameField=document.querySelector('[data-class-teacher-name="'+key+'"]');
+ const codeField=document.querySelector('[data-class-teacher-code="'+key+'"]');
+ const teacherName=nameField?.value.trim()||'',classCode=codeField?.value||'';
+ if(teacherName.length<2){message('classTeacherNamesMsg','Enter the class teacher name first.',true);return}
+ if(classCode.length<10){message('classTeacherNamesMsg','The private code must contain at least 10 characters.',true);return}
+ button.disabled=true;button.textContent='Saving secure code…';
+ try{
+  const {data,error}=await db.functions.invoke('class-teacher-code',{body:{class_key:key,teacher_name:teacherName,class_code:classCode}});
+  if(error)throw error;
+  if(data?.error)throw new Error(data.error);
+  codeField.value='';
+  message('classTeacherNamesMsg',key+' teacher login created/reset for '+teacherName+'. Share the code privately with that teacher.');
+  await loadPublicClassLoginDirectory();
+ }catch(err){message('classTeacherNamesMsg','Could not save teacher code: '+(err?.message||'Please try again.'),true)}
+ finally{button.disabled=false;button.textContent='Create / reset code'}
+});
 $('saveClassTeacherNames').addEventListener('click',async()=>{
  if(profile?.role!=='Admin'||demoMode){message('classTeacherNamesMsg','Only the administrator can change these display names.',true);return}
  const button=$('saveClassTeacherNames');button.disabled=true;
@@ -1692,14 +1712,15 @@ function openTeacherLogin(classKey){
  $('selectedLoginClassName').textContent=label+' · Class teacher sign in';
  const tile=$('classLoginDirectory').querySelector('[data-login-class="'+classKey+'"]');
  $('selectedLoginTeacherName').textContent=tile?.querySelector('span')?.textContent||'';
- $('classLoginDirectory').classList.add('hidden');$('selectedTeacherLogin').classList.remove('hidden');$('adminLoginPanel').classList.add('hidden');$('email').value='';$('password').value='';clearMessage('loginMsg');
+ $('classLoginDirectory').classList.add('hidden');$('selectedTeacherLogin').classList.remove('hidden');$('adminLoginPanel').classList.add('hidden');$('teacherClassCode').value='';clearMessage('loginMsg');
 }
 $('classLoginDirectory').addEventListener('click',e=>{const tile=e.target.closest('[data-login-class]');if(tile)openTeacherLogin(tile.dataset.loginClass)});
-$('backToClassList').addEventListener('click',()=>{$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass='';$('password').value='';clearMessage('loginMsg')});
+$('backToClassList').addEventListener('click',()=>{$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass='';$('teacherClassCode').value='';clearMessage('loginMsg')});
 $('adminLoginOpen').addEventListener('click',()=>{$('adminLoginPanel').classList.toggle('hidden');$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass=''});
 async function authenticateAccount(email,password,mode,selectedClass,button){
  clearMessage('loginMsg');if(!db){message('loginMsg','The sign-in service is unavailable. Check your internet connection and refresh.',true);return}
- if(!email||!password){message('loginMsg','Enter both your email address and password.',true);return}
+ if(!password){message('loginMsg',mode==='Teacher'?'Enter the private class teacher code.':'Enter your email address and password.',true);return}
+ if(mode==='Teacher'&&!selectedClass){message('loginMsg','Select your class first.',true);return}
  button.disabled=true;button.textContent='Verifying account…';
  try{
   const {data,error}=await db.auth.signInWithPassword({email,password});if(error){message('loginMsg',error.message,true);return}
@@ -1710,18 +1731,18 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
   if(mode==='Admin'&&account.role!=='Admin'){await db.auth.signOut();message('loginMsg','This account is not an administrator account.',true);return}
   if(mode==='Teacher'){
    if(account.role!=='Teacher'){await db.auth.signOut();message('loginMsg','This account is not registered as a class teacher.',true);return}
-   const {data:assigned,error:assignmentError}=await db.from('class_subjects').select('class_id,school_classes(name,stream)').eq('teacher_user_id',userId);
-   if(assignmentError){await db.auth.signOut();message('loginMsg','Could not verify your class assignment. Contact the administrator.',true);return}
+   const {data:assigned,error:assignmentError}=await db.from('class_teacher_access').select('class_id,school_classes(name)').eq('user_id',userId);
+   if(assignmentError){await db.auth.signOut();message('loginMsg','Could not verify your class access. Contact the administrator.',true);return}
    const matches=(assigned||[]).filter(x=>String(x.school_classes?.name||'').trim().toLowerCase()===selectedClass.toLowerCase());
    const ids=[...new Set(matches.map(x=>x.class_id))];
-   if(ids.length!==1){await db.auth.signOut();message('loginMsg',ids.length?'More than one stream is assigned to your account. Ask the administrator to clarify.':'You are not assigned to '+selectedClass+'. Ask the administrator to assign your class and subjects.',true);return}
+   if(ids.length!==1){await db.auth.signOut();message('loginMsg','This code is not authorised for '+selectedClass+'. Check the class selected or contact the administrator.',true);return}
    sessionStorage.setItem('cornhill_teacher_class_id',ids[0]);sessionStorage.setItem('cornhill_login_mode','Teacher');
   }else{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.setItem('cornhill_login_mode','Admin')}
   await startSession(data.session);
  }catch(err){message('loginMsg','Could not complete sign-in. Check your connection and try again. '+(err?.message||''),true)}
  finally{button.disabled=false;button.textContent=mode==='Admin'?'Administrator sign in':'Sign in to this class'}
 }
-$('signIn').addEventListener('click',()=>authenticateAccount($('email').value.trim(),$('password').value,'Teacher',selectedLoginClass,$('signIn')));
+$('signIn').addEventListener('click',()=>authenticateAccount('teacher.'+selectedLoginClass.toLowerCase()+'@cornhill.school',$('teacherClassCode').value,'Teacher',selectedLoginClass,$('signIn')));
 $('adminSignIn').addEventListener('click',()=>authenticateAccount($('adminEmail').value.trim(),$('adminPassword').value,'Admin','',$('adminSignIn')));
 
 loadPublicClassLoginDirectory();
