@@ -2417,9 +2417,9 @@ function hideStaffRecording(){
 async function startStaffMediaRecording(kind){
  const recipient=$('directMessageRecipient')?.value;
  if(staffMediaBusy){setStaffMediaStatus('Please wait for the current recording to finish sending.',true);return}
- staffMediaBusy=true;
  if(!recipient){setStaffMediaStatus('Choose a colleague before recording.',true);return}
  if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){setStaffMediaStatus('This browser does not support voice/video recording. Please use updated Chrome over HTTPS.',true);return}
+ staffMediaBusy=true;
  try{
   staffMediaKind=kind;staffMediaChunks=[];
   staffMediaStream=await navigator.mediaDevices.getUserMedia(kind==='audio'?{audio:true}:{audio:true,video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}});
