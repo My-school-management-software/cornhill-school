@@ -1,31 +1,43 @@
-# Cornhill School Management System
+# CORNHILL NURSERY AND PRIMARY SCHOOL Management System
 
-A mobile-friendly starter for Cornhill Nursery and Primary School (Uganda).
+Mobile-friendly school management system for CORNHILL NURSERY AND PRIMARY SCHOOL, Uganda. Currency: UGX.
 
-## Delivery progress
+## Current development scope
 
-See [the live development progress tracker](docs/DELIVERY_PROGRESS.md) for what is specified, coded, applied, tested and deployed.
+The active development branch includes these application areas:
+- Staff sign-in, administrator/staff roles and access-controlled modules.
+- Learner admission, learner search, class and stream management, LIN and admission identifiers.
+- Learner status history, class promotion history and private learner photo storage.
+- Academic subject structures, mark entry, P4–P7 absence handling, UNEB-style grade/aggregate calculations and report-card workflows.
+- Finance fee schedules, learner charges, bursary-related learner charges, payment allocation, receipts, statements and fee reports.
+- Atomic payment posting and administrator-audited receipt reversal.
+- Daily collection reporting, expenses, inventory, staff attendance/import workflows, staff communication and settings/themes.
+- Installable web app shell with offline shell caching and a clear offline status warning.
 
-## Current foundation
-- Staff sign-in through Supabase Auth
-- Student register and search
-- Class and stream setup
-- Student and class totals
-- Student data stored in Supabase with Row Level Security
-- Currency and future finance modules are planned for UGX
+This is active development, not a declaration of production readiness. Authenticated end-to-end acceptance tests, hardware tests and final operational sign-off are still required.
 
-## One-time Supabase setup
-1. Open the Cornhill project in Supabase.
-2. Go to **SQL Editor** → **New query**.
-3. Open `supabase/migrations/202611030001_initial_schema.sql` in this repository, copy all its contents, paste into the SQL Editor, and click **Run**.
-4. In Supabase, go to **Authentication → Users → Add user** and create the first administrator account using an email and a strong password.
-5. Copy the new user's exact email into the final commented SQL update in the migration (replace `YOUR_ADMIN_EMAIL` and set the administrator's name), uncomment those four lines, and run that update in SQL Editor. This promotes only that account to Admin.
-6. Create additional staff accounts under **Authentication → Users → Add user**. New accounts receive the Staff role automatically.
+## Current preview
 
-Do not put a Supabase service-role/secret key in this website or share it in chat. The website uses only the public publishable key. Keep Row Level Security enabled.
+The feature/cornhill-v3-foundation branch has a Vercel preview deployment. Use the latest preview link supplied in the project delivery notes; preview deployments may change after each commit. The production main branch has not been changed by this development branch.
 
-## Preview and publish
-This work is on branch `feature/cornhill-v3-foundation`; the live `main` branch has not been changed. Review the branch, then open a Pull Request into `main` on GitHub. Merge it after testing to publish through the existing Vercel connection.
+## Offline limitation — important
 
-## Important
-The current version is the first foundation, not the complete school system. It currently covers sign-in, student registration, and classes. Attendance, marks/UNEB grading, report cards, fees, bursaries, staff/payroll, parent communication, and backups still need to be built and tested before the school relies on this system for daily operations.
+Offline support currently caches the application shell only. The live Supabase database, authentication, photos/storage, payments and other server operations require internet access. The app does not yet provide a durable IndexedDB record queue, conflict resolution or automatic data synchronisation. Do not enter school records or accept payments while offline.
+
+## One-time Supabase setup and security
+
+1. Create the first administrator through Supabase Authentication.
+2. Assign the administrator role through the reviewed school-admin provisioning process.
+3. Create staff accounts and assign only the roles/classes they need.
+4. Keep Row Level Security enabled.
+5. Never place a Supabase service-role/secret key in browser code or share it in chat.
+6. Enable leaked-password protection in Supabase Auth password security settings before production use.
+7. Review all Supabase security advisor findings before school-wide launch.
+
+## School launch acceptance
+
+Before daily use, complete the authenticated test checklist in [docs/ACCEPTANCE_TESTS.md](docs/ACCEPTANCE_TESTS.md). Test using designated test accounts and sample learners, never real payments or live learner records unless the school has approved the test.
+
+## Repository workflow
+
+Work is on feature/cornhill-v3-foundation. Review the branch and acceptance evidence before creating/merging a pull request into main. A successful Vercel preview build does not by itself prove that database permissions, school workflows, printers, biometrics or offline synchronisation work.
