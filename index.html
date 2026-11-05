@@ -2644,7 +2644,7 @@ $('directMessageForm').addEventListener('submit',async e=>{
     const kind=file.type.startsWith('image/')?'image':file.type.startsWith('audio/')?'audio':file.type.startsWith('video/')?'video':null;
     if(!kind)throw new Error('Unsupported attachment type: '+file.name);
     if(file.size>50*1024*1024)throw new Error(file.name+' is over the 50 MB per-file limit.');
-    await uploadStaffMediaMessage(file,kind,0,recipient);
+    if(!await uploadStaffMediaMessage(file,kind,0,recipient))throw new Error(file.name+' could not be uploaded.');
    }
    $('directMessageBody').value='';if(picker)picker.value='';clearMessage('directMessageMsg');await loadDirectMessageThread();
   }catch(error){message('directMessageMsg','Message or attachment was not fully sent: '+(error.message||'Please retry.'),true)}
