@@ -1211,10 +1211,10 @@ $('prepareExcelAssessments').addEventListener('click',async()=>{
   const present=new Set((existing||[]).map(x=>x.subject_id+'|'+String(x.title||'').toLowerCase()));
   const userResult=await db.auth.getUser();if(userResult.error||!userResult.data?.user)throw new Error('Your administrator session has expired. Sign in again.');
   const missing=[];
-  for(const subjectId of subjectIds)for(const title of phases)if(!present.has(subjectId+'|'+title.toLowerCase()))missing.push({term_id:termId,class_id:classId,subject_id:subjectId,title,assessment_type:'Coursework',max_score:100,assessment_date:null,created_by:userResult.data.user.id});
+  for(const subjectId of subjectIds)for(const phase of phases)if(!present.has(subjectId+'|'+phase.phase))missing.push({term_id:termId,class_id:classId,subject_id:subjectId,title:phase.title,assessment_type:'Coursework',max_score:100,assessment_date:null,created_by:userResult.data.user.id});
   if(!missing.length){message('excelMarksMsg','This class already has all standard assessment columns. No duplicates were created.');return}
   const {error:insertError}=await db.from('assessments').insert(missing);if(insertError)throw insertError;
-  await loadAcademics();await loadExcelMarksGrid();
+  await loadAcademics();$('excelMarksTerm').value=termId;$('excelMarksClass').value=classId;await loadExcelMarksGrid();
   message('excelMarksMsg','Prepared '+missing.length+' missing assessment column(s) for '+cls.name+'. Existing assessments and learner marks were left unchanged.');
  }catch(err){message('excelMarksMsg','Could not prepare the class sheet. '+(err?.message||'Please try again.'),true)}
  finally{button.disabled=false;button.textContent='Prepare class sheet';delete button.dataset.busy}
