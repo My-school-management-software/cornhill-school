@@ -668,11 +668,13 @@ async function loadFinancialOverview(accountsData){
   const inRange=(date)=>{const day=typeof date==='string'&&date.length===10?date:new Date(date).toLocaleDateString('en-CA',{timeZone:'Africa/Kampala'});return (!from||day>=from)&&(!to||day<=to)};
   const periodPayments=payments.filter(p=>inRange(p.received_at));
   const posted=periodPayments.filter(p=>p.status==='Posted'),reversed=periodPayments.filter(p=>p.status==='Reversed');
-  const expenseRows=(window.cornhillExpenseRows||[]).filter(x=>inRange(x.expense_date));
+  let allExpenses=window.cornhillExpenseRowsLoaded?(window.cornhillExpenseRows||[]):[];
+  if(!window.cornhillExpenseRowsLoaded){let expenseOffset=0;while(true){const page=await db.from('school_expenses').select('id,expense_no,expense_date,description,amount_ugx,payee_name,payment_method,status,expense_categories(name)').order('expense_date',{ascending:false}).range(expenseOffset,expenseOffset+999);if(page.error)throw page.error;allExpenses.push(...(page.data||[]));if((page.data||[]).length<1000)break;expenseOffset+=1000;}window.cornhillExpenseRows=allExpenses;window.cornhillExpenseRowsLoaded=true;}
+  const expenseRows=allExpenses.filter(x=>inRange(x.expense_date));
   const postedExpenses=expenseRows.filter(x=>x.status==='Posted');
   const sum=(rows,key)=>rows.reduce((n,x)=>n+Number(x[key]||0),0);
   const income=sum(posted,'amount_ugx'),expenses=sum(postedExpenses,'amount_ugx'),reversedTotal=sum(reversed,'amount_ugx');
-  const isFeeItem=(value)=>/(school\s*fees?|tuition|fee|bursary)/i.test(String(value||''));
+  const isFeeItem=(value)=>/^(school fees?|tuition|term fees?|bursary(?: fees?)?)$/i.test(String(value||'').trim());
   const feeRows=posted.filter(p=>isFeeItem(p.collection_item)),feeIncome=sum(feeRows,'amount_ugx');
   const otherIncome=income-feeIncome;
   const accounts=accountsData||window.cornhillFinanceAccounts||[];
@@ -801,6 +803,7 @@ $('printDailyCollectionRecord').addEventListener('click',()=>{if($('dailyCollect
 $('dailyRecordDate').value=kampalaToday();
 $('expenseDate').value=kampalaToday();
 async function loadExpensePayroll(){
+ window.cornhillExpenseRowsLoaded=false;
  if(demoMode||profile?.role!=='Admin')return;
  const [cats,staff,agreements,periods]=await Promise.all([
   db.from('expense_categories').select('id,name,is_active').eq('is_active',true).order('name'),
@@ -816,7 +819,7 @@ async function loadExpensePayroll(){
   expenseRows.push(...(page.data||[]));if((page.data||[]).length<1000)break;
  }
  if(expenseError){message('expenseMsg','Expense records could not load: '+expenseError.message,true);return}
- window.cornhillExpenseRows=expenseRows;
+ window.cornhillExpenseRows=expenseRows;window.cornhillExpenseRowsLoaded=true;
  $('expenseCategory').innerHTML=(cats.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  $('salaryStaff').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).filter(x=>x.employment_status==='Active').map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed staff')+' · '+esc(x.job_title||'Staff')+'</option>').join('');$('advanceStaff').innerHTML=$('salaryStaff').innerHTML;$('advanceDate').value=kampalaToday();const advances=await db.from('staff_salary_advances').select('id,staff_user_id,advance_date,amount_ugx,outstanding_ugx,status,user_profiles(full_name)').order('advance_date',{ascending:false});if(advances.error){message('advanceMsg','Could not load staff advances: '+advances.error.message,true);return}$('salaryAdvanceRows').innerHTML=(advances.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff')+'</td><td>'+esc(x.advance_date)+'</td><td>'+money(x.amount_ugx)+'</td><td><strong>'+money(x.outstanding_ugx)+'</strong></td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="5">No advances recorded.</td></tr>';
  $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'<br><small>Daily pay: '+(x.daily_rate_ugx===null?'Not set':money(x.daily_rate_ugx))+'</small></td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+ (x.is_active?'Active':'Inactive')+(x.is_active?' <button type="button" data-close-salary="'+x.id+'">Close agreement</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
