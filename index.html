@@ -1000,8 +1000,8 @@ $('previewBulkLearners').addEventListener('click',async()=>{
 $('confirmBulkLearners').addEventListener('click',async()=>{
  if(profile?.role!=='Admin'||demoMode||!bulkLearnerRows.length)return;
  const genders=bulkLearnerRows.map((r,i)=>$('bulkImportPreview').querySelector('[data-bulk-gender="'+i+'"]')?.value||'');
- const birthYears=bulkLearnerRows.map((r,i)=>Number($('bulkImportPreview').querySelector('[data-bulk-birth-year="'+i+'"]')?.value));
- if(genders.some(g=>!['Male','Female'].includes(g))||birthYears.some(y=>!Number.isInteger(y)||y<1900||y>new Date().getFullYear())){message('bulkImportMsg','Enter a valid year of birth and select Male or Female for every learner before importing. No learner has been imported yet.',true);return}
+ const birthYears=bulkLearnerRows.map((r,i)=>{const v=$('bulkImportPreview').querySelector('[data-bulk-birth-year="'+i+'"]')?.value;const n=Number(v);return v&&Number.isInteger(n)&&n>=1900&&n<=new Date().getFullYear()?n:null});
+ if(birthYears.some((y,i)=>$('bulkImportPreview').querySelector('[data-bulk-birth-year="'+i+'"]')?.value&&!y)){message('bulkImportMsg','Correct invalid birth years or leave them blank to use temporary codes.',true);return}
  const confirmImport=confirm('Import '+bulkLearnerRows.length+' learner(s) now? Learners missing gender or year of birth will receive temporary codes with red warnings. Permanent codes are generated automatically once both details are completed.');
  if(!confirmImport)return;
  const button=$('confirmBulkLearners');button.disabled=true;button.textContent='Importing…';
