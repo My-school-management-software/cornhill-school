@@ -21,7 +21,31 @@
 .excel-grade-detail{display:block;font-size:10px;color:var(--cornhill-muted);margin-top:3px}
 @media(max-width:700px){/* All assessment periods and learner details remain visible to teachers on every screen. */}
 
-.login-class-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.login-class-entry{min-width:0}.class-preview-button{width:100%;margin-top:5px;padding:8px;font-size:12px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.login-class-tile{display:block;width:100%;min-height:90px;text-align:left;padding:13px;border:1px solid var(--cornhill-line);border-radius:13px;background:var(--cornhill-panel);color:var(--cornhill-ink)}.login-class-tile strong{display:block;font-size:16px;color:var(--cornhill-accent-dark)}.login-class-tile span{display:block;margin-top:7px;font-size:12px;color:var(--cornhill-muted);font-weight:500}.login-class-tile:hover{border-color:var(--cornhill-accent);background:var(--cornhill-page)}@media(max-width:390px){.login-class-grid{gap:7px}.login-class-tile{padding:10px;min-height:82px}.login-class-tile strong{font-size:14px}}</style><style>@media print{body.print-class-register *{visibility:hidden!important}body.print-class-register #classRosterPrint,body.print-class-register #classRosterPrint *{visibility:visible!important}body.print-class-register #classRosterPrint{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0!important;box-shadow:none!important}body.print-class-register #classRosterPrint button{display:none!important}body.print-learner-profile *{visibility:hidden!important}body.print-learner-profile #learnerProfileContent,body.print-learner-profile #learnerProfileContent *{visibility:visible!important}body.print-learner-profile #learnerProfileContent{display:block!important;position:absolute;left:0;top:0;width:100%}}body.print-official-report *{visibility:hidden!important}body.print-official-report #reportCardPreview,body.print-official-report #reportCardPreview *{visibility:visible!important}body.print-official-report #reportCardPreview{display:block!important;position:absolute;left:0;top:0;width:100%}body.print-official-report #reportCardPreview button{display:none!important}body.print-report-batch *{visibility:hidden!important}body.print-report-batch #reportBatchPrint,body.print-report-batch #reportBatchPrint *{visibility:visible!important}body.print-report-batch #reportBatchPrint{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0;padding:0;background:#fff}</style><style>
+.login-class-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.login-class-entry{min-width:0}.class-preview-button{width:100%;margin-top:5px;padding:8px;font-size:12px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.login-class-tile{display:block;width:100%;min-height:90px;text-align:left;padding:13px;border:1px solid var(--cornhill-line);border-radius:13px;background:var(--cornhill-panel);color:var(--cornhill-ink)}.login-class-tile strong{display:block;font-size:16px;color:var(--cornhill-accent-dark)}.login-class-tile span{display:block;margin-top:7px;font-size:12px;color:var(--cornhill-muted);font-weight:500}.login-class-tile:hover{border-color:var(--cornhill-accent);background:var(--cornhill-page)}@media(max-width:390px){.login-class-grid{gap:7px}.login-class-tile{padding:10px;min-height:82px}.login-class-tile strong{font-size:14px}}
+/* WhatsApp-inspired private staff chat and recording feedback */
+.direct-message-grid{grid-template-columns:minmax(210px,.72fr) minmax(0,1.8fr);align-items:stretch}
+.staff-chat-side{background:#f7fbf8}
+.direct-message-thread{height: min(58vh,560px);min-height:300px;background-color:#e9f1eb;background-image:radial-gradient(#cbd9ce 0.65px,transparent .65px);background-size:14px 14px;border-radius:12px}
+.direct-message-item{max-width:min(82%,520px);padding:10px 13px;background:#fff;border:0;border-radius:12px 12px 12px 3px;box-shadow:0 1px 1px #00000012}
+.direct-message-item.mine{background:#d9fdd3;border-radius:12px 12px 3px 12px}
+.direct-message-item small{font-size:10px;text-align:right;color:#647568}
+.staff-chat-heading{background:#075e54;border-radius:12px}
+.staff-chat-heading .staff-chat-avatar{background:#d9fdd3;color:#075e54}
+.staff-media-toolbar{padding:9px;background:#f4f7f5;border:1px solid #dce7de;border-radius:12px}
+.staff-media-toolbar button{border-radius:10px;min-height:42px}
+.staff-media-status{padding:7px 2px;min-height:28px}
+#incomingMessagesBadge{position:relative;display:inline-flex;align-items:center;gap:6px}
+#incomingMessagesBadge:not(.hidden){background:#dcfce7!important;color:#14532d!important}
+#incomingMessagesCount{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#dc2626;color:white;font-size:12px;font-weight:900}
+.staff-recording-panel{margin:10px 0;padding:12px;border-radius:14px;background:#10251f;color:#fff;box-shadow:0 8px 24px #0002}
+.staff-recording-panel .recording-top{display:flex;align-items:center;gap:9px;font-weight:800}
+.staff-recording-dot{width:11px;height:11px;background:#ef4444;border-radius:50%;animation:staffRecordPulse 1s infinite}
+.staff-recording-timer{font-variant-numeric:tabular-nums;font-size:22px;font-weight:800;margin:8px 0}
+.staff-recording-preview{width:100%;max-height:280px;aspect-ratio:16/9;object-fit:cover;background:#000;border-radius:10px;margin-top:8px}
+.staff-recording-stop{background:#dc2626!important;color:#fff!important;width:100%;margin-top:9px}
+@keyframes staffRecordPulse{50%{opacity:.25;transform:scale(.78)}}
+@media(max-width:650px){.direct-message-grid{grid-template-columns:1fr}.direct-message-thread{height:48vh;min-height:260px}.staff-recording-preview{max-height:230px}}
+</style><style>@media print{body.print-class-register *{visibility:hidden!important}body.print-class-register #classRosterPrint,body.print-class-register #classRosterPrint *{visibility:visible!important}body.print-class-register #classRosterPrint{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0!important;box-shadow:none!important}body.print-class-register #classRosterPrint button{display:none!important}body.print-learner-profile *{visibility:hidden!important}body.print-learner-profile #learnerProfileContent,body.print-learner-profile #learnerProfileContent *{visibility:visible!important}body.print-learner-profile #learnerProfileContent{display:block!important;position:absolute;left:0;top:0;width:100%}}body.print-official-report *{visibility:hidden!important}body.print-official-report #reportCardPreview,body.print-official-report #reportCardPreview *{visibility:visible!important}body.print-official-report #reportCardPreview{display:block!important;position:absolute;left:0;top:0;width:100%}body.print-official-report #reportCardPreview button{display:none!important}body.print-report-batch *{visibility:hidden!important}body.print-report-batch #reportBatchPrint,body.print-report-batch #reportBatchPrint *{visibility:visible!important}body.print-report-batch #reportBatchPrint{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0;padding:0;background:#fff}</style><style>
 :root{--cornhill-accent:#166534;--cornhill-accent-dark:#14532d;--cornhill-page:#f3f7f3;--cornhill-panel:#fff;--cornhill-ink:#17251c;--cornhill-muted:#607265;--cornhill-line:#dce7de}
 /* Ten selectable professional home-screen layouts */
 .dashboard-intro{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 24px;margin:-2px -2px 20px;border-radius:18px;background:linear-gradient(120deg,color-mix(in srgb,var(--cornhill-accent) 12%,var(--cornhill-panel)),var(--cornhill-panel));border:1px solid var(--cornhill-line)}
@@ -442,7 +466,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 </form>
 <div class="row" style="justify-content:space-between;margin:18px 0"><h3>School staff feed</h3><button type="button" id="refreshStaffFeed">Refresh</button></div>
 <div id="staffCommunicationFeed"><p class="muted">Loading staff messages…</p></div>
-<div class="panel" style="margin-top:18px"><h3>Private staff messages</h3><p class="muted">Send a private text message to an administrator, teacher or staff colleague. Only the sender and recipient can read the conversation.</p><div id="directMessageMsg" class="notice hidden"></div><div id="incomingMessageAlerts" class="notice hidden" style="background:#fff7ed;color:#92400e"></div><div class="staff-chat-heading"><div class="staff-chat-avatar" id="staffChatAvatar">C</div><div><strong>Staff messages</strong><div style="font-size:12px;opacity:.9">Private conversations · text · voice notes · video clips</div></div></div><div class="direct-message-grid"><div class="staff-chat-side"><label for="directMessageRecipient">Your colleagues</label><select id="directMessageRecipient"><option value="">Loading staff directory…</option></select><button type="button" id="refreshDirectMessages" style="width:100%">Refresh conversations</button><p class="muted" style="font-size:12px;margin-top:12px">Choose a colleague to open your private conversation. Only you and that colleague can read your messages.</p></div><div><div id="directMessageThread" class="direct-message-thread"><p class="muted">Choose a colleague to view your private conversation.</p></div><form id="directMessageForm"><label for="directMessageBody">Message</label><textarea id="directMessageBody" rows="2" maxlength="4000" required placeholder="Write a message…"></textarea><div class="staff-media-toolbar"><button type="button" id="recordVoiceNote">🎙 Record voice note</button><button type="button" id="recordVideoMessage">▣ Record video message</button></div><div class="staff-media-status" id="staffMediaStatus">Voice notes and short video messages can be sent in this chat.</div><button class="primary" type="submit">Send message</button></form></div></div></div><div class="panel" style="margin-top:18px"><h3>Voice & video calls</h3><p class="muted">Call the colleague selected above. Both people must be online and allow microphone/camera access.</p><div class="row" style="gap:10px;flex-wrap:wrap"><button type="button" id="startVoiceCall" class="primary">☎ Start voice call</button><button type="button" id="startVideoCall">▣ Start video call</button><span id="callStatus" class="badge">Not in a call</span></div><div id="incomingCallPanel" class="notice hidden" style="margin-top:12px"></div><div class="row" style="gap:12px;margin-top:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px"><video id="localCallVideo" autoplay playsinline muted style="width:100%;max-height:220px;background:#111;border-radius:12px;display:none"></video><small class="muted">Your camera</small></div><div style="flex:1;min-width:220px"><video id="remoteCallVideo" autoplay playsinline style="width:100%;max-height:220px;background:#111;border-radius:12px;display:none"></video><small class="muted">Colleague</small></div></div><div class="row" style="gap:8px;margin-top:10px"><button type="button" id="muteCall" class="hidden">Mute microphone</button><button type="button" id="cameraCall" class="hidden">Turn camera off</button><button type="button" id="endCall" class="hidden" style="background:#b91c1c;color:#fff">End call</button></div><p class="muted" id="callHelp">Calls use WebRTC and Supabase signalling. Some mobile networks/firewalls may require a TURN relay for reliable connections.</p></div>
+<div class="panel" style="margin-top:18px"><h3>Private staff messages</h3><p class="muted">Send a private text message to an administrator, teacher or staff colleague. Only the sender and recipient can read the conversation.</p><div id="directMessageMsg" class="notice hidden"></div><div id="incomingMessageAlerts" class="notice hidden" style="background:#fff7ed;color:#92400e"></div><div class="staff-chat-heading"><div class="staff-chat-avatar" id="staffChatAvatar">C</div><div><strong>Staff messages</strong><div style="font-size:12px;opacity:.9">Private conversations · text · voice notes · video clips</div></div></div><div class="direct-message-grid"><div class="staff-chat-side"><label for="directMessageRecipient">Your colleagues</label><select id="directMessageRecipient"><option value="">Loading staff directory…</option></select><button type="button" id="refreshDirectMessages" style="width:100%">Refresh conversations</button><p class="muted" style="font-size:12px;margin-top:12px">Choose a colleague to open your private conversation. Only you and that colleague can read your messages.</p></div><div><div id="directMessageThread" class="direct-message-thread"><p class="muted">Choose a colleague to view your private conversation.</p></div><form id="directMessageForm"><label for="directMessageBody">Message</label><textarea id="directMessageBody" rows="2" maxlength="4000" required placeholder="Write a message…"></textarea><div class="staff-media-toolbar"><button type="button" id="recordVoiceNote">🎙 Record voice note</button><button type="button" id="recordVideoMessage">▣ Record video message</button></div><div class="staff-media-status" id="staffMediaStatus">Voice notes and short video messages can be sent in this chat.</div><div id="staffRecordingPanel" class="staff-recording-panel hidden" aria-live="polite"><div class="recording-top"><span class="staff-recording-dot"></span><span id="staffRecordingLabel">Recording</span></div><div class="staff-recording-timer" id="staffRecordingTimer">00:00</div><video id="staffRecordingPreview" class="staff-recording-preview hidden" autoplay muted playsinline></video><button type="button" id="staffRecordingStop" class="staff-recording-stop">Stop & send</button></div><button class="primary" type="submit">Send message</button></form></div></div></div><div class="panel" style="margin-top:18px"><h3>Voice & video calls</h3><p class="muted">Call the colleague selected above. Both people must be online and allow microphone/camera access.</p><div class="row" style="gap:10px;flex-wrap:wrap"><button type="button" id="startVoiceCall" class="primary">☎ Start voice call</button><button type="button" id="startVideoCall">▣ Start video call</button><span id="callStatus" class="badge">Not in a call</span></div><div id="incomingCallPanel" class="notice hidden" style="margin-top:12px"></div><div class="row" style="gap:12px;margin-top:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px"><video id="localCallVideo" autoplay playsinline muted style="width:100%;max-height:220px;background:#111;border-radius:12px;display:none"></video><small class="muted">Your camera</small></div><div style="flex:1;min-width:220px"><video id="remoteCallVideo" autoplay playsinline style="width:100%;max-height:220px;background:#111;border-radius:12px;display:none"></video><small class="muted">Colleague</small></div></div><div class="row" style="gap:8px;margin-top:10px"><button type="button" id="muteCall" class="hidden">Mute microphone</button><button type="button" id="cameraCall" class="hidden">Turn camera off</button><button type="button" id="endCall" class="hidden" style="background:#b91c1c;color:#fff">End call</button></div><p class="muted" id="callHelp">Calls use WebRTC and Supabase signalling. Some mobile networks/firewalls may require a TURN relay for reliable connections.</p></div>
 </section>
 <section id="inventory" class="panel hidden">
 <div class="row"><h2>Inventory & stores</h2><span class="badge">Administrator only</span></div>
@@ -2229,17 +2253,22 @@ async function loadUnreadMessageAlerts(){
  if(!currentUserId||demoMode)return;
  const badge=$('incomingMessagesBadge'),countEl=$('incomingMessagesCount'),host=$('incomingMessageAlerts');
  if(!badge||!countEl)return;
- const {data,error}=await db.from('staff_direct_messages').select('id,sender_user_id,body,created_at').eq('recipient_user_id',currentUserId).is('read_at',null).order('created_at',{ascending:false}).limit(20);
+ const [textResult,mediaResult]=await Promise.all([
+  db.from('staff_direct_messages').select('id,sender_user_id,body,created_at').eq('recipient_user_id',currentUserId).is('read_at',null).order('created_at',{ascending:false}).limit(50),
+  db.from('staff_media_messages').select('id,sender_user_id,media_type,created_at').eq('recipient_user_id',currentUserId).is('read_at',null).order('created_at',{ascending:false}).limit(50)
+ ]);
+ const error=textResult.error||mediaResult.error;
  if(error){badge.classList.add('hidden');if(host){host.textContent='Could not check new messages: '+error.message;host.classList.remove('hidden')}return}
- const unread=data||[];countEl.textContent=String(unread.length);badge.classList.toggle('hidden',unread.length===0);
- if(host){
-  if(!unread.length){host.classList.add('hidden');host.innerHTML='';}
-  else{
-   if(!staffDirectoryCache.length){const directory=await db.rpc('list_staff_directory');if(!directory.error)staffDirectoryCache=directory.data||[]}
-   host.innerHTML='<strong>New private messages</strong><div style="margin-top:8px">'+unread.map(m=>{const sender=staffDirectoryCache.find(x=>x.id===m.sender_user_id);return '<button type="button" data-open-unread-sender="'+esc(m.sender_user_id)+'" style="display:block;width:100%;text-align:left;margin:5px 0;background:#ffedd5;color:#7c2d12">✉ '+esc(sender?.full_name||'Staff colleague')+' · '+esc(new Date(m.created_at).toLocaleString('en-UG'))+'<br><small>'+esc(m.body.slice(0,100))+'</small></button>'}).join('')+'</div>';
-   host.classList.remove('hidden');
-  }
- }
+ const unread=[...(textResult.data||[]).map(m=>({...m,kind:'text'})),...(mediaResult.data||[]).map(m=>({...m,kind:'media'}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+ countEl.textContent=String(unread.length);badge.classList.toggle('hidden',unread.length===0);
+ if(!host)return;
+ if(!unread.length){host.classList.add('hidden');host.innerHTML='';return}
+ if(!staffDirectoryCache.length){const directory=await db.rpc('list_staff_directory');if(!directory.error)staffDirectoryCache=directory.data||[]}
+ host.innerHTML='<strong>New private messages · '+unread.length+'</strong><div style="margin-top:8px">'+unread.map(m=>{
+  const sender=staffDirectoryCache.find(x=>x.id===m.sender_user_id),preview=m.kind==='media'?(m.media_type==='audio'?'🎙 Voice note':'▣ Video message'):(m.body||'').slice(0,100);
+  return '<button type="button" data-open-unread-sender="'+esc(m.sender_user_id)+'" style="display:block;width:100%;text-align:left;margin:5px 0;background:#ffedd5;color:#7c2d12">✉ '+esc(sender?.full_name||'Staff colleague')+' · '+esc(new Date(m.created_at).toLocaleString('en-UG'))+'<br><small>'+esc(preview)+'</small></button>'
+ }).join('')+'</div>';
+ host.classList.remove('hidden');
 }
 $('incomingMessagesBadge').addEventListener('click',()=>tab('communication'));
 $('incomingMessageAlerts').addEventListener('click',async e=>{const b=e.target.closest('[data-open-unread-sender]');if(!b)return;tab('communication');await loadDirectMessageDirectory();$('directMessageRecipient').value=b.dataset.openUnreadSender;await loadDirectMessageThread();});
@@ -2259,49 +2288,72 @@ async function answerStaffCall(){const call=pendingStaffCall;if(!call)return;try
 async function declineStaffCall(){const call=pendingStaffCall;if(!call)return;try{await db.from('staff_call_signals').insert({call_id:call.id,sender_user_id:currentUserId,recipient_user_id:call.other,signal_type:'decline',payload:{}})}catch(e){}pendingStaffCall=null;$('incomingCallPanel').classList.add('hidden')}
 $('startVoiceCall').addEventListener('click',()=>startStaffCall('voice'));$('startVideoCall').addEventListener('click',()=>startStaffCall('video'));$('endCall').addEventListener('click',()=>stopStaffCall(true));$('muteCall').addEventListener('click',()=>{const t=localCallStream?.getAudioTracks()[0];if(t){t.enabled=!t.enabled;$('muteCall').textContent=t.enabled?'Mute microphone':'Unmute microphone'}});$('cameraCall').addEventListener('click',()=>{const t=localCallStream?.getVideoTracks()[0];if(t){t.enabled=!t.enabled;$('cameraCall').textContent=t.enabled?'Turn camera off':'Turn camera on'}});setInterval(pollIncomingStaffCalls,2500);
 
-let staffMediaRecorder=null,staffMediaStream=null,staffMediaChunks=[],staffMediaStartedAt=0,staffMediaKind=null,staffMediaLimitTimer=null;
+let staffMediaRecorder=null,staffMediaStream=null,staffMediaChunks=[],staffMediaStartedAt=0,staffMediaKind=null,staffMediaLimitTimer=null,staffMediaClock=null;
 function setStaffMediaStatus(text,isError=false){const el=$('staffMediaStatus');if(el){el.textContent=text;el.style.color=isError?'#b91c1c':'var(--cornhill-muted)'}}
+function updateStaffRecordingClock(){
+ const elapsed=Math.max(0,Math.floor((Date.now()-staffMediaStartedAt)/1000));
+ const timer=$('staffRecordingTimer');if(timer)timer.textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(elapsed%60).padStart(2,'0');
+}
+function showStaffRecording(kind){
+ const panel=$('staffRecordingPanel'),preview=$('staffRecordingPreview'),label=$('staffRecordingLabel');
+ if(!panel)return;
+ panel.classList.remove('hidden');label.textContent=kind==='audio'?'Recording voice note':'Recording video message';
+ preview.classList.toggle('hidden',kind!=='video');
+ if(kind==='video'&&staffMediaStream){preview.srcObject=staffMediaStream;preview.play().catch(()=>{})}
+ updateStaffRecordingClock();if(staffMediaClock)clearInterval(staffMediaClock);staffMediaClock=setInterval(updateStaffRecordingClock,250);
+}
+function hideStaffRecording(){
+ if(staffMediaClock){clearInterval(staffMediaClock);staffMediaClock=null}
+ const panel=$('staffRecordingPanel'),preview=$('staffRecordingPreview');
+ if(panel)panel.classList.add('hidden');if(preview){preview.pause();preview.srcObject=null}
+}
 async function startStaffMediaRecording(kind){
  const recipient=$('directMessageRecipient')?.value;
  if(!recipient){setStaffMediaStatus('Choose a colleague before recording.',true);return}
- if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){setStaffMediaStatus('This browser does not support voice/video recording. Please use an updated Chrome browser over HTTPS.',true);return}
+ if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){setStaffMediaStatus('This browser does not support voice/video recording. Please use updated Chrome over HTTPS.',true);return}
  try{
   staffMediaKind=kind;staffMediaChunks=[];
   staffMediaStream=await navigator.mediaDevices.getUserMedia(kind==='audio'?{audio:true}:{audio:true,video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}});
   const choices=kind==='audio'?['audio/webm;codecs=opus','audio/webm','audio/mp4']:['video/webm;codecs=vp8,opus','video/webm','video/mp4'];
   const mime=choices.find(t=>MediaRecorder.isTypeSupported(t))||'';
   staffMediaRecorder=new MediaRecorder(staffMediaStream,mime?{mimeType:mime}:undefined);
-  staffMediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)staffMediaChunks.push(e.data)};
-  staffMediaRecorder.onerror=e=>setStaffMediaStatus('Recording failed: '+(e.error?.message||'browser error'),true);
-  staffMediaRecorder.onstop=async()=>{
+  const recorder=staffMediaRecorder;
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)staffMediaChunks.push(e.data)};
+  recorder.onerror=e=>setStaffMediaStatus('Recording failed: '+(e.error?.message||'browser error'),true);
+  recorder.onstop=async()=>{
    const seconds=Math.max(1,Math.round((Date.now()-staffMediaStartedAt)/1000));
-   const blob=new Blob(staffMediaChunks,{type:staffMediaRecorder?.mimeType|| (kind==='audio'?'audio/webm':'video/webm')});
+   const blob=new Blob(staffMediaChunks,{type:recorder.mimeType||(kind==='audio'?'audio/webm':'video/webm')});
    if(staffMediaStream){staffMediaStream.getTracks().forEach(t=>t.stop());staffMediaStream=null}
-   staffMediaRecorder=null;staffMediaChunks=[];
+   staffMediaRecorder=null;staffMediaChunks=[];hideStaffRecording();
+   $('recordVoiceNote').disabled=false;$('recordVideoMessage').disabled=false;
+   $('recordVoiceNote').textContent='🎙 Record voice note';$('recordVideoMessage').textContent='▣ Record video message';
    if(!blob.size){setStaffMediaStatus('No recording was captured. Please try again.',true);return}
    if(blob.size>20*1024*1024){setStaffMediaStatus('This recording is over the 20 MB limit. Please record a shorter clip.',true);return}
    await uploadStaffMediaMessage(blob,kind,seconds,recipient);
   };
-  staffMediaStartedAt=Date.now();staffMediaRecorder.start(500);
-  const start=$('recordVoiceNote'),video=$('recordVideoMessage');
-  start.textContent=kind==='audio'?'■ Stop & send voice note':'🎙 Record voice note';
-  video.textContent=kind==='video'?'■ Stop & send video':'▣ Record video message';
-  start.disabled=kind!=='audio';video.disabled=kind!=='video';
-  setStaffMediaStatus(kind==='audio'?'Recording voice note… tap Stop & send when finished.':'Recording video message… tap Stop & send when finished.');
+  staffMediaStartedAt=Date.now();recorder.start(400);showStaffRecording(kind);
+  $('recordVoiceNote').disabled=kind!=='audio';$('recordVideoMessage').disabled=kind!=='video';
+  $('recordVoiceNote').textContent=kind==='audio'?'■ Recording…':'🎙 Record voice note';
+  $('recordVideoMessage').textContent=kind==='video'?'■ Recording…':'▣ Record video message';
+  setStaffMediaStatus(kind==='audio'?'Recording voice note. Use the red Stop & send control below.':'Camera is live. Your video is recording; use Stop & send when finished.');
   staffMediaLimitTimer=setTimeout(()=>stopStaffMediaRecording(),kind==='audio'?120000:30000);
- }catch(e){if(staffMediaStream){staffMediaStream.getTracks().forEach(t=>t.stop());staffMediaStream=null}staffMediaRecorder=null;setStaffMediaStatus('Could not access microphone/camera: '+e.message,true)}
+ }catch(e){
+  if(staffMediaStream){staffMediaStream.getTracks().forEach(t=>t.stop());staffMediaStream=null}
+  staffMediaRecorder=null;hideStaffRecording();setStaffMediaStatus('Could not access microphone/camera: '+(e.message||'Permission denied.'),true);
+ }
 }
 function stopStaffMediaRecording(){
  if(staffMediaLimitTimer){clearTimeout(staffMediaLimitTimer);staffMediaLimitTimer=null}
- if(staffMediaRecorder&&staffMediaRecorder.state!=='inactive'){staffMediaRecorder.stop()}
- $('recordVoiceNote').textContent='🎙 Record voice note';$('recordVideoMessage').textContent='▣ Record video message';
- $('recordVoiceNote').disabled=false;$('recordVideoMessage').disabled=false;
- setStaffMediaStatus('Preparing your recording…');
+ if(staffMediaRecorder&&staffMediaRecorder.state!=='inactive'){
+  $('staffRecordingStop').disabled=true;$('staffRecordingStop').textContent='Preparing…';
+  staffMediaRecorder.stop();setStaffMediaStatus('Recording stopped. Preparing your message…');
+ }
 }
 async function uploadStaffMediaMessage(blob,kind,seconds,recipient){
+ const label=kind==='audio'?'Voice note':'Video message';
  try{
-  setStaffMediaStatus('Uploading '+(kind==='audio'?'voice note':'video message')+'…');
-  const rawType=(blob.type|| (kind==='audio'?'audio/webm':'video/webm')).split(';')[0];
+  setStaffMediaStatus('Uploading '+label.toLowerCase()+'… please keep this chat open.');
+  const rawType=(blob.type||(kind==='audio'?'audio/webm':'video/webm')).split(';')[0];
   const ext=rawType.includes('mp4')?'mp4':rawType.includes('ogg')?'ogg':rawType.includes('quicktime')?'mov':rawType.includes('mpeg')?'mp3':'webm';
   const filename=Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
   const path=currentUserId+'/'+recipient+'/'+filename;
@@ -2309,10 +2361,12 @@ async function uploadStaffMediaMessage(blob,kind,seconds,recipient){
   if(uploadError)throw uploadError;
   const {error:insertError}=await db.from('staff_media_messages').insert({sender_user_id:currentUserId,recipient_user_id:recipient,media_type:kind,mime_type:rawType,storage_path:path,duration_seconds:seconds});
   if(insertError)throw insertError;
-  setStaffMediaStatus((kind==='audio'?'Voice note':'Video message')+' sent successfully.');
+  setStaffMediaStatus('✓ '+label+' sent successfully.');
   await loadDirectMessageThread();
- }catch(e){setStaffMediaStatus('Could not send media: '+e.message,true)}
+ }catch(e){setStaffMediaStatus('✕ '+label+' was not sent: '+(e.message||'Upload failed. Please try again.'),true)}
+ finally{$('staffRecordingStop').disabled=false;$('staffRecordingStop').textContent='Stop & send'}
 }
+$('staffRecordingStop').addEventListener('click',stopStaffMediaRecording);
 $('recordVoiceNote').addEventListener('click',()=>staffMediaRecorder?stopStaffMediaRecording():startStaffMediaRecording('audio'));
 $('recordVideoMessage').addEventListener('click',()=>staffMediaRecorder?stopStaffMediaRecording():startStaffMediaRecording('video'));
 async function loadDirectMessageDirectory(){
