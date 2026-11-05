@@ -445,7 +445,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <p class="muted">CSV columns required: <code>device_user_id,event_type,occurred_at</code>. Optional columns: <code>external_event_id</code>. Event types: clock_in, clock_out, break_start, break_end. Include a header row. Export times should be local Uganda time (EAT) or ISO timestamps with timezone.</p>
 <form id="attendanceImportForm">
 <div><label>Machine serial number *</label><input name="device_serial" required></div>
-<div><label>Device model</label><input name="device_model" value="ZKTeco (model to confirm)"></div>
+<div><label>Device model</label><input name="device_model" placeholder="Enter the exact model printed on the fingerprint machine"></div>
 <div class="full"><label>Attendance CSV file *</label><input name="attendance_file" type="file" accept=".csv,text/csv" required></div>
 <div class="full"><button class="primary" type="submit">Preview and import attendance</button></div>
 </form>
