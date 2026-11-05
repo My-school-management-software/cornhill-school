@@ -2391,7 +2391,7 @@ async function renderDirectMessageContacts(){
  ]);
  const counts={};[...(textUnread.data||[]),...(mediaUnread.data||[])].forEach(m=>counts[m.sender_user_id]=(counts[m.sender_user_id]||0)+1);
  host.innerHTML=staffDirectoryCache.map(person=>{
-  const active=select.value===person.id,count=counts[person.id]||0,initials=(person.full_name||'C').split(/\\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
+  const active=select.value===person.id,count=counts[person.id]||0,initials=(person.full_name||'C').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
   return '<button type="button" class="direct-message-contact '+(active?'active':'')+'" data-staff-contact="'+esc(person.id)+'"><span class="direct-message-contact-avatar">'+esc(initials)+'</span><span class="direct-message-contact-copy"><strong>'+esc(person.full_name)+'</strong><small>'+esc(person.role||'Staff')+'</small></span>'+(count?'<span class="direct-message-contact-unread">'+count+'</span>':'')+'</button>';
  }).join('')||'<p class="muted">No other staff members are available yet.</p>';
 }
