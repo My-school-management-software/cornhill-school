@@ -232,7 +232,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
   <p class="muted">Open a class folder, choose Beginning, Midterm or End of term, and enter marks in the matching subject columns. Codes ending in 1, 2 and 3 represent the three reporting periods.</p>
   <div id="excelClassFolders" class="module-grid" style="margin:12px 0"></div>
   <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
-   <div style="min-width:170px;flex:1"><label for="excelMarksPhase">Assessment period</label><select id="excelMarksPhase"><option value="All">All periods · full class sheet</option><option value="Beginning">Beginning · 1</option><option value="Midterm">Midterm · 2</option><option value="End">End of term · 3</option></select></div>
+   <div style="min-width:170px;flex:1"><label for="excelMarksPhase">Assessment period</label><select id="excelMarksPhase"><option value="All">All periods · full class sheet</option><option value="Beginning">Beginning · 1</option><option value="Midterm">Midterm · 2</option><option value="End">End of term · 3</option><option value="Fourth">Fourth assessment · 4 (where used)</option></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksTerm">Academic term</label><select id="excelMarksTerm"></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
    <button type="button" class="tab" id="toggleLearnerDetails">Show learner details</button>
@@ -1093,7 +1093,7 @@ function excelSubjectLabel(assessment,index,clsArg){
  const prefix=found?.[found.length-1]||(subject.code||subject.name||assessment.title||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
  return prefix.toUpperCase()+n;
 }
-function excelPhaseCode(phase){return phase==='Beginning'?1:phase==='Midterm'?2:3}
+function excelPhaseCode(phase){return phase==='Beginning'?1:phase==='Midterm'?2:phase==='End'?3:4}
 function excelGradeMarkup(assessment,mark){
  if(!mark)return '—';
  if(isAbsentMark(mark))return 'X';
@@ -1102,7 +1102,7 @@ function excelGradeMarkup(assessment,mark){
 }
 function recalculateExcelMarkSheet(){
  const ctx=window.cornhillExcelMarksContext;if(!ctx)return;
- const {assessments,students:list}=ctx,phases=['Beginning','Midterm','End'],saved=ctx.savedMarks||new Map();
+ const {assessments,students:list}=ctx,phases=['Beginning','Midterm','End','Fourth'],saved=ctx.savedMarks||new Map();
  const results=new Map();
  phases.forEach(phase=>{
   const phaseAssessments=assessments.filter(a=>excelAssessmentPeriod(a)===phase);
@@ -1146,7 +1146,7 @@ async function loadExcelMarksGrid(){
  if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
  const cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
  const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId);
- const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>{const p=['Beginning','Midterm','End'];return p.indexOf(excelAssessmentPeriod(a))-p.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b)});
+ const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>{const p=['Beginning','Midterm','End','Fourth'];return p.indexOf(excelAssessmentPeriod(a))-p.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b)});
  if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments exist for this class and term. Create the subject assessments for Beginning, Midterm and End of term first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
  const list=students.filter(x=>x.class_id===classId).sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||a.first_name.localeCompare(b.first_name));
  if(!list.length){head.innerHTML='<tr><th>Class register</th></tr>';body.innerHTML='<tr><td>No learners are enrolled in '+esc(cls?.name||'this class')+'. Register learners first.</td></tr>';message('excelMarksMsg','No learners are enrolled in this class.',true);return}
@@ -1155,7 +1155,7 @@ async function loadExcelMarksGrid(){
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
  const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x]));
  window.cornhillExcelMarksContext={termId,classId,phase:phaseFilter,assessments,students:list,savedMarks:saved};
- const phases=phaseFilter==='All'?['Beginning','Midterm','End']:[phaseFilter];
+ const phases=phaseFilter==='All'?['Beginning','Midterm','End','Fourth']:[phaseFilter];
  const phaseBlocks=phases.map(phase=>{const items=assessments.filter(a=>excelAssessmentPeriod(a)===phase),code=excelPhaseCode(phase);return {phase,items,code}});
  const groupHeader=phaseBlocks.map(block=>'<th colspan="'+(block.items.length+1+(group==='P4-P7'?2:0)+1)+'" class="'+(block.phase==='Beginning'?'beginning-column':'')+'">'+esc(block.phase)+' assessment</th>').join('');
  const secondHeader=phaseBlocks.map(block=>block.items.map(a=>'<th title="'+esc(a.title)+'" class="'+(block.phase==='Beginning'?'beginning-column':'')+'">'+esc(excelSubjectLabel(a,0,cls))+'<div style="font-size:10px;font-weight:400">'+esc(a.subjects?.name||a.title)+'</div><small>/ '+Number(a.max_score)+'</small></th>').join('')+'<th class="summary-column '+(block.phase==='Beginning'?'beginning-column':'')+'">TT'+block.code+'</th>'+(group==='P4-P7'?'<th class="calculation-column '+(block.phase==='Beginning'?'beginning-column':'')+'">AGG'+block.code+'</th><th class="calculation-column '+(block.phase==='Beginning'?'beginning-column':'')+'">DIV'+block.code+'</th>':'')+'<th class="summary-column '+(block.phase==='Beginning'?'beginning-column':'')+'">PN'+block.code+'</th>').join('');
