@@ -12,6 +12,12 @@ The active development branch includes these application areas:
 - Finance fee schedules, learner charges, bursary-related learner charges, payment allocation, receipts, statements and fee reports.
 - Atomic payment posting and administrator-audited receipt reversal.
 - Daily collection reporting, expenses, inventory, staff attendance/import workflows, staff communication and settings/themes.
+
+## Work area 5 — staff fingerprint attendance
+
+The attendance workspace is prepared for a single office fingerprint terminal and approximately 30 staff. It includes staff/device ID mapping, work schedules, CSV preview/import, attendance review and administrator guidance. The Settings module contains a five-model shortlist and connection instructions. See [Fingerprint Attendance Integration](docs/FINGERPRINT_ATTENDANCE_INTEGRATION.md) before purchasing a terminal.
+
+**Completion boundary:** ready for device connection; not physically hardware-tested. USB-host export is treated as USB flash-drive export, not assumed to be direct PC USB communication. Direct network/ADMS/SDK integration requires the exact purchased model, firmware and a demonstrated vendor protocol. Automatic salary deductions remain OFF by default.
 - Installable web app shell with offline shell caching and a clear offline status warning.
 
 This is active development, not a declaration of production readiness. Authenticated end-to-end acceptance tests, hardware tests and final operational sign-off are still required.
