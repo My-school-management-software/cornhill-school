@@ -647,3 +647,10 @@
 - Added an administrator receipt-lookup action with confirmation, required reason and post-reversal re-fetch. Reversed receipts remain printable but are clearly marked invalid; existing balance/report calculations already count only Posted payments.
 - Database migration was applied and the function/column grants were verified. No real payment was reversed and no payment data was changed during implementation.
 - Still required: authenticated positive/negative role tests, verify that balances and all reports recalculate correctly after a test reversal, and browser-print checks. Production remains untouched.
+
+## 2026-11-05 — Live class enrolment registers
+- Strengthened the Classes module's class register so every class/stream has a searchable enrolment list sourced from the live `students` records and the learner's current `class_id`.
+- Register displays a numbered list with permanent school learner code, official LIN, P7 index number, learner name, gender, day/boarding, status, and administrator-only guardian details.
+- Added search by learner name/code/LIN, status filtering, CSV export of the filtered list, and print support.
+- Admissions and promotions call the existing refresh workflow, so learners assigned to a class appear in that class register without a separate spreadsheet or manual copying. No learner records were modified by this UI change.
+- JavaScript parse checks passed for both inline scripts. Real signed-in browser verification is still required to confirm role-specific data access and actual admissions/promotions on the live preview.
