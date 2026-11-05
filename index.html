@@ -597,7 +597,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <div class="panel" style="margin-top:14px"><h3>Class enrolment comparison</h3><div class="table-wrap"><table><thead><tr><th>Class</th><th>Active learners</th><th>Female</th><th>Male</th></tr></thead><tbody id="reportClassRows"><tr><td colspan="4">Refresh records to view.</td></tr></tbody></table></div></div>
 <div class="panel" style="margin-top:14px"><h3>Subject performance records</h3><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments recorded</th><th>Average score</th></tr></thead><tbody id="recordsSubjectRows"><tr><td colspan="3">Refresh records to view.</td></tr></tbody></table></div></div>
 <p class="muted">Reports use records that actually exist in the system. Empty charts mean that the relevant module has not yet accumulated records; the system will not invent historical figures.</p>
-<div class="panel" style="margin-top:14px"><h3>Backup & recovery centre</h3><p class="muted">Create a protected export of school records, keep copies outside the school computer, and use the recovery checklist before restoring.</p><div class="notice">Important: Supabase Free does not include its automatic daily database backups. This export is an application-level data snapshot; it does not yet include every database object, account password or uploaded Storage file. Keep a separate off-site copy and do not treat this export as a full database disaster-recovery image.</div><div class="row"><button type="button" class="primary" id="downloadSchoolBackup">Download school records backup (JSON)</button><button type="button" id="printBackupChecklist">Print backup checklist</button></div><div class="row" style="margin-top:10px;align-items:end"><div><label for="backupReminderFrequency">Backup reminder interval (this device)</label><select id="backupReminderFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="termly">Each school term (about 4 months)</option><option value="yearly">Yearly</option></select></div><button type="button" id="saveBackupReminder">Save reminder preference</button></div><p id="backupReminderStatus" class="muted" aria-live="polite">Reminder preference has not been set.</p><p id="backupStatus" class="muted" aria-live="polite">No backup has been created in this session.</p><div id="backupChecklist"><strong>Recovery checklist</strong><ol><li>Keep at least one copy outside the main office computer.</li><li>Keep the date and time of each backup in the filename.</li><li>Verify that the downloaded file opens and has non-empty records.</li><li>Keep uploaded photos, voice notes and videos separately; database exports do not include Storage files.</li><li>Before a full database restore, arrange a maintenance window and confirm the restore target.</li></ol></div></div>
+<div class="panel" style="margin-top:14px"><h3>Backup & recovery centre</h3><p class="muted">Create a protected export of school records, keep copies outside the school computer, and use the recovery checklist before restoring.</p><div class="notice">Important: Supabase Free does not include its automatic daily database backups. This export is an application-level data snapshot; it does not yet include every database object, account password or uploaded Storage file. Keep a separate off-site copy and do not treat this export as a full database disaster-recovery image.</div><div class="row"><button type="button" class="primary" id="downloadSchoolBackup">Download school records backup (JSON)</button><button type="button" id="printBackupChecklist">Print backup checklist</button></div><div class="panel" style="margin-top:12px"><h4>Google Drive cloud backup</h4><p class="muted">Connect a dedicated CORNHILL Google account. Cloud backup files are encrypted before upload. Google Drive connection and cloud scheduling require one-time administrator setup.</p><div class="row"><button type="button" class="primary" id="connectGoogleDrive">Connect school Google account</button><button type="button" id="runGoogleDriveBackup" disabled>Back up to Google Drive now</button><button type="button" id="refreshGoogleDriveStatus">Refresh cloud status</button></div><p id="googleDriveStatus" class="muted" aria-live="polite">Google Drive is not connected.</p><div id="googleDriveHistory" class="muted"></div></div><div class="row" style="margin-top:10px;align-items:end"><div><label for="backupReminderFrequency">Backup reminder interval (this device)</label><select id="backupReminderFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="termly">Each school term (about 4 months)</option><option value="yearly">Yearly</option></select></div><button type="button" id="saveBackupReminder">Save reminder preference</button></div><p id="backupReminderStatus" class="muted" aria-live="polite">Reminder preference has not been set.</p><p id="backupStatus" class="muted" aria-live="polite">No backup has been created in this session.</p><div id="backupChecklist"><strong>Recovery checklist</strong><ol><li>Keep at least one copy outside the main office computer.</li><li>Keep the date and time of each backup in the filename.</li><li>Verify that the downloaded file opens and has non-empty records.</li><li>Keep uploaded photos, voice notes and videos separately; database exports do not include Storage files.</li><li>Before a full database restore, arrange a maintenance window and confirm the restore target.</li></ol></div></div>
 </section>
 <section id="settings" class="panel hidden">
  <div class="row"><div><h2>Settings & school control centre</h2><p class="muted">Manage appearance, account security, school information and system preferences.</p></div><span class="badge">Administrator settings</span></div>
@@ -2201,6 +2201,47 @@ $('downloadSchoolBackup').addEventListener('click',async()=>{
  }catch(error){$('backupStatus').textContent='Backup was NOT created: '+(error.message||'Unknown error')+' Please check administrator access and retry.'}
  finally{button.disabled=false}
 });
+
+async function callGoogleDriveBackup(action){
+ if(profile?.role!=='Admin'||demoMode)throw new Error('Only a signed-in administrator can manage school cloud backups.');
+ const {data:{session}}=await db.auth.getSession();
+ if(!session?.access_token)throw new Error('Your session has expired. Sign in again.');
+ const response=await fetch(SUPABASE_URL+'/functions/v1/google-drive-backup',{
+  method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY},
+  body:JSON.stringify({action})
+ });
+ const payload=await response.json().catch(()=>({error:'Unexpected response from backup service.'}));
+ if(!response.ok||payload.error)throw new Error(payload.error||'Cloud backup request failed.');
+ return payload;
+}
+function renderGoogleDriveHistory(runs){
+ const target=$('googleDriveHistory');if(!target)return;
+ if(!runs?.length){target.textContent='No Google Drive backup runs recorded yet.';return}
+ target.innerHTML='<strong>Recent cloud backups</strong><ul>'+runs.map(run=>'<li>'+String(run.created_at||'').replace('T',' ').slice(0,19)+' · '+String(run.status||'').toUpperCase()+' · '+(run.file_name||'Backup in progress')+' · '+Number(run.total_records||0).toLocaleString('en-UG')+' records'+(run.error_message?' · '+String(run.error_message):'')+'</li>').join('')+'</ul>';
+}
+async function refreshGoogleDriveStatus(){
+ const status=$('googleDriveStatus');if(!status)return;
+ try{
+  const data=await callGoogleDriveBackup('status');
+  status.textContent=data.connected?'Connected to '+data.connected_email+'. Cloud backup files are encrypted before upload. Automatic scheduling is not active until the scheduler is configured.':'Google Drive is not connected. Connect the school account to enable encrypted cloud backups.';
+  $('runGoogleDriveBackup').disabled=!data.connected;
+  $('connectGoogleDrive').textContent=data.connected?'Reconnect school Google account':'Connect school Google account';
+  renderGoogleDriveHistory(data.runs);
+ }catch(error){status.textContent=error.message;$('runGoogleDriveBackup').disabled=true}
+}
+$('connectGoogleDrive').addEventListener('click',async()=>{
+ const button=$('connectGoogleDrive');button.disabled=true;$('googleDriveStatus').textContent='Preparing secure Google connection…';
+ try{const data=await callGoogleDriveBackup('connect');window.location.assign(data.url)}
+ catch(error){$('googleDriveStatus').textContent=error.message;button.disabled=false}
+});
+$('runGoogleDriveBackup').addEventListener('click',async()=>{
+ const button=$('runGoogleDriveBackup');button.disabled=true;$('googleDriveStatus').textContent='Creating encrypted school backup and uploading it to Google Drive. Keep this page open…';
+ try{const data=await callGoogleDriveBackup('backup');$('googleDriveStatus').textContent='Backup uploaded successfully: '+data.backup.file_name+' · '+Number(data.backup.total_records).toLocaleString('en-UG')+' records. Refreshing history…';await refreshGoogleDriveStatus()}
+ catch(error){$('googleDriveStatus').textContent='Cloud backup failed: '+error.message}
+ finally{button.disabled=false}
+});
+$('refreshGoogleDriveStatus').addEventListener('click',refreshGoogleDriveStatus);
+
 $('exportLearnerRegister').addEventListener('click',()=>{
  if(profile?.role!=='Admin'||demoMode)return;const rows=window.cornhillReportLearners||[];if(!rows.length){message('reportsMsg','Refresh the report summary before exporting.',true);return}
  const headers=['Admission code','First name','Middle name','Last name','Class','Gender','LIN'];
