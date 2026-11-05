@@ -1018,37 +1018,42 @@ $('previewBulkLearners').addEventListener('click',async()=>{
    const classId=classMatch?.id||fallback;
    if(!classId){issues.push(sheetName+': no matching class; choose a fallback class or rename the worksheet.');continue}
    const header=rows[0].map(v=>String(v||'').trim().toLowerCase());
-   let nameIndex=header.findIndex(v=>['learner name','student name','name','full name'].includes(v)),birthYearIndex=header.findIndex(v=>['year of birth','birth year','year born','date of birth','dob'].includes(v)),start=0;
+   let nameIndex=header.findIndex(v=>['learner name','student name','name','full name'].includes(v)),birthYearIndex=header.findIndex(v=>['year of birth','birth year','year born','date of birth','dob'].includes(v)),genderIndex=header.findIndex(v=>['gender','sex'].includes(v)),start=0;
    if(nameIndex>=0)start=1;else nameIndex=0;
    for(let i=start;i<rows.length;i++){
     const fullName=String(rows[i][nameIndex]||'').trim().replace(/\s+/g,' ');
     if(!fullName)continue;
     const parts=fullName.split(' '),first=parts.shift(),last=parts.join(' ')||'Pending';
-    const birthRaw=birthYearIndex>=0?String(rows[i][birthYearIndex]||'').trim():'';const yearMatch=birthRaw.match(/(?:19|20)\d{2}/);const birthYear=yearMatch?Number(yearMatch[0]):'';preview.push({fullName,first,last,birthYear,classId,className:classes.find(c=>c.id===classId)?.name||sheetName,sheetName,row:i+1});
+    const birthRaw=birthYearIndex>=0?String(rows[i][birthYearIndex]||'').trim():'';const yearMatch=birthRaw.match(/(?:19|20)\d{2}/);const birthYear=yearMatch?Number(yearMatch[0]):'';
+    const genderRaw=genderIndex>=0?String(rows[i][genderIndex]||'').trim().toLowerCase():'';
+    const gender=genderRaw==='m'||genderRaw==='male'?'Male':genderRaw==='f'||genderRaw==='female'?'Female':'';
+    if(genderRaw&&!gender)issues.push(sheetName+' row '+(i+1)+': gender "'+genderRaw+'" not recognised; select Male or Female in the preview.');
+    preview.push({fullName,first,last,birthYear,gender,classId,className:classes.find(c=>c.id===classId)?.name||sheetName,sheetName,row:i+1});
    }
   }
   const seen=new Set(),unique=[];
   for(const row of preview){const key=(row.fullName+'|'+row.classId).toLowerCase();if(seen.has(key)){issues.push(row.sheetName+' row '+row.row+': duplicate name in this workbook ('+row.fullName+').');continue}seen.add(key);const existing=students.find(x=>x.class_id===row.classId&&[x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' ').trim().toLowerCase()===row.fullName.toLowerCase());if(existing){issues.push(row.fullName+' already exists in '+row.className+' ('+existing.admission_number+'); skipped.');continue}unique.push(row)}
   bulkLearnerRows=unique;
-  $('bulkImportPreview').innerHTML='<p><strong>'+unique.length+' learner(s) ready.</strong> You may enter year of birth and gender now or complete them later. Missing details generate a temporary code and red warning.</p>'+(issues.length?'<p>'+issues.length+' issue(s):</p><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'')+'<div class="table-wrap"><table><thead><tr><th>No.</th><th>Learner name</th><th>Class</th><th>Year of birth (optional)</th><th>Gender (optional)</th></tr></thead><tbody>'+unique.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(r.fullName)+'</td><td>'+esc(r.className)+'</td><td><input type="number" min="1900" max="'+new Date().getFullYear()+'" step="1" value="'+(r.birthYear||'')+'" data-bulk-birth-year="'+i+'" placeholder="e.g. 2005"></td><td><select data-bulk-gender="'+i+'"><option value="">Select gender</option><option value="Female">Female</option><option value="Male">Male</option></select></td></tr>').join('')+'</tbody></table></div><p>After import, full date of birth, LIN and guardian details can remain pending with an Admission incomplete warning.</p>';
+  $('bulkImportPreview').innerHTML='<p><strong>'+unique.length+' learner(s) ready.</strong> Gender is required before import. If your workbook contains a Gender or Sex column, it will be prefilled for review.</p>'+(issues.length?'<p>'+issues.length+' issue(s):</p><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'')+'<div class="table-wrap"><table><thead><tr><th>No.</th><th>Learner name</th><th>Class</th><th>Year of birth (optional)</th><th>Gender (required)</th></tr></thead><tbody>'+unique.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(r.fullName)+'</td><td>'+esc(r.className)+'</td><td><input type="number" min="1900" max="'+new Date().getFullYear()+'" step="1" value="'+(r.birthYear||'')+'" data-bulk-birth-year="'+i+'" placeholder="e.g. 2005"></td><td><select required data-bulk-gender="'+i+'"><option value="">Select gender *</option><option value="Female" '+(r.gender==='Female'?'selected':'')+'>Female</option><option value="Male" '+(r.gender==='Male'?'selected':'')+'>Male</option></select></td></tr>').join('')+'</tbody></table></div><p>Full date of birth, LIN and guardian details may be completed later with an Admission incomplete warning.</p>';
   $('confirmBulkLearners').classList.toggle('hidden',unique.length===0);
-  message('bulkImportMsg','Preview created. Review the class assignments and skipped rows before importing.');
+  message('bulkImportMsg','Preview created. Confirm a gender for every learner before importing.');
  }catch(err){message('bulkImportMsg','Could not read this workbook: '+(err.message||'Unsupported or damaged file.'),true)}
 });
 $('confirmBulkLearners').addEventListener('click',async()=>{
  if(profile?.role!=='Admin'||demoMode||!bulkLearnerRows.length)return;
  const genders=bulkLearnerRows.map((r,i)=>$('bulkImportPreview').querySelector('[data-bulk-gender="'+i+'"]')?.value||'');
+ if(genders.some(g=>!['Male','Female'].includes(g))){message('bulkImportMsg','Gender is required for every learner. Select Male or Female in each row before importing.',true);return}
  const birthYears=bulkLearnerRows.map((r,i)=>{const v=$('bulkImportPreview').querySelector('[data-bulk-birth-year="'+i+'"]')?.value;const n=Number(v);return v&&Number.isInteger(n)&&n>=1900&&n<=new Date().getFullYear()?n:null});
  if(birthYears.some((y,i)=>$('bulkImportPreview').querySelector('[data-bulk-birth-year="'+i+'"]')?.value&&!y)){message('bulkImportMsg','Correct invalid birth years or leave them blank to use temporary codes.',true);return}
- const confirmImport=confirm('Import '+bulkLearnerRows.length+' learner(s) now? Learners missing gender or year of birth will receive temporary codes with red warnings. Permanent codes are generated automatically once both details are completed.');
+ const confirmImport=confirm('Import '+bulkLearnerRows.length+' learner(s) now? Gender has been confirmed for every learner. Learners missing year of birth receive temporary codes and an admission-incomplete warning.');
  if(!confirmImport)return;
  const button=$('confirmBulkLearners');button.disabled=true;button.textContent='Importing…';
  try{
-  const payload=bulkLearnerRows.map((r,i)=>({first_name:r.first,last_name:r.last,gender:genders[i]||null,birth_year:birthYears[i],class_id:r.classId,status:'Active',learner_type:'Day',admission_year:new Date().getFullYear(),admission_complete:false}));
+  const payload=bulkLearnerRows.map((r,i)=>({first_name:r.first,last_name:r.last,gender:genders[i],birth_year:birthYears[i],class_id:r.classId,status:'Active',learner_type:'Day',admission_year:new Date().getFullYear(),admission_complete:false}));
   const {data,error}=await db.from('students').insert(payload).select('id,admission_number');
   if(error)throw error;
-  const imported=data?.length||0;bulkLearnerRows=[];$('bulkImportPreview').innerHTML='<p><strong>'+imported+' learner(s) imported successfully.</strong></p><p>Learners with missing gender or year of birth have temporary codes. Complete those two fields to generate permanent codes automatically. Other admission details can be completed later.</p>';$('confirmBulkLearners').classList.add('hidden');
-  message('bulkImportMsg',imported+' learner(s) added. They are active in their classes and marked Admission incomplete.');await refresh();
+  const imported=data?.length||0;bulkLearnerRows=[];$('bulkImportPreview').innerHTML='<p><strong>'+imported+' learner(s) imported successfully.</strong></p><p>Gender was captured for every learner. Learners with missing year of birth have temporary codes. Complete their remaining admission details to finish registration.</p>';$('confirmBulkLearners').classList.add('hidden');
+  message('bulkImportMsg',imported+' learner(s) added with gender recorded and admission marked incomplete where details remain outstanding.');await refresh();
  }catch(err){message('bulkImportMsg','Import did not complete: '+(err.message||'Unknown error')+'. Check the class registers before retrying.',true)}
  finally{button.disabled=false;button.textContent='Import listed learners'}
 });
