@@ -592,7 +592,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <div class="panel"><h3>Class changes / promotions over time</h3><div id="recordsMovementChart" class="records-chart">No class movement history loaded.</div></div>
 <div class="panel"><h3>Academic performance by subject</h3><div id="recordsAcademicChart" class="records-chart">No assessment data loaded.</div></div>
 <div class="panel"><h3>School fee collections</h3><div id="recordsFinanceChart" class="records-chart">No payment data loaded.</div></div>
-<div class="panel"><h3>Staff salary trends</h3><div id="recordsPayrollChart" class="records-chart">No payroll data loaded.</div></div>
+<div class="panel"><h3>Salary payments by period</h3><div id="recordsPayrollChart" class="records-chart">No payroll data loaded.</div></div><div class="panel"><h3>Salary agreement changes over time</h3><div id="recordsSalaryChangeChart" class="records-chart">No salary history loaded.</div></div>
 </div>
 <div class="panel" style="margin-top:14px"><h3>Class enrolment comparison</h3><div class="table-wrap"><table><thead><tr><th>Class</th><th>Active learners</th><th>Female</th><th>Male</th></tr></thead><tbody id="reportClassRows"><tr><td colspan="4">Refresh records to view.</td></tr></tbody></table></div></div>
 <div class="panel" style="margin-top:14px"><h3>Subject performance records</h3><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments recorded</th><th>Average score</th></tr></thead><tbody id="recordsSubjectRows"><tr><td colspan="3">Refresh records to view.</td></tr></tbody></table></div></div>
@@ -2124,6 +2124,7 @@ async function loadSchoolReports(){
    db.from('academic_terms').select('id,name,starts_on,ends_on,academic_year_id,academic_years(name)'),
    db.from('school_payments').select('amount_ugx,received_at,status').eq('status','posted').limit(10000),
    db.from('payroll_items').select('net_pay_ugx,status,payroll_periods(period_name,period_start,period_type)').limit(10000),
+   db.from('staff_salary_agreements').select('staff_user_id,base_salary_ugx,effective_from,effective_to,is_active,salary_basis').limit(10000),
    db.from('student_class_history').select('student_id,effective_date,to_class_id').limit(10000)
   ]);
   const err=learnerResult.error||classResult.error||assessmentResult.error||scoreResult.error||subjectResult.error||termResult.error||paymentResult.error||payrollResult.error||historyResult.error;
@@ -2149,7 +2150,9 @@ async function loadSchoolReports(){
   renderRecordsBarChart('recordsFinanceChart',[...financeAgg].map(([label,value])=>({label,value})),'ugx');
   const payrollAgg=new Map();for(const x of payroll){const period=x.payroll_periods;if(!period?.period_start||!selected(period.period_start))continue;const key=recordsBucket(period.period_start,mode,termsForGroup);payrollAgg.set(key,(payrollAgg.get(key)||0)+Number(x.net_pay_ugx||0))}
   renderRecordsBarChart('recordsPayrollChart',[...payrollAgg].map(([label,value])=>({label,value})),'ugx');
-  window.cornhillReportLearners=learners;window.cornhillRecordsCache={learners,classes:classResult.data||[],assessments,scores,subjects,terms,payments,payroll,classHistory:historyResult.data||[]};
+  const salaryChangeAgg=new Map();for(const x of (salaryAgreementResult.data||[])){if(!x.effective_from||!selected(x.effective_from))continue;const key=recordsBucket(x.effective_from,mode,termsForGroup),item=salaryChangeAgg.get(key)||{sum:0,n:0};item.sum+=Number(x.base_salary_ugx||0);item.n++;salaryChangeAgg.set(key,item)}
+  renderRecordsBarChart('recordsSalaryChangeChart',[...salaryChangeAgg].map(([label,x])=>({label,value:x.n?x.sum/x.n:0})),'ugx');
+  window.cornhillReportLearners=learners;window.cornhillRecordsCache={learners,classes:classResult.data||[],assessments,scores,subjects,terms,payments,payroll,salaryAgreements:salaryAgreementResult.data||[],classHistory:historyResult.data||[]};
   message('reportsMsg','Records refreshed. Charts use saved school records only; no missing historical values have been estimated.');
  }catch(error){message('reportsMsg','Could not prepare school records: '+(error.message||'Unknown error'),true)}
  finally{$('refreshSchoolReports').disabled=false}
