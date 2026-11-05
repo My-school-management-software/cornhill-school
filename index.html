@@ -2550,7 +2550,7 @@ async function uploadStaffMediaMessage(blob,kind,seconds,recipient){
  try{
   setStaffMediaStatus('Uploading '+label.toLowerCase()+'… please keep this chat open.');
   const rawType=(blob.type||(kind==='audio'?'audio/webm':'video/webm')).split(';')[0];
-  const ext=rawType.includes('mp4')?'mp4':rawType.includes('ogg')?'ogg':rawType.includes('quicktime')?'mov':rawType.includes('mpeg')?'mp3':'webm';
+  const ext=rawType.includes('jpeg')?'jpg':rawType.includes('png')?'png':rawType.includes('webp')?'webp':rawType.includes('wav')?'wav':rawType.includes('mp4')?'mp4':rawType.includes('ogg')?'ogg':rawType.includes('quicktime')?'mov':rawType.includes('mpeg')?'mp3':'webm';
   const filename=Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;
   const path=currentUserId+'/'+recipient+'/'+filename;
   const {error:uploadError}=await db.storage.from('staff-media').upload(path,blob,{contentType:rawType,upsert:false});
