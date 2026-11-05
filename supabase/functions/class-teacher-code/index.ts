@@ -6,7 +6,7 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return out(405,{error:"Method not allowed."});
  const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SECRET_KEY")||Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
  if(!url||!key)return out(500,{error:"Teacher account service is not configured."});
- const token=(req.headers.get("Authorization")||"").match(/^Bearer\\s+(.+)$/i)?.[1];if(!token)return out(401,{error:"Sign in as administrator first."});
+ const token=(req.headers.get("Authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];if(!token)return out(401,{error:"Sign in as administrator first."});
  const admin=createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}});
  const {data:auth,error:authErr}=await admin.auth.getUser(token);if(authErr||!auth.user)return out(401,{error:"Administrator session is invalid."});
  const {data:actor,error:actorErr}=await admin.from("user_profiles").select("role").eq("id",auth.user.id).single();if(actorErr||actor?.role!=="Admin")return out(403,{error:"Only a school administrator can create or reset class teacher codes."});
