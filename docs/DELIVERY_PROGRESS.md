@@ -654,3 +654,16 @@
 - Added search by learner name/code/LIN, status filtering, CSV export of the filtered list, and print support.
 - Admissions and promotions call the existing refresh workflow, so learners assigned to a class appear in that class register without a separate spreadsheet or manual copying. No learner records were modified by this UI change.
 - JavaScript parse checks passed for both inline scripts. Real signed-in browser verification is still required to confirm role-specific data access and actual admissions/promotions on the live preview.
+
+## 2026-11-05 — Learner column-level access protection and role-scope verification
+
+- Restricted direct `authenticated` SELECT access on `public.students` to the 17 fields required by class registers and mark-entry workflows. Guardian contacts, bursary amounts/notes, address and other private profile fields are no longer directly selectable by authenticated staff.
+- Removed all table privileges on `public.students` from `anon`.
+- Removed default PUBLIC/anonymous execution from the two new finance SECURITY DEFINER RPCs; retained `authenticated` execution because their function bodies require a signed-in school administrator.
+- Added migration `20261105150000_limit_learner_select_and_secure_finance_rpcs.sql` and committed it to `feature/cornhill-v3-foundation`.
+- Verified the database grant catalogue: authenticated has SELECT on only the approved 17 learner columns; anon has no learner-table privileges. Finance RPC ACLs list authenticated/service_role/postgres only, not anon/PUBLIC.
+- Simulated authenticated RLS reads for the three existing nursery teacher accounts. Each sees exactly one assigned class (Baby, Middle or Top); a Baby teacher cannot read a learner in the Top class. All three are blocked from selecting `guardian_phone`. The assigned nursery classes currently contain no learner rows, so real student-row visibility and mark entry still need designated test learners in a browser.
+- Simulated the administrator path: the guarded full-profile RPC and finance learner RPC each returned the one existing P1 test learner.
+- Latest application commit `254d8053db01c8ac616004bdead58967cdee50cb` has a Vercel Preview deployment in READY state at https://cornhill-school-6kr1k0js8-cypher-projects1.vercel.app/. This is a preview, not production.
+- Remaining security release gates: complete real browser sign-in/session tests, test the P1 teacher assignment, enable Supabase Auth leaked-password protection, and review remaining advisor warnings. The SECURITY DEFINER warnings for authenticated-only admin/helper functions remain visible because these guarded functions are used by the app/RLS policies; they must not be blindly revoked.
+- No learner records, marks, payments or attendance rows were added or changed during these checks. The connected Supabase schema/grants were updated; the GitHub `main` branch was not changed.
