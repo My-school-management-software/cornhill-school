@@ -1087,7 +1087,7 @@ function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();if(/assess
 function excelSubjectOrder(a){const name=(a.subjects?.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');const group=curriculumGroupForClass(classes.find(c=>c.id===a.class_id)?.name||'');const maps=group==='Nursery'?['number','numeracy','language','reading','health','social','writing','drawing']:group==='P1-P3'?['english','mathematics','literacyi','literacyii','local','religious']:['english','mathematics','science','socialstudies'];const i=maps.findIndex(k=>name.includes(k));return i<0?99:i;}
 function excelSubjectLabel(assessment,index,clsArg){
  const subject=assessment.subjects||{},name=(subject.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
- const cls=clsArg||classes.find(x=>x.id===assessment.class_id),group=curriculumGroupForClass(cls?.name||''),phase=excelAssessmentPeriod(assessment),n=phase==='Beginning'?1:phase==='Midterm'?2:3;
+ const cls=clsArg||classes.find(x=>x.id===assessment.class_id),group=curriculumGroupForClass(cls?.name||''),phase=excelAssessmentPeriod(assessment),n=phase==='Beginning'?1:phase==='Midterm'?2:phase==='End'?3:4;
  const mappings=group==='Nursery'?[['number','numeracy','nu'],['language','lod'],['reading','rd'],['health','hh'],['social','sd'],['writing','wr'],['drawing','dr']]:group==='P1-P3'?[['english','eng'],['mathematics','mtc'],['literacyi','lit1'],['literacyii','lit2'],['local','ll'],['religious','re']]:[['english','eng'],['mathematics','mtc'],['science','sci'],['socialstudies','sst']];
  const found=mappings.find(x=>x.slice(0,-1).some(k=>name.includes(k)));
  const prefix=found?.[found.length-1]||(subject.code||subject.name||assessment.title||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
