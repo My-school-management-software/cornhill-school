@@ -2348,8 +2348,11 @@ $('sendStaffReset').addEventListener('click',async()=>{const email=$('staffReset
 
 
 let staffDirectoryCache=[];
+let unreadAlertsBusy=false;
 async function loadUnreadMessageAlerts(){
- if(!currentUserId||demoMode)return;
+ if(!currentUserId||demoMode||unreadAlertsBusy)return;
+ unreadAlertsBusy=true;
+ try{
  const badge=$('incomingMessagesBadge'),countEl=$('incomingMessagesCount'),host=$('incomingMessageAlerts');
  if(!badge||!countEl)return;
  const [textResult,mediaResult]=await Promise.all([
@@ -2368,10 +2371,11 @@ async function loadUnreadMessageAlerts(){
   return '<button type="button" data-open-unread-sender="'+esc(m.sender_user_id)+'" style="display:block;width:100%;text-align:left;margin:5px 0;background:#ffedd5;color:#7c2d12">✉ '+esc(sender?.full_name||'Staff colleague')+' · '+esc(new Date(m.created_at).toLocaleString('en-UG'))+'<br><small>'+esc(preview)+'</small></button>'
  }).join('')+'</div>';
  host.classList.remove('hidden');
+ }finally{unreadAlertsBusy=false}
 }
 $('incomingMessagesBadge').addEventListener('click',()=>tab('communication'));
 $('incomingMessageAlerts').addEventListener('click',async e=>{const b=e.target.closest('[data-open-unread-sender]');if(!b)return;tab('communication');await loadDirectMessageDirectory();$('directMessageRecipient').value=b.dataset.openUnreadSender;await loadDirectMessageThread();});
-setInterval(()=>{if(currentUserId&&!demoMode)loadUnreadMessageAlerts()},15000);
+setInterval(()=>{if(currentUserId&&!demoMode){loadUnreadMessageAlerts();if(!$('communication').classList.contains('hidden'))renderDirectMessageContacts()}},12000);
 
 
 let activeStaffCall=null,pendingStaffCall=null,callPeer=null,localCallStream=null,processedCallSignals=new Set(),callPollHandle=null,pendingRemoteIce=[],callPollBusy=false,callRingTimeoutHandle=null,callDisconnectTimer=null;
@@ -2390,7 +2394,8 @@ async function answerStaffCall(){const call=pendingStaffCall;if(!call)return;if(
 async function declineStaffCall(){const call=pendingStaffCall;if(!call)return;if(callRingTimeoutHandle){clearTimeout(callRingTimeoutHandle);callRingTimeoutHandle=null}const {error}=await db.from('staff_call_signals').insert({call_id:call.id,sender_user_id:currentUserId,recipient_user_id:call.other,signal_type:'decline',payload:{}});pendingStaffCall=null;$('incomingCallPanel').classList.add('hidden');updateCallUI('Call declined',false);if(error)message('directMessageMsg','Could not send the decline signal: '+error.message,true)}
 $('startVoiceCall').addEventListener('click',()=>startStaffCall('voice'));$('startVideoCall').addEventListener('click',()=>startStaffCall('video'));$('endCall').addEventListener('click',()=>stopStaffCall(true));$('muteCall').addEventListener('click',()=>{const t=localCallStream?.getAudioTracks()[0];if(t){t.enabled=!t.enabled;$('muteCall').textContent=t.enabled?'Mute microphone':'Unmute microphone'}});$('cameraCall').addEventListener('click',()=>{const t=localCallStream?.getVideoTracks()[0];if(t){t.enabled=!t.enabled;$('cameraCall').textContent=t.enabled?'Turn camera off':'Turn camera on'}});setInterval(pollIncomingStaffCalls,2500);
 
-let staffMediaRecorder=null,staffMediaStream=null,staffMediaChunks=[],staffMediaStartedAt=0,staffMediaKind=null,staffMediaLimitTimer=null,staffMediaClock=null;
+let staffMediaRecorder=null,staffMediaStream=null,staffMediaChunks=[],staffMediaStartedAt=0,staffMediaKind=null,staffMediaLimitTimer=null,staffMediaClock=null,staffMediaBusy=false;
+function releaseStaffMediaBusy(){staffMediaBusy=false;$('directMessageRecipient').disabled=false;$('recordVoiceNote').disabled=false;$('recordVideoMessage').disabled=false;$('recordVoiceNote').textContent='🎙 Record voice note';$('recordVideoMessage').textContent='▣ Record video message'}
 function setStaffMediaStatus(text,isError=false){const el=$('staffMediaStatus');if(el){el.textContent=text;el.style.color=isError?'#b91c1c':'var(--cornhill-muted)'}}
 function updateStaffRecordingClock(){
  const elapsed=Math.max(0,Math.floor((Date.now()-staffMediaStartedAt)/1000));
@@ -2411,6 +2416,8 @@ function hideStaffRecording(){
 }
 async function startStaffMediaRecording(kind){
  const recipient=$('directMessageRecipient')?.value;
+ if(staffMediaBusy){setStaffMediaStatus('Please wait for the current recording to finish sending.',true);return}
+ staffMediaBusy=true;
  if(!recipient){setStaffMediaStatus('Choose a colleague before recording.',true);return}
  if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){setStaffMediaStatus('This browser does not support voice/video recording. Please use updated Chrome over HTTPS.',true);return}
  try{
@@ -2427,12 +2434,12 @@ async function startStaffMediaRecording(kind){
    const blob=new Blob(staffMediaChunks,{type:recorder.mimeType||(kind==='audio'?'audio/webm':'video/webm')});
    if(staffMediaStream){staffMediaStream.getTracks().forEach(t=>t.stop());staffMediaStream=null}
    staffMediaRecorder=null;staffMediaChunks=[];hideStaffRecording();
-   $('recordVoiceNote').disabled=false;$('recordVideoMessage').disabled=false;
-   $('recordVoiceNote').textContent='🎙 Record voice note';$('recordVideoMessage').textContent='▣ Record video message';
-   if(!blob.size){setStaffMediaStatus('No recording was captured. Please try again.',true);return}
-   if(blob.size>20*1024*1024){setStaffMediaStatus('This recording is over the 20 MB limit. Please record a shorter clip.',true);return}
+   $('recordVoiceNote').disabled=true;$('recordVideoMessage').disabled=true;
+   if(!blob.size){setStaffMediaStatus('No recording was captured. Please try again.',true);releaseStaffMediaBusy();return}
+   if(blob.size>20*1024*1024){setStaffMediaStatus('This recording is over the 20 MB limit. Please record a shorter clip.',true);releaseStaffMediaBusy();return}
    await uploadStaffMediaMessage(blob,kind,seconds,recipient);
   };
+  $('directMessageRecipient').disabled=true;
   staffMediaStartedAt=Date.now();recorder.start(400);showStaffRecording(kind);
   $('recordVoiceNote').disabled=kind!=='audio';$('recordVideoMessage').disabled=kind!=='video';
   $('recordVoiceNote').textContent=kind==='audio'?'■ Recording…':'🎙 Record voice note';
@@ -2441,7 +2448,7 @@ async function startStaffMediaRecording(kind){
   staffMediaLimitTimer=setTimeout(()=>stopStaffMediaRecording(),kind==='audio'?120000:30000);
  }catch(e){
   if(staffMediaStream){staffMediaStream.getTracks().forEach(t=>t.stop());staffMediaStream=null}
-  staffMediaRecorder=null;hideStaffRecording();setStaffMediaStatus('Could not access microphone/camera: '+(e.message||'Permission denied.'),true);
+  staffMediaRecorder=null;hideStaffRecording();releaseStaffMediaBusy();setStaffMediaStatus('Could not access microphone/camera: '+(e.message||'Permission denied.'),true);
  }
 }
 function stopStaffMediaRecording(){
@@ -2466,7 +2473,7 @@ async function uploadStaffMediaMessage(blob,kind,seconds,recipient){
   setStaffMediaStatus('✓ '+label+' sent successfully.');
   await loadDirectMessageThread();
  }catch(e){setStaffMediaStatus('✕ '+label+' was not sent: '+(e.message||'Upload failed. Please try again.'),true)}
- finally{$('staffRecordingStop').disabled=false;$('staffRecordingStop').textContent='Stop & send'}
+ finally{$('staffRecordingStop').disabled=false;$('staffRecordingStop').textContent='Stop & send';releaseStaffMediaBusy()}
 }
 $('staffRecordingStop').addEventListener('click',stopStaffMediaRecording);
 $('recordVoiceNote').addEventListener('click',()=>staffMediaRecorder?stopStaffMediaRecording():startStaffMediaRecording('audio'));
