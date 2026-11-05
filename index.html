@@ -950,11 +950,11 @@ async function loadAcademics(){
   db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name').order('full_name'):Promise.resolve({data:[],error:null}),
   db.from('assessment_scores').select('id,score,teacher_comment,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100),
-  profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId)
+  profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id'))
  ]);
  const err=[y,t,s,a,staff,cscores,assignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
  if(profile?.role!=='Teacher')window.teacherClassIds=null;
- academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:a.data||[]};
+ const scopedAssessments=profile?.role==='Teacher'?(a.data||[]).filter(x=>x.class_id===sessionStorage.getItem('cornhill_teacher_class_id')):(a.data||[]);academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:scopedAssessments};
  $('unebGradeSubject').innerHTML=academic.subjects.filter(x=>['english','mathematics','science','social studies'].includes(String(x.name).toLowerCase())).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  await loadUnebSubjectGradeBands();
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
