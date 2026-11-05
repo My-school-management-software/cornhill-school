@@ -472,7 +472,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Staff member</th><th>First clock-in</th><th>Last clock-out</th><th>Events</th><th>Review</th></tr></thead><tbody id="attendanceSummaryRows"></tbody></table></div>
 <hr style="border:0;border-top:1px solid #e5ece6;margin:20px 0">
 <h3>2. Upload attendance export</h3>
-<p class="muted">CSV columns required: <code>device_user_id,event_type,occurred_at</code>. Optional columns: <code>external_event_id</code>. Event types: clock_in, clock_out, break_start, break_end. Include a header row. Export times should be local Uganda time (EAT) or ISO timestamps with timezone.</p>
+<p class="muted">CSV columns required: a machine staff ID (<code>device_user_id</code>, <code>user_id</code> or <code>userid</code>), event type (<code>event_type</code>, <code>status</code> or <code>type</code>) and date/time. Use one timestamp column (<code>occurred_at</code>, <code>datetime</code> or <code>timestamp</code>), or separate <code>date</code> and <code>time</code> columns. Event values can be clock_in / clock_out / break_start / break_end, Check In / Check Out, IN / OUT, or 0 / 1. Export times should be local Uganda time (EAT) or ISO timestamps with timezone.</p>
 <form id="attendanceImportForm">
 <div><label>Machine serial number *</label><input name="device_serial" required></div>
 <div><label>Device model</label><input name="device_model" placeholder="Enter the exact model printed on the fingerprint machine"></div>
@@ -1910,8 +1910,9 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
  rows.forEach((r,i)=>{
   const id=String(r.device_user_id||r.user_id||r.userid||'').trim();
   const rawType=String(r.event_type||r.status||r.type||'').toLowerCase().trim().replace(/[ -]/g,'_');
-  const time=parseAttendanceTime(r.occurred_at||r.datetime||r.timestamp||r.time);
-  const aliases={'0':'clock_in','in':'clock_in','check_in':'clock_in','1':'clock_out','out':'clock_out','check_out':'clock_out','breakstart':'break_start','breakend':'break_end'};
+  const rawTimestamp=r.occurred_at||r.datetime||r.timestamp||(r.date&&r.time?(String(r.date).trim()+' '+String(r.time).trim()):r.time);
+  const time=parseAttendanceTime(rawTimestamp);
+  const aliases={'0':'clock_in','in':'clock_in','check_in':'clock_in','checkin':'clock_in','clockin':'clock_in','1':'clock_out','out':'clock_out','check_out':'clock_out','checkout':'clock_out','clockout':'clock_out','breakstart':'break_start','break_in':'break_start','breakin':'break_start','breakend':'break_end','break_out':'break_end','breakout':'break_end'};
   const type=aliases[rawType]||rawType;
   const external=String(r.external_event_id||r.event_id||r.log_id||'').trim();
   const key=external?serial+':'+external:[id,type,time].join('|');
