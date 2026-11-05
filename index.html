@@ -2189,9 +2189,13 @@ $('studentForm').addEventListener('submit',async e=>{
   const found=await Promise.all(checks);
   if(found.some(x=>x.error)){message('appMsg','Could not verify duplicate official learner identifiers. Please retry before saving.',true);return}
   if(found.some(x=>x.data?.length)){message('appMsg','That Ministry LIN or P7 examination index number is already assigned to another learner. Check the existing record.',true);return}
-  const sameName=await db.from('students').select('id,admission_number,date_of_birth').ilike('first_name',record.first_name.trim()).ilike('last_name',record.last_name.trim()).limit(20);
-  if(sameName.error){message('appMsg','Could not check for a duplicate learner. Please retry before saving.',true);return}
-  const possibleDuplicate=(sameName.data||[]).find(x=>x.date_of_birth&&record.date_of_birth&&x.date_of_birth===record.date_of_birth);
+  // The administrator's full learner list is loaded through the guarded admin_list_students RPC.
+  // Do not query date_of_birth directly: authenticated users have intentionally limited column access.
+  const possibleDuplicate=students.find(x=>
+   String(x.first_name||'').trim().toLowerCase()===record.first_name.trim().toLowerCase()&&
+   String(x.last_name||'').trim().toLowerCase()===record.last_name.trim().toLowerCase()&&
+   x.date_of_birth&&record.date_of_birth&&x.date_of_birth===record.date_of_birth
+  );
   if(possibleDuplicate&&!confirm('A learner with the same first name, last name and date of birth already exists ('+possibleDuplicate.admission_number+'). Continue only if this is a different learner.'))return;
  }
  if(wasEditing){const existing=students.find(x=>x.id===editingStudentId);if(existing){record.is_bursary=!!existing.is_bursary;record.bursary_fee_ugx=Number(existing.bursary_fee_ugx||0);record.bursary_notes=existing.bursary_notes||null;}}
