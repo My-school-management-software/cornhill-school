@@ -1660,7 +1660,7 @@ $('scoreForm').addEventListener('submit',async e=>{
 
 function parseCSV(text){
  const rows=[];let row=[],field='',quoted=false,fieldStarted=false;
- const source=String(text||'').replace(/^\\ufeff/,'');
+ const source=String(text||'').replace(/^\ufeff/,'');
  for(let i=0;i<source.length;i++){
   const c=source[i],n=source[i+1];
   if(quoted){
@@ -1672,8 +1672,8 @@ function parseCSV(text){
    quoted=true;fieldStarted=true;
   }else if(c===','){
    row.push(field.trim());field='';fieldStarted=false;
-  }else if(c==='\\n'||c==='\\r'){
-   if(c==='\\r'&&n==='\\n')i++;
+  }else if(c==='\n'||c==='\r'){
+   if(c==='\r'&&n==='\n')i++;
    row.push(field.trim());
    if(row.some(v=>v!==''))rows.push(row);
    row=[];field='';fieldStarted=false;
