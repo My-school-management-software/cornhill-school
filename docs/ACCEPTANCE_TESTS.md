@@ -90,3 +90,15 @@ This checklist is the release gate for the first real school use. Run it with th
 - The current database snapshot has only one learner, one assessment, no assessment scores and one class-subject assignment. The administrator must complete real class/teacher setup before teachers can use their mark books.
 - Offline support caches the app shell only. Live records and payments require internet.
 - Fingerprint hardware, thermal printers, SMS delivery and full offline synchronisation have not been validated end-to-end.
+
+## H. Staff communication — test with two authorised staff accounts
+
+- [ ] A staff member can publish an update to an allowed audience; users outside that audience cannot read it.
+- [ ] A private text message reaches only the selected recipient and sender.
+- [ ] A new incoming message increments the navigation badge and appears in the recipient's incoming-message alert.
+- [ ] Opening a conversation marks only the recipient's messages as read and clears the correct unread count.
+- [ ] Voice-note recording shows a recording timer/state, stops cleanly, uploads and plays for the recipient.
+- [ ] Video recording opens a live camera preview, shows recording state, uploads and plays for the recipient.
+- [ ] A voice call and a video call can be started, answered, declined and ended by the two test accounts.
+- [ ] A third staff account cannot read another pair's private messages or media objects.
+- [ ] Denied microphone/camera permission, interrupted upload and unavailable media playback show clear errors without leaving the recorder or call active.
