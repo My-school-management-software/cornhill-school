@@ -632,3 +632,10 @@
 - Restricted the X (Absent) marker to P4–P7 in individual, bulk class-sheet and Excel-style mark entry. Nursery and P1–P3 must receive a numeric mark instead.
 - In P4–P7 report cards, a subject with any assessment marked X now displays X for its subject average and grade rather than displaying a calculated grade alongside an absence marker. The UNEB aggregate/division remains unavailable when any subject is X, including non-core subjects.
 - This is a source-code correction only. Existing stored marks were not changed; authenticated browser tests across Nursery, P1–P3 and P4–P7 remain outstanding.
+
+### 2026-11-05 — Atomic finance payment posting
+- Added `post_school_payment_complete`, which records the collection item and payer name in the same database transaction as the payment, receipt number and allocations.
+- The RPC serializes payment posting per learner with a transaction-scoped advisory lock and validates selected charges against that learner's outstanding balances.
+- Updated the payment form to call the new RPC and removed the follow-up client-side update that could fail after a receipt had already been posted.
+- The migration was applied to the connected Supabase project and mirrored in the repository. No test payments or learner finance rows were created or changed during verification.
+- Remaining: run authenticated positive/negative payment tests, verify allocation and reversal behaviour, and confirm 58mm/80mm printer output on actual devices.
