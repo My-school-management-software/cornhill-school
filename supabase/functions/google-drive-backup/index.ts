@@ -17,7 +17,7 @@ const TABLES = [
   "school_classes","academic_years","academic_terms","subjects","academic_grade_bands",
   "uneb_subject_grade_bands","school_curriculum_subjects","class_subjects","assessments",
   "assessment_scores","report_card_publications","student_class_history","student_status_history",
-  "students","user_profiles","fee_items","fee_schedules","learner_account_balances",
+  "students","user_profiles","fee_items","fee_schedules",
   "learner_charges","school_payments","payment_allocations","daily_collection_records",
   "school_expenses","expense_categories","payroll_periods","payroll_items","staff_salary_agreements",
   "staff_salary_advances","staff_attendance_events","staff_attendance_adjustments",
