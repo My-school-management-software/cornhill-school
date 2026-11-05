@@ -639,3 +639,11 @@
 - Updated the payment form to call the new RPC and removed the follow-up client-side update that could fail after a receipt had already been posted.
 - The migration was applied to the connected Supabase project and mirrored in the repository. No test payments or learner finance rows were created or changed during verification.
 - Remaining: run authenticated positive/negative payment tests, verify allocation and reversal behaviour, and confirm 58mm/80mm printer output on actual devices.
+
+
+### 2026-11-05 — Audited receipt reversal
+- Added reversal audit fields to school payments: reversal timestamp, administrator identity and mandatory reason.
+- Added an authenticated admin-only transactional RPC that locks the selected payment, permits only a currently Posted receipt, validates a 5–500 character reason, and changes its status to Reversed without deleting the original receipt or allocations.
+- Added an administrator receipt-lookup action with confirmation, required reason and post-reversal re-fetch. Reversed receipts remain printable but are clearly marked invalid; existing balance/report calculations already count only Posted payments.
+- Database migration was applied and the function/column grants were verified. No real payment was reversed and no payment data was changed during implementation.
+- Still required: authenticated positive/negative role tests, verify that balances and all reports recalculate correctly after a test reversal, and browser-print checks. Production remains untouched.
