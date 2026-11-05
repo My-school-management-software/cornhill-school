@@ -2209,13 +2209,22 @@ async function callGoogleDriveBackup(action){
  if(profile?.role!=='Admin'||demoMode)throw new Error('Only a signed-in administrator can manage school cloud backups.');
  const {data:{session}}=await db.auth.getSession();
  if(!session?.access_token)throw new Error('Your session has expired. Sign in again.');
- const response=await fetch(SUPABASE_URL+'/functions/v1/google-drive-backup',{
-  method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY},
-  body:JSON.stringify({action})
- });
- const payload=await response.json().catch(()=>({error:'Unexpected response from backup service.'}));
- if(!response.ok||payload.error)throw new Error(payload.error||'Cloud backup request failed.');
- return payload;
+ // Use the configured Supabase Functions client so its standard headers and
+ // preflight behaviour match the rest of the application.
+ const {data,error}=await db.functions.invoke('google-drive-backup',{body:{action}});
+ if(error){
+  let detail=error.message||'Cloud backup request failed.';
+  try{
+   const context=error.context;
+   if(context&&typeof context.clone==='function'){
+    const payload=await context.clone().json();
+    if(payload?.error)detail=payload.error;
+   }
+  }catch(_){}
+  throw new Error(detail);
+ }
+ if(data?.error)throw new Error(data.error);
+ return data;
 }
 function escapeBackupHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 function renderGoogleDriveHistory(runs){
