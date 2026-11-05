@@ -1187,13 +1187,12 @@ function unebPrimaryDivision(subjectGrades){
  const points=normalized.map(x=>unebGradePoint(x.grade.grade));
  if(points.some(x=>x===null))return {ready:false,reason:'Configure all nine UNEB grade percentage boundaries for each of the four core subjects before calculating the aggregate.'};
  const aggregate=points.reduce((a,b)=>a+b,0);
- let base=aggregate<=12?1:aggregate<=23?2:aggregate<=29?3:aggregate<=34?4:'U';
+ // Match the school's PRIMARY SEVEN.xlsx division formula exactly:
+ // >=34 = U; >=29 = IV; >=25 = III; >=13 = II; otherwise I.
+ // Aggregate is the sum of the final digit of the four subject grades.
+ const division=aggregate>=34?'U':aggregate>=29?'IV':aggregate>=25?'III':aggregate>=13?'II':'I';
  const english=points[0],math=points[1];
- let division=base;
- if(english===9&&base<=2)division=3;
- else if(base===1&&(english===8||math===9))division=2;
- const penalty=division-base;
- return {ready:true,aggregate,baseDivision:base,division,englishGrade:english,mathGrade:math,penalty,points};
+ return {ready:true,aggregate,division,englishGrade:english,mathGrade:math,points};
 }
 
 async function loadGradeBands(){
