@@ -1915,12 +1915,13 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
   const aliases={'0':'clock_in','in':'clock_in','check_in':'clock_in','checkin':'clock_in','clockin':'clock_in','1':'clock_out','out':'clock_out','check_out':'clock_out','checkout':'clock_out','clockout':'clock_out','breakstart':'break_start','break_in':'break_start','breakin':'break_start','breakend':'break_end','break_out':'break_end','breakout':'break_end'};
   const type=aliases[rawType]||rawType;
   const external=String(r.external_event_id||r.event_id||r.log_id||'').trim();
-  const key=external?serial+':'+external:[id,type,time].join('|');
+  const dedupeKey=external?'external|'+serial+'|'+external:'event|'+serial+'|'+id+'|'+type+'|'+time;
+  const key=dedupeKey;
   if(!id||!mappings[id])issues.push('Row '+(i+2)+': no staff mapping for device user ID '+(id||'(blank)'));
   else if(!['clock_in','clock_out','break_start','break_end'].includes(type))issues.push('Row '+(i+2)+': unsupported event type '+rawType);
   else if(!time)issues.push('Row '+(i+2)+': invalid date/time');
   else if(seen.has(key))issues.push('Row '+(i+2)+': duplicate row in this file');
-  else {seen.add(key);valid.push({staff_user_id:mappings[id],event_type:type,occurred_at:time,source:'usb_csv',device_serial:serial,device_model:model||null,device_user_id:id,external_event_id:external||null})}
+  else {seen.add(key);valid.push({dedupe_key:dedupeKey,staff_user_id:mappings[id],event_type:type,occurred_at:time,source:'usb_csv',device_serial:serial,device_model:model||null,device_user_id:id,external_event_id:external||null})}
  });
  $('attendancePreview').innerHTML='<p><strong>'+valid.length+'</strong> valid rows · <strong>'+issues.length+'</strong> rows needing correction</p>'+(issues.length?'<div class="notice error">'+issues.slice(0,12).map(esc).join('<br>')+(issues.length>12?'<br>More errors not shown.':'')+'</div>':'')+'<p class="muted">Review the results above. Valid rows will be imported; invalid rows are skipped.</p>';
  if(!valid.length){message('attendanceMsg','No valid rows to import. Correct the CSV or staff ID mappings.',true);return}
@@ -1929,16 +1930,9 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
  const batch=await db.from('staff_attendance_import_batches').insert({source:'usb_csv',source_file_name:file.name,device_model:model||null,device_serial:serial,imported_rows:0,rejected_rows:issues.length,created_by:user.id,notes:'Import started; counts are finalized after event rows are saved.'}).select('id').single();
  if(batch.error){message('attendanceMsg','Could not create import batch: '+batch.error.message,true);return}
  const records=valid.map(x=>({...x,import_batch_id:batch.data.id,recorded_by:user.id}));
- const withExternal=records.filter(x=>x.external_event_id), withoutExternal=records.filter(x=>!x.external_event_id);
  let inserted=0,importError=null;
- if(withExternal.length){
-  const result=await db.from('staff_attendance_events').upsert(withExternal,{onConflict:'device_serial,external_event_id',ignoreDuplicates:true}).select('id');
-  if(result.error)importError=result.error;else inserted+=(result.data||[]).length;
- }
- if(!importError&&withoutExternal.length){
-  const result=await db.from('staff_attendance_events').upsert(withoutExternal,{onConflict:'device_serial,device_user_id,event_type,occurred_at',ignoreDuplicates:true}).select('id');
-  if(result.error)importError=result.error;else inserted+=(result.data||[]).length;
- }
+ const result=await db.from('staff_attendance_events').upsert(records,{onConflict:'dedupe_key',ignoreDuplicates:true}).select('id');
+ if(result.error)importError=result.error;else inserted=(result.data||[]).length;
  if(importError){
   const failedUpdate=await db.from('staff_attendance_import_batches').update({imported_rows:inserted,rejected_rows:issues.length+(valid.length-inserted),notes:'Import incomplete. '+inserted+' events saved before the error; '+(valid.length-inserted)+' valid rows were not confirmed. Error: '+importError.message}).eq('id',batch.data.id);
   message('attendanceMsg','The import did not finish. '+inserted+' events were saved before the error; '+(valid.length-inserted)+' valid rows were not confirmed. Check the batch before retrying. '+(failedUpdate.error?' Batch status update also failed: '+failedUpdate.error.message:''),true);return
