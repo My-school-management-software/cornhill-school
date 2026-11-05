@@ -165,6 +165,34 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  body.print-financial-overview #financialOverviewPrintArea h2{font-size:13pt}
  body.print-financial-overview #financialOverviewPrintArea h3{font-size:11pt;margin:12px 0 5px}
 }
+</style><style id="blankReportTemplateStyles">
+.blank-report-template{width:196mm;min-height:282mm;margin:0 auto 8mm;padding:5mm 4mm;background:#fff;color:#111;font-family:Arial,sans-serif;box-sizing:border-box;page-break-after:always;break-after:page;border:1px dotted #777}
+.blank-report-template:last-child{page-break-after:auto;break-after:auto}
+.blank-report-template .br-head{display:grid;grid-template-columns:34mm 1fr;align-items:center;gap:3mm;border-bottom:1px solid #6b7280;padding-bottom:3mm;text-align:center}
+.blank-report-template .br-head img{width:31mm;height:31mm;object-fit:contain}
+.blank-report-template .br-school{font-family:Georgia,serif;color:#673ab7;font-size:19pt;font-weight:800;line-height:1.08}
+.blank-report-template .br-address{font-size:12pt;font-weight:800;margin:2mm 0}
+.blank-report-template .br-motto{font-size:13pt;font-style:italic;color:#4f86bd;margin:1mm 0}
+.blank-report-template .br-banner{display:block;background:#4f86bd;color:#fff;font-size:11pt;font-weight:800;padding:2.5mm;margin-top:2mm}
+.blank-report-template .br-ident{font-size:10pt;font-weight:700;margin:5mm 0 3mm;line-height:1.9}
+.blank-report-template .br-ident p{margin:1mm 0}
+.blank-report-template .br-line{display:inline-block;min-width:42mm;border-bottom:1px solid #333;height:5mm;vertical-align:bottom}
+.blank-report-template .br-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9pt}
+.blank-report-template .br-table th,.blank-report-template .br-table td{border:1px solid #333;padding:2mm 1.2mm;text-align:center;vertical-align:middle}
+.blank-report-template .br-table th:first-child,.blank-report-template .br-table td:first-child{text-align:left;font-weight:700;width:24%}
+.blank-report-template .br-table thead th{font-weight:800;background:#f1f5f9}
+.blank-report-template .br-table .br-subject{height:10mm}
+.blank-report-template .br-table .br-total,.blank-report-template .br-table .br-position{font-weight:800}
+.blank-report-template .br-write{margin-top:5mm;font-size:10pt;font-weight:700;line-height:2}
+.blank-report-template .br-write .dots{border-bottom:1px dotted #333;height:7mm}
+.blank-report-template .br-supplies{margin-top:4mm;border:1.5px solid #59a9b7;padding:2mm 3mm;font-size:9pt;font-style:italic;font-weight:800;line-height:2}
+.blank-report-template .br-next{margin-top:5mm;font-size:10pt;font-weight:800}
+.blank-report-template .br-stamp{margin-top:4mm;text-align:center;font-size:8.5pt;font-style:italic;font-weight:700}
+.blank-report-template .br-nursery-grading{margin-top:2mm;font-size:8pt}
+.blank-report-template .br-colors{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;margin:2mm 0}
+.blank-report-template .br-colors span{height:8mm;display:grid;place-items:center;font-weight:800}
+.blank-report-template .br-activity{margin-top:3mm}
+@media print{@page{size:A4 portrait;margin:7mm}.blank-report-template{margin:0;border:1px dotted #777;min-height:282mm}}
 </style></head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -371,6 +399,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
  </div>
  <div class="row" style="align-items:end;justify-content:flex-end;margin:12px 0">
   <button type="button" class="tab" id="buildClassReportCards">Generate all report cards for this class</button>
+  <button type="button" class="tab" id="downloadBlankReportTemplates">Download blank report templates · all 10 classes (A4)</button>
   <button type="button" id="downloadClassReportCards" disabled>Download all as PDF</button>
   <button type="button" id="printClassReportCards" disabled>Print all</button>
  </div>
@@ -1332,6 +1361,43 @@ $('printClassReportCards').addEventListener('click',()=>{
  if(!generatedReportBatch.count)return;
  const box=$('reportBatchPrint');box.classList.remove('hidden');document.body.classList.add('print-report-batch');window.print();document.body.classList.remove('print-report-batch');box.classList.add('hidden');
 });
+
+
+function blankReportTemplateHtml(className,subjects,group){
+ const max=subjects.length*100;
+ const subjectRows=subjects.map((subject,i)=>'<tr class="br-subject"><td>'+String(i+1).padStart(2,'0')+'. '+esc(subject)+'</td><td></td><td>100</td><td></td><td>100</td><td></td><td>100</td><td></td><td></td></tr>').join('');
+ const nursery=group==='Nursery';
+ const positionRow='<tr class="br-position"><td>POSITION</td><td colspan="2"></td><td colspan="2"></td><td colspan="2"></td><td></td><td></td></tr>';
+ const totalRow='<tr class="br-total"><td>TOTAL</td><td></td><td>'+max+'</td><td></td><td>'+max+'</td><td></td><td>'+max+'</td><td></td><td></td></tr>';
+ const indexLine=/P\.?\s*7|PRIMARY\s*SEVEN/i.test(className)?'<p><b>INDEX NUMBER:</b> <span class="br-line"></span></p>':'';
+ const nurseryExtras=nursery?'<section class="br-nursery-grading"><b>GRADING:</b><div class="br-colors"><span style="background:#8ccf52">EXCELLENT</span><span style="background:#4f86bd;color:white">VERY GOOD</span><span style="background:#fff000">GOOD</span><span style="background:#ef4444;color:white">FAIR</span></div><table class="br-table"><tr><th>ACTIVITY</th><th>Singing</th><th>P.E</th><th>Sharing</th><th>Cleaning</th><th>Intelligence</th><th>Attendance</th><th>Time Keeping</th><th>Latrine Habits</th></tr><tr><th>GRADE</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table></section>':'';
+ return '<article class="blank-report-template"><header class="br-head"><img src="/assets/cornhill-logo.png" alt="Cornhill school badge"><div><div class="br-school">CORNHILL NURSERY &amp; PRIMARY SCHOOL</div><div class="br-address">P.O BOX 112 BUSHENYI</div><div class="br-motto">MOTTO: WE SHARE ONE DREAM</div><div class="br-banner">PUPIL’S PROGRESSIVE REPORT CARD FOR TERM ______ 20____</div></div></header><section class="br-ident"><p>PUPIL’S NAME: <span class="br-line" style="min-width:100mm"></span></p><p>CLASS: '+esc(className)+' <span style="display:inline-block;margin-left:12mm">NO. OF PUPILS IN CLASS: <span class="br-line" style="min-width:22mm"></span></span></p><p>LEARNER’S IDENTIFICATION NUMBER (LIN): <span class="br-line" style="min-width:75mm"></span></p>'+indexLine+'</section><table class="br-table"><thead><tr><th rowspan="2">SUBJECT</th><th colspan="2">B.O.T</th><th colspan="2">MID</th><th colspan="2">E.O.T</th><th rowspan="2">REMARKS</th><th rowspan="2">INITIALS</th></tr><tr><th>MARKS</th><th>%</th><th>MARKS</th><th>%</th><th>MARKS</th><th>%</th></tr></thead><tbody>'+subjectRows+totalRow+positionRow+'</tbody></table>'+nurseryExtras+'<section class="br-write"><p>CLASS TEACHER’S COMMENT:</p><div class="dots"></div><div class="dots"></div><p>SIGN: ....................................................................................................................</p><p>HEAD TEACHER’S REMARKS:</p><div class="dots"></div><div class="dots"></div><p>SIGN: ....................................................................................................................</p></section><section class="br-supplies">SCHOOL FEES: ______________ &nbsp; B/FAST: ______________ &nbsp; 4 ROLLS OF TOILET PAPERS &nbsp; A BROOM<br>LUNCH: ______________ &nbsp; 1 PACKET OF MARKERS &nbsp; BOARDING: ______________</section><div class="br-next">NEXT TERM BEGINS ON: ____________________ &nbsp; ENDS ON: ____________________</div><div class="br-stamp">This report card is a property of Cornhill Nursery &amp; Primary School, and is invalid without school a stamp</div></article>';
+}
+async function downloadBlankClassReportTemplates(){
+ const button=$('downloadBlankReportTemplates');if(!button)return;
+ if(typeof html2pdf!=='function'){message('academicMsg','The PDF generator is unavailable. Refresh the page and try again.',true);return}
+ const classTemplates=[
+  {name:'BABY CLASS',group:'Nursery',subjects:['LANGUAGE DEVELOPMENT','READING','NUMBERS','HEALTH HABITS','SOCIAL DEVELOPMENT','WRITING','DRAWING']},
+  {name:'MIDDLE CLASS',group:'Nursery',subjects:['LANGUAGE DEVELOPMENT','READING','NUMBERS','HEALTH HABITS','SOCIAL DEVELOPMENT','WRITING','DRAWING']},
+  {name:'TOP CLASS',group:'Nursery',subjects:['LANGUAGE DEVELOPMENT','READING','NUMBERS','HEALTH HABITS','SOCIAL DEVELOPMENT','WRITING','DRAWING']},
+  {name:'PRIMARY ONE',group:'P1-P3',subjects:['ENGLISH','MATHEMATICS','LITERACY I','LITERACY II','LOCAL LANGUAGE','RELIGIOUS EDUCATION']},
+  {name:'PRIMARY TWO',group:'P1-P3',subjects:['ENGLISH','MATHEMATICS','LITERACY I','LITERACY II','LOCAL LANGUAGE','RELIGIOUS EDUCATION']},
+  {name:'PRIMARY THREE',group:'P1-P3',subjects:['ENGLISH','MATHEMATICS','LITERACY I','LITERACY II','LOCAL LANGUAGE','RELIGIOUS EDUCATION']},
+  {name:'PRIMARY FOUR',group:'P4-P7',subjects:['ENGLISH','MATHEMATICS','SCIENCE','S.S.T']},
+  {name:'PRIMARY FIVE',group:'P4-P7',subjects:['ENGLISH','MATHEMATICS','SCIENCE','S.S.T']},
+  {name:'PRIMARY SIX',group:'P4-P7',subjects:['ENGLISH','MATHEMATICS','SCIENCE','S.S.T']},
+  {name:'PRIMARY SEVEN',group:'P4-P7',subjects:['ENGLISH','MATHEMATICS','SCIENCE','S.S.T']}
+ ];
+ const node=document.createElement('div');node.style.cssText='position:fixed;left:-300mm;top:0;width:196mm;background:#fff;z-index:-1';
+ node.innerHTML=classTemplates.map(c=>blankReportTemplateHtml(c.name,c.subjects,c.group)).join('');
+ document.body.appendChild(node);button.disabled=true;button.textContent='Preparing A4 templates…';
+ try{
+  await html2pdf().set({margin:[7,7,7,7],filename:'Cornhill_Blank_Report_Card_Templates_All_Classes_A4.pdf',image:{type:'jpeg',quality:0.96},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(node).save();
+  message('academicMsg','Downloaded the 10 blank A4 report-card templates. Existing report-card format and class subject lists have been retained.');
+ }catch(err){message('academicMsg','Could not generate the blank report-card templates: '+(err?.message||String(err)),true)}
+ finally{node.remove();button.disabled=false;button.textContent='Download blank report templates · all 10 classes (A4)'}
+}
+$('downloadBlankReportTemplates')?.addEventListener('click',downloadBlankClassReportTemplates);
 
 async function getTermScores(){
  const termId=$('reportTermSelect').value,classId=$('reportClassSelect').value;
