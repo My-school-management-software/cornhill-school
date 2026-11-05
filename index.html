@@ -2214,10 +2214,11 @@ async function callGoogleDriveBackup(action){
  if(!response.ok||payload.error)throw new Error(payload.error||'Cloud backup request failed.');
  return payload;
 }
+function escapeBackupHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 function renderGoogleDriveHistory(runs){
  const target=$('googleDriveHistory');if(!target)return;
  if(!runs?.length){target.textContent='No Google Drive backup runs recorded yet.';return}
- target.innerHTML='<strong>Recent cloud backups</strong><ul>'+runs.map(run=>'<li>'+String(run.created_at||'').replace('T',' ').slice(0,19)+' · '+String(run.status||'').toUpperCase()+' · '+(run.file_name||'Backup in progress')+' · '+Number(run.total_records||0).toLocaleString('en-UG')+' records'+(run.error_message?' · '+String(run.error_message):'')+'</li>').join('')+'</ul>';
+ target.innerHTML='<strong>Recent cloud backups</strong><ul>'+runs.map(run=>'<li>'+escapeBackupHtml(String(run.created_at||'').replace('T',' ').slice(0,19))+' · '+escapeBackupHtml(String(run.status||'').toUpperCase())+' · '+escapeBackupHtml(run.file_name||'Backup in progress')+' · '+Number(run.total_records||0).toLocaleString('en-UG')+' records'+(run.error_message?' · '+escapeBackupHtml(run.error_message):'')+'</li>').join('')+'</ul>';
 }
 async function refreshGoogleDriveStatus(){
  const status=$('googleDriveStatus');if(!status)return;
