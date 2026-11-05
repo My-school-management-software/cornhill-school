@@ -2115,7 +2115,7 @@ async function loadSchoolReports(){
  if(demoMode||profile?.role!=='Admin'){message('reportsMsg','School records and backups are available to administrators only.',true);return}
  clearMessage('reportsMsg');$('refreshSchoolReports').disabled=true;
  try{
-  const [learnerResult,classResult,assessmentResult,scoreResult,subjectResult,termResult,paymentResult,payrollResult,historyResult]=await Promise.all([
+  const [learnerResult,classResult,assessmentResult,scoreResult,subjectResult,termResult,paymentResult,payrollResult,salaryAgreementResult,historyResult]=await Promise.all([
    db.rpc('admin_list_students'),
    db.from('school_classes').select('id,name').order('name'),
    db.from('assessments').select('id,subject_id,term_id,assessment_date,max_score'),
@@ -2127,7 +2127,7 @@ async function loadSchoolReports(){
    db.from('staff_salary_agreements').select('staff_user_id,base_salary_ugx,effective_from,effective_to,is_active,salary_basis').limit(10000),
    db.from('student_class_history').select('student_id,effective_date,to_class_id').limit(10000)
   ]);
-  const err=learnerResult.error||classResult.error||assessmentResult.error||scoreResult.error||subjectResult.error||termResult.error||paymentResult.error||payrollResult.error||historyResult.error;
+  const err=learnerResult.error||classResult.error||assessmentResult.error||scoreResult.error||subjectResult.error||termResult.error||paymentResult.error||payrollResult.error||salaryAgreementResult.error||historyResult.error;
   if(err)throw err;
   const learners=Array.isArray(learnerResult.data)?learnerResult.data:(learnerResult.data?.students||[]);
   const active=learners.filter(x=>x.status==='Active'),assessments=assessmentResult.data||[],scores=scoreResult.data||[],subjects=subjectResult.data||[],terms=termResult.data||[],payments=paymentResult.data||[],payroll=payrollResult.data||[];
