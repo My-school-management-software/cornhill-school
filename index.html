@@ -16,6 +16,11 @@
 .excel-marks-table input[data-grid-score]:focus{outline:2px solid #2563eb;outline-offset:-1px;background:#eff6ff}
 .excel-photo-placeholder{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#e8edf5;color:#526174;font-size:9px;font-weight:700}
 .excel-marks-table tbody tr:nth-child(even) td{background:#f8fafc}
+.excel-marks-table .summary-column{font-weight:700;text-align:center;background:color-mix(in srgb,var(--cornhill-accent) 7%,white)}
+.excel-marks-table .calculation-column{font-weight:700;text-align:center;background:color-mix(in srgb,#dbeafe 40%,white)}
+.excel-grade-detail{display:block;font-size:10px;color:var(--cornhill-muted);margin-top:3px}
+@media(max-width:700px){.excel-marks-table .beginning-column{display:none}.excel-marks-table.show-beginning-mobile .beginning-column{display:table-cell}}
+
 </style><style>@media print{body.print-class-register *{visibility:hidden!important}body.print-class-register #classRosterPrint,body.print-class-register #classRosterPrint *{visibility:visible!important}body.print-class-register #classRosterPrint{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0!important;box-shadow:none!important}body.print-class-register #classRosterPrint button{display:none!important}body.print-learner-profile *{visibility:hidden!important}body.print-learner-profile #learnerProfileContent,body.print-learner-profile #learnerProfileContent *{visibility:visible!important}body.print-learner-profile #learnerProfileContent{display:block!important;position:absolute;left:0;top:0;width:100%}}body.print-official-report *{visibility:hidden!important}body.print-official-report #reportCardPreview,body.print-official-report #reportCardPreview *{visibility:visible!important}body.print-official-report #reportCardPreview{display:block!important;position:absolute;left:0;top:0;width:100%}body.print-official-report #reportCardPreview button{display:none!important}</style><style>
 :root{--cornhill-accent:#166534;--cornhill-accent-dark:#14532d;--cornhill-page:#f3f7f3;--cornhill-panel:#fff;--cornhill-ink:#17251c;--cornhill-muted:#607265;--cornhill-line:#dce7de}
 body{background:var(--cornhill-page);color:var(--cornhill-ink)}
@@ -227,9 +232,10 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
   <p class="muted">Open a class folder, choose Beginning, Midterm or End of term, and enter marks in the matching subject columns. Codes ending in 1, 2 and 3 represent the three reporting periods.</p>
   <div id="excelClassFolders" class="module-grid" style="margin:12px 0"></div>
   <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
-   <div style="min-width:170px;flex:1"><label for="excelMarksPhase">Assessment period</label><select id="excelMarksPhase"><option value="Beginning">Beginning · 1</option><option value="Midterm">Midterm · 2</option><option value="End">End of term · 3</option></select></div>
+   <div style="min-width:170px;flex:1"><label for="excelMarksPhase">Assessment period</label><select id="excelMarksPhase"><option value="All">All periods · full class sheet</option><option value="Beginning">Beginning · 1</option><option value="Midterm">Midterm · 2</option><option value="End">End of term · 3</option></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksTerm">Academic term</label><select id="excelMarksTerm"></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
+   <button type="button" class="tab" id="toggleBeginningColumns">Show beginning columns</button>
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
    <button type="button" id="saveExcelMarks">Save all marks</button>
   </div>
@@ -1086,36 +1092,103 @@ function excelSubjectLabel(assessment,index,clsArg){
  const prefix=found?.[found.length-1]||(subject.code||subject.name||assessment.title||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
  return prefix.toUpperCase()+n;
 }
+function excelPhaseCode(phase){return phase==='Beginning'?1:phase==='Midterm'?2:3}
+function excelGradeMarkup(assessment,mark){
+ if(!mark)return '—';
+ if(isAbsentMark(mark))return 'X';
+ const grade=unebGradeFor(assessment.subject_id,Number(mark.score)/Number(assessment.max_score)*100);
+ return grade?.grade_code||'—';
+}
+function recalculateExcelMarkSheet(){
+ const ctx=window.cornhillExcelMarksContext;if(!ctx)return;
+ const {assessments,students:list}=ctx,phases=['Beginning','Midterm','End'],saved=ctx.savedMarks||new Map();
+ const results=new Map();
+ phases.forEach(phase=>{
+  const phaseAssessments=assessments.filter(a=>excelAssessmentPeriod(a)===phase);
+  const phaseResults=list.map(learner=>{
+   let total=0,entered=0;const subjectGrades=[];
+   phaseAssessments.forEach(a=>{
+    const mark=saved.get(a.id+'|'+learner.id);if(!mark)return;
+    if(isAbsentMark(mark)){
+     subjectGrades.push({name:a.subjects?.name||a.title,absent:true,grade:null});
+     return;
+    }
+    total+=Number(mark.score);entered++;
+    const percent=Number(a.max_score)>0?Number(mark.score)/Number(a.max_score)*100:0;
+    const grade=unebGradeFor(a.subject_id,percent);
+    subjectGrades.push({name:a.subjects?.name||a.title,absent:false,grade:grade?.grade_code||null});
+   });
+   const division=curriculumGroupForClass(classes.find(c=>c.id===ctx.classId)?.name)==='P4-P7'?unebPrimaryDivision(subjectGrades):null;
+   return {id:learner.id,total,entered,division};
+  });
+  const ranked=phaseResults.filter(x=>x.entered>0).sort((a,b)=>b.total-a.total);
+  let previous=null,position=0;
+  ranked.forEach((x,i)=>{if(previous===null||x.total!==previous)position=i+1;x.position=position;previous=x.total});
+  phaseResults.forEach(x=>{if(!x.position)x.position=null;results.set(phase+'|'+x.id,x)});
+ });
+ list.forEach(learner=>{
+  phases.forEach(phase=>{
+   const result=results.get(phase+'|'+learner.id);if(!result)return;
+   const code=excelPhaseCode(phase),totalCell=document.querySelector('[data-calc-total="'+phase+'|'+learner.id+'"]'),posCell=document.querySelector('[data-calc-position="'+phase+'|'+learner.id+'"]');
+   if(totalCell)totalCell.textContent=result.entered?result.total:'—';
+   if(posCell)posCell.textContent=result.position||'—';
+   const aggCell=document.querySelector('[data-calc-aggregate="'+phase+'|'+learner.id+'"]'),divCell=document.querySelector('[data-calc-division="'+phase+'|'+learner.id+'"]');
+   if(aggCell)aggCell.textContent=result.division?.ready?result.division.aggregate:'—';
+   if(divCell)divCell.textContent=result.division?.ready?'Division '+result.division.division:'—';
+  });
+ });
+ ctx.phases=results;
+}
 async function loadExcelMarksGrid(){
  const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value;
- const head=$('excelMarksHead'),body=$('excelMarksBody');
+ const head=$('excelMarksHead'),body=$('excelMarksBody'),phaseFilter=$('excelMarksPhase').value||'All';
  if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
- const cls=classes.find(x=>x.id===classId);
- const phase=$('excelMarksPhase').value;
- const assessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&excelAssessmentPeriod(x)===phase).sort((a,b)=>excelSubjectOrder(a)-excelSubjectOrder(b));
- if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments have been created for this class and term. Create one assessment per subject first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
+ const cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
+ const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId);
+ const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>{const p=['Beginning','Midterm','End'];return p.indexOf(excelAssessmentPeriod(a))-p.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b)});
+ if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments exist for this class and term. Create the subject assessments for Beginning, Midterm and End of term first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
  const list=students.filter(x=>x.class_id===classId).sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||a.first_name.localeCompare(b.first_name));
+ if(!list.length){head.innerHTML='<tr><th>Class register</th></tr>';body.innerHTML='<tr><td>No learners are enrolled in '+esc(cls?.name||'this class')+'. Register learners first.</td></tr>';message('excelMarksMsg','No learners are enrolled in this class.',true);return}
  const ids=assessments.map(x=>x.id);
  const {data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
  const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x]));
- window.cornhillExcelMarksContext={termId,classId,phase,assessments,students:list};
- const phaseCode=phase==='Beginning'?1:phase==='Midterm'?2:3;
- const totals=new Map();(data||[]).forEach(mark=>{const n=totals.get(mark.student_id)||{score:0,max:0};const a=assessments.find(z=>z.id===mark.assessment_id);if(a&&!isAbsentMark(mark)){n.score+=Number(mark.score);n.max+=Number(a.max_score);totals.set(mark.student_id,n)}});
- const ranked=list.map(l=>({id:l.id,pct:(totals.get(l.id)?.max||0)?totals.get(l.id).score/totals.get(l.id).max*100:-1})).filter(x=>x.pct>=0).sort((a,b)=>b.pct-a.pct);
- const positions=new Map();let last=null,rank=0;ranked.forEach((x,i)=>{if(last===null||Math.abs(x.pct-last)>0.000001)rank=i+1;positions.set(x.id,rank);last=x.pct});
- head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>PN'+phaseCode+'</th>'+assessments.map((a,i)=>'<th title="'+esc(a.title)+'">'+esc(excelSubjectLabel(a,i,cls))+'<div style="font-size:10px;font-weight:400">'+esc(a.title)+'</div><small>/ '+Number(a.max_score)+'</small></th>').join('')+'</tr>';
+ window.cornhillExcelMarksContext={termId,classId,phase:phaseFilter,assessments,students:list,savedMarks:saved};
+ const phases=phaseFilter==='All'?['Beginning','Midterm','End']:[phaseFilter];
+ const subjectHeaders=assessments.map(a=>{
+  const phase=excelAssessmentPeriod(a),phaseCode=excelPhaseCode(phase),label=excelSubjectLabel(a,0,cls);
+  return '<th class="'+(phase==='Beginning'?'beginning-column':'')+'" title="'+esc(a.title)+'">'+esc(label)+'<div style="font-size:10px;font-weight:400">'+esc(phase)+'</div><small>/ '+Number(a.max_score)+'</small></th>';
+ }).join('');
+ const summaryHeaders=phases.map(phase=>'<th class="summary-column '+(phase==='Beginning'?'beginning-column':'')+'">TT'+excelPhaseCode(phase)+'</th>'+(group==='P4-P7'?'<th class="calculation-column '+(phase==='Beginning'?'beginning-column':'')+'">AGG'+excelPhaseCode(phase)+'</th><th class="calculation-column '+(phase==='Beginning'?'beginning-column':'')+'">DIV'+excelPhaseCode(phase)+'</th>':'')+'<th class="summary-column '+(phase==='Beginning'?'beginning-column':'')+'">PN'+excelPhaseCode(phase)+'</th>').join('');
+ head.innerHTML='<tr><th rowspan="2">SN</th><th rowspan="2">ID</th><th rowspan="2">PHOTO</th><th rowspan="2">LEARNER NAME</th>'+summaryHeaders+subjectHeaders+'</tr><tr>'+assessments.map(a=>'<th class="'+(excelAssessmentPeriod(a)==='Beginning'?'beginning-column':'')+'">'+esc(a.subjects?.name||a.title)+'</th>').join('')+'</tr>';
  body.innerHTML=list.map((x,i)=>{
   const initials=([x.first_name,x.last_name].filter(Boolean).map(n=>n[0]).join('').slice(0,2)||'—').toUpperCase();
-  return '<tr><td>'+(i+1)+'</td><td>'+esc(x.admission_number||'—')+'</td><td><span data-photo-student="'+esc(x.id)+'" class="excel-photo-placeholder" title="Learner photo unavailable">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td><td>'+(positions.get(x.id)||'—')+'</td>'+assessments.map(a=>{const value=saved.get(a.id+'|'+x.id);return '<td><input data-grid-score data-assessment-id="'+a.id+'" data-student-id="'+x.id+'" type="text" inputmode="decimal" aria-label="'+esc(a.subjects?.name||a.title)+' mark or X (absent) for '+esc(x.first_name+' '+x.last_name)+'" value="'+(value===undefined?'':isAbsentMark(value)?'X':esc(value.score))+'" placeholder="Mark / X"></td>'}).join('')+'</tr>'
- }).join('')||'<tr><td colspan="'+(5+assessments.length)+'">No learners are registered in this class.</td></tr>';
+  const summaries=phases.map(phase=>'<td class="summary-column '+(phase==='Beginning'?'beginning-column':'')+'" data-calc-total="'+phase+'|'+x.id+'">—</td>'+(group==='P4-P7'?'<td class="calculation-column '+(phase==='Beginning'?'beginning-column':'')+'" data-calc-aggregate="'+phase+'|'+x.id+'">—</td><td class="calculation-column '+(phase==='Beginning'?'beginning-column':'')+'" data-calc-division="'+phase+'|'+x.id+'">—</td>':'')+'<td class="summary-column '+(phase==='Beginning'?'beginning-column':'')+'" data-calc-position="'+phase+'|'+x.id+'">—</td>').join('');
+  const marks=assessments.map(a=>{const value=saved.get(a.id+'|'+x.id),phase=excelAssessmentPeriod(a);return '<td class="'+(phase==='Beginning'?'beginning-column':'')+'"><input data-grid-score data-assessment-id="'+a.id+'" data-student-id="'+x.id+'" type="text" inputmode="decimal" aria-label="'+esc(a.subjects?.name||a.title)+' mark or X (absent) for '+esc(x.first_name+' '+x.last_name)+'" value="'+(value===undefined?'':isAbsentMark(value)?'X':esc(value.score))+'" placeholder="Mark / X">'+(group==='P4-P7'?'<small class="excel-grade-detail" data-grade-cell="'+a.id+'|'+x.id+'">'+esc(excelGradeMarkup(a,value))+'</small>':'')+'</td>'}).join('');
+  return '<tr><td>'+(i+1)+'</td><td>'+esc(x.admission_number||'—')+'</td><td><span data-photo-student="'+esc(x.id)+'" class="excel-photo-placeholder" title="Learner photo unavailable">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td>'+summaries+marks+'</tr>';
+ }).join('');
  const photoLearners=list.filter(x=>x.photo_path);
- if(photoLearners.length){
-  const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);
-  if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)});
- }
- message('excelMarksMsg',list.length+' learner(s) and '+assessments.length+' subject assessment(s) loaded. Existing marks are shown.');
+ if(photoLearners.length){const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)})}
+ recalculateExcelMarkSheet();
+ message('excelMarksMsg',list.length+' learners loaded. '+assessments.length+' assessment columns shown'+(phaseFilter==='All'?' across all three periods': ' for '+phaseFilter)+'. Enter marks and save; totals, aggregate, division and positions recalculate automatically.');
 }
+$('excelMarksBody').addEventListener('input',e=>{
+ const input=e.target.closest('[data-grid-score]');if(!input)return;
+ const ctx=window.cornhillExcelMarksContext;if(!ctx)return;
+ const assessment=ctx.assessments.find(x=>x.id===input.dataset.assessmentId);if(!assessment)return;
+ const raw=input.value.trim(),absent=raw.toUpperCase()==='X';
+ if(raw!==''&&!absent&&(!Number.isFinite(Number(raw))||Number(raw)<0||Number(raw)>Number(assessment.max_score))){input.setCustomValidity('Enter a mark from 0 to '+assessment.max_score+'.');input.reportValidity();return}
+ input.setCustomValidity('');
+ const key=assessment.id+'|'+input.dataset.studentId;
+ if(raw==='')ctx.savedMarks.delete(key);
+ else ctx.savedMarks.set(key,{assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:Number(raw),teacher_comment:absent?ABSENT_MARKER:null});
+ const gradeCell=document.querySelector('[data-grade-cell="'+key+'"]');if(gradeCell)gradeCell.textContent=excelGradeMarkup(assessment,ctx.savedMarks.get(key));
+ recalculateExcelMarkSheet();
+});
+$('toggleBeginningColumns').addEventListener('click',()=>{
+ const table=$('excelMarksTable'),show=table.classList.toggle('show-beginning-mobile');
+ $('toggleBeginningColumns').textContent=show?'Hide beginning columns':'Show beginning columns';
+});
 $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
 $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
 $('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
