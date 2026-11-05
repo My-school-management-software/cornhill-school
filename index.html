@@ -986,7 +986,7 @@ $('previewBulkLearners').addEventListener('click',async()=>{
     const fullName=String(rows[i][nameIndex]||'').trim().replace(/\s+/g,' ');
     if(!fullName)continue;
     const parts=fullName.split(' '),first=parts.shift(),last=parts.join(' ')||'Pending';
-    const birthRaw=birthYearIndex>=0?String(rows[i][birthYearIndex]||'').trim():'';const yearMatch=birthRaw.match(/(?:19|20)\\d{2}/);const birthYear=yearMatch?Number(yearMatch[0]):'';preview.push({fullName,first,last,birthYear,classId,className:classes.find(c=>c.id===classId)?.name||sheetName,sheetName,row:i+1});
+    const birthRaw=birthYearIndex>=0?String(rows[i][birthYearIndex]||'').trim():'';const yearMatch=birthRaw.match(/(?:19|20)\d{2}/);const birthYear=yearMatch?Number(yearMatch[0]):'';preview.push({fullName,first,last,birthYear,classId,className:classes.find(c=>c.id===classId)?.name||sheetName,sheetName,row:i+1});
    }
   }
   const seen=new Set(),unique=[];
@@ -1000,7 +1000,8 @@ $('previewBulkLearners').addEventListener('click',async()=>{
 $('confirmBulkLearners').addEventListener('click',async()=>{
  if(profile?.role!=='Admin'||demoMode||!bulkLearnerRows.length)return;
  const genders=bulkLearnerRows.map((r,i)=>$('bulkImportPreview').querySelector('[data-bulk-gender="'+i+'"]')?.value||'');
- if(genders.some(g=>!['Male','Female'].includes(g))){message('bulkImportMsg','Select Male or Female for every learner before importing. No learner has been imported yet.',true);return}
+ const birthYears=bulkLearnerRows.map((r,i)=>Number($('bulkImportPreview').querySelector('[data-bulk-birth-year="'+i+'"]')?.value));
+ if(genders.some(g=>!['Male','Female'].includes(g))||birthYears.some(y=>!Number.isInteger(y)||y<1900||y>new Date().getFullYear())){message('bulkImportMsg','Enter a valid year of birth and select Male or Female for every learner before importing. No learner has been imported yet.',true);return}
  const confirmImport=confirm('Import '+bulkLearnerRows.length+' learner(s)? Each permanent code will be generated using the selected gender.');
  if(!confirmImport)return;
  const button=$('confirmBulkLearners');button.disabled=true;button.textContent='Importing…';
