@@ -1615,7 +1615,7 @@ $('printLearnerStatement').addEventListener('click',()=>{if($('learnerStatementA
 $('receiptLookupButton').addEventListener('click',async()=>{
  if(demoMode)return;if(profile?.role!=='Admin'){message('receiptLookupMsg','Only administrators can retrieve financial receipts.',true);return}
  const number=$('receiptLookupNumber').value.trim();if(!number){message('receiptLookupMsg','Enter a receipt number.',true);return}
- $('receiptLookupButton').disabled=true;$('receiptLookupButton').textContent='Searching…';
+ $('receiptLookupButton').disabled=true;$('receiptLookupButton').textContent='Searching…';$('receiptReverseControls').classList.add('hidden');$('receiptLookupPrint').disabled=true;$('receiptLookupArea').innerHTML='';
  try{
   const {data,error}=await db.from('school_payments').select('id,receipt_no,student_id,amount_ugx,unallocated_amount_ugx,payment_method,payment_reference,notes,status,received_at,collection_item,payer_name,received_by,reversed_at,reversed_by,reversal_reason,students(admission_number,first_name,middle_name,last_name)').eq('receipt_no',number).maybeSingle();
   if(error)throw error;if(!data){message('receiptLookupMsg','No receipt found with that number.',true);return}
