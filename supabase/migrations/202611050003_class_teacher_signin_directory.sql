@@ -4,6 +4,7 @@ create table if not exists public.class_login_directory (
   class_key text primary key check (class_key in ('Baby','Middle','Top','P1','P2','P3','P4','P5','P6','P7')),
   class_label text not null,
   teacher_name text,
+  administrator_name text,
   display_order integer not null default 0,
   updated_at timestamptz not null default now()
 );
