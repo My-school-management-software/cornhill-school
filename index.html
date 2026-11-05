@@ -19,7 +19,7 @@
 .excel-marks-table .summary-column{font-weight:700;text-align:center;background:color-mix(in srgb,var(--cornhill-accent) 7%,white)}
 .excel-marks-table .calculation-column{font-weight:700;text-align:center;background:color-mix(in srgb,#dbeafe 40%,white)}
 .excel-grade-detail{display:block;font-size:10px;color:var(--cornhill-muted);margin-top:3px}
-@media(max-width:700px){.excel-marks-table .beginning-column,.excel-marks-table .learner-detail-column{display:none}.excel-marks-table.show-beginning-mobile .beginning-column{display:table-cell}.excel-marks-table.show-learner-details-mobile .learner-detail-column{display:table-cell}}@media(min-width:701px){#toggleBeginningColumns,#toggleLearnerDetails{display:none}}
+@media(max-width:700px){/* All assessment periods and learner details remain visible to teachers on every screen. */}
 
 </style><style>@media print{body.print-class-register *{visibility:hidden!important}body.print-class-register #classRosterPrint,body.print-class-register #classRosterPrint *{visibility:visible!important}body.print-class-register #classRosterPrint{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0!important;box-shadow:none!important}body.print-class-register #classRosterPrint button{display:none!important}body.print-learner-profile *{visibility:hidden!important}body.print-learner-profile #learnerProfileContent,body.print-learner-profile #learnerProfileContent *{visibility:visible!important}body.print-learner-profile #learnerProfileContent{display:block!important;position:absolute;left:0;top:0;width:100%}}body.print-official-report *{visibility:hidden!important}body.print-official-report #reportCardPreview,body.print-official-report #reportCardPreview *{visibility:visible!important}body.print-official-report #reportCardPreview{display:block!important;position:absolute;left:0;top:0;width:100%}body.print-official-report #reportCardPreview button{display:none!important}</style><style>
 :root{--cornhill-accent:#166534;--cornhill-accent-dark:#14532d;--cornhill-page:#f3f7f3;--cornhill-panel:#fff;--cornhill-ink:#17251c;--cornhill-muted:#607265;--cornhill-line:#dce7de}
@@ -236,8 +236,6 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
    <div style="min-width:170px;flex:1"><label for="excelMarksTerm">Academic term</label><select id="excelMarksTerm"></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
    <button type="button" class="tab hidden" id="prepareExcelAssessments">Prepare class sheet</button>
-   <button type="button" class="tab" id="toggleLearnerDetails">Show learner details</button>
-   <button type="button" class="tab" id="toggleBeginningColumns">Show beginning columns</button>
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
    <button type="button" id="saveExcelMarks">Save all marks</button>
   </div>
@@ -1184,11 +1182,6 @@ $('excelMarksBody').addEventListener('input',e=>{
  else{const prior=ctx.savedMarks.get(key);ctx.savedMarks.set(key,{assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:Number(raw),teacher_comment:absent?ABSENT_MARKER:(prior?.teacher_comment??null)})}
  const gradeCell=document.querySelector('[data-grade-cell="'+key+'"]');if(gradeCell)gradeCell.textContent=excelGradeMarkup(assessment,ctx.savedMarks.get(key));
  recalculateExcelMarkSheet();
-});
-$('toggleLearnerDetails').addEventListener('click',()=>{const table=$('excelMarksTable'),show=table.classList.toggle('show-learner-details-mobile');$('toggleLearnerDetails').textContent=show?'Hide learner details':'Show learner details'});
-$('toggleBeginningColumns').addEventListener('click',()=>{
- const table=$('excelMarksTable'),show=table.classList.toggle('show-beginning-mobile');
- $('toggleBeginningColumns').textContent=show?'Hide beginning columns':'Show beginning columns';
 });
 $('prepareExcelAssessments').addEventListener('click',async()=>{
  const button=$('prepareExcelAssessments');if(button.dataset.busy==='1')return;
