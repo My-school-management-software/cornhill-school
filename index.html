@@ -1035,14 +1035,16 @@ $('exportAcademicClassCsv').addEventListener('click',()=>{
 });
 function updateScoreLearners(){
  const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
- const list=students.filter(x=>!ass||x.class_id===ass.class_id);
- $('scoreStudentSelect').innerHTML=list.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</option>').join('');
+ const list=ass?students.filter(x=>x.class_id===ass.class_id):[];
+ $('scoreStudentSelect').innerHTML='<option value="">'+(ass?(list.length?'Choose learner':'No learners assigned to '+(ass.school_classes?.name||'this class')):'Choose an assessment first')+'</option>'+list.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</option>').join('');
+ if(ass&&!list.length)message('bulkMarksMsg','No learners are currently enrolled in '+(ass.school_classes?.name||'the selected class')+'. Register the learner under Learners → Register student and assign this class, then refresh the page.',true);
  loadBulkMarkSheet();
 }
 async function loadBulkMarkSheet(){
  const body=$('bulkMarkRows'),id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
  if(!ass){body.innerHTML='<tr><td colspan="5">Choose an assessment to load the class mark sheet.</td></tr>';return}
  const list=students.filter(x=>x.class_id===ass.class_id);
+ if(!list.length){body.innerHTML='<tr><td colspan="5">No learners are enrolled in '+esc(ass.school_classes?.name||'this class')+'. Add or assign learners in the Learners module first.</td></tr>';return}
  body.innerHTML='<tr><td colspan="5">Loading learners and existing marks…</td></tr>';
  const {data,error}=await db.from('assessment_scores').select('student_id,score,teacher_comment').eq('assessment_id',id);
  if(error){body.innerHTML='<tr><td colspan="5">Could not load existing marks.</td></tr>';message('bulkMarksMsg','Could not load existing marks: '+error.message,true);return}
