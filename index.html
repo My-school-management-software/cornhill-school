@@ -2091,24 +2091,61 @@ $('inventoryMovementForm').addEventListener('submit',async e=>{
  e.preventDefault();if(profile?.role!=='Admin'||demoMode)return;const v=Object.fromEntries(new FormData(e.target).entries());const payload={item_id:v.item_id,movement_type:v.movement_type,quantity:Number(v.quantity),reference:String(v.reference||'').trim()||null,notes:String(v.notes||'').trim()||null};const {error}=await db.from('inventory_movements').insert(payload);if(error){message('inventoryMsg','Stock movement was not posted: '+error.message,true);return}e.target.reset();message('inventoryMsg','Stock movement posted successfully.');await loadInventory();
 });
 $('inventoryRefresh').addEventListener('click',loadInventory);
+function recordsBucket(dateValue,mode,terms=[]){
+ const d=new Date(dateValue);if(Number.isNaN(d.getTime()))return 'Unknown';
+ if(mode==='year')return String(d.getFullYear());
+ if(mode==='month')return d.toLocaleString('en-UG',{month:'short',year:'2-digit'});
+ if(mode==='week'){const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));x.setUTCDate(x.getUTCDate()+4-(x.getUTCDay()||7));const y0=new Date(Date.UTC(x.getUTCFullYear(),0,1));return x.getUTCFullYear()+' W'+String(Math.ceil((((x-y0)/86400000)+1)/7)).padStart(2,'0')}
+ if(mode==='day')return d.toLocaleDateString('en-UG',{day:'2-digit',month:'short'});
+ const term=terms.find(t=>dateValue>=t.starts_on&&dateValue<=t.ends_on);return term?term.name+' '+(term.academic_years?.name||''):'Outside term';
+}
+function renderRecordsBarChart(hostId,items,format='number'){
+ const host=$(hostId);if(!items?.length){host.innerHTML='<div class="records-chart-empty">No verified records are available for this chart yet.</div>';return}
+ const data=items.slice(-10),max=Math.max(1,...data.map(x=>Number(x.value)||0)),w=560,h=190,left=42,bottom=42,plotH=126,barGap=10,barW=Math.max(12,(w-left-12)/data.length-barGap);
+ const bars=data.map((x,i)=>{const value=Number(x.value)||0,bh=Math.max(value>0?3:0,(value/max)*plotH),x0=left+i*(barW+barGap),y=bottom+plotH-bh,label=String(x.label).slice(0,12);return '<g><title>'+esc(String(x.label))+': '+esc(format==='ugx'?Math.round(value).toLocaleString('en-UG')+' UGX':value.toFixed(1))+'</title><rect x="'+x0+'" y="'+y+'" width="'+barW+'" height="'+bh+'" rx="4" fill="var(--cornhill-accent)" opacity=".82"/><text x="'+(x0+barW/2)+'" y="'+(y-5)+'" font-size="10" text-anchor="middle" fill="var(--cornhill-ink)">'+(format==='ugx'?(value>=1000000?(value/1000000).toFixed(1)+'m':value>=1000?Math.round(value/1000)+'k':Math.round(value)):value.toFixed(1))+'</text><text x="'+(x0+barW/2)+'" y="'+(bottom+plotH+16)+'" font-size="9" text-anchor="middle" fill="var(--cornhill-muted)">'+esc(label)+'</text></g>'}).join('');
+ host.innerHTML='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Records bar chart"><line x1="'+left+'" y1="'+(bottom+plotH)+'" x2="'+(w-8)+'" y2="'+(bottom+plotH)+'" stroke="currentColor" opacity=".25"/>'+bars+'</svg>';
+}
 async function loadSchoolReports(){
- if(demoMode||profile?.role!=='Admin'){message('reportsMsg','School reports are available to administrators only.',true);return}
- clearMessage('reportsMsg');
- const [learnerResult,classResult,assessmentResult]=await Promise.all([
-  db.rpc('admin_list_students'),
-  db.from('school_classes').select('id,name').order('name'),
-  db.from('assessments').select('id',{count:'exact',head:true})
- ]);
- const err=learnerResult.error||classResult.error||assessmentResult.error;
- if(err){message('reportsMsg','Could not prepare the report summary: '+err.message,true);return}
- const learners=Array.isArray(learnerResult.data)?learnerResult.data:(learnerResult.data?.students||[]);
- const active=learners.filter(x=>x.status==='Active');
- $('reportActiveLearners').textContent=active.length;
- $('reportClassCount').textContent=(classResult.data||[]).length;
- $('reportAssessmentCount').textContent=assessmentResult.count??'—';
- const counts=new Map();for(const x of active){const label=x.class_name||x.school_classes?.name||'Unassigned';counts.set(label,(counts.get(label)||0)+1)}
- $('reportClassRows').innerHTML=[...counts.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([name,count])=>'<tr><td>'+esc(name)+'</td><td>'+count+'</td></tr>').join('')||'<tr><td colspan="2">No active learner records.</td></tr>';
- window.cornhillReportLearners=learners;
+ if(demoMode||profile?.role!=='Admin'){message('reportsMsg','School records and backups are available to administrators only.',true);return}
+ clearMessage('reportsMsg');$('refreshSchoolReports').disabled=true;
+ try{
+  const [learnerResult,classResult,assessmentResult,scoreResult,subjectResult,termResult,paymentResult,payrollResult,historyResult]=await Promise.all([
+   db.rpc('admin_list_students'),
+   db.from('school_classes').select('id,name').order('name'),
+   db.from('assessments').select('id,subject_id,term_id,assessment_date,max_score'),
+   db.from('assessment_scores').select('assessment_id,score').limit(10000),
+   db.from('subjects').select('id,name'),
+   db.from('academic_terms').select('id,name,starts_on,ends_on,academic_year_id,academic_years(name)'),
+   db.from('school_payments').select('amount_ugx,received_at,status').eq('status','posted').limit(10000),
+   db.from('payroll_items').select('net_pay_ugx,status,payroll_periods(period_name,period_start,period_type)').limit(10000),
+   db.from('student_class_history').select('student_id,effective_date,to_class_id').limit(10000)
+  ]);
+  const err=learnerResult.error||classResult.error||assessmentResult.error||scoreResult.error||subjectResult.error||termResult.error||paymentResult.error||payrollResult.error||historyResult.error;
+  if(err)throw err;
+  const learners=Array.isArray(learnerResult.data)?learnerResult.data:(learnerResult.data?.students||[]);
+  const active=learners.filter(x=>x.status==='Active'),assessments=assessmentResult.data||[],scores=scoreResult.data||[],subjects=subjectResult.data||[],terms=termResult.data||[],payments=paymentResult.data||[],payroll=payrollResult.data||[];
+  const years=[...new Set(learners.map(x=>String(x.admission_year||String(x.created_at||'').slice(0,4))).filter(x=>/^\d{4}$/.test(x)))].sort();
+  $('recordsYear').innerHTML='<option value="all">All years</option>'+years.map(y=>'<option value="'+esc(y)+'">'+esc(y)+'</option>').join('');
+  $('reportActiveLearners').textContent=active.length;$('reportClassCount').textContent=(classResult.data||[]).length;$('reportAssessmentCount').textContent=assessments.length;$('reportYearCount').textContent=years.length;
+  const counts=new Map();for(const x of active){const label=x.class_name||x.school_classes?.name||'Unassigned';const item=counts.get(label)||{total:0,female:0,male:0};item.total++;if(String(x.gender).toLowerCase()==='female')item.female++;if(String(x.gender).toLowerCase()==='male')item.male++;counts.set(label,item)}
+  $('reportClassRows').innerHTML=[...counts.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([name,c])=>'<tr><td>'+esc(name)+'</td><td>'+c.total+'</td><td>'+c.female+'</td><td>'+c.male+'</td></tr>').join('')||'<tr><td colspan="4">No active learner records.</td></tr>';
+  const mode=$('recordsPeriod').value,year=$('recordsYear').value,termsForGroup=terms;
+  const selected=(date)=>year==='all'||String(date||'').slice(0,4)===year;
+  const enrolment=new Map();for(const x of learners){const d=x.created_at||((x.admission_year||'')+'-01-01');if(!d||!selected(d))continue;const key=recordsBucket(d,mode,termsForGroup);enrolment.set(key,(enrolment.get(key)||0)+1)}
+  renderRecordsBarChart('recordsEnrolmentChart',[...enrolment].map(([label,value])=>({label,value})));
+  const subjectMap=new Map(subjects.map(x=>[x.id,x.name])),assessmentMap=new Map(assessments.map(x=>[x.id,x]));
+  const subjectAgg=new Map();for(const row of scores){const a=assessmentMap.get(row.assessment_id);if(!a||!selected(a.assessment_date))continue;const name=subjectMap.get(a.subject_id)||'Unlabelled subject',item=subjectAgg.get(name)||{sum:0,n:0};if(row.score!==null&&Number.isFinite(Number(row.score))){item.sum+=Number(row.score);item.n++}subjectAgg.set(name,item)}
+  const subjectRows=[...subjectAgg].map(([name,x])=>({name,n:x.n,avg:x.n?x.sum/x.n:0})).sort((a,b)=>a.name.localeCompare(b.name));
+  $('recordsSubjectRows').innerHTML=subjectRows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.n+'</td><td>'+x.avg.toFixed(1)+'</td></tr>').join('')||'<tr><td colspan="3">No assessment scores have been recorded for this period.</td></tr>';
+  renderRecordsBarChart('recordsAcademicChart',subjectRows.map(x=>({label:x.name,value:x.avg})));
+  const financeAgg=new Map();for(const x of payments){if(!x.received_at||!selected(x.received_at))continue;const key=recordsBucket(x.received_at,mode,termsForGroup);financeAgg.set(key,(financeAgg.get(key)||0)+Number(x.amount_ugx||0))}
+  renderRecordsBarChart('recordsFinanceChart',[...financeAgg].map(([label,value])=>({label,value})),'ugx');
+  const payrollAgg=new Map();for(const x of payroll){const period=x.payroll_periods;if(!period?.period_start||!selected(period.period_start))continue;const key=recordsBucket(period.period_start,mode,termsForGroup);payrollAgg.set(key,(payrollAgg.get(key)||0)+Number(x.net_pay_ugx||0))}
+  renderRecordsBarChart('recordsPayrollChart',[...payrollAgg].map(([label,value])=>({label,value})),'ugx');
+  window.cornhillReportLearners=learners;window.cornhillRecordsCache={learners,classes:classResult.data||[],assessments,scores,subjects,terms,payments,payroll,classHistory:historyResult.data||[]};
+  message('reportsMsg','Records refreshed. Charts use saved school records only; no missing historical values have been estimated.');
+ }catch(error){message('reportsMsg','Could not prepare school records: '+(error.message||'Unknown error'),true)}
+ finally{$('refreshSchoolReports').disabled=false}
 }
 $('refreshSchoolReports').addEventListener('click',loadSchoolReports);
 $('exportLearnerRegister').addEventListener('click',()=>{
