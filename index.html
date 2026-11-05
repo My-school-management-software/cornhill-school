@@ -590,7 +590,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
 <div class="records-chart-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;margin-top:16px">
 <div class="panel"><h3>Enrolment over time</h3><div id="recordsEnrolmentChart" class="records-chart">Refresh records to build this chart.</div></div>
 <div class="panel"><h3>Class changes / promotions over time</h3><div id="recordsMovementChart" class="records-chart">No class movement history loaded.</div></div>
-<div class="panel"><h3>Academic performance by subject</h3><div id="recordsAcademicChart" class="records-chart">No assessment data loaded.</div></div>
+<div class="panel"><h3>Academic performance by subject</h3><div id="recordsAcademicChart" class="records-chart">No assessment data loaded.</div></div><div class="panel"><h3>Average learner performance over time</h3><div id="recordsPerformanceTrendChart" class="records-chart">No assessment scores loaded.</div></div>
 <div class="panel"><h3>School fee collections</h3><div id="recordsFinanceChart" class="records-chart">No payment data loaded.</div></div>
 <div class="panel"><h3>Salary payments by period</h3><div id="recordsPayrollChart" class="records-chart">No payroll data loaded.</div></div><div class="panel"><h3>Salary agreement changes over time</h3><div id="recordsSalaryChangeChart" class="records-chart">No salary history loaded.</div></div>
 </div>
@@ -2146,6 +2146,7 @@ async function loadSchoolReports(){
   const subjectRows=[...subjectAgg].map(([name,x])=>({name,n:x.n,avg:x.n?x.sum/x.n:0})).sort((a,b)=>a.name.localeCompare(b.name));
   $('recordsSubjectRows').innerHTML=subjectRows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.n+'</td><td>'+x.avg.toFixed(1)+'</td></tr>').join('')||'<tr><td colspan="3">No assessment scores have been recorded for this period.</td></tr>';
   renderRecordsBarChart('recordsAcademicChart',subjectRows.map(x=>({label:x.name,value:x.avg})));
+  const performanceTrend=new Map();for(const row of scores){const a=assessmentMap.get(row.assessment_id);if(!a||!a.assessment_date||!selected(a.assessment_date)||row.score===null||!Number.isFinite(Number(row.score)))continue;const key=recordsBucket(a.assessment_date,mode,termsForGroup),item=performanceTrend.get(key)||{sum:0,n:0};item.sum+=Number(row.score);item.n++;performanceTrend.set(key,item)}renderRecordsBarChart('recordsPerformanceTrendChart',[...performanceTrend].map(([label,x])=>({label,value:x.n?x.sum/x.n:0})));
   const financeAgg=new Map();for(const x of payments){if(!x.received_at||!selected(x.received_at))continue;const key=recordsBucket(x.received_at,mode,termsForGroup);financeAgg.set(key,(financeAgg.get(key)||0)+Number(x.amount_ugx||0))}
   renderRecordsBarChart('recordsFinanceChart',[...financeAgg].map(([label,value])=>({label,value})),'ugx');
   const payrollAgg=new Map();for(const x of payroll){const period=x.payroll_periods;if(!period?.period_start||!selected(period.period_start))continue;const key=recordsBucket(period.period_start,mode,termsForGroup);payrollAgg.set(key,(payrollAgg.get(key)||0)+Number(x.net_pay_ugx||0))}
