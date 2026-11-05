@@ -1157,7 +1157,7 @@ function unebPrimaryDivision(subjectGrades){
  const points=normalized.map(x=>unebGradePoint(x.grade.grade));
  if(points.some(x=>x===null))return {ready:false,reason:'Configure all nine UNEB grade percentage boundaries for each of the four core subjects before calculating the aggregate.'};
  const aggregate=points.reduce((a,b)=>a+b,0);
- let base=aggregate<=12?1:aggregate<=23?2:aggregate<=29?3:aggregate<=34?4:5;
+ let base=aggregate<=12?1:aggregate<=23?2:aggregate<=29?3:aggregate<=34?4:'U';
  const english=points[0],math=points[1];
  let division=base;
  if(english===9&&base<=2)division=3;
