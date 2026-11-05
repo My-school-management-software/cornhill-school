@@ -235,6 +235,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .module-card{animation:corn
    <div style="min-width:170px;flex:1"><label for="excelMarksPhase">Assessment period</label><select id="excelMarksPhase"><option value="All">All periods · full class sheet</option><option value="Beginning">Beginning · 1</option><option value="Midterm">Midterm · 2</option><option value="End">End of term · 3</option><option value="Fourth">Fourth assessment · 4 (where used)</option></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksTerm">Academic term</label><select id="excelMarksTerm"></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
+   <button type="button" class="tab hidden" id="prepareExcelAssessments">Prepare class sheet</button>
    <button type="button" class="tab" id="toggleLearnerDetails">Show learner details</button>
    <button type="button" class="tab" id="toggleBeginningColumns">Show beginning columns</button>
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
@@ -936,6 +937,7 @@ async function filterAssessmentSubjects(){
  if(group)message('academicMsg','Showing '+group+' curriculum subjects for '+(cls?.name||'this class')+'.');
 }
 async function loadAcademics(){
+ $('prepareExcelAssessments').classList.toggle('hidden',profile?.role!=='Admin');
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
@@ -1190,6 +1192,32 @@ $('toggleLearnerDetails').addEventListener('click',()=>{const table=$('excelMark
 $('toggleBeginningColumns').addEventListener('click',()=>{
  const table=$('excelMarksTable'),show=table.classList.toggle('show-beginning-mobile');
  $('toggleBeginningColumns').textContent=show?'Hide beginning columns':'Show beginning columns';
+});
+$('prepareExcelAssessments').addEventListener('click',async()=>{
+ const button=$('prepareExcelAssessments');if(button.dataset.busy==='1')return;
+ if(profile?.role!=='Admin'||demoMode){message('excelMarksMsg','Only the administrator can prepare class assessment columns.',true);return}
+ const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value,cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
+ if(!termId||!classId||!group){message('excelMarksMsg','Choose a valid academic term and class first.',true);return}
+ button.dataset.busy='1';button.disabled=true;button.textContent='Preparing…';
+ try{
+  const {data:curriculum,error:curriculumError}=await db.from('school_curriculum_subjects').select('subject_id').eq('school_level_group',group);
+  if(curriculumError)throw curriculumError;
+  const subjectIds=[...new Set((curriculum||[]).map(x=>x.subject_id))];
+  if(!subjectIds.length)throw new Error('No active curriculum subjects are configured for '+group+'.');
+  const {data:existing,error:existingError}=await db.from('assessments').select('subject_id,title').eq('class_id',classId).eq('term_id',termId);
+  if(existingError)throw existingError;
+  const phases=['Beginning Assessment','Midterm Assessment','End of Term Assessment'];
+  if(/P\.?\s*7|PRIMARY\s*7/i.test(cls.name))phases.push('Fourth Assessment');
+  const present=new Set((existing||[]).map(x=>x.subject_id+'|'+String(x.title||'').toLowerCase()));
+  const userResult=await db.auth.getUser();if(userResult.error||!userResult.data?.user)throw new Error('Your administrator session has expired. Sign in again.');
+  const missing=[];
+  for(const subjectId of subjectIds)for(const title of phases)if(!present.has(subjectId+'|'+title.toLowerCase()))missing.push({term_id:termId,class_id:classId,subject_id:subjectId,title,assessment_type:'Coursework',max_score:100,assessment_date:null,created_by:userResult.data.user.id});
+  if(!missing.length){message('excelMarksMsg','This class already has all standard assessment columns. No duplicates were created.');return}
+  const {error:insertError}=await db.from('assessments').insert(missing);if(insertError)throw insertError;
+  await loadAcademics();await loadExcelMarksGrid();
+  message('excelMarksMsg','Prepared '+missing.length+' missing assessment column(s) for '+cls.name+'. Existing assessments and learner marks were left unchanged.');
+ }catch(err){message('excelMarksMsg','Could not prepare the class sheet. '+(err?.message||'Please try again.'),true)}
+ finally{button.disabled=false;button.textContent='Prepare class sheet';delete button.dataset.busy}
 });
 $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
 $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
