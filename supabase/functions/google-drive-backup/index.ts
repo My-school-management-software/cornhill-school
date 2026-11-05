@@ -107,7 +107,7 @@ async function driveToken(connection: any) {
 }
 async function ensureDriveFolder(accessToken: string, connection: any) {
   if (connection.drive_folder_id) return connection.drive_folder_id;
-  const response = await fetch("https://www.googleapis.com/drive/v3/files?fields=files(id,name)", {
+  const response = await fetch("https://www.googleapis.com/drive/v3/files?fields=id,name", {
     method:"POST", headers:{ Authorization:"Bearer "+accessToken, "Content-Type":"application/json" },
     body:JSON.stringify({ name:"CORNHILL School Backups", mimeType:"application/vnd.google-apps.folder" })
   });
@@ -191,12 +191,14 @@ Deno.serve(async (req: Request) => {
       const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo",{headers:{Authorization:"Bearer "+tokens.access_token}});
       const googleUser = await userResponse.json();
       if (!userResponse.ok || !googleUser.email) throw new Error("Could not verify the connected Google account.");
+      const requiredSchoolEmail = "info.cornhillnurandprisch2026@gmail.com";
+      if (String(googleUser.email).trim().toLowerCase() !== requiredSchoolEmail) throw new Error("Please connect the dedicated CORNHILL account: "+requiredSchoolEmail+". The Google account selected was not accepted.");
       const row = {connected_email:googleUser.email,access_token_ciphertext:await encrypt(tokens.access_token),refresh_token_ciphertext:await encrypt(tokens.refresh_token),token_expires_at:new Date(Date.now()+tokens.expires_in*1000).toISOString(),connected_by:stateRow.user_id,updated_at:new Date().toISOString()};
       const existing = await getConnection();
       if (existing) await adminDb.from("google_drive_backup_connections").update(row).eq("id",existing.id);
       else await adminDb.from("google_drive_backup_connections").insert(row);
       const target = Deno.env.get("APP_BASE_URL") || "https://cornhill-school.vercel.app";
-      return new Response("<!doctype html><meta name='viewport' content='width=device-width'><title>CORNHILL Google Drive</title><main style='font:16px system-ui;max-width:560px;margin:12vh auto;padding:24px'><h2>Google Drive connected</h2><p>The school Google account "+String(googleUser.email).replace(/[&<>"]/g,"") +" is connected. Return to CORNHILL and refresh the Records Centre.</p><a href='"+target+"'>Return to CORNHILL</a></main>",{headers:{"Content-Type":"text/html; charset=utf-8"}});
+      return new Response("<!doctype html><meta name='viewport' content='width=device-width'><title>CORNHILL Google Drive</title><main style='font:16px system-ui;max-width:560px;margin:12vh auto;padding:24px'><h2>Google Drive connected</h2><p>The school Google account "+String(googleUser.email).replace(/[&<>"]/g,"") +" is connected. Return to CORNHILL, open Settings → Backup & Recovery, and refresh cloud status.</p><a href='"+target+"'>Return to CORNHILL</a></main>",{headers:{"Content-Type":"text/html; charset=utf-8"}});
     } catch(error) {
       return new Response("<!doctype html><meta name='viewport' content='width=device-width'><main style='font:16px system-ui;max-width:560px;margin:12vh auto;padding:24px'><h2>Google Drive connection failed</h2><p>"+String(error).replace(/[&<>"]/g,"")+"</p><p>Return to CORNHILL and try again.</p></main>",{status:400,headers:{"Content-Type":"text/html; charset=utf-8"}});
     }
