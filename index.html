@@ -1375,7 +1375,6 @@ function blankReportTemplateHtml(className,subjects,group){
 }
 async function downloadBlankClassReportTemplates(){
  const button=$('downloadBlankReportTemplates');if(!button)return;
- if(typeof html2pdf!=='function'){message('academicMsg','The PDF generator is unavailable. Refresh the page and try again.',true);return}
  const classTemplates=[
   {name:'BABY CLASS',group:'Nursery',subjects:['LANGUAGE DEVELOPMENT','READING','NUMBERS','HEALTH HABITS','SOCIAL DEVELOPMENT','WRITING','DRAWING']},
   {name:'MIDDLE CLASS',group:'Nursery',subjects:['LANGUAGE DEVELOPMENT','READING','NUMBERS','HEALTH HABITS','SOCIAL DEVELOPMENT','WRITING','DRAWING']},
@@ -1388,10 +1387,11 @@ async function downloadBlankClassReportTemplates(){
   {name:'PRIMARY SIX',group:'P4-P7',subjects:['ENGLISH','MATHEMATICS','SCIENCE','S.S.T']},
   {name:'PRIMARY SEVEN',group:'P4-P7',subjects:['ENGLISH','MATHEMATICS','SCIENCE','S.S.T']}
  ];
- const node=document.createElement('div');node.style.cssText='position:fixed;left:-300mm;top:0;width:196mm;background:#fff;z-index:-1';
+ const node=document.createElement('div');node.style.cssText='position:fixed;left:-12000px;top:0;width:196mm;background:#fff;color:#111;z-index:-1';
  node.innerHTML=classTemplates.map(c=>blankReportTemplateHtml(c.name,c.subjects,c.group)).join('');
  document.body.appendChild(node);button.disabled=true;button.textContent='Preparing A4 templates…';
  try{
+  const html2pdf=await loadHtml2Pdf();
   await html2pdf().set({margin:[7,7,7,7],filename:'Cornhill_Blank_Report_Card_Templates_All_Classes_A4.pdf',image:{type:'jpeg',quality:0.96},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}}).from(node).save();
   message('academicMsg','Downloaded the 10 blank A4 report-card templates. Existing report-card format and class subject lists have been retained.');
  }catch(err){message('academicMsg','Could not generate the blank report-card templates: '+(err?.message||String(err)),true)}
