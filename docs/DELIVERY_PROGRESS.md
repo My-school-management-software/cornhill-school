@@ -667,3 +667,12 @@
 - Latest application commit `254d8053db01c8ac616004bdead58967cdee50cb` has a Vercel Preview deployment in READY state at https://cornhill-school-6kr1k0js8-cypher-projects1.vercel.app/. This is a preview, not production.
 - Remaining security release gates: complete real browser sign-in/session tests, test the P1 teacher assignment, enable Supabase Auth leaked-password protection, and review remaining advisor warnings. The SECURITY DEFINER warnings for authenticated-only admin/helper functions remain visible because these guarded functions are used by the app/RLS policies; they must not be blindly revoked.
 - No learner records, marks, payments or attendance rows were added or changed during these checks. The connected Supabase schema/grants were updated; the GitHub `main` branch was not changed.
+
+## 2026-11-05 — Private staff messaging permission hardening
+
+- Audited the Work Area 6 communication code and database: unread-message badges poll for new text/media messages, private conversations support text plus recorded voice notes and video clips, and voice/video calls use WebRTC signalling.
+- Confirmed the `staff-media` Storage bucket is private, capped at 20 MB, and restricted to supported audio/video MIME types. Storage policies limit object access to the sender and recipient folder paths.
+- Confirmed RLS is enabled on direct messages, media messages and call signals; policies restrict conversation reads to participants and message creation to the signed-in sender.
+- Tightened direct-message updates so authenticated users can update only `read_at`; they can no longer edit the sender, recipient, message body or creation timestamp. Removed anonymous table privileges from direct messages, media messages and call signals.
+- Added migration `20261105160000_harden_staff_message_permissions.sql`. Verified the authenticated role cannot update a message body but can mark a received message as read.
+- No messages, media uploads or call signals were created during the audit. Actual two-account text, unread badge, voice/video recording, storage playback and live-call tests remain required in an authenticated browser. WebRTC calls may require a secure TURN relay on restrictive networks; no paid relay service has been enabled.
