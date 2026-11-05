@@ -1028,16 +1028,17 @@ $('buildClassReportCards').addEventListener('click',async()=>{
  status.textContent='Preparing '+learners.length+' report cards for '+className+'…';
  try{
   const data=await getTermScores();if(!data)throw new Error('Could not load the selected class marks.');
+  const batchCards=[];
   const holder=document.createElement('div');holder.className='report-batch-document';
   for(let i=0;i<learners.length;i++){
    holder.innerHTML='';
    await renderReportCard({studentId:learners[i].id,target:holder,data,batch:true});
    const card=holder.querySelector('.cornhill-report-card');
-   if(card){card.classList.add('batch-report-card');holder.appendChild(card.cloneNode(true));}
+   if(card){card.classList.add('batch-report-card');batchCards.push(card.outerHTML);}
    status.textContent='Generating report cards: '+(i+1)+' of '+learners.length;
   }
-  if(!holder.children.length)throw new Error('No report cards could be generated. Check that marks exist for this term and class.');
-  generatedReportBatch={html:holder.innerHTML,className,termName,count:holder.children.length};
+  if(!batchCards.length)throw new Error('No report cards could be generated for this class.');
+  generatedReportBatch={html:batchCards.join(''),className,termName,count:batchCards.length};
   $('reportBatchPrint').innerHTML=generatedReportBatch.html;
   $('reportBatchPrint').classList.add('hidden');
   download.disabled=false;print.disabled=false;
