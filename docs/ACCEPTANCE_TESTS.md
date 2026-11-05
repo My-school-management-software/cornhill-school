@@ -102,3 +102,18 @@ This checklist is the release gate for the first real school use. Run it with th
 - [ ] A voice call and a video call can be started, answered, declined and ended by the two test accounts.
 - [ ] A third staff account cannot read another pair's private messages or media objects.
 - [ ] Denied microphone/camera permission, interrupted upload and unavailable media playback show clear errors without leaving the recorder or call active.
+
+## I. Offline and multi-device operation
+
+- [ ] Open the app online, then disconnect the device; confirm the cached shell loads and clearly states that live records are unavailable.
+- [ ] Confirm no learner admission, marks, attendance or finance write is reported as saved while offline unless it is explicitly queued with a visible pending-sync status.
+- [ ] Reconnect and verify queued non-financial changes sync once only, with conflict reporting and a retry option.
+- [ ] Confirm payments and receipt numbers cannot be created offline or duplicated during reconnect.
+- [ ] Verify a second device sees the same server-confirmed changes after refresh/sign-in.
+
+## J. Administrator reports and appearance
+
+- [ ] Confirm a Teacher or Staff account cannot open administrator reports or confidential learner exports.
+- [ ] Confirm the administrator report counts match the live learner/class/assessment records.
+- [ ] Export the learner register and verify its class, gender, LIN and admission-code columns.
+- [ ] Verify each of the 8 themes, 24 font choices, 4 text sizes, 10 dashboard layouts and motion preference applies and persists after refresh.
