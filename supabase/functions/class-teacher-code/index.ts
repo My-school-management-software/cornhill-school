@@ -11,10 +11,10 @@ Deno.serve(async(req:Request)=>{
  const {data:auth,error:authErr}=await admin.auth.getUser(token);if(authErr||!auth.user)return out(401,{error:"Administrator session is invalid."});
  const {data:actor,error:actorErr}=await admin.from("user_profiles").select("role").eq("id",auth.user.id).single();if(actorErr||actor?.role!=="Admin")return out(403,{error:"Only a school administrator can create or reset class teacher codes."});
  let p:Record<string,unknown>;try{p=await req.json()}catch{return out(400,{error:"Invalid request."})}
- const classKey=String(p.class_key||"").trim(),teacherName=String(p.teacher_name||"").trim(),code=String(p.class_code||"");
+ const classKey=String(p.class_key||"").trim(),teacherName=String(p.teacher_name||"").trim(),code=String(p.class_code||"").trim().toLowerCase();
  if(!/^(Baby|Middle|Top|P[1-7])$/.test(classKey))return out(400,{error:"Choose a valid class."});
  if(teacherName.length<2||teacherName.length>120)return out(400,{error:"Enter the teacher's name."});
- if(code.length<10||code.length>72)return out(400,{error:"Use a private code of 10–72 characters."});
+ if(code.length<8||code.length>72||!/[a-z]/.test(code)||!/[0-9]/.test(code))return out(400,{error:"Use at least 8 characters, including at least one letter and one number."});
  const {data:cls,error:ce}=await admin.from("school_classes").select("id,name").ilike("name",classKey).maybeSingle();if(ce||!cls)return out(404,{error:"That class is not configured."});
  const email="teacher."+classKey.toLowerCase()+"@cornhill.school";
  const {data:list,error:le}=await admin.auth.admin.listUsers({page:1,perPage:1000});if(le)return out(500,{error:"Could not check existing teacher account."});
