@@ -302,3 +302,10 @@ The remaining programme now explicitly includes:
 - Updated service-worker shell cache to cornhill-shell-v15.
 - Schema review confirmed the learner, class, class-history and status-history tables. The academic-year and term tables currently have no configured school-year rows. Browser printing, RLS execution and real-device tests remain pending.
 - No production learner records changed.
+
+
+## 2026-11-06 — Report-card approval safeguards
+- Strengthened the individual official-report approval action: administrator role is checked at click time, approval is blocked when the report contains no recorded assessment maximum/marks, and confirmation now identifies learner, class, term and recorded totals before writing the publication record.
+- Existing publication remains per learner and term; batch preview does not itself approve or publish reports. Existing approved timestamp/approver display remains.
+- Supabase schema inspection confirmed report_card_publications stores term, class, learner, approving user and timestamp. No publication rows were inserted or changed during this work.
+- Updated service-worker shell cache to cornhill-shell-v16. Static syntax checks follow; live browser/RLS approval tests and Android/Windows tests remain pending.
