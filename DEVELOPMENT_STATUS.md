@@ -624,3 +624,11 @@ The remaining programme now explicitly includes:
 - Static verification: all inline JavaScript blocks parsed; no duplicate HTML IDs; all seven report/query replacements and the void-handler replacement matched exactly.
 - No expense, payroll, salary or other school records were inserted, updated or voided during this code-only batch. Browser, RLS and actual expense workflow tests remain pending.
 - Service worker shell cache advanced from v29 to v30. This remains a development-branch change and is not deployed.
+
+
+## 2026-11-06 — Payroll payment confirmation safeguards
+- Hardened the administrator payroll "Mark paid" action: blocks duplicate clicks, verifies the payroll line is still Pending and the period is Approved/Part-paid, checks all entered amounts are non-negative safe whole-UGX values, enforces advance recovery not exceeding the outstanding amount shown, validates payment method and calculated net pay, and confirms the exact net amount before posting.
+- The database update now filters on Pending and requests the updated row back. If another user already changed the line, the UI no longer reports a successful payment; it asks the administrator to reload and verify.
+- Static verification: all inline JavaScript blocks parsed successfully and no duplicate HTML IDs were found.
+- No payroll, salary advance, expense or staff records were changed. This is a source-level safeguard only; the database trigger/RPC transaction behavior, advance recovery and matching expense creation still require isolated runtime tests.
+- Service worker shell cache advanced from v30 to v31. Development branch only; not deployed.
