@@ -504,3 +504,11 @@ The remaining programme now explicitly includes:
 - Supabase health advisor returned zero lints.
 - This is a grant-level verification, not a simulated teacher/admin sign-in or pgTAP policy test. The project does not currently have the pgTAP extension installed, and there are no teacher accounts or configured academic terms/assessment rows for an end-to-end mark-entry test. No school records were changed.
 - GitHub migration file: `supabase/migrations/20261106165945_restrict_academic_table_grants.sql`; commit `84bb4d32342bd4a981b7b5f3cddb2d43640f8c07`.
+
+
+## 2026-11-06 — Report-card publication audit grant hardening
+- A further academic security audit found broad default client grants on `report_card_publications`, despite an Admin-only RLS policy. This table controls whether results are officially published.
+- Applied migration `20261106170123_restrict_report_publication_table_grants`.
+- Revoked all table privileges from `anon` and `authenticated`, then restored only SELECT, INSERT and UPDATE to authenticated users. Existing Admin-only RLS policy remains the row-level gate; DELETE, TRUNCATE, TRIGGER and REFERENCES are not granted to client roles. This preserves the application's check-and-insert/upsert publication workflow while preventing deletion of approval history through the client API.
+- Verification shows only authenticated SELECT/INSERT/UPDATE grants; no anon grants. Supabase health advisor returned zero lints. No publication records were inserted, changed or deleted.
+- GitHub migration file `supabase/migrations/20261106170123_restrict_report_publication_table_grants.sql`, commit `b07e91182dc9c58a01449c3b7e125713c27e23ed`.
