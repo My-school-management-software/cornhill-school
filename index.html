@@ -1131,6 +1131,8 @@ setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welco
 await refresh();
  if(!window.cornhillOfflineReadOnly)await loadAcademicControl();
  if(profile?.role==='Admin')await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');
+ if(['Admin','Teacher'].includes(profile?.role)){await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg')}
+ if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
 }
 async function loadStaffAttendanceNotice(){
  const box=$('staffAttendanceNotice');
@@ -2589,6 +2591,7 @@ function parseAttendanceTime(value){
 }
 async function setupAttendance(){
  if(profile?.role!=='Admin')restoreLocalAutosaveForm($('attendanceAdjustmentForm'),'attendance-correction','attendanceMsg').catch(()=>{});
+ if(profile?.role==='Admin'){restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg').catch(()=>{});restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg').catch(()=>{})}
  if(demoMode){message('attendanceMsg','Attendance is not available in read-only demo mode.');return}
  syncOfflineAttendanceCorrections().catch(()=>{});
  const admin=profile?.role==='Admin';
@@ -2741,6 +2744,8 @@ $('attendanceAdjustmentForm').addEventListener('submit',async e=>{
  e.target.reset();await setupAttendance();message('attendanceMsg','Your correction request has been sent to the administrator.');
 });
 bindLocalAutosaveForm($('attendanceAdjustmentForm'),'attendance-correction','attendanceMsg',()=>!!currentUserId&&profile?.role!=='Admin');
+bindLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg',()=>profile?.role==='Admin');
+bindLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg',()=>profile?.role==='Admin');
 $('attendanceAdjustmentRows').addEventListener('click',async e=>{
  const button=e.target.closest('[data-adjustment-review]');if(!button)return;
  if(profile?.role!=='Admin')return;
@@ -3161,6 +3166,12 @@ $('studentForm').addEventListener('input',e=>{
  if(['first_name','middle_name','last_name','date_of_birth','birth_year','lin','p7_index_number','guardian_phone'].includes(e.target.name))scheduleAdmissionMatchSearch();
 });
 bindLocalAutosaveForm($('studentForm'),'learner-admission','appMsg',()=>profile?.role==='Admin'&&!editingStudentId);
+bindLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg',()=>['Admin','Teacher'].includes(profile?.role));
+bindLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg',()=>['Admin','Teacher'].includes(profile?.role));
+bindLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg',()=>profile?.role==='Admin');
+bindLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg',()=>profile?.role==='Admin');
+bindLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg',()=>profile?.role==='Admin');
+bindLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg',()=>profile?.role==='Admin');
 $('admissionMatchResults').addEventListener('click',async e=>{
  const btn=e.target.closest('[data-readmit-learner]');if(!btn)return;
  const match=admissionMatchState.matches.find(x=>x.id===btn.dataset.readmitLearner);if(!match)return;
