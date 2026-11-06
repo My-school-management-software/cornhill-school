@@ -588,8 +588,8 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Learner</th><th>Description / method</th><th>Amount (UGX)</th></tr></thead><tbody id="financeActivityRows"></tbody></table></div>
 </section>
 <section id="academics" class="panel hidden">
- <div class="row"><h2>Academics · subjects, terms, assessments and marks</h2><span class="badge" id="academicAccessBadge">Administrator and assigned teacher access</span></div>
- <p class="muted">Create the academic calendar, subjects and assessments, then record learner scores. The database checks that marks do not exceed the maximum and that each learner belongs to the assessment class.</p>
+ <div class="row"><h2>Academics · administration, teaching and results</h2><span class="badge" id="academicAccessBadge">Administrator and assigned teacher access</span></div>
+ <p class="muted">Administrators control admissions, class placement, subjects and grading rules, and review all teacher-entered marks. Assigned teachers prepare class assessments and enter or update marks for their own class. Administrator mark entry is disabled.</p>
  <div id="academicMsg" class="notice hidden"></div>
  <div id="academicAdminSetup">
  <h3>1. Academic year</h3>
@@ -1934,7 +1934,7 @@ async function loadAcademics(){
  $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
- $('academicAccessBadge').textContent=profile?.role==='Admin'?'Administrator access':'Assigned teacher · Mark entry only';
+ $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic administration · marks read-only':'Assigned teacher · assessment and mark entry';
  const [y,t,s,a,staff,cscores,assignments]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
   db.from('academic_terms').select('*,academic_years(name)').order('starts_on',{ascending:false}),
@@ -2538,6 +2538,7 @@ async function showOfflineAssessmentDraftCount(){
  }catch(_){}
 }
 async function syncOfflineAssessmentDrafts(){
+ if(profile?.role!=='Teacher')return {synced:0,conflicts:0,expired:0};
  if(!navigator.onLine||!currentUserId)return {synced:0,conflicts:0,expired:0};
  const auth=await db.auth.getUser(),user=auth.data?.user;
  if(auth.error||!user||user.id!==currentUserId)return {synced:0,conflicts:0,expired:0};
