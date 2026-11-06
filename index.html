@@ -2764,7 +2764,7 @@ function scheduleAdmissionMatchSearch(){
     const card=document.createElement('div');card.className='panel';card.style.margin='10px 0';card.style.padding='12px';
     const name=[m.first_name,m.middle_name,m.last_name].filter(Boolean).join(' ');
     const details=document.createElement('p');details.className='muted';
-    details.textContent='Class: '+(m.class_name||'Not recorded')+' · Status: '+(m.status||'Unknown')+' · Previous admission: '+(m.admission_date||'Not recorded')+' · Learner code: '+(m.admission_number||'Not recorded')+' · LIN: '+(m.lin||'Not recorded');
+    details.textContent='Gender: '+(m.gender||'Not recorded')+' · Date of birth: '+(m.date_of_birth||'Not recorded')+' · Class: '+(m.class_name||'Not recorded')+' · Status: '+(m.status||'Unknown')+' · Previous admission: '+(m.admission_date||'Not recorded')+' · Learner code: '+(m.admission_number||'Not recorded')+' · LIN: '+(m.lin||'Not recorded');
     const heading=document.createElement('strong');heading.textContent=name;
     const score=document.createElement('small');score.className='muted';score.textContent=' Possible match · verification required';
     card.append(heading,score,details);
