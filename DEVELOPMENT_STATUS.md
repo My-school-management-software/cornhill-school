@@ -632,3 +632,15 @@ The remaining programme now explicitly includes:
 - Static verification: all inline JavaScript blocks parsed successfully and no duplicate HTML IDs were found.
 - No payroll, salary advance, expense or staff records were changed. This is a source-level safeguard only; the database trigger/RPC transaction behavior, advance recovery and matching expense creation still require isolated runtime tests.
 - Service worker shell cache advanced from v30 to v31. Development branch only; not deployed.
+
+
+## 2026-11-06 — Combined finance verification batch: 24 read-only database checks
+- Ran 24 read-only database integrity and security checks covering RLS, anonymous grants, positive/bounded amounts, payment/allocation reconciliation, over-allocation, receipt/expense uniqueness, reversal audit completeness, payroll-to-expense linkage, advance balance bounds, salary agreement date validity/non-overlap and voided-expense audit details.
+- All 24 checks returned PASS.
+- Inspected database policies for payments, allocations, charges, expenses, salary agreements/advances, payroll items/periods and daily collection records. Administrator scope was present on the reviewed management policies; staff have a separate own-advance read policy.
+- Inspected payroll triggers and functions: attendance deductions before payroll insertion; salary expense creation when a payroll item becomes Paid; advance recovery on payroll payment transition; salary expense requires an Approved/Part-paid payroll period and an active Salaries & wages category.
+- Current dataset is very small: 2 payment rows, 0 allocations, 1 charge, 0 expenses, 0 payroll items, 0 salary agreements and 0 advances. Therefore several checks, especially payroll and expense invariants, passed over empty tables and do not prove live workflows.
+- No live rows were inserted, updated, reversed or deleted. No payroll was paid and no expense was voided.
+- Authenticated RPC execution, concurrency, payroll/advance workflow, expense voiding, daily collection refresh, receipt printing and thermal-printer tests remain pending in an isolated authorised environment.
+- Updated docs/FINANCE_ACCEPTANCE_TESTS.md with the 24-check results and limitations.
+- This is a read-only database test batch and documentation update only; no deployment or device test.
