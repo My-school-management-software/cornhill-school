@@ -290,7 +290,7 @@ Deno.serve(async (req: Request) => {
     }
     if (body.action === "status") {
       const connection = await getConnection();
-      const {data:runs} = await adminDb.from("google_drive_backup_runs").select("id,status,file_name,total_records,created_at,completed_at,error_message").order("created_at",{ascending:false}).limit(10);
+      const {data:runs} = await adminDb.from("google_drive_backup_runs").select("id,status,drive_file_id,file_name,total_records,created_at,completed_at,error_message").order("created_at",{ascending:false}).limit(10);
       const {data:settings} = await adminDb.from("google_drive_backup_settings").select("enabled,frequency,last_scheduled_at").eq("id",true).maybeSingle();
       return json({connected:!!connection,connected_email:connection?.connected_email??null,runs:runs??[],settings:settings??{enabled:false,frequency:"daily"}});
     }
