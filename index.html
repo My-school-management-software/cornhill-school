@@ -483,7 +483,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
     <div><label for="paymentReference">Transaction reference</label><input name="payment_reference" id="paymentReference" placeholder="Mobile Money / bank reference"></div>
     <div id="paymentCustomItemWrap" class="hidden"><label for="paymentCustomItem">Specify payment reason *</label><input name="payment_custom_item" id="paymentCustomItem" placeholder="Enter the payment reason"></div>
    </div>
-   <details class="payment-allocation-details"><summary>Allocate this payment to specific terms <span>Optional · previous or current term</span></summary><p class="muted">Open this only when you need to direct money to a particular previous or current term. If left untouched, the system allocates payments to the oldest outstanding charges first.</p><div id="paymentDueList" class="payment-due-list">Choose a learner to view outstanding fees.</div></details>
+   <details class="payment-allocation-details"><summary>Previous-term balance payment <span>Optional · choose only when required</span></summary><p class="muted">Select a previous-term charge only if the payer wants to clear that balance now. Unticked previous-term charges are skipped. Remaining money is applied to current-term charges only; any excess remains unallocated.</p><div id="paymentDueList" class="payment-due-list">Choose a learner to view outstanding fees.</div></details>
    <div class="payment-notes-row"><label for="paymentNotes">Notes (optional)</label><input id="paymentNotes" name="notes" placeholder="Add a short note if needed"></div>
    <div class="payment-submit-row"><div><strong>Review before posting</strong><small>Posting creates a numbered receipt and records the payment.</small></div><button class="primary payment-submit-button" type="submit">Post payment &amp; issue receipt</button></div>
   </div>
@@ -1450,15 +1450,24 @@ async function loadPaymentDueCharges(){
  const learner=financeStudents.find(x=>x.id===id);$('paymentLearnerSummary').textContent=learner?[learner.admission_number||'No pupil code',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')].filter(Boolean).join(' · '):'Learner selected';
  const {data:activePeriod,error:periodError}=await db.from('learner_enrolment_periods').select('id').eq('student_id',id).eq('status','Active').maybeSingle();
  if(periodError||!activePeriod){host.textContent=periodError?'Could not verify the learner’s current enrolment.':'This learner has no active enrolment. Re-admit the learner before taking a new payment.';$('paymentBalanceSummary').textContent='Unavailable';currentPaymentOutstanding=0;renderPaymentQuickAmounts();return}
- const {data,error}=await db.from('learner_charges').select('id,description,amount_ugx,created_at,academic_terms(name,academic_years(name)),payment_allocations(amount_ugx,school_payments(status))').eq('student_id',id).eq('enrolment_period_id',activePeriod.id).order('created_at');
- if(error){host.textContent='Could not load fee balances: '+error.message;$('paymentBalanceSummary').textContent='Unavailable';currentPaymentOutstanding=0;renderPaymentQuickAmounts();return}
+ const [chargeResult,termResult]=await Promise.all([
+  db.from('learner_charges').select('id,term_id,description,amount_ugx,created_at,academic_terms(name,academic_years(name)),payment_allocations(amount_ugx,school_payments(status))').eq('student_id',id).eq('enrolment_period_id',activePeriod.id).order('created_at'),
+  db.from('academic_terms').select('id').eq('is_current',true).eq('is_closed',false).order('starts_on',{ascending:false}).limit(1).maybeSingle()
+ ]);
+ const {data,error}=chargeResult,currentTerm=termResult.data;
+ if(error||termResult.error){host.textContent='Could not load fee balances: '+(error||termResult.error).message;$('paymentBalanceSummary').textContent='Unavailable';currentPaymentOutstanding=0;renderPaymentQuickAmounts();return}
  const rows=(data||[]).map(c=>({...c,due:Math.max(0,Number(c.amount_ugx)-(c.payment_allocations||[]).filter(a=>a.school_payments?.status==='Posted').reduce((n,a)=>n+Number(a.amount_ugx||0),0))})).filter(c=>c.due>0);
- const {data:account,error:accountError}=await db.from('learner_account_balances').select('total_charged_ugx,total_paid_ugx,credit_ugx,balance_ugx').eq('student_id',id).maybeSingle();
- currentPaymentOutstanding=!accountError&&account?Math.max(0,Number(account.balance_ugx||0)):rows.reduce((n,c)=>n+c.due,0);
+ const {data:periodBalance,error:balanceError}=await db.from('learner_enrolment_period_balances').select('total_charged_ugx,total_paid_ugx,credit_ugx,balance_ugx').eq('enrolment_period_id',activePeriod.id).maybeSingle();
+ currentPaymentOutstanding=!balanceError&&periodBalance?Math.max(0,Number(periodBalance.balance_ugx||0)):rows.reduce((n,c)=>n+c.due,0);
  $('paymentBalanceSummary').textContent='UGX '+money(currentPaymentOutstanding);
- if(!accountError&&account&&Number(account.credit_ugx||0)>0)$('paymentLearnerSummary').textContent+=' · Credit UGX '+money(account.credit_ugx);
- if(!rows.length){host.innerHTML='<div class="empty">No outstanding fee items recorded for this learner yet. Add the applicable fees, meals, boarding or other items in the learner charges section.</div>';renderPaymentQuickAmounts();return}
- host.innerHTML=rows.map(c=>{const term=c.academic_terms?(c.academic_terms.academic_years?.name+' · '+c.academic_terms.name):'Previous / unassigned term';return '<div class="payment-due-row"><input type="checkbox" class="paymentAllocateCheck" data-charge="'+c.id+'"><div><strong>'+esc(term)+'</strong><br>'+esc(c.description)+'<br><small>Outstanding UGX '+money(c.due)+'</small></div><input class="paymentAllocateAmount" data-charge="'+c.id+'" type="number" min="1" max="'+c.due+'" placeholder="Amount" disabled></div>'}).join('')+'<small>Only selected charges are manually allocated. If none are selected, the system uses oldest-first allocation.</small>';
+ if(!balanceError&&periodBalance&&Number(periodBalance.credit_ugx||0)>0)$('paymentLearnerSummary').textContent+=' · Enrolment credit UGX '+money(periodBalance.credit_ugx);
+ if(!rows.length){host.innerHTML='<div class="empty">No outstanding fee items recorded for this learner’s active enrolment. Add the applicable fees, meals, boarding or other items in the learner charges section.</div>';renderPaymentQuickAmounts();return}
+ host.innerHTML=rows.map(c=>{
+  const isCurrent=!!currentTerm&&c.term_id===currentTerm.id;
+  const term=c.academic_terms?(c.academic_terms.academic_years?.name+' · '+c.academic_terms.name):'Term not assigned';
+  const kind=isCurrent?'CURRENT TERM':(c.term_id?'PREVIOUS TERM':'TERM NOT ASSIGNED');
+  return '<div class="payment-due-row"><input type="checkbox" class="paymentAllocateCheck" data-charge="'+c.id+'"><div><strong>'+esc(kind)+' · '+esc(term)+'</strong><br>'+esc(c.description)+'<br><small>Outstanding UGX '+money(c.due)+'</small></div><input class="paymentAllocateAmount" data-charge="'+c.id+'" type="number" min="1" max="'+c.due+'" placeholder="Amount" disabled></div>';
+ }).join('')+'<small>Previous-term and unassigned charges are optional: tick them only when the payer wants to clear them. Unticked previous-term charges are skipped. Any remaining amount is applied to current-term charges only; if no current term is configured or current charges are fully paid, the excess remains unallocated.</small>';
  host.querySelectorAll('.paymentAllocateCheck').forEach(ch=>ch.addEventListener('change',()=>{const x=host.querySelector('.paymentAllocateAmount[data-charge="'+ch.dataset.charge+'"]');x.disabled=!ch.checked;if(ch.checked)x.value=''}));
  renderPaymentQuickAmounts();
 }
@@ -1519,7 +1528,7 @@ $('schoolPaymentForm').addEventListener('submit',async e=>{
  });
  let detail=allocError?'<p>See the learner statement for allocation details.</p>':([...allocationGroups].map(([label,v])=>'<p>'+esc(label)+': allocated today UGX '+money(v.allocated)+'; remaining balance UGX '+money(v.remaining)+'</p>').join('')||(allocated===0?'<p>No fee-charge allocation was selected.</p>':''));
  if(!allocError&&amount>allocated)detail+='<p>Unallocated amount: UGX '+money(amount-allocated)+'</p>';
- const {data:account,error:balanceError}=await db.from('learner_account_balances').select('total_charged_ugx,total_paid_ugx,credit_ugx,balance_ugx').eq('student_id',f.get('student_id')).maybeSingle();
+ const {data:paymentPeriod,error:paymentPeriodError}=await db.from('school_payments').select('enrolment_period_id').eq('id',result.payment_id).maybeSingle();const {data:account,error:balanceError}=paymentPeriod?.enrolment_period_id?await db.from('learner_enrolment_period_balances').select('total_charged_ugx,total_paid_ugx,credit_ugx,balance_ugx').eq('enrolment_period_id',paymentPeriod.enrolment_period_id).maybeSingle():{data:null,error:paymentPeriodError||new Error('Payment enrolment period was not found')};
  const accountLoaded=!balanceError&&!!account;
  const balanceText=accountLoaded?'UGX '+money(Math.max(0,Number(account.balance_ugx||0))):'Not available';
  const accountCredit=accountLoaded?Number(account.credit_ugx||0):0;
