@@ -2918,7 +2918,12 @@ $('studentRows').addEventListener('click',e=>{
 });
 function syncBoardingMealControls(){
  const form=$('studentForm');if(!form)return;
- const boarding=form.elements.learner_type.value==='Boarding';
+ const selectedClass=(classes||[]).find(c=>c.id===form.elements.class_id.value);
+ const p7=selectedClass?.name==='P7';
+ const dayOption=[...form.elements.learner_type.options].find(o=>o.value==='Day');
+ if(p7){form.elements.learner_type.value='Boarding';if(dayOption)dayOption.disabled=true;}
+ else if(dayOption)dayOption.disabled=false;
+ const boarding=p7||form.elements.learner_type.value==='Boarding';
  for(const name of ['takes_breakfast','takes_lunch']){
   const input=form.elements[name];if(!input)continue;
   if(boarding)input.checked=false;
@@ -2926,9 +2931,11 @@ function syncBoardingMealControls(){
   const label=input.closest('label');if(label){label.style.opacity=boarding?'.48':'1';label.title=boarding?'Included in the boarding package':'Optional day-learner meal';}
  }
  const help=$('mealPlanHelp');
- if(help)help.textContent=boarding
-  ?'Boarding is one complete package. Breakfast, lunch and supper are included; separate meal selections and charges are disabled.'
-  :'Select the meals this day learner takes. Boarding includes all meals in one standalone boarding fee.';
+ if(help)help.textContent=p7
+  ?'P7 is configured as compulsory boarding. Breakfast, lunch and supper are included in the single P7 boarding package.'
+  :boarding
+   ?'Boarding is one complete package. Breakfast, lunch and supper are included; separate meal selections and charges are disabled.'
+   :'Select the meals this day learner takes. Boarding includes all meals in one standalone boarding fee.';
 }
 let admissionProrationPreviewToken=0;
 async function refreshAdmissionProrationPreview(){
@@ -2974,7 +2981,7 @@ async function refreshAdmissionProrationPreview(){
  }catch(err){if(token===admissionProrationPreviewToken)host.textContent='Fee preview unavailable: '+(err.message||'Please retry.')}
 }
 $('studentForm').addEventListener('change',e=>{
- if(e.target.name==='learner_type')syncBoardingMealControls();
+ if(['learner_type','class_id'].includes(e.target.name))syncBoardingMealControls();
  if(['class_id','learner_type','admission_date','admission_prorate','is_bursary','bursary_fee_ugx','takes_breakfast','takes_lunch'].includes(e.target.name))refreshAdmissionProrationPreview();
 });
 $('studentForm').addEventListener('input',e=>{
