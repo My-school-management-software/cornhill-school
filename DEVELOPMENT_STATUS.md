@@ -606,3 +606,12 @@ The remaining programme now explicitly includes:
 - Added docs/FINANCE_ACCEPTANCE_TESTS.md with completed read-only checks and isolated transaction tests still required.
 - No school finance rows were inserted, updated, reversed or deleted. Existing payment rows were not used as test records.
 - This was a read-only schema/migration and source review, not an authenticated runtime transaction test. Balance reconciliation, actual reversal, concurrency, browser receipt preview and thermal-printer output remain pending.
+
+
+## 2026-11-06 — Learner statement table alignment correction
+- Reviewed the learner fee statement renderer and found mismatched receipt-table columns: a duplicate status heading made the period receipt table wider than its data rows, while the legacy-receipt table omitted the status/reversal heading even though each row included that cell.
+- Corrected the period receipt table to six matching columns, corrected its empty-state colspan, and added the missing status/reversal heading to the legacy receipt table.
+- Static verification: all inline JavaScript blocks parsed successfully; no duplicate HTML IDs were found; all three targeted markup replacements matched exactly once.
+- No learner, charge, payment, allocation, receipt or balance records were changed. Browser rendering and printed statement layout still require runtime verification.
+- Service worker shell cache advanced from v28 to v29 so clients fetch the updated application shell.
+- This is a saved development-branch correction only; it is not deployed.
