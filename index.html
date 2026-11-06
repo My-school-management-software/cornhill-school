@@ -667,7 +667,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <section id="adminTeacherMarksRegister" style="margin-top:20px">
  <h3>Administrator · teacher-submitted marks register</h3>
  <p class="muted">Read-only overview of marks saved by teachers. Select a class and term above to review results, then export the detailed register as CSV for Excel.</p>
- <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportTeacherMarksRegister">Export teacher marks register · CSV</button></div>
+ <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="loadAdminTeacherMarksRegister">Load selected class and term</button><button type="button" id="exportTeacherMarksRegister" disabled>Export teacher marks register · CSV</button></div><p id="adminMarksRegisterStatus" class="muted">Choose a term and class, then load the teacher-submitted marks.</p>
  <div class="table-wrap"><table><thead><tr><th>Class</th><th>Term</th><th>Learner code</th><th>Learner</th><th>Subject</th><th>Assessment</th><th>Mark</th><th>Maximum</th><th>Teacher account</th><th>Last updated</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
  </section>
 </section>
@@ -2192,9 +2192,15 @@ async function getTermScores(){
  if(error){message('academicMsg','Could not load term assessments: '+error.message,true);return null}
  const ids=(data||[]).map(x=>x.id);
  if(!ids.length)return {assessments:[],scores:[]};
- const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment,students(admission_number,first_name,middle_name,last_name)').in('assessment_id',ids);
- if(result.error){message('academicMsg','Could not load marks: '+result.error.message,true);return null}
- return {assessments:data||[],scores:result.data||[]};
+ let scores=[],offset=0;
+ while(true){
+  const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment,entered_by,updated_at,students(admission_number,first_name,middle_name,last_name)').in('assessment_id',ids).order('updated_at',{ascending:true}).range(offset,offset+999);
+  if(result.error){message('academicMsg','Could not load marks: '+result.error.message,true);return null}
+  scores=scores.concat(result.data||[]);
+  if((result.data||[]).length<1000)break;
+  offset+=1000;
+ }
+ return {assessments:data||[],scores};
 }
 async function renderReportCard(options={}){
  const data=options.data||await getTermScores();if(!data)return;
@@ -2248,16 +2254,44 @@ async function renderClassPerformance(){
  window.cornhillClassPerformanceRows=ranked.map((x,i)=>{const pct=x.x.score/x.x.max*100;if(lastPct===null||Math.abs(pct-lastPct)>0.000001)lastRank=i+1;lastPct=pct;return {position:lastRank,admission_code:x.l.admission_number,learner:[x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '),subjects_scored:x.x.subjects.size,total_marks:x.x.score,maximum_marks:x.x.max,average_percent:Number(pct.toFixed(1))}});
  $('classPerformanceRows').innerHTML=window.cornhillClassPerformanceRows.map(x=>'<tr><td>'+x.position+'</td><td>'+esc(x.admission_code)+' · '+esc(x.learner)+'</td><td>'+x.subjects_scored+'</td><td>'+money(x.total_marks)+' / '+money(x.maximum_marks)+'</td><td>'+x.average_percent.toFixed(1)+'%</td></tr>').join('')||'<tr><td colspan="5">No marks entered for this class and term.</td></tr>';
 }
+$('loadAdminTeacherMarksRegister').addEventListener('click',async()=>{
+ if(profile?.role!=='Admin'||demoMode)return;
+ const button=$('loadAdminTeacherMarksRegister'),status=$('adminMarksRegisterStatus'),exportButton=$('exportTeacherMarksRegister');
+ button.disabled=true;exportButton.disabled=true;status.textContent='Loading the selected class and term…';
+ try{
+  const data=await getTermScores();if(!data)throw new Error('Select a valid class and term first.');
+  const teacherIds=[...new Set(data.scores.map(x=>x.entered_by).filter(Boolean))];
+  let names=window.cornhillStaffNames||{};
+  if(teacherIds.length){
+   const profiles=await db.from('user_profiles').select('id,full_name').in('id',teacherIds);
+   if(profiles.error)throw profiles.error;
+   names={...names,...Object.fromEntries((profiles.data||[]).map(x=>[x.id,x.full_name||'Teacher account']))};
+  }
+  const assessmentById=new Map(data.assessments.map(x=>[x.id,x]));
+  const learnerById=new Map(students.map(x=>[x.id,x]));
+  const className=$('reportClassSelect').selectedOptions[0]?.textContent||'';
+  const termName=$('reportTermSelect').selectedOptions[0]?.textContent||'';
+  const rows=data.scores.map(score=>{
+   const assessment=assessmentById.get(score.assessment_id)||{},learner=learnerById.get(score.student_id)||{};
+   return {className,termName,admissionCode:learner.admission_number||score.students?.admission_number||'',
+    learner:[learner.first_name||score.students?.first_name,learner.middle_name||score.students?.middle_name,learner.last_name||score.students?.last_name].filter(Boolean).join(' '),
+    subject:assessment.subjects?.name||'',assessment:assessment.title||'',mark:isAbsentMark(score)?'X':score.score,
+    maximum:assessment.max_score??'',teacher:names[score.entered_by]||'Teacher account',updated:score.updated_at||''};
+  });
+  window.cornhillTeacherMarkRegisterRows=rows;
+  $('academicScoreRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.className)+'</td><td>'+esc(x.termName)+'</td><td>'+esc(x.admissionCode)+'</td><td>'+esc(x.learner)+'</td><td>'+esc(x.subject)+'</td><td>'+esc(x.assessment)+'</td><td>'+esc(x.mark)+'</td><td>'+esc(x.maximum)+'</td><td>'+esc(x.teacher)+'</td><td>'+esc(x.updated?new Date(x.updated).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No marks have been entered for this class and term.</td></tr>';
+  exportButton.disabled=!rows.length;
+  status.textContent='Loaded '+rows.length+' teacher-entered mark record(s) for '+className+' · '+termName+'. This view is read-only.';
+ }catch(err){status.textContent='Could not load the teacher marks: '+(err?.message||String(err));message('academicMsg','Teacher marks register could not be loaded: '+(err?.message||String(err)),true)}
+ finally{button.disabled=false}
+});
 $('exportTeacherMarksRegister').addEventListener('click',()=>{
  if(profile?.role!=='Admin'||demoMode)return;
- const rows=window.cornhillTeacherMarksRegister||[];
- if(!rows.length){message('academicMsg','There are no saved teacher marks to export yet.',true);return}
+ const rows=window.cornhillTeacherMarkRegisterRows||[];
+ if(!rows.length){message('academicMsg','Load a class and term marks register before exporting.',true);return}
  downloadCSV('cornhill-teacher-marks-register.csv',
  ['Class','Term','Admission code','Learner','Subject','Assessment','Mark','Maximum','Teacher account','Last updated'],
- rows.map(x=>[x.assessments?.school_classes?.name||'',x.assessments?.academic_terms?.name||'',x.students?.admission_number||'',
- [x.students?.first_name,x.students?.middle_name,x.students?.last_name].filter(Boolean).join(' '),
- x.assessments?.subjects?.name||'',x.assessments?.title||'',isAbsentMark(x)?'X':x.score,x.assessments?.max_score??'',
- window.cornhillStaffNames?.[x.entered_by]||'Teacher account',x.updated_at||'']));
+ rows.map(x=>[x.className,x.termName,x.admissionCode,x.learner,x.subject,x.assessment,x.mark,x.maximum,x.teacher,x.updated]));
 });
 $('exportAcademicClassCsv').addEventListener('click',()=>{
  if(profile?.role!=='Admin'||demoMode)return;
