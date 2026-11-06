@@ -259,3 +259,13 @@ The remaining programme now explicitly includes:
 - Static verification: all 3 inline JavaScript blocks parse without syntax errors. Confirmed class form save/restore/clear, learner-specific promotion draft save/restore/clear, and schedule form restore/clear paths. Duplicate-ID scan only reported IDs embedded in dynamic HTML template strings (for example learner-specific rows/forms), not repeated static page IDs.
 - Not yet tested in a real browser: IndexedDB reload/restore, multiple learner promotion drafts, class creation after reconnect, schedule form recovery, server RPC/RLS behavior, or Android/Windows. No learner promotion, class, schedule, staff, finance, or attendance records were created or modified by this code update.
 - GitHub commits: 6625c1fe80dca7f000705492a85e4302eba83cef (class/promotion autosave), f769df25ff83f0c87b0784d6ef2592c6c74ec1fe (schedule draft restore/cleanup), service-worker cache v10 commit recorded separately in this batch.
+
+
+## 2026-11-06 — Re-admission reason autosave
+
+- Replaced the one-time re-admission reason prompt with a required reason field on each possible former-learner match.
+- Each reason autosaves locally by signed-in administrator and learner ID, restores when the match list is rebuilt, and clears only after the re-admission RPC and subsequent fee-schedule handling complete successfully.
+- Minimum five-character reason remains enforced. The administrator still explicitly confirms re-admission; no automatic submission or access changes occur.
+- Service-worker cache updated to cornhill-shell-v12.
+- Static checks: all three inline JavaScript blocks parse; reason capture, restore, minimum length and successful-flow cleanup confirmed. Browser/IndexedDB runtime tests and real re-admission workflow tests remain pending. No learner records were changed.
+- Commits: da03c6d4596a5c51af74a15c081b4fda8d7b6dd5 (UI), ec2c1532ddcedb2c689dbf8c94ba8f83211263db (service worker).
