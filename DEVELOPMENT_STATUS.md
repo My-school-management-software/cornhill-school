@@ -654,3 +654,12 @@ The remaining programme now explicitly includes:
 - No learner, guardian, bursary, enrolment, class-subject, assessment, mark or publication rows were changed. No browser/RPC/teacher-session test performed.
 - Added `docs/ADMISSIONS_ACADEMICS_ACCEPTANCE_TESTS.md` with all checks, the one configuration exception and required end-to-end tests.
 - Follow-up: school administrator should confirm the one Admin profile assigned to a class-subject row; use an isolated test learner, teacher and term for end-to-end admission and academic tests.
+
+
+## 2026-11-06 — Combined staff attendance integrity batch: 24 checks
+- Ran 24 read-only database checks covering RLS, staff foreign keys, duplicate event dedupe keys, event timestamps, attendance adjustment reasons/review audit, schedule time windows and non-negative grace/break periods, schedule/staff mappings, device mapping completeness, import counters, incident deductions/review audit and alert staff references.
+- All 24 checks returned PASS.
+- Important limitation: all eight inspected attendance tables currently have zero rows (events, adjustments, schedules, schedule assignments, device mappings, import batches, incidents and alerts). The results are structural checks over empty tables, not proof that attendance workflows work.
+- No attendance events, staff profiles, schedules, device mappings, import batches, incidents, alerts or payroll records were inserted or changed. No fingerprint device was connected or activated.
+- Added docs/STAFF_ATTENDANCE_ACCEPTANCE_TESTS.md with results and required isolated end-to-end tests.
+- Pending: schedule setup, clock-in/out, lateness, correction approval, CSV duplicate import, offline sync, payroll deduction linkage, role-based access and physical device compatibility tests.
