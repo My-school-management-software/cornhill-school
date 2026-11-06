@@ -391,3 +391,11 @@ The remaining programme now explicitly includes:
 - Reviewed the SECURITY DEFINER inventory. The checked finance, bursary, learner admission/re-admission, term control, budget, parent contact and learner-match routines require the active administrator helper. Parent portal access checks verified guardian phone and learner linkage. Teacher visiting-day lookup now checks active teacher status and assigned class through the shared helper.
 - `user_profiles` has two authenticated policies by name: self/admin profile read and administrator profile update. Full predicate inspection was blocked by the SQL safety layer, so no policy changes were made without verifying the expressions.
 - No learner, staff, payment, mark or academic records changed. Runtime active/inactive/cross-class role tests remain pending.
+
+
+## 2026-11-06 — Non-destructive cloud backup validation
+- Added an administrator-only cloud backup validation action. It downloads the selected completed backup from the connected CORNHILL Google Drive, decrypts it server-side, checks the backup format and expected dataset allowlist, and compares every dataset record count against both the snapshot and backup audit row.
+- Added a “Validate latest backup” control in Backup & Recovery. It validates the latest successful backup without inserting, updating, deleting or restoring any school data.
+- Validation deliberately does not claim to be a full restore. A safe restore workflow still requires a separate maintenance-window process, target confirmation, dependency ordering, transactional safeguards and an isolated restore drill.
+- Updated service-worker cache to cornhill-shell-v21.
+- Static JavaScript syntax checks and a live encrypted-file round-trip / Google Drive download validation remain pending. No backup was triggered and no school records were changed.
