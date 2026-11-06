@@ -702,3 +702,17 @@ The remaining programme now explicitly includes:
 - Supabase health advisor returned zero lints.
 - Added `docs/SECURITY_DATA_INTEGRITY_110_CHECKS.md` and migration source.
 - Important: checks against empty transaction tables are structural/no-corruption checks, not transaction workflow tests. Real browser, payment/reversal, OTP, backup validation/restore, offline sync, thermal printer, Windows/Android and deployment checks remain pending.
+
+
+## 2026-11-06 — Parent portal and guardian contact security cycle (127 checks)
+- Reviewed parent portal, teacher visiting-day lookup, guardian directory/update RPCs, guardian contact RLS, report publication, conduct report visibility and guardian audit trigger.
+- Completed 95 parent/teacher source and policy assertions. 94 passed immediately; one exact source-string assertion was too strict about the formatting of the Teacher role predicate. Direct live function inspection and a corrected role-fragment query confirmed the required Teacher-role guard. No access-control defect remained.
+- Confirmed parent portal requires a signed-in Auth user with a confirmed phone, matches that phone to an active guardian contact and the supplied permanent pupil code, and returns only the linked learner.
+- Confirmed parent assessment results require an approved report publication. The separate published-report list is also safe because report_card_publications.approved_at and approved_by are NOT NULL; the suspected pending-publication leak was not a live defect.
+- Confirmed parent payments are learner-scoped and Posted-only; balances are active-enrolment-period scoped; conduct reports require guardian visibility and a published timestamp not in the future.
+- Applied Supabase migration 20261106203230_guardian_contact_consent_and_audit_invariants: enforce phone for SMS opt-in, WhatsApp number for WhatsApp opt-in, one active primary guardian per learner, and expand guardian audit history to record relationship, active and primary changes.
+- Applied Supabase migration 20261106203301_correct_ug_phone_format_validation: reassert canonical +256 E.164 phone/WhatsApp validation in constraints and admin update RPC.
+- Post-migration 32/32 checks passed, including valid/invalid sample phone patterns, constraints, unique index, audit columns/trigger, admin authorization, consent validation, grants and unchanged live row counts.
+- Created GitHub migration sources and docs/PARENT_PORTAL_GUARDIAN_SECURITY_127_CHECKS.md.
+- Supabase health advisor returned zero lints. Security advisor still reports six service-only RLS/no-policy informational notices, pg_net in public schema, 20 authenticated SECURITY DEFINER warnings and leaked-password protection disabled. No broad changes made.
+- No guardian/learner/finance records were edited and no audit rows were fabricated. Actual OTP, browser, guardian-account isolation and Windows/Android tests remain pending.
