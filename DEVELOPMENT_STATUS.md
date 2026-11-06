@@ -223,3 +223,11 @@ The remaining programme now explicitly includes:
 
 
 - Follow-up extension: account-scoped local autosave and restore were also wired to academic assessment setup, individual mark entry, academic-year and term forms, grading-band forms, and administrator attendance work-schedule/assignment forms. These remain local drafts until the user explicitly submits them online. Financial payment posting, payroll posting, reversals and receipt generation remain excluded from silent autosave/sync because they require duplicate prevention and explicit server confirmation.
+
+
+## 2026-11-06 — Autosave extension: learner edits and remaining academic setup
+
+- Added a separate per-learner local draft key for administrator edits. Opening Edit Learner loads that learner's unfinished edit draft if present; changes autosave locally; successful update clears that learner's edit draft. Cancelling an edit explicitly discards that local draft. New-admission drafts remain separate and cannot be restored into an edit session.
+- Added local autosave/restore for subject creation and class-subject assignment forms. Academic year, term, subject, class-subject and assessment drafts are cleared after successful server submission. Individual mark drafts and general/UNEB grading-band drafts are cleared after successful save.
+- These drafts are not automatically submitted to the database. Administrators and teachers must still explicitly submit each form. Finance posting, salary/payroll posting, payment reversals, receipt generation and staff profile edits remain excluded from local draft capture in this extension.
+- Staff clock-in/out remains online/admin-authorised only under the existing RLS policy. Offline correction requests are not a substitute for official clock events.
