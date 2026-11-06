@@ -2504,7 +2504,7 @@ function renderGoogleDriveHistory(runs){
  const retentionCutoff=Date.now()-30*24*60*60*1000;
  runs=(runs||[]).filter(run=>{const stamp=Date.parse(run.created_at||'');return Number.isFinite(stamp)&&stamp>=retentionCutoff});
  if(!runs?.length){target.innerHTML='<strong>Recent cloud backups</strong><p class="muted">No Google Drive backup runs recorded yet.</p>';return}
- const items=runs.map(run=>'<li class="backup-history-item">'+escapeBackupHtml(String(run.created_at||'').replace('T',' ').slice(0,19))+' · '+escapeBackupHtml(String(run.status||'').toUpperCase())+' · '+escapeBackupHtml(run.file_name||'Backup in progress')+' · '+Number(run.total_records||0).toLocaleString('en-UG')+' records'+(run.error_message?' · '+escapeBackupHtml(run.error_message):'')+'</li>').join('');
+ const items=runs.map(run=>{const stamp=run.created_at?new Date(run.created_at):null;const localTime=stamp&&!Number.isNaN(stamp.getTime())?new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Kampala',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(stamp):'Date unavailable';return '<li class="backup-history-item">'+escapeBackupHtml(localTime)+' (Uganda time) · '+escapeBackupHtml(String(run.status||'').toUpperCase())+' · '+escapeBackupHtml(run.file_name||'Backup in progress')+' · '+Number(run.total_records||0).toLocaleString('en-UG')+' records'+(run.error_message?' · '+escapeBackupHtml(run.error_message):'')+'</li>'}).join('');
  target.innerHTML='<div class="row backup-history-heading"><strong>Recent cloud backups</strong><button type="button" id="toggleGoogleDriveHistory" aria-expanded="false">View history ('+runs.length+')</button></div><ul class="backup-history-list">'+items+'</ul>';
  const list=target.querySelector('.backup-history-list'),toggle=$('toggleGoogleDriveHistory');
  if(list&&toggle){list.classList.add('backup-history-collapsed');toggle.addEventListener('click',()=>{const expanded=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!expanded));list.classList.toggle('backup-history-collapsed',expanded);toggle.textContent=expanded?'View history ('+runs.length+')':'Hide history'})}
@@ -2513,7 +2513,7 @@ async function refreshGoogleDriveStatus(){
  const status=$('googleDriveStatus');if(!status)return;
  try{
   const data=await callGoogleDriveBackup('status');
-  status.textContent=data.connected?'Connected to '+data.connected_email+'. Cloud backup files are encrypted before upload. Automatic scheduling is not active until the scheduler is configured.':'Google Drive is not connected. Connect the school account to enable encrypted cloud backups.';
+  status.textContent=data.connected?'Connected to '+data.connected_email+'. Cloud backup files are encrypted before upload. Automatic daily backup is enabled and scheduled for 5:00 AM Uganda time. Recent backup timestamps are displayed in Uganda time (Africa/Kampala).':'Google Drive is not connected. Connect the school account to enable encrypted cloud backups.';
   $('runGoogleDriveBackup').disabled=!data.connected;
   $('connectGoogleDrive').textContent=data.connected?'Reconnect school Google account':'Connect school Google account';
   renderGoogleDriveHistory(data.runs);
