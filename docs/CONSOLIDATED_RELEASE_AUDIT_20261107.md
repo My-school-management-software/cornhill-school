@@ -5,7 +5,7 @@ Supabase project: `yemhortbudwbcrzsoozk`
 
 ## Result for this audit cycle
 
-- **42/42 source-structure checks passed** across the main application and the Google Drive backup Edge Function.
+- **47/47 source-structure checks passed** across the main application and the Google Drive backup Edge Function.
 - **17/17 live database function/policy assertions passed.**
 - **63/63 public database tables have RLS enabled; 0 public tables are missing RLS.**
 - **107 public RLS policies** were present at the time of the audit.
@@ -47,6 +47,10 @@ Inspected active function version 26. Although platform JWT verification is disa
 - The validation function explicitly does not perform a restore.
 
 ## Live database assertions — 17/17 passed
+
+## SECURITY DEFINER body review — 20/20 passed
+
+Reviewed every one of the 20 authenticated-executable SECURITY DEFINER functions reported by the security advisor. All 20 contained the expected caller guard for their intended purpose: administrator-only functions check the active administrator helper; teacher functions check teacher identity and class assignment; the parent function checks a confirmed phone linked to an active guardian contact; staff directory access requires an active signed-in staff profile; and the authorization helper functions bind decisions to the current authenticated user. The advisor still flags these functions because they are executable by authenticated users; the body-level review is why no blanket EXECUTE revoke was applied.
 
 Verified:
 1. Parent lookup requires an authenticated user.
@@ -90,7 +94,7 @@ Migration source:
 
 Found that the previous `vercel.json` built only `index.html` and rewrote every route to `/index.html`. This meant a request for `/parents.html` returned the main application page rather than the separate guardian portal.
 
-Updated `vercel.json` to build all root HTML pages, JavaScript files, the web manifest and assets as static files, and removed the catch-all rewrite.
+Updated `vercel.json` to build all root HTML pages, JavaScript files, the web manifest and assets as static files, and removed the catch-all rewrite. The updated JSON was parsed and all five routing/configuration assertions passed (the four file-pattern allowlists and absence of a catch-all rewrite).
 
 **Deployment verification is still pending.** The latest Vercel preview visible during this audit was still built from commit `8e8e06f8dace4e52dd9e39059d09e665bb5a5e8f`, before the routing correction. The new configuration must be built and the deployed `/parents.html` and `/manifest.webmanifest` routes checked before calling this correction live.
 
