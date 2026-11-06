@@ -58,3 +58,19 @@ Last updated: 2026-11-06
 - Prefer free or pay-as-you-go services; do not activate paid messaging, hosting or other subscriptions without school authorization.
 - Do not use invented academic dates or production learner/payment data for test transactions.
 - Preserve historical learner, academic, finance and receipt records during fixes.
+
+## 2026-11-06 — Combined batch 1: admission, bursary, re-admission and finance connection
+
+- Reviewed the admission form, learner identity checks, re-admission RPC, bursary triggers, boarding normalisation, enrolment-period records and finance fee-schedule function together.
+- Corrected the bursary admission database trigger so every bursary admission creates an administrator-approved row in `learner_bursary_awards`, including zero-payable bursaries.
+- Bursary charges now carry the active enrolment-period, academic-year and term references instead of being created as unassigned historical charges.
+- The bursary award records the generated charge reference where a payable amount exists. Zero-payable awards remain recorded without creating a zero-value charge.
+- Kept the existing approval rules: full bursary / fully sponsored = UGX 0; half / partial bursary require a positive payable amount and a reason.
+- Updated the re-admission screen so that after the permanent learner identity and a fresh enrolment period are restored, it also applies the active term fee schedule. The previous bursary is still not renewed automatically.
+- Kept database enforcement of P7 compulsory boarding and the single boarding package; separate day-meal flags remain disabled for boarders.
+- Applied Supabase migration `20261106124821_connect_admission_bursary_to_enrolment_finance`.
+- Verified the live trigger definition now writes bursary award history and links bursary charges to an enrolment period. A temporary integration-test learner was not left in the database after the rollback test.
+- Updated `index.html`; all 3 JavaScript script blocks passed syntax parsing and no duplicate HTML IDs were found.
+- These checks do not replace full browser/runtime testing of real admissions, re-admissions, bursary charges, boarding fee schedules and finance statements.
+- No deployment was performed. Continue on `feature/cornhill-v3-foundation`.
+
