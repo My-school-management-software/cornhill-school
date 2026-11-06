@@ -334,3 +334,5 @@ The remaining programme now explicitly includes:
 
 - Follow-up RLS review: the local browser export intentionally excludes service-only `communication_delivery_events` and participant-private staff direct/media/call records, because an administrator's browser session cannot reliably read all rows under those RLS policies. These records remain in the server-side encrypted Google Drive backup, which uses the service role after administrator authentication. This prevents a misleading partial local export.
 - Local encrypted backup is a protected records export only; it does not restore data into production. Do not upload or share it casually. The password is required to decrypt it.
+
+- Final local-export cleanup: password field is cleared after both successful and failed backup attempts, so it is not left populated on the shared administrator screen.
