@@ -2919,13 +2919,13 @@ async function refreshAdmissionProrationPreview(){
  host.textContent='Calculating the current term charges…';
  try{
   const [{data:term,error:termError},{data:classRow,error:classError}]=await Promise.all([
-   db.from('academic_terms').select('id,name,starts_on,ends_on').eq('is_current',true).eq('is_closed',false).maybeSingle(),
+   db.from('academic_terms').select('id,name,starts_on,ends_on,academic_year_id').eq('is_current',true).eq('is_closed',false).maybeSingle(),
    db.from('school_classes').select('name').eq('id',classId).maybeSingle()
   ]);
   if(token!==admissionProrationPreviewToken)return;
   if(termError)throw termError;if(classError)throw classError;
   if(!term||!classRow){host.textContent='An active term and a valid class are required to calculate the fee preview.';return}
-  const {data:schedules,error}=await db.from('fee_schedules').select('amount_ugx,learner_type,class_group,fee_items(name)').eq('is_active',true).eq('class_group',classRow.name).in('learner_type',['Any',learnerType]);
+  const {data:schedules,error}=await db.from('fee_schedules').select('amount_ugx,learner_type,class_group,fee_items(name)').eq('is_active',true).eq('class_group',classRow.name).in('learner_type',['Any',learnerType]).or('academic_year_id.is.null,academic_year_id.eq.'+term.academic_year_id).or('term_id.is.null,term_id.eq.'+term.id);
   if(token!==admissionProrationPreviewToken)return;if(error)throw error;
   const amountFor=name=>Math.max(0,...(schedules||[]).filter(x=>x.fee_items?.name===name).map(x=>Number(x.amount_ugx)||0));
   const full=[
@@ -3019,9 +3019,9 @@ $('studentForm').addEventListener('submit',async e=>{
  let feeScheduleNote='';
  if(!wasEditing&&record.status==='Active'&&record.class_id){
   try{
-   const {data:term,error:termError}=await db.from('academic_terms').select('name').eq('is_current',true).eq('is_closed',false).maybeSingle();
+   const {data:term,error:termError}=await db.from('academic_terms').select('name,academic_years(name)').eq('is_current',true).eq('is_closed',false).maybeSingle();
    if(termError)throw termError;
-   if(term?.name){const {data:applied,error:applyError}=await db.rpc('admin_apply_learner_fee_schedule',{p_student_id:result.data.id,p_period_label:term.name});if(applyError)throw applyError;const appliedRow=Array.isArray(applied)?applied[0]:applied;feeScheduleNote=' Current-term fee schedule applied: '+Number(appliedRow?.created_charges||0)+' charge(s), UGX '+money(appliedRow?.total_amount_ugx||0)+'.';}
+   if(term?.name){const {data:applied,error:applyError}=await db.rpc('admin_apply_learner_fee_schedule',{p_student_id:result.data.id,p_period_label:[term.academic_years?.name,term.name].filter(Boolean).join(' · ')});if(applyError)throw applyError;const appliedRow=Array.isArray(applied)?applied[0]:applied;feeScheduleNote=' Current-term fee schedule applied: '+Number(appliedRow?.created_charges||0)+' charge(s), UGX '+money(appliedRow?.total_amount_ugx||0)+'.';}
    else feeScheduleNote=' No active term was selected, so the current-term fee schedule was not applied.';
   }catch(feeError){feeScheduleNote=' Learner admission was saved, but the term fee schedule could not be applied automatically: '+(feeError.message||'Please ask the bursar to apply it.');}
  }
