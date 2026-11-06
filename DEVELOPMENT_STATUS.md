@@ -684,3 +684,21 @@ The remaining programme now explicitly includes:
 - Verified all 18 policies across the six tables now include the guard; helper is SECURITY INVOKER, anon execute false, authenticated execute true.
 - Supabase health advisor returned zero lints. Security advisor remains at 20 authenticated SECURITY DEFINER notices, six informational RLS-enabled/no-policy service-only tables, pg_net in public schema and leaked-password protection disabled.
 - Added docs/OFFLINE_ROLES_COMMUNICATIONS_ACCEPTANCE_TESTS.md. Browser tests for inactive-user denial, actual messaging and offline IndexedDB/reconnect on Windows/Android remain pending. No school data rows were modified.
+
+
+## 2026-11-06 — 110-check security and data-integrity cycle
+- Completed 110 read-only checks across RLS, anonymous table/function grants, learner/admission/bursary/guardian data, finance receipts/allocations/charges, academic scores/publications, staff attendance, staff collaboration and backup audit integrity. All 110 returned PASS.
+- Checks 1–30: RLS on protected school tables.
+- Checks 31–48: no anon grants on protected tables; protected RPC execution and current payment RPC grants.
+- Checks 49–64: admission, learner, bursary and guardian integrity.
+- Checks 65–76: payment, receipt, allocation and charge integrity.
+- Checks 77–86: assessment score, report publication and current-term integrity.
+- Checks 87–93: staff attendance/schedule integrity.
+- Checks 94–101: staff collaboration references and active-staff guard.
+- Checks 102–110: backup audit and additional communication/parent portal grants.
+- Found the legacy `post_school_payment_with_allocations` RPC was still executable by anon and authenticated roles. Reviewed source and confirmed the current application uses `post_school_payment_complete`, not the legacy RPC.
+- Applied migration `20261106202809_revoke_legacy_payment_rpc_client_access`, revoking PUBLIC/anon/authenticated execution from the deprecated legacy RPC. Verified anon=false, authenticated=false, postgres=true; migration recorded.
+- Current payment posting RPC unchanged and remains authenticated-only (admin check in function). No payment, allocation, charge or learner rows changed.
+- Supabase health advisor returned zero lints.
+- Added `docs/SECURITY_DATA_INTEGRITY_110_CHECKS.md` and migration source.
+- Important: checks against empty transaction tables are structural/no-corruption checks, not transaction workflow tests. Real browser, payment/reversal, OTP, backup validation/restore, offline sync, thermal printer, Windows/Android and deployment checks remain pending.
