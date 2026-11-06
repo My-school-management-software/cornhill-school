@@ -1,0 +1,60 @@
+# CORNHILL Development Status
+
+Last updated: 2026-11-06
+
+## Development branch and deployment hold
+- Active working branch: `feature/cornhill-v3-foundation`.
+- Keep unfinished work on this branch. Do not replace it with an older deployed copy.
+- Do not deploy until the Vercel usage limit is available again and the accumulated changes have passed the agreed checks.
+- A GitHub commit or applied Supabase migration does not mean the system is deployed or device-tested.
+
+## Recent batch work
+- Updated `index.html` to show reminders for upcoming term opening dates as well as approaching/overdue closing dates.
+- Corrected the term-date update message: the reminder does not close a term; an administrator must explicitly close it.
+- Added client-side validation for academic-year date order and overlapping years.
+- Added client-side validation that terms fall within their selected academic year and do not overlap other open terms in that year.
+- Commit: `1c67fb6983c00a3512a93fd54d6e04fb4bf82f12`.
+
+## Academic Calendar status
+- Calendar UI exists in the Academics area and dashboard.
+- Supports academic years, Term 1/2/3, opening/closing dates, active-term selection, date adjustment and administrator-controlled closure.
+- Database migrations recorded: `20261106083157 academic_year_term_control`, `20261106083229 automatic_expired_term_closure`, `20261106083359 one_current_academic_year`.
+- Database policies allow signed-in users to read calendar records and restrict calendar management to school administrators.
+- The database currently has zero academic-year records and zero term records. No school dates have been invented or inserted.
+- No active cron job for academic term closure was found. The current interface flow is administrator-controlled closure. The expired-term function is callable by an administrator but is not scheduled by a cron job in the inspected database.
+- Before school use, an administrator must enter CORNHILL's actual academic-year and term dates.
+
+## Verification completed in this batch
+- Fetched the updated branch file after saving.
+- Parsed all three script blocks in `index.html`; no JavaScript syntax errors.
+- Checked for duplicate HTML IDs; none found.
+- Verified the new opening reminders and manual-closure wording are present.
+- Queried the live database: 0 academic years, 0 terms, 2 learner records.
+- Read calendar RLS policies and the active-term/term-closure function definitions.
+- Ran Supabase security and performance advisors. Findings remain for further review; do not disable RLS or broadly change SECURITY DEFINER permissions to silence warnings.
+
+## Existing system work (foundation saved; end-to-end testing remains)
+- Learner admission, permanent learner codes, LIN/index fields, re-admission and learner history.
+- Bursary awards, fee schedules, mid-term proration, boarding/day meal rules.
+- Finance, receipts, payment allocation, enrolment-period balances and statements.
+- Academic classes, subjects, assessments, marks and report-card foundations.
+- Dashboard, boarder counts and school budget/collection reporting.
+- Parent/guardian portal restrictions and published-results controls.
+- Communications Centre templates/outbox and permissions foundation.
+- Staff attendance, payroll/advance and backup foundations.
+
+## Still to implement or verify before deployment
+1. Continue grouped end-to-end checks for learner admission, re-admission, bursary and meal rules.
+2. Test payment posting, previous-term allocation, receipt preview/reprint and period-specific statements.
+3. Test teacher permissions, mark entry, grade calculations and report-card publication.
+4. Test Academic Calendar creation, activation, opening reminders, date changes, overlap prevention and manual closure with non-production test dates.
+5. Continue review of database security-advisor findings and exposed function permissions.
+6. Complete communication provider integration only after choosing an affordable pay-as-you-go option and receiving authorized school approval. No live SMS/WhatsApp sending is currently connected.
+7. Verify attendance hardware compatibility before promising fingerprint-device integration.
+8. Test backup/restore and role-based access.
+9. Deploy and test on Windows 10/11 and Android only when deployment capacity is available.
+
+## Cost and data safeguards
+- Prefer free or pay-as-you-go services; do not activate paid messaging, hosting or other subscriptions without school authorization.
+- Do not use invented academic dates or production learner/payment data for test transactions.
+- Preserve historical learner, academic, finance and receipt records during fixes.
