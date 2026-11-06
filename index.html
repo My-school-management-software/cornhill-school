@@ -357,6 +357,8 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
   <div class="stat"><small>Female learners</small><div id="forecastFemale" class="num">—</div></div>
   <div class="stat"><small>Male learners</small><div id="forecastMale" class="num">—</div></div>
   <div class="stat"><small>Boarders</small><div id="forecastBoarders" class="num">—</div></div>
+  <div class="stat"><small>Female boarders</small><div id="forecastFemaleBoarders" class="num">—</div></div>
+  <div class="stat"><small>Male boarders</small><div id="forecastMaleBoarders" class="num">—</div></div>
   <div class="stat"><small>Day learners</small><div id="forecastDayLearners" class="num">—</div></div>
   <div class="stat"><small>Day learners taking breakfast</small><div id="forecastBreakfastCount" class="num">—</div></div>
   <div class="stat"><small>Day learners taking lunch</small><div id="forecastLunchCount" class="num">—</div></div>
@@ -371,6 +373,23 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  </div>
  <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap"><strong>Projected term income</strong><strong id="forecastTotal" style="font-size:24px;color:var(--accent)">UGX —</strong></div>
  <small class="muted">Projected income is calculated from active learners, their approved regular or bursary charges, boarding and selected meals using the current fee schedule. It is an estimate, not money received. Unconfigured charges and later changes in attendance or meal participation are not included.</small>
+ <section style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+ <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><strong>School budget & collection report</strong><span class="badge">Current term</span></div>
+ <p class="muted" style="margin:4px 0 10px">Compare expected income with payments actually received. Boarding is reported as one complete package; separate meal collections below are for day learners only.</p>
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
+  <div class="stat"><small>Actual collections received</small><div id="budgetCollectedTotal" class="num" style="font-size:18px">UGX —</div></div>
+  <div class="stat"><small>Unallocated payments</small><div id="budgetUnallocated" class="num" style="font-size:18px">UGX —</div></div>
+  <div class="stat"><small>Projected income less collected</small><div id="budgetProjectedRemaining" class="num" style="font-size:18px">UGX —</div></div>
+ </div>
+ <h4 style="margin:14px 0 8px">Collections by charge category</h4>
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
+  <div class="stat"><small>School fees received</small><div id="budgetSchoolCollected" class="num" style="font-size:17px">UGX —</div></div>
+  <div class="stat"><small>Boarding package received</small><div id="budgetBoardingCollected" class="num" style="font-size:17px">UGX —</div></div>
+  <div class="stat"><small>Day breakfast received</small><div id="budgetBreakfastCollected" class="num" style="font-size:17px">UGX —</div></div>
+  <div class="stat"><small>Day lunch received</small><div id="budgetLunchCollected" class="num" style="font-size:17px">UGX —</div></div>
+ </div>
+ <small id="budgetCollectionNote" class="muted" style="display:block;margin-top:8px">Loading collection details…</small>
+</section>
  <p id="dashboardForecastMessage" class="muted" style="margin:8px 0 0">Loading forecast…</p>
 </div></div>
 <button class="module-card" data-tab="midtermAdmissions"><strong>🗓️ Mid-term fee register</strong><span>Review learners with day-based term charges</span><em>Administrator only</em></button><button class="module-card" data-module="students"><strong>👧 Learners</strong><span>Admissions, learner register and profiles</span><em>Available</em></button>
@@ -3017,12 +3036,15 @@ $('refreshMidtermAdmissions')?.addEventListener('click',loadMidtermAdmissions);
 async function loadDashboardIncomeForecast(){
  const host=$('dashboardForecastMessage'),panel=$('dashboardIncomeForecastPanel');if(!host||!panel)return;if(profile?.role!=='Admin'){panel.classList.add('hidden');return}panel.classList.remove('hidden');
  try{
-  const {data,error}=await db.rpc('admin_dashboard_income_forecast');if(error)throw error;
-  const v=typeof data==='string'?JSON.parse(data):data||{};
+  const {data,error}=await db.rpc('admin_school_budget_report');if(error)throw error;
+  const report=typeof data==='string'?JSON.parse(data):data||{};
+  const v=report.projected||{};
   $('forecastActiveLearners').textContent=Number(v.active_learners||0).toLocaleString();
   $('forecastFemale').textContent=Number(v.female_learners||0).toLocaleString();
   $('forecastMale').textContent=Number(v.male_learners||0).toLocaleString();
   $('forecastBoarders').textContent=Number(v.boarders||0).toLocaleString();
+  $('forecastFemaleBoarders').textContent=Number(v.female_boarders||0).toLocaleString();
+  $('forecastMaleBoarders').textContent=Number(v.male_boarders||0).toLocaleString();
   $('forecastDayLearners').textContent=Number(v.day_learners||0).toLocaleString();
   $('forecastBreakfastCount').textContent=Number(v.breakfast_learners||0).toLocaleString();
   $('forecastLunchCount').textContent=Number(v.lunch_learners||0).toLocaleString();
@@ -3033,7 +3055,15 @@ async function loadDashboardIncomeForecast(){
   $('forecastLunch').textContent='UGX '+money(v.lunch_income||0);
   $('forecastTotal').textContent='UGX '+money(v.estimated_total_income||0);
   $('dashboardForecastTerm').textContent=v.term_name||'No active term';
-  host.textContent='Active learners: '+Number(v.active_learners||0).toLocaleString()+' · Counts and estimates refresh after learner registration or when the dashboard loads.';
+  $('budgetCollectedTotal').textContent='UGX '+money(report.collected_total_ugx||0);
+  $('budgetUnallocated').textContent='UGX '+money(report.unallocated_collections_ugx||0);
+  $('budgetProjectedRemaining').textContent='UGX '+money(report.projected_less_collected_ugx||0);
+  $('budgetSchoolCollected').textContent='UGX '+money(report.allocated_school_fees_ugx||0);
+  $('budgetBoardingCollected').textContent='UGX '+money(report.allocated_boarding_ugx||0);
+  $('budgetBreakfastCollected').textContent='UGX '+money(report.allocated_breakfast_ugx||0);
+  $('budgetLunchCollected').textContent='UGX '+money(report.allocated_lunch_ugx||0);
+  $('budgetCollectionNote').textContent=report.collection_note||'Collections are based on posted, unreversed payments.';
+  host.textContent='Active learners: '+Number(v.active_learners||0).toLocaleString()+' · Counts, budget estimates and posted collections refresh when the dashboard loads.';
  }catch(err){host.textContent='Income forecast could not load: '+(err.message||'Please contact the administrator.')}
 }
 $('studentForm').addEventListener('submit',async e=>{
