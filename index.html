@@ -1026,6 +1026,8 @@ function localFormValues(form){const values={};[...form.elements].forEach(el=>{i
 function bindLocalAutosaveForm(form,key,statusId,allowed){if(!form||form.dataset.localAutosaveBound==='1')return;form.dataset.localAutosaveBound='1';let timer=null;const save=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(!currentUserId||!allowed())return;try{await saveLocalFormDraft(currentUserId,key,localFormValues(form));const box=$(statusId);if(box){box.textContent='Draft autosaved on this device · '+new Date().toLocaleTimeString();box.className='notice';box.classList.remove('hidden')}}catch(error){const box=$(statusId);if(box){box.textContent='Autosave could not store this draft. Keep the form open and retry. '+(error?.message||'');box.className='notice error';box.classList.remove('hidden')}}},450)};form.addEventListener('input',save);form.addEventListener('change',save)}
 async function restoreLocalAutosaveForm(form,key,statusId){if(!form||!currentUserId)return;try{const draft=await readLocalFormDraft(currentUserId,key);if(!draft)return;const hasTyped=[...form.elements].some(el=>el.name&&['text','email','tel','number','date','datetime-local','textarea'].includes(el.type||el.tagName.toLowerCase())&&String(el.value||'').trim()!=='');if(hasTyped)return;for(const [name,value] of Object.entries(draft.values||{})){const fields=[...form.elements].filter(el=>el.name===name);fields.forEach(el=>{if(el.type==='checkbox')el.checked=!!value;else if(el.type==='radio')el.checked=el.value===value;else if(el.type!=='file')el.value=value??''})}const box=$(statusId);if(box){box.textContent='Recovered an unfinished draft saved on this device ('+new Date(draft.updated_at).toLocaleString()+'). Review it before submitting.';box.className='notice';box.classList.remove('hidden')}}catch(_){}}
 
+function bindLocalAutosaveDynamicForm(form,keyForForm,statusId,allowed){if(!form||form.dataset.localAutosaveDynamicBound==='1')return;form.dataset.localAutosaveDynamicBound='1';let timer=null;const save=()=>{clearTimeout(timer);timer=setTimeout(async()=>{const key=keyForForm();if(!currentUserId||!key||!allowed())return;try{await saveLocalFormDraft(currentUserId,key,localFormValues(form));const box=$(statusId);if(box){box.textContent='Edit draft autosaved on this device · '+new Date().toLocaleTimeString();box.className='notice';box.classList.remove('hidden')}}catch(error){const box=$(statusId);if(box){box.textContent='Could not autosave this edit. Keep the form open and retry. '+(error?.message||'');box.className='notice error';box.classList.remove('hidden')} }},450)};form.addEventListener('input',save);form.addEventListener('change',save)}
+
 function offlineSchoolDb(){
  return new Promise((resolve,reject)=>{
   if(!('indexedDB' in window)){reject(new Error('This browser does not support local school-data storage.'));return}
@@ -1130,7 +1132,7 @@ if(error){
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 await refresh();
  if(!window.cornhillOfflineReadOnly)await loadAcademicControl();
- if(profile?.role==='Admin')await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');
+ if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg')}
  if(['Admin','Teacher'].includes(profile?.role)){await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg')}
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
 }
@@ -1848,6 +1850,7 @@ $('unebGradeBandForm').addEventListener('submit',async e=>{
  if(current.some(x=>low<=Number(x.max_percent)&&high>=Number(x.min_percent))){message('academicMsg','This range overlaps another configured grade for the same subject.',true);return}
  const {error}=await db.from('uneb_subject_grade_bands').update({min_percent:low,max_percent:high,updated_at:new Date().toISOString()}).eq('subject_id',v.subject_id).eq('grade_code',v.grade_code);
  if(error){message('academicMsg','Could not save UNEB boundary: '+error.message,true);return}
+ await clearLocalFormDraft(currentUserId,'academic-uneb-bands');
  await loadUnebSubjectGradeBands();message('academicMsg','UNEB subject grade boundary saved.');
 });
 $('gradeBandForm').addEventListener('submit',async e=>{
@@ -1859,6 +1862,7 @@ $('gradeBandForm').addEventListener('submit',async e=>{
  if(gradeBands.some(x=>low<=Number(x.max_percent)&&high>=Number(x.min_percent))){message('academicMsg','This range overlaps an existing active grade.',true);return}
  const {error}=await db.from('academic_grade_bands').insert({name:v.name.trim(),min_percent:low,max_percent:high,comment:v.comment.trim()||null});
  if(error){message('academicMsg','Could not add grade: '+error.message,true);return}
+ await clearLocalFormDraft(currentUserId,'academic-grade-bands');
  e.target.reset();await loadGradeBands();message('academicMsg','Grading band saved.');
 });
 function curriculumGroupForClass(name){
@@ -2511,6 +2515,7 @@ async function submitAcademic(formId,table,transform,success){
   const payload=transform(values);if(table==='assessments')payload.created_by=(await db.auth.getUser()).data.user.id;
   const {error}=await db.from(table).insert(payload);
   if(error){message('academicMsg','Could not save record: '+error.message,true);return}
+  await clearLocalFormDraft(currentUserId,({academic_years:'academic-year',academic_terms:'academic-term',subjects:'academic-subject',class_subjects:'academic-class-subject',assessments:'academic-assessment'})[table]);
   e.target.reset();await loadAcademics();message('academicMsg',success);
  });
 }
@@ -2537,6 +2542,7 @@ $('scoreForm').addEventListener('submit',async e=>{
  const payload={assessment_id:v.assessment_id,student_id:v.student_id,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:(v.teacher_comment||null),entered_by:user.id};
  const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
  if(error){message('academicMsg','Could not save mark: '+error.message,true);return}
+ await clearLocalFormDraft(currentUserId,'academic-individual-mark');
  e.target.reset();await loadAcademics();message('academicMsg','Learner mark saved.');
  }catch(err){
   message('academicMsg','Mark entry stopped unexpectedly. Check the class mark sheet before retrying: '+(err?.message||'Unknown error'),true);
@@ -3172,6 +3178,9 @@ bindLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg',()=>profile
 bindLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg',()=>profile?.role==='Admin');
 bindLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg',()=>profile?.role==='Admin');
 bindLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg',()=>profile?.role==='Admin');
+bindLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg',()=>profile?.role==='Admin');
+bindLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg',()=>profile?.role==='Admin');
+bindLocalAutosaveDynamicForm($('studentForm'),()=>editingStudentId?'learner-edit-'+editingStudentId:null,'appMsg',()=>profile?.role==='Admin'&&!!editingStudentId);
 $('admissionMatchResults').addEventListener('click',async e=>{
  const btn=e.target.closest('[data-readmit-learner]');if(!btn)return;
  const match=admissionMatchState.matches.find(x=>x.id===btn.dataset.readmitLearner);if(!match)return;
@@ -3201,7 +3210,7 @@ $('admissionMatchActions').addEventListener('click',e=>{
  $('admissionMatchPanel').classList.add('hidden');
  message('appMsg','You confirmed that the possible matches are different children. Continue with the new admission.');
 });
-$('cancelLearnerEdit').addEventListener('click',()=>{editingStudentId=null;$('studentForm').reset();$('studentForm').elements.admission_prorate.disabled=false;$('studentForm').elements.admission_date.disabled=false;$('studentFormTitle').textContent='Register a student';$('studentForm').querySelector('button[type="submit"]').textContent='Save student record';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();message('appMsg','Learner edit cancelled. No changes were saved.');});
+$('cancelLearnerEdit').addEventListener('click',async()=>{const draftKey=editingStudentId?'learner-edit-'+editingStudentId:null;editingStudentId=null;if(draftKey)await clearLocalFormDraft(currentUserId,draftKey);$('studentForm').reset();$('studentForm').elements.admission_prorate.disabled=false;$('studentForm').elements.admission_date.disabled=false;$('studentFormTitle').textContent='Register a student';$('studentForm').querySelector('button[type="submit"]').textContent='Save student record';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();message('appMsg','Learner edit cancelled. No changes were saved.');});
 $('backToLearners').addEventListener('click',()=>tab('students'));
 $('studentRows').addEventListener('click',async e=>{
  const view=e.target.closest('.viewLearner');if(!view)return;
@@ -3279,7 +3288,7 @@ $('studentRows').addEventListener('click',e=>{
  form.elements.takes_breakfast.checked=!!learner.takes_breakfast;form.elements.takes_lunch.checked=!!learner.takes_lunch;syncBoardingMealControls();form.elements.admission_prorate.checked=!!learner.admission_prorate;form.elements.admission_prorate.disabled=true;form.elements.admission_date.disabled=true;
  form.elements.is_bursary.value=String(!!learner.is_bursary);form.elements.guardian_sms_opt_in.checked=!!learner.guardian_sms_opt_in;
  syncBursaryAdmissionFields();
- form.querySelector('button[type="submit"]').textContent='Update learner record';$('studentFormTitle').textContent='Edit learner record';$('cancelLearnerEdit').classList.remove('hidden');tab('register');
+ form.querySelector('button[type="submit"]').textContent='Update learner record';$('studentFormTitle').textContent='Edit learner record';$('cancelLearnerEdit').classList.remove('hidden');await restoreLocalAutosaveForm(form,'learner-edit-'+learner.id,'appMsg');tab('register');
  message('appMsg','Editing learner record. The permanent school learner code will not change.');
 });
 function syncBoardingMealControls(){
@@ -3438,7 +3447,7 @@ $('studentForm').addEventListener('submit',async e=>{
   record.bursary_category=null;record.bursary_reason=null;record.bursary_notes=null;record.bursary_fee_ugx=0;
  }
  if(!record.class_id)record.class_id=null;record.birth_year=record.birth_year?Number(record.birth_year):null;if(record.birth_year!==null&&(!Number.isInteger(record.birth_year)||record.birth_year<1900||record.birth_year>new Date().getFullYear())){message('appMsg','Enter a valid year of birth or leave it blank for now.',true);return}if(!record.date_of_birth)record.date_of_birth=null;if(!record.admission_date)record.admission_date=null;
- const wasEditing=!!editingStudentId;
+ const wasEditing=!!editingStudentId,editDraftKey=wasEditing?'learner-edit-'+editingStudentId:null;
  // admission_complete is computed securely by the database trigger; do not send this protected column from the browser.
  delete record.admission_complete;
  if(!wasEditing){
@@ -3457,6 +3466,7 @@ $('studentForm').addEventListener('submit',async e=>{
  const result=wasEditing?await db.from('students').update(record).eq('id',editingStudentId).select('id,admission_number').single():await db.from('students').insert(record).select('id,admission_number,lin,p7_index_number').single();
  if(result.error){message('appMsg',(wasEditing?'Could not update learner: ':'Could not save learner: ')+result.error.message,true);return}
  await clearLocalFormDraft(currentUserId,'learner-admission');
+ if(editDraftKey)await clearLocalFormDraft(currentUserId,editDraftKey);
  let photoWarning='';if(photoFile){try{const ext=photoFile.type==='image/jpeg'?'jpg':photoFile.type==='image/png'?'png':'webp';const photoPath=result.data.id+'/'+Date.now()+'.'+ext;const upload=await db.storage.from('learner-photos').upload(photoPath,photoFile,{contentType:photoFile.type,upsert:false,cacheControl:'3600'});if(upload.error)throw upload.error;const saved=await db.from('students').update({photo_path:photoPath}).eq('id',result.data.id);if(saved.error){await db.storage.from('learner-photos').remove([photoPath]);throw saved.error}const oldPhotoPath=students.find(x=>x.id===result.data.id)?.photo_path;if(oldPhotoPath&&oldPhotoPath!==photoPath)await db.storage.from('learner-photos').remove([oldPhotoPath])}catch(photoErr){photoWarning=' Learner record was saved, but photograph upload failed: '+(photoErr.message||'Please retry from Edit learner.')}}
  editingStudentId=null;e.target.reset();e.target.elements.admission_prorate.disabled=false;e.target.elements.admission_date.disabled=false;clearAdmissionMatches();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();e.target.querySelector('button[type="submit"]').textContent='Save student record';
  let feeScheduleNote='';
