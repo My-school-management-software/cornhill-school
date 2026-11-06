@@ -220,3 +220,6 @@ The remaining programme now explicitly includes:
 - Privacy limitation: drafts are stored in browser IndexedDB and are not application-level encrypted. Use trusted, device-locked school computers, sign out on shared devices, and do not leave administrator sessions open. Learner admission drafts may contain guardian and learner details.
 - Offline clock-in/out is not enabled: the database currently permits staff to read their own events but only administrators can insert attendance events. No client-side change bypasses that policy. Fingerprint attendance remains inactive until the device and Windows bridge are verified.
 - Static verification and real browser persistence/network/RLS/conflict/Android/Windows tests remain pending. No learner records, attendance events, marks, payments or report cards were changed by this code batch.
+
+
+- Follow-up extension: account-scoped local autosave and restore were also wired to academic assessment setup, individual mark entry, academic-year and term forms, grading-band forms, and administrator attendance work-schedule/assignment forms. These remain local drafts until the user explicitly submits them online. Financial payment posting, payroll posting, reversals and receipt generation remain excluded from silent autosave/sync because they require duplicate prevention and explicit server confirmation.
