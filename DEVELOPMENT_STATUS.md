@@ -740,3 +740,15 @@ The remaining programme now explicitly includes:
 - Server attendance correction requests and assessment score rows both remain zero; no live sync or mark transaction test occurred.
 - No learner, guardian, finance, academic, attendance, payroll, communications or backup rows were changed. Browser/IndexedDB, network reconnect, conflict, Android/Windows and deployment tests remain pending.
 - Added `docs/OFFLINE_BACKUP_ACCEPTANCE_TESTS_274.md`.
+
+
+## 2026-11-07 — Next security and database audit
+- Inspected the live schema, FK/index coverage, SECURITY DEFINER search_path settings, views, RLS policies, and teacher assessment access rules.
+- Found that `authenticated` had table-wide SELECT on `public.students`. Teacher UI queried only class-register columns, and RLS already restricted teacher rows to assigned classes, but direct API clients could request extra private learner columns.
+- Applied live migration `restrict_teacher_student_select_columns`: revoked table-wide SELECT and granted only 17 class-register columns (IDs, admission/learner identifiers, names, basic class/academic fields and status). Kept existing row-level policies intact; admin learner profile remains served through guarded admin RPC.
+- Verification: authenticated table-wide SELECT = false; 17 allowed SELECT columns; 0 selected private columns among guardian phone/email/address, photo path, WhatsApp phone and bursary notes/reason/category/amount; all 17 expected class-register columns remain selectable.
+- Supabase catalog audit: 0 public SECURITY DEFINER functions missing an explicit search_path; 0 public views missing security_invoker; 0 unvalidated public constraints; 0 invalid indexes. Six RLS-enabled/no-policy tables are service-only communication/backup tables and require no client policy by design.
+- Academic RLS policies confirm teacher score INSERT/UPDATE checks are tied to their assigned class/subject and authenticated user; administrator assessment management uses `is_school_admin()`. Runtime impersonation tests still pending.
+- Performance advisor reports 58 unindexed foreign keys, 18 unused indexes and 22 multiple-permissive-policy findings. These require per-table review; no bulk index/policy changes made without query-plan and behavior review.
+- Security advisor continues to report 20 authenticated SECURITY DEFINER RPCs and leaked-password protection disabled. Each RPC requires body-level authorization review before changing grants; no blanket revoke applied.
+- No learner or school transaction rows changed.
