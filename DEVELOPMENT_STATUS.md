@@ -575,3 +575,13 @@ The remaining programme now explicitly includes:
 - Static verification: all 3 inline JavaScript blocks parsed successfully after the change.
 - No learner marks, assessments, report-card approvals or other school records were changed. No browser/runtime test was performed; actual pagination and rendering should be checked with a teacher account and a dataset exceeding 1,000 marks.
 - Deployment remains on hold; this is a GitHub development-branch update, not a live application deployment.
+
+
+## 2026-11-06 — Backup validation audit visibility refinement
+- Reviewed the live Google Drive backup history: latest recorded successful encrypted backup contains 231 records and completed at 09:06:05 UTC on 2026-11-06 (12:06:05 PM Uganda time). Two earlier attempts failed; later backups succeeded.
+- Confirmed the Google Drive connection has a configured folder and an encrypted refresh token. No secrets or token values were read or exposed.
+- Confirmed no rows exist yet in `google_drive_backup_validations`; the latest backup has not been independently validated. The backup Edge Function is ACTIVE at version 25 and its code includes a separate `validate_backup` action.
+- Improved the administrator validation button so that after either a successful or failed validation attempt it refreshes the backup history immediately, allowing the persisted validation audit to appear without requiring a separate manual refresh.
+- Static verification: all 3 inline JavaScript blocks parsed successfully after the change.
+- No backup was created, no validation action was invoked, no schedule or connection setting was changed, and no school data was modified. Isolated restore testing remains pending.
+- Deployment remains pending; GitHub development branch only.
