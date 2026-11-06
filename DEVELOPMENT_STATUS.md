@@ -807,3 +807,38 @@ The remaining programme now explicitly includes:
 - Locate and inspect the Google Drive backup Edge Function and run its validation/restore workflow only with a designated test backup.
 - Keep browser E2E, real administrator/teacher/guardian account isolation, OTP/email delivery, payment allocation/receipt posting, offline reconnect/conflict, Windows/Android, thermal printer, fingerprint hardware and current-commit deployment as pending external/runtime checks.
 - Free-tier-only policy remains in force. No paid Supabase/Vercel feature or upgrade is required or authorised.
+
+
+## 2026-11-07 — Combined cross-module batch: 98 source checks + database security review
+
+### Cross-module source verification
+- Reviewed the current feature-branch `index.html`, the separate `parents.html` portal, the active Google Drive backup Edge Function (version 26), and the relevant database authorization functions.
+- The broad first-pass scan matched **94/98** source patterns. Four patterns were initially searched in the wrong file or source layer. Targeted inspection then verified them in their actual locations:
+  - Class-teacher assignment is enforced by `public.is_class_teacher_for_class(uuid)`.
+  - Guardian OTP and pupil lookup are implemented in `parents.html` and `public.parent_portal_get_learner(text)`.
+  - The parent portal uses SMS OTP, verifies a session, then calls the guardian-scoped learner RPC.
+- Result: **98/98 intended source features verified across their correct files/layers**. This is source inspection, not browser end-to-end proof.
+- Confirmed the class roster status filter exists, offers All/Active/Inactive/Transferred/Withdrawn/Graduated, listens for changes, and applies the selected status to the roster query. The earlier unmatched status-filter pattern was a false negative.
+
+### Google Drive backup function review
+- Function is ACTIVE, version 26, with `verify_jwt=false`; manual POST operations independently validate the bearer token with Supabase Auth and require an active Admin profile. The scheduled path validates a separate scheduler token through a database RPC. OAuth callback uses expiring, hashed, one-time state and rechecks the initiating administrator.
+- Source checks confirmed AES-256-GCM encryption, a 32-byte key requirement, random 12-byte IVs, encrypted refresh-token storage, decrypt-and-verify before upload, paginated reads, and started/success/failed audit states.
+- The function explicitly excludes private communication bodies and records that Supabase Storage files and Auth accounts are not included in this database snapshot. A successful real Google Drive upload and restore drill remain unverified; Google OAuth secrets and an approved test backup are required.
+- CORS permits all origins. The privileged POST routes remain guarded by admin or scheduler-token checks; this configuration still needs browser/provider runtime testing.
+
+### Live database metadata checks (read-only)
+- Six server-only communication/backup tables have RLS enabled and zero policies. Direct privilege checks returned false for anon SELECT/INSERT and authenticated SELECT/INSERT/UPDATE on all six tables. They are not directly accessible to client roles; the server function uses the service credential. No policy was added because that would broaden client access.
+- 30 SECURITY DEFINER functions: zero executable by anon; all 30 have an explicit function-level search_path. 20 are executable by authenticated users and require function-level authorization controls.
+- Targeted function-body review verified:
+  - `is_class_teacher_for_class`: requires the current active Teacher and an assigned class.
+  - `parent_portal_get_learner`: requires a signed-in user with a confirmed phone matching an active guardian contact for the supplied pupil code; reports are publication-gated.
+  - `teacher_visiting_day_lookup`: requires an active Teacher and learner in the teacher's assigned class.
+  - `list_staff_directory`: requires a signed-in active staff profile before listing active staff names/roles.
+- Security advisor currently reports six RLS-enabled tables without policies (confirmed server-only/no client grants), `pg_net` in public schema, and 20 authenticated-callable SECURITY DEFINER functions. The latter are not automatically vulnerabilities; each exposed function must retain a valid role/ownership guard. Moving `pg_net` requires a separate compatibility review.
+- Performance advisor reports 58 unindexed foreign keys, 18 unused indexes, and 22 multiple-permissive-policy findings. These are optimization candidates, not proof of functional failure; no indexes or policies were changed in this review.
+- Health advisor returned zero findings.
+
+### Deployment and release boundary
+- Latest READY Vercel deployment in the inspected history uses commit `ecdd848908da1281bf7c750c2377a3bed90ce874`, not the current feature-branch head recorded in the prior audit. The current branch source is therefore not confirmed live.
+- No learner, guardian, attendance, assessment, payment, or backup records were created or changed in this batch. No paid plan or feature was enabled.
+- Still pending: browser E2E, live OTP delivery, real admin/teacher/guardian role-isolation tests, payment posting/allocation/receipt workflow with approved test data, successful Drive backup plus restore, offline reconnect/conflict runtime test, Windows 10/11 and Android device tests, thermal printer and fingerprint terminal tests, and deployment of the latest reviewed commit.
