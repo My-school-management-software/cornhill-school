@@ -596,3 +596,13 @@ The remaining programme now explicitly includes:
 - Updated Google Drive setup documentation and added `docs/BACKUP_RECOVERY_RUNBOOK.md` with non-destructive validation, isolated restore gates, privacy boundaries and production recovery safeguards.
 - No backup was created, no validation action was invoked, no school table rows were modified, and no restore was attempted. The two existing SMS outbox rows remain untouched in the live database.
 - Static source guard checks passed before deployment; deployment returned ACTIVE version 26. A live end-to-end validation and isolated restore drill remain pending.
+
+## 2026-11-06 — Finance integrity review
+- Confirmed RLS is enabled on school_payments, payment_allocations, learner_charges, school_expenses and fee_items.
+- Confirmed applied migrations for atomic payment posting, duplicate allocation prevention, audited reversals, separate enrolment-period finance, bursary-finance integration and current-term-first allocation.
+- Read-only table counts: learner_charges 1, school_payments 2, payment_allocations 0, learner_enrolment_periods 2, school_expenses 0, fee_items 13, expense_categories 13.
+- Reviewed posting and reversal SQL and UI source. Controls include administrator-only posting, positive UGX validation, per-learner transaction lock, active-enrolment charge checks, duplicate and over-allocation rejection, current-open-term automatic allocation, explicit prior-term selection, unallocated credit when no current term exists, and audited non-deleting reversal.
+- Supabase health advisor returned zero health lints. Existing security advisor notices remain; no broad permission changes were made.
+- Added docs/FINANCE_ACCEPTANCE_TESTS.md with completed read-only checks and isolated transaction tests still required.
+- No school finance rows were inserted, updated, reversed or deleted. Existing payment rows were not used as test records.
+- This was a read-only schema/migration and source review, not an authenticated runtime transaction test. Balance reconciliation, actual reversal, concurrency, browser receipt preview and thermal-printer output remain pending.
