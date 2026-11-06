@@ -336,3 +336,11 @@ The remaining programme now explicitly includes:
 - Local encrypted backup is a protected records export only; it does not restore data into production. Do not upload or share it casually. The password is required to decrypt it.
 
 - Final local-export cleanup: password field is cleared after both successful and failed backup attempts, so it is not left populated on the shared administrator screen.
+
+
+## 2026-11-06 — Privileged role and employment-status security batch
+- Updated `is_school_admin()` so a profile must have role `Admin` AND employment status `Active` to pass administrator checks. This gates existing admin-only RPCs and payment/bursary operations that call the helper when a staff account is suspended, inactive, terminated or exited.
+- Updated `is_class_teacher_for_class()` so a teacher must have role `Teacher`, an active employment status, and an explicit class assignment.
+- Applied migration `active_employment_required_for_privileged_roles` to Supabase and queried both live function definitions to verify the predicates.
+- Security review: no public tables were found with RLS disabled; all inspected SECURITY DEFINER functions deny `anon` execution. Some service-only backup/provider/outbox tables intentionally have no authenticated policies. Security advisor still reports existing warnings for SECURITY DEFINER RPC exposure to authenticated users (inspected functions contain role/identity checks), `pg_net` extension placement, and leaked-password protection disabled. These are tracked for a separate compatibility/configuration pass.
+- No staff roles, employment statuses, school records or authentication settings were changed. A real suspended-account login/RPC denial test remains pending.
