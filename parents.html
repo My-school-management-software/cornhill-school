@@ -40,7 +40,7 @@ const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)
 const el=id=>document.getElementById(id);
 function message(id,text,type='notice'){const n=el(id);n.textContent=text;n.className='notice'+(type==='error'?' error':type==='success'?' success':'');n.classList.remove('hidden')}
 function clearMessage(id){el(id).classList.add('hidden')}
-function safe(v){return v===null||v===undefined||v===''?'—':String(v)}
+function normalizePhone(raw){const value=String(raw||'').trim();const digits=value.replace(/[^0-9]/g,'');if(value.startsWith('+')&&digits.length===12&&digits.startsWith('256'))return '+'+digits;if(digits.length===10&&digits.startsWith('0'))return '+256'+digits.slice(1);if(digits.length===12&&digits.startsWith('256'))return '+'+digits;return null}\nfunction safe(v){return v===null||v===undefined||v===''?'—':String(v)}
 function ugx(v){return 'UGX '+Number(v||0).toLocaleString('en-UG')}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function table(headers,rows){if(!rows.length)return '<div class="empty">No published information is available yet.</div>';return '<div class="table-wrap"><table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>'}
