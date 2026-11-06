@@ -147,3 +147,19 @@ The remaining programme now explicitly includes:
 - Did not add new job roles to invitations or loosen database policies during this audit. Adding a role label without a complete matching permission map across tables and RPCs could expose learner or financial records or create a role that cannot perform its intended work.
 - Next RBAC coding batch must define and implement the full permission matrix together: Admin, Bursar/Deputy Bursar, Headteacher/Deputy Headteacher, DOS, assigned teachers, and other staff; include matching Edge Function invitation validation, frontend navigation/actions, database RLS and RPC checks, then test with separate role accounts.
 - No user roles, school data, finance rows or permissions were changed in this audit.
+
+## 2026-11-06 — Combined batch 5: offline-first class-list snapshot foundation
+
+- Added an account-scoped IndexedDB snapshot for permitted class-list data. Administrator snapshots contain learner roster fields only; teacher snapshots contain only the teacher's assigned class, and the restore path verifies the cached class still matches the selected teacher class.
+- The local snapshot is deliberately allowlisted: learner names, permanent code, LIN, P7 index, gender, class, day/boarding type, status and admission-completeness indicator. Guardian contacts, date of birth, bursary details, payment/finance records, authentication tokens and secrets are excluded.
+- Snapshots expire after 24 hours. On sign-out, the current account's class-list snapshot is deleted.
+- When the signed-in account's profile or permitted class data cannot be fetched, the app can restore a valid snapshot for that same account. The offline screen is read-only; navigation and controls for data-changing operations are disabled. Only Dashboard, Learners and Classes views, class-list search, print and CSV export remain available.
+- Class-list totals are calculated locally from the snapshot, including enrolled, active, male, female, boarder and day-learner counts. No network request is needed for these calculations once the snapshot is loaded.
+- The offline notice identifies the snapshot time and warns that it is not live. Learner/finance changes, marks, receipts, parent portal, messaging and other live records remain unavailable offline.
+- Added fallback to the same-account snapshot when teacher class-access or class-subject requests fail because of a network problem. Teacher snapshot restore is restricted to the class previously verified online and stored for that account.
+- Updated service-worker cache version to cornhill-shell-v6 so clients refresh the application shell after this code change.
+- GitHub commits: 70d9b376cf40731b7b1343587a52e944c0be818b (offline class-list snapshot), 3480da98ed2abfb6921ee952c49464497940ce76 (local counts and network fallback), and the service-worker cache update recorded in this batch.
+- Static verification: all 3 inline JavaScript blocks parse without syntax errors. Duplicate-ID scan reports only ID-like strings inside dynamic template code, not verified rendered duplicates.
+- Not yet tested in an actual browser or on Android/Windows: IndexedDB persistence, expiry, logout clearing, reconnect refresh, shared-device behaviour, and CSV/print while offline.
+- Privacy limitation: browser IndexedDB is not application-level encrypted by this implementation. Use only trusted, device-locked school devices; never leave an administrator session open on a shared/public device. A later native app may use platform-protected encrypted storage.
+- No learner, finance, assessment or staff production records were changed by this code batch.
