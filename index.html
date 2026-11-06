@@ -387,15 +387,31 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <p class="muted">Approved bursary amounts, payments received and outstanding balances. Bursary learners remain in the normal fee ledger and receipt register.</p>
  <div class="grid"><div class="stat"><small>Bursary learners</small><div id="bursaryLearnerCount" class="num">0</div></div><div class="stat"><small>Approved bursary charges (UGX)</small><div id="bursaryApprovedTotal" class="num">0</div></div><div class="stat"><small>Outstanding bursary balance (UGX)</small><div id="bursaryOutstandingTotal" class="num">0</div></div></div>
  <div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Category</th><th>Approved amount (UGX)</th><th>Reason</th><th>Approved by</th><th>Approved on</th><th>Total paid (UGX)</th><th>Balance (UGX)</th></tr></thead><tbody id="bursaryRegisterRows"></tbody></table></div>
- <h3 style="margin-top:24px">7. Learner fee statement</h3>
+ <h3 style="margin-top:24px">7. Award a bursary to an existing learner</h3>
+ <p class="muted">Use this when a learner was originally admitted on regular fees and later receives school assistance. This creates a separate, dated approval record without changing the learner's original admission details or previous receipts. The award applies to the billing period entered below.</p>
+ <form id="existingBursaryAwardForm" class="panel" style="padding:14px;border:1px solid var(--line,#dbe2ea)">
+  <div class="full"><label for="existingBursaryStudent">Learner *</label><select id="existingBursaryStudent" name="student_id" required><option value="">Choose learner</option></select></div>
+  <div><label for="existingBursaryCategory">Bursary category *</label><select id="existingBursaryCategory" name="bursary_category" required><option value="">Choose category</option><option>Full bursary</option><option>Half bursary</option><option>Partial bursary</option><option>Fully sponsored</option></select></div>
+  <div><label for="existingBursaryAmount">Amount payable for this period (UGX) *</label><input id="existingBursaryAmount" name="amount_payable_ugx" type="number" min="0" step="1" required placeholder="0 for full / free bursary"></div>
+  <div><label for="existingBursaryPeriod">Billing period covered *</label><input id="existingBursaryPeriod" name="billing_period_label" required maxlength="80" placeholder="e.g. Term 2 2027, November 2026"></div>
+  <div><label for="existingBursaryFrom">Effective from *</label><input id="existingBursaryFrom" name="effective_from" type="date" required></div>
+  <div><label for="existingBursaryUntil">Valid until (optional)</label><input id="existingBursaryUntil" name="effective_until" type="date"></div>
+  <div><label for="existingBursarySource">Requesting / sponsoring organisation (optional)</label><input id="existingBursarySource" name="sponsor_source" maxlength="160" placeholder="e.g. MP's office, church foundation"></div>
+  <div class="full"><label for="existingBursaryReason">Reason for awarding bursary *</label><textarea id="existingBursaryReason" name="reason" rows="3" required minlength="5" maxlength="1000" placeholder="Record the circumstances and why the learner is receiving assistance."></textarea></div>
+  <div class="full"><label for="existingBursaryEvidence">Supporting letter or evidence (optional)</label><input id="existingBursaryEvidence" type="file" accept=".pdf,image/jpeg,image/png,image/webp,application/pdf"><small class="muted">Optional PDF, JPEG, PNG or WebP image, maximum 10 MB. Leave empty if no supporting document is available. Evidence is stored privately and visible only to school administrators.</small></div>
+  <div class="full"><button class="primary" type="submit" id="saveExistingBursaryAward">Approve and record bursary</button></div>
+ </form>
+ <h4>Existing learner bursary award history</h4>
+ <div class="table-wrap"><table><thead><tr><th>Learner code</th><th>Learner</th><th>Category</th><th>Payable (UGX)</th><th>Billing period</th><th>Reason</th><th>Source</th><th>Approved on</th><th>Evidence</th></tr></thead><tbody id="existingBursaryAwardRows"><tr><td colspan="9">Loading award history…</td></tr></tbody></table></div>
+ <h3 style="margin-top:24px">8. Learner fee statement</h3>
  <p class="muted">Choose a learner to produce an itemised statement showing charges, payments, receipt numbers and the remaining balance. Use Print to give the statement to a parent or guardian.</p>
  <div class="form-row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:220px"><label for="statementStudent">Learner</label><select id="statementStudent"><option value="">Choose learner</option></select></div><button type="button" class="primary" id="loadLearnerStatement">Load statement</button><button type="button" id="printLearnerStatement" disabled>Print statement</button></div>
  <div id="learnerStatementMsg" class="notice hidden"></div><div id="learnerStatementArea" class="receipt-print statement-print"></div>
- <h3 style="margin-top:24px">8. Find and reprint a receipt</h3>
+ <h3 style="margin-top:24px">9. Find and reprint a receipt</h3>
  <p class="muted">Enter the receipt number exactly as printed. The system retrieves the original posted payment record; it does not create a new payment or receipt.</p>
  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:220px"><label for="receiptLookupNumber">Receipt number</label><input id="receiptLookupNumber" placeholder="e.g. CHR-2026-000001" autocomplete="off"></div><button type="button" class="primary" id="receiptLookupButton">Find receipt</button><button type="button" id="receiptLookupPrint" disabled>Print receipt</button></div>
  <div id="receiptLookupMsg" class="notice hidden"></div><div id="receiptLookupArea" class="receipt-print"></div><div id="receiptReverseControls" class="panel hidden" style="margin-top:12px"><h4>Reverse this receipt</h4><p class="muted">Reversal is permanent and audited. The original receipt remains in the register and is marked invalid; no payment or allocation rows are deleted.</p><label for="receiptReversalReason">Reason for reversal *</label><textarea id="receiptReversalReason" rows="2" maxlength="500" placeholder="Explain why this receipt must be reversed (at least 5 characters)"></textarea><button type="button" id="reverseReceiptButton" class="danger">Reverse posted receipt</button></div>
- <h3 style="margin-top:24px">9. Fee collection report by class and term</h3>
+ <h3 style="margin-top:24px">10. Fee collection report by class and term</h3>
  <p class="muted">Compare charges, posted payments allocated to those charges and outstanding balances. This report uses the selected term's actual fee charges.</p>
  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:180px"><label for="feeReportTerm">Academic term</label><select id="feeReportTerm"><option value="">All terms</option></select></div><div style="flex:1;min-width:180px"><label for="feeReportClass">Class</label><select id="feeReportClass"><option value="">All classes</option></select></div><button type="button" class="primary" id="runFeeReport">Generate report</button><button type="button" id="printFeeReport" disabled>Print report</button></div>
  <div id="feeReportMsg" class="notice hidden"></div>
@@ -939,6 +955,16 @@ async function loadFinancialOverview(accountsData){
 $('runFinancialOverview').addEventListener('click',()=>loadFinancialOverview(window.cornhillFinanceAccounts||[]));
 $('printFinancialOverview').addEventListener('click',()=>{if(!$('financialOverviewPrintArea').innerHTML)return;document.body.classList.add('print-financial-overview');window.print();document.body.classList.remove('print-financial-overview')});
 
+async function loadExistingBursaryAwards(){
+ if(demoMode||profile?.role!=='Admin')return;
+ const select=$('existingBursaryStudent');
+ if(select){const keep=select.value;select.innerHTML='<option value="">Choose learner</option>'+financeStudents.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number)+' · '+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</option>').join('');if(keep)select.value=keep;}
+ const {data,error}=await db.from('learner_bursary_awards').select('id,student_id,bursary_category,amount_payable_ugx,reason,sponsor_source,billing_period_label,effective_from,effective_until,support_document_path,approved_at,students(admission_number,first_name,middle_name,last_name)').order('approved_at',{ascending:false}).limit(50);
+ if(error){$('existingBursaryAwardRows').innerHTML='<tr><td colspan="9">Award history unavailable: '+esc(error.message)+'</td></tr>';return}
+ const rows=await Promise.all((data||[]).map(async x=>{let evidence='—';if(x.support_document_path){const signed=await db.storage.from('bursary-evidence').createSignedUrl(x.support_document_path,300);evidence=signed.error?'Unavailable':'<a href="'+esc(signed.data.signedUrl)+'" target="_blank" rel="noopener">Open document</a>';}
+ const learner=x.students||{};return '<tr><td>'+esc(learner.admission_number||'—')+'</td><td>'+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.bursary_category)+'</td><td>'+money(x.amount_payable_ugx)+'</td><td>'+esc(x.billing_period_label)+'</td><td>'+esc(x.reason)+'</td><td>'+esc(x.sponsor_source||'—')+'</td><td>'+esc(new Date(x.approved_at).toLocaleDateString())+'</td><td>'+evidence+'</td></tr>';}));
+ $('existingBursaryAwardRows').innerHTML=rows.join('')||'<tr><td colspan="9">No later bursary awards recorded.</td></tr>';
+}
 async function loadFinance(){
  if(!demoMode&&profile?.role==='Admin'){const sms=await db.from('school_sms_outbox').select('id,created_at,recipient_phone,status,school_payments(receipt_no)').order('created_at',{ascending:false}).limit(30);if(sms.error){$('parentSmsRows').innerHTML='<tr><td colspan="4">SMS queue unavailable: '+esc(sms.error.message)+'</td></tr>'}else{$('parentSmsRows').innerHTML=(sms.data||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString())+'</td><td>'+esc(x.school_payments?.receipt_no||'—')+'</td><td>'+esc(x.recipient_phone)+'</td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="4">No parent SMS queued yet.</td></tr>'}}
  if(demoMode){
@@ -996,6 +1022,7 @@ async function loadFinance(){
  $('financeActivityRows').innerHTML=activity.map(x=>'<tr><td>'+new Date(x.date).toLocaleDateString()+'</td><td><strong>'+esc(x.ref)+'</strong></td><td>'+esc(x.learner?.admission_number||'')+' · '+esc([x.learner?.first_name,x.learner?.middle_name,x.learner?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.detail)+'</td><td>'+money(x.amount)+'</td></tr>').join('')||'<tr><td colspan="5">No charges or payments recorded yet.</td></tr>';
  await loadExpensePayroll();
  await loadFinancialOverview(a);
+ await loadExistingBursaryAwards();
 }
 function renderDailyCollectionRecord(record){
  const entries=Array.isArray(record.entries)?record.entries:[];
@@ -1153,6 +1180,32 @@ $('exportExpenseReport').addEventListener('click',()=>{
  const data=rows.map(x=>[x.expense_date,x.expense_no,x.expense_categories?.name||'',x.description,x.payee_name||'',x.payment_method,x.payment_reference||'',x.amount_ugx,x.status]);
  const csv=[header,...data].map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cornhill-expenses-'+kampalaToday()+'.csv';a.click();URL.revokeObjectURL(url);
+});
+$('existingBursaryCategory').addEventListener('change',()=>{const c=$('existingBursaryCategory').value;const amount=$('existingBursaryAmount');if(['Full bursary','Fully sponsored'].includes(c)){amount.value='0';amount.readOnly=true}else{amount.readOnly=false;if(amount.value==='0')amount.value=''}});
+$('existingBursaryAwardForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(demoMode||profile?.role!=='Admin'){message('financeMsg','Only the school administrator can approve bursary awards.',true);return}
+ const button=$('saveExistingBursaryAward');if(button.disabled)return;button.disabled=true;button.textContent='Saving bursary approval…';
+ let uploadedPath=null;
+ try{
+  const f=new FormData(e.target),category=String(f.get('bursary_category')||''),amount=Number(f.get('amount_payable_ugx')),reason=String(f.get('reason')||'').trim(),file=$('existingBursaryEvidence').files?.[0]||null;
+  if(!f.get('student_id'))throw new Error('Choose an active learner.');
+  if(reason.length<5)throw new Error('Enter a reason of at least five characters.');
+  if(!f.get('billing_period_label')||!f.get('effective_from'))throw new Error('Enter the billing period and effective date.');
+  if(!Number.isSafeInteger(amount)||amount<0)throw new Error('Enter a whole-UGX amount payable.');
+  if(['Full bursary','Fully sponsored'].includes(category)&&amount!==0)throw new Error('Full bursary and fully sponsored awards must be UGX 0 payable.');
+  if(['Half bursary','Partial bursary'].includes(category)&&amount<=0)throw new Error('Enter a positive amount payable for a half or partial bursary.');
+  if(file){
+   const allowed=['application/pdf','image/jpeg','image/png','image/webp'];
+   if(!allowed.includes(file.type)||file.size>10*1024*1024)throw new Error('Choose a PDF, JPEG, PNG or WebP file no larger than 10 MB.');
+   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=currentUserId+'/'+f.get('student_id')+'/'+Date.now()+'-'+safeName;
+   const upload=await db.storage.from('bursary-evidence').upload(path,file,{contentType:file.type,upsert:false});
+   if(upload.error)throw upload.error;uploadedPath=path;
+  }
+  const {data,error}=await db.rpc('admin_award_bursary_to_existing_learner',{p_student_id:f.get('student_id'),p_bursary_category:category,p_amount_payable_ugx:amount,p_reason:reason,p_sponsor_source:String(f.get('sponsor_source')||'').trim()||null,p_billing_period_label:String(f.get('billing_period_label')).trim(),p_effective_from:f.get('effective_from'),p_effective_until:f.get('effective_until')||null,p_support_document_path:uploadedPath});
+  if(error)throw error;
+  e.target.reset();$('existingBursaryAmount').readOnly=false;await loadFinance();message('financeMsg','Bursary approval recorded successfully. The learner’s original admission and earlier receipts were preserved.');
+ }catch(err){if(uploadedPath)await db.storage.from('bursary-evidence').remove([uploadedPath]);message('financeMsg','Could not record the bursary award: '+(err.message||'Unknown error'),true)}
+ finally{button.disabled=false;button.textContent='Approve and record bursary'}
 });
 $('feeItemForm').addEventListener('submit',async e=>{e.preventDefault();if(demoMode)return;const f=new FormData(e.target);const {error}=await db.from('fee_items').insert({name:f.get('name').trim(),category:f.get('category')});if(error){message('financeMsg','Could not add fee item: '+error.message,true);return}e.target.reset();await loadFinance();message('financeMsg','Fee item added.')});
 $('feeScheduleForm').addEventListener('submit',async e=>{e.preventDefault();if(demoMode)return;const f=new FormData(e.target);const {error}=await db.from('fee_schedules').insert({fee_item_id:f.get('fee_item_id'),class_group:f.get('class_group').trim()||null,learner_type:f.get('learner_type'),amount_ugx:Number(f.get('amount_ugx'))});if(error){message('financeMsg','Could not save fee schedule: '+error.message,true);return}e.target.reset();await loadFinance();message('financeMsg','Fee schedule saved. It is a template; it does not automatically charge learners.')});
