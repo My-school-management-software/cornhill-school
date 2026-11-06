@@ -2462,6 +2462,7 @@ async function loadExcelMarksGrid(){
  if(photoLearners.length){const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)})}
  recalculateExcelMarkSheet();
  message('excelMarksMsg',list.length+' learners loaded. '+assessments.length+' assessment columns shown'+(phaseFilter==='All'?' across all three periods': ' for '+phaseFilter)+'. Enter marks and save; totals, aggregate and division recalculate automatically for P4–P7; positions are shown for Nursery through P5; P6 and P7 use aggregate and division.');
+ await showOfflineAssessmentDraftCount();
 }
 $('excelMarksBody').addEventListener('input',e=>{
  const input=e.target.closest('[data-grid-score]');if(!input)return;
@@ -2569,10 +2570,13 @@ async function queueExcelMarksOffline(payload,ctx,userId){
 }
 async function showOfflineAssessmentDraftCount(){
  try{
-  if(!currentUserId)return;
-  const drafts=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>x.expires_at>Date.now());
+  if(!currentUserId||profile?.role!=='Teacher')return;
+  const drafts=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>!x.expires_at||x.expires_at>Date.now());
   const el=$('excelMarksMsg');
-  if(el&&drafts.length)message('excelMarksMsg',drafts.length+' offline mark draft(s) are saved on this device. They are pending synchronisation; they are not yet official school records.');
+  if(el&&drafts.length){
+   const current=el.textContent||'';
+   message('excelMarksMsg',(current?current+' · ':'')+drafts.length+' offline mark draft(s) remain on this device and are not yet official school records.');
+  }
  }catch(_){}
 }
 async function syncOfflineAssessmentDrafts(){
