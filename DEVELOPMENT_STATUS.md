@@ -192,3 +192,18 @@ The remaining programme now explicitly includes:
 - Important limitation: automatic device detection and automatic activation are not implemented yet. The Windows companion/bridge service, terminal protocol/ADMS or SDK verification, and physical UA300 Pro test remain future work. The visible CSV import is a prepared workflow, not proof of live biometric matching.
 - GitHub UI commit: c70cdcf0c514078a8c9c834b4fe774792663259e.
 - Not deployed; no physical fingerprint device connected; no biometric templates or attendance records changed.
+
+
+## 2026-11-06 — Offline assessment mark drafts and conflict-checked synchronisation
+
+- Added an IndexedDB `assessmentDrafts` store under the existing school offline database, upgrading the database from version 1 to version 2 while preserving the existing `classSnapshots` store. Both database open paths now use version 2 and create any missing stores.
+- The Excel/class assessment grid can now save entered marks as local offline drafts when the browser reports no network connection. Drafts are scoped to the signed-in account and record assessment/student IDs, score/comment, the original server value observed when the sheet was loaded, class/term IDs and queue time. No report card publication or official server record is created offline.
+- Offline draft capture uses the locally cached Supabase session identity when offline; online saves continue to verify the user with Supabase Auth.
+- Added a manual “Synchronise pending offline marks” action and an online-reconnection sync attempt. Synchronisation uses conditional database updates matching the original score and comment; new rows use INSERT and rely on the unique (assessment_id, student_id) constraint. If another user changed the mark, the teacher is no longer authorised, or a duplicate/conflict occurs, the draft remains on the device and is not allowed to overwrite the server value.
+- Drafts remain stored until successfully synchronised; they are not automatically discarded after 24 hours. The class-list snapshot still has its separate 24-hour expiry.
+- Upgraded service-worker shell cache to `cornhill-shell-v7` so the updated application shell can be refreshed.
+- Static verification: all three inline JavaScript blocks parse without syntax errors; database version-2 store creation, manual sync button, conditional update and insert paths are present.
+- Not yet verified in a real browser: IndexedDB version upgrade with existing version-1 data, offline draft persistence across reload/sign-out/sign-in, network reconnection, RLS behavior during actual teacher/admin sync, conflict handling under concurrent edits, and Android/Windows behavior. These are required before relying on this feature in school operations.
+- Privacy limitation: mark drafts and teacher comments are stored in browser IndexedDB and are not application-level encrypted. Use only trusted, device-locked school computers; sign out on shared devices and protect access to the browser profile.
+- This offline queue currently applies to the Excel/class assessment grid only. Individual mark entry and the separate bulk mark-sheet save have not yet been converted to offline drafts. No marks, report cards or other school records were changed by this code batch.
+- GitHub commits: d3f1d1e010a32ab45fdefcd445100fda6f6aa80e (draft queue), a3acd0996a53c984001c581622154f88d0313fa0 (sync controls and conditional sync), 7a6280538e13926de8a3ae337c17d5367330e146 (database upgrade compatibility), f047a3b0467dabae077c77e7a4240a06d302ca6b (service-worker cache v7), f8ae4292d8e3650b5f057c4956a903353ec23e3b (persistent drafts and offline session identity).
