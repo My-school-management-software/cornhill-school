@@ -1919,6 +1919,7 @@ async function loadAcademics(){
  $('academicTeacherSelect').innerHTML='<option value="">Not assigned</option>'+opts(staff.data||[],x=>x.full_name||'Staff member');
  const staffNames=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||'Staff member']));
  $('teacherAssignmentRows').innerHTML=(assignments.data||[]).map(x=>'<tr><td>'+esc(x.school_classes?.name||'—')+'</td><td>'+esc(x.subjects?.name||'—')+'</td><td>'+esc(staffNames[x.teacher_user_id]||'Not assigned')+'</td><td><select data-assignment-teacher="'+esc(x.id)+'"><option value="">Not assigned</option>'+ (staff.data||[]).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===x.teacher_user_id?'selected':'')+'>'+esc(p.full_name||'Staff member')+'</option>').join('')+'</select> <button type="button" class="primary" data-save-assignment="'+esc(x.id)+'">Save</button></td></tr>').join('')||'<tr><td colspan="4">No class-subject assignments yet.</td></tr>';
+ if(profile?.role==='Admin'&&currentUserId){for(const row of assignments.data||[]){try{const draft=await readLocalFormDraft(currentUserId,'academic-teacher-assignment-'+row.id);const select=document.querySelector('[data-assignment-teacher="'+CSS.escape(row.id)+'"]');if(draft&&select&&[...select.options].some(o=>o.value===draft.values?.teacher_user_id))select.value=draft.values.teacher_user_id}catch(_){}}}
  $('assessmentTermSelect').innerHTML=opts(academic.terms,x=>x.name+' · '+(x.academic_years?.name||''));
  $('scoreAssessmentSelect').innerHTML=opts(academic.assessments,x=>(x.title+' · '+(x.school_classes?.name||'')+' · '+(x.subjects?.name||'')));
  $('academicScoreRows').innerHTML=(cscores.data||[]).map(x=>'<tr><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>Saved</td></tr>').join('')||'<tr><td colspan="6">No marks entered yet.</td></tr>';
@@ -2570,7 +2571,13 @@ submitAcademic('classSubjectForm','class_subjects',v=>({...v,teacher_user_id:v.t
 submitAcademic('assessmentForm','assessments',v=>{const {period,title,...rest}=v;return {...rest,title:period+(title?' · '+title:' Assessment'),max_score:Number(v.max_score),assessment_date:v.assessment_date||null,created_by:null}},'Assessment created.');
 
 
-document.getElementById('teacherAssignmentRows').addEventListener('click',async e=>{const button=e.target.closest('[data-save-assignment]');if(!button)return;const id=button.dataset.saveAssignment;const select=document.querySelector('[data-assignment-teacher="'+CSS.escape(id)+'"]');if(!select)return;button.disabled=true;const {error}=await db.from('class_subjects').update({teacher_user_id:select.value||null}).eq('id',id);button.disabled=false;if(error){message('academicMsg','Could not update teacher assignment: '+error.message,true);return}message('academicMsg',select.value?'Teacher assignment updated.':'Teacher access removed from this class and subject.');await loadAcademics();});
+document.getElementById('teacherAssignmentRows').addEventListener('change',async e=>{
+ const select=e.target.closest('[data-assignment-teacher]');if(!select||profile?.role!=='Admin'||!currentUserId)return;
+ const key='academic-teacher-assignment-'+select.dataset.assignmentTeacher;
+ try{await saveLocalFormDraft(currentUserId,key,{teacher_user_id:select.value});message('academicMsg','Teacher assignment change autosaved on this device. Select Save to apply it to school permissions.')}
+ catch(error){message('academicMsg','Could not autosave this assignment draft: '+(error?.message||'Storage unavailable'),true)}
+});
+document.getElementById('teacherAssignmentRows').addEventListener('click',async e=>{const button=e.target.closest('[data-save-assignment]');if(!button)return;const id=button.dataset.saveAssignment;const select=document.querySelector('[data-assignment-teacher="'+CSS.escape(id)+'"]');if(!select)return;button.disabled=true;const {error}=await db.from('class_subjects').update({teacher_user_id:select.value||null}).eq('id',id);button.disabled=false;if(error){message('academicMsg','Could not update teacher assignment: '+error.message,true);return}if(currentUserId)await clearLocalFormDraft(currentUserId,'academic-teacher-assignment-'+id);message('academicMsg',select.value?'Teacher assignment updated.':'Teacher access removed from this class and subject.');await loadAcademics();});
 
 $('scoreForm').addEventListener('submit',async e=>{
  e.preventDefault();
