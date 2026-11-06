@@ -971,7 +971,7 @@ const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
 if(!db){message('loginMsg','The secure sign-in service could not load. Check your internet connection, then refresh this page. If the problem continues, contact the school administrator.',true);$('signIn').disabled=true;$('signIn').textContent='Sign-in service unavailable'}
-function tab(name){if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;if(profile?.role==='Teacher'&&!['dashboard','academics','communication','students','classes','learnerProfile'].includes(name))return;if(profile?.role!=='Admin'&&name==='midtermAdmissions')return;if(profile?.role==='Staff'&&!['dashboard','attendance','communication'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','inventory','reports','midtermAdmissions','communication','settings','learnerProfile'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='settings'){setupAppearance();refreshGoogleDriveStatus();requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));}if(name==='communication'){loadStaffCommunication();loadDirectMessageDirectory();}if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance();if(name==='inventory')loadInventory();if(name==='reports')loadSchoolReports();if(name==='midtermAdmissions')loadMidtermAdmissions()}
+function tab(name){if(window.cornhillOfflineReadOnly&&!['dashboard','students','classes'].includes(name))return;if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;if(profile?.role==='Teacher'&&!['dashboard','academics','communication','students','classes','learnerProfile'].includes(name))return;if(profile?.role!=='Admin'&&name==='midtermAdmissions')return;if(profile?.role==='Staff'&&!['dashboard','attendance','communication'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','inventory','reports','midtermAdmissions','communication','settings','learnerProfile'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='settings'){setupAppearance();refreshGoogleDriveStatus();requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));}if(name==='communication'){loadStaffCommunication();loadDirectMessageDirectory();}if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance();if(name==='inventory')loadInventory();if(name==='reports')loadSchoolReports();if(name==='midtermAdmissions')loadMidtermAdmissions()}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 document.querySelectorAll('[data-settings-jump]').forEach(b=>b.addEventListener('click',()=>{const target=$(b.dataset.settingsJump);if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}}));
 
@@ -1007,13 +1007,109 @@ function enterDemoMode(classKey=''){
   if(demoClassKey){tab('classes');currentRosterClassId='demo-'+demoClassKey;$('classRosterSearch').value='';$('classRosterStatus').value='all';renderClassRoster();message('appMsg','Read-only preview of '+demoClassKey+'. These are sample records only; no real school records are exposed or changed.');}
   else{tab('dashboard');message('appMsg','You are viewing sample records only. No class passwords or live database access have been disabled.');}
 }
+// Offline-first foundation: cache only the signed-in user's permitted class-list fields.
+// Guardian contacts, bursary details, finance records and authentication secrets are never cached here.
+const OFFLINE_SCHOOL_DB='cornhill-school-cache-v1';
+const OFFLINE_SCHOOL_MAX_AGE=24*60*60*1000;
+function offlineSchoolDb(){
+ return new Promise((resolve,reject)=>{
+  if(!('indexedDB' in window)){reject(new Error('This browser does not support local school-data storage.'));return}
+  const req=indexedDB.open(OFFLINE_SCHOOL_DB,1);
+  req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('classSnapshots'))req.result.createObjectStore('classSnapshots',{keyPath:'owner'})};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Local school-data storage could not be opened.'));
+ });
+}
+async function offlineSchoolGet(owner){
+ const d=await offlineSchoolDb();
+ const value=await new Promise((resolve,reject)=>{const tx=d.transaction('classSnapshots','readonly'),r=tx.objectStore('classSnapshots').get(owner);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});
+ d.close();return value;
+}
+async function offlineSchoolPut(snapshot){
+ const d=await offlineSchoolDb();
+ await new Promise((resolve,reject)=>{const tx=d.transaction('classSnapshots','readwrite');tx.objectStore('classSnapshots').put(snapshot);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Local snapshot save was cancelled.'))});
+ d.close();
+}
+async function offlineSchoolDelete(owner){
+ if(!owner)return;
+ try{const d=await offlineSchoolDb();await new Promise((resolve,reject)=>{const tx=d.transaction('classSnapshots','readwrite');tx.objectStore('classSnapshots').delete(owner);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});d.close()}catch(_){}
+}
+function setOfflineReadOnly(enabled){
+ window.cornhillOfflineReadOnly=!!enabled;
+ const allowedIds=new Set(['logout','exportClassRoster','printClassRoster','search','classRosterSearch','classRosterStatus']);
+ const allowedTabs=new Set(['dashboard','students','classes']);
+ document.querySelectorAll('#app button,#app input,#app select,#app textarea').forEach(el=>{
+  const allowed=allowedIds.has(el.id)||(el.matches('[data-tab]')&&allowedTabs.has(el.dataset.tab))||el.hasAttribute('data-class-roster');
+  if(enabled&&!allowed){
+   if(!el.hasAttribute('data-offline-disabled'))el.dataset.offlineWasDisabled=el.disabled?'1':'0';
+   el.dataset.offlineDisabled='1';el.disabled=true;
+  }else if(!enabled&&el.hasAttribute('data-offline-disabled')){
+   el.disabled=el.dataset.offlineWasDisabled==='1';
+   delete el.dataset.offlineDisabled;delete el.dataset.offlineWasDisabled;
+  }
+ });
+ document.querySelectorAll('#app form').forEach(form=>{
+  form.querySelectorAll('input,select,textarea,button').forEach(el=>{
+   if(allowedIds.has(el.id))return;
+   if(enabled){
+    if(!el.hasAttribute('data-offline-disabled'))el.dataset.offlineWasDisabled=el.disabled?'1':'0';
+    el.dataset.offlineDisabled='1';el.disabled=true;
+   }else if(el.hasAttribute('data-offline-disabled')){
+    el.disabled=el.dataset.offlineWasDisabled==='1';delete el.dataset.offlineDisabled;delete el.dataset.offlineWasDisabled;
+   }
+  });
+ });
+}
+function offlineSafeStudent(row){
+ return {
+  id:row.id,admission_number:row.admission_number||null,lin:row.lin||null,p7_index_number:row.p7_index_number||null,
+  first_name:row.first_name||'',middle_name:row.middle_name||'',last_name:row.last_name||'',
+  gender:row.gender||null,class_id:row.class_id||null,learner_type:row.learner_type||'Day',
+  status:row.status||'Active',admission_complete:row.admission_complete!==false,
+  school_classes:row.school_classes?.name?{name:row.school_classes.name}:null
+ };
+}
+async function saveOfflineSchoolSnapshot(){
+ if(!currentUserId||!['Admin','Teacher'].includes(profile?.role)||!navigator.onLine)return;
+ const snapshot={
+  owner:currentUserId,role:profile.role,profile:{full_name:profile.full_name||'',role:profile.role},
+  teacherClassId:profile.role==='Teacher'?(window.teacherClassId||sessionStorage.getItem('cornhill_teacher_class_id')||null):null,
+  savedAt:new Date().toISOString(),
+  classes:(classes||[]).map(c=>({id:c.id,name:c.name,stream:c.stream||null})),
+  students:(students||[]).map(offlineSafeStudent)
+ };
+ try{await offlineSchoolPut(snapshot)}catch(error){message('appMsg','School records loaded online, but this device could not save an offline class-list copy. '+(error?.message||''),true)}
+}
+async function restoreOfflineSchoolSnapshot(owner){
+ try{
+  const snap=await offlineSchoolGet(owner);
+  if(!snap||!snap.savedAt||Date.now()-new Date(snap.savedAt).getTime()>OFFLINE_SCHOOL_MAX_AGE)return false;
+  if(!['Admin','Teacher'].includes(snap.role)||snap.profile?.role!==snap.role)return false;
+  if(snap.role==='Teacher'){
+   const selected=sessionStorage.getItem('cornhill_teacher_class_id');
+   if(!selected||selected!==snap.teacherClassId)return false;
+   if(!(snap.classes||[]).some(c=>c.id===selected))return false;
+   if((snap.students||[]).some(s=>s.class_id!==selected))return false;
+  }
+  currentUserId=owner;profile=snap.profile;students=snap.students||[];classes=snap.classes||[];
+  $('welcome').textContent=profile.full_name?('Welcome, '+profile.full_name):'School dashboard';
+  $('role').textContent=profile.role;
+  setOfflineReadOnly(true);render();applyRoleNavigation();
+  const saved=new Date(snap.savedAt).toLocaleString('en-UG');
+  message('appMsg','OFFLINE VIEW ONLY · Class list snapshot from '+saved+'. Class totals and searches are calculated on this device. Guardian contacts, bursary details, finance and live updates are not available. Changes are disabled until internet returns.',false);
+  return true;
+ }catch(_){return false}
+}
+
 async function startSession(session){demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
 const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
-if(error){message('appMsg','Your account profile could not be loaded. Ask the administrator to check the database setup.',true);return}
-profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
+if(error){
+ if(await restoreOfflineSchoolSnapshot(session.user.id))return;
+ message('appMsg','Your account profile could not be loaded, and no valid offline class-list snapshot is available. Reconnect to the internet and sign in again.',true);return
+}
+setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 await refresh();
- await loadAcademicControl();
+ if(!window.cornhillOfflineReadOnly)await loadAcademicControl();
 }
 async function loadStaffAttendanceNotice(){
  const box=$('staffAttendanceNotice');
@@ -1025,7 +1121,7 @@ async function loadStaffAttendanceNotice(){
  box.classList.remove('hidden');
 }
 
-async function refresh(){clearMessage('appMsg');let allowedClassIds=null;if(profile?.role==='Teacher'){const selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id');if(!selectedClassId){message('appMsg','Your class workspace is not selected. Sign out and sign in again using Class teacher, then choose your assigned class.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}const access=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);if(access.error){message('appMsg','Could not verify your class access: '+access.error.message,true);return}const assignedClassIds=[...new Set((access.data||[]).map(x=>x.class_id))];if(assignedClassIds.length!==1||assignedClassIds[0]!==selectedClassId){await db.auth.signOut();sessionStorage.removeItem('cornhill_teacher_class_id');message('loginMsg','Access blocked. This teacher account must belong to exactly one class, and it must match the selected class. Contact the administrator.',true);await startSession(null);return}const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',selectedClassId);if(a.error){message('appMsg','Could not load your class subjects: '+a.error.message,true);return}window.teacherAssignments=a.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];window.teacherClassIds=allowedClassIds;window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id))]}else{window.teacherAssignments=[];window.teacherClassIds=null;window.teacherSubjectIds=null}const classQuery=db.from('school_classes').select('*').order('name');const studentColumns='id,admission_number,lin,p7_index_number,first_name,middle_name,last_name,gender,birth_year,date_of_birth,admission_date,class_id,learner_type,status,previous_school,created_at,admission_complete,school_classes(name)';const studentQuery=profile?.role==='Admin'?db.rpc('admin_list_students'):db.from('students').select(studentColumns).order('created_at',{ascending:false});const [s,c]=await Promise.all([profile?.role==='Admin'?studentQuery:profile?.role==='Teacher'&&allowedClassIds.length?studentQuery.in('class_id',allowedClassIds):Promise.resolve({data:[],error:null}),profile?.role==='Admin'?classQuery:profile?.role==='Teacher'&&allowedClassIds.length?classQuery.in('id',allowedClassIds):Promise.resolve({data:[],error:null})]);if(s.error||c.error){message('appMsg','Could not load your permitted school data. '+(s.error||c.error).message,true);return}students=s.data||[];classes=c.data||[];render();applyRoleNavigation();await loadStaffAttendanceNotice();if(profile?.role==='Admin'){loadStaffProfiles();loadClassTeacherNamesAdmin();await loadDashboardIncomeForecast()}if(profile?.role==='Teacher')renderTeacherPortal()}
+async function refresh(){clearMessage('appMsg');if(!navigator.onLine){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','You are offline and this device has no valid class-list snapshot for this signed-in account. Reconnect to load the permitted records.',true);return}let allowedClassIds=null;if(profile?.role==='Teacher'){const selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id');if(!selectedClassId){message('appMsg','Your class workspace is not selected. Sign out and sign in again using Class teacher, then choose your assigned class.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}const access=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);if(access.error){message('appMsg','Could not verify your class access: '+access.error.message,true);return}const assignedClassIds=[...new Set((access.data||[]).map(x=>x.class_id))];if(assignedClassIds.length!==1||assignedClassIds[0]!==selectedClassId){await db.auth.signOut();sessionStorage.removeItem('cornhill_teacher_class_id');message('loginMsg','Access blocked. This teacher account must belong to exactly one class, and it must match the selected class. Contact the administrator.',true);await startSession(null);return}const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',selectedClassId);if(a.error){message('appMsg','Could not load your class subjects: '+a.error.message,true);return}window.teacherAssignments=a.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];window.teacherClassIds=allowedClassIds;window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id))]}else{window.teacherAssignments=[];window.teacherClassIds=null;window.teacherSubjectIds=null}const classQuery=db.from('school_classes').select('*').order('name');const studentColumns='id,admission_number,lin,p7_index_number,first_name,middle_name,last_name,gender,birth_year,date_of_birth,admission_date,class_id,learner_type,status,previous_school,created_at,admission_complete,school_classes(name)';const studentQuery=profile?.role==='Admin'?db.rpc('admin_list_students'):db.from('students').select(studentColumns).order('created_at',{ascending:false});const [s,c]=await Promise.all([profile?.role==='Admin'?studentQuery:profile?.role==='Teacher'&&allowedClassIds.length?studentQuery.in('class_id',allowedClassIds):Promise.resolve({data:[],error:null}),profile?.role==='Admin'?classQuery:profile?.role==='Teacher'&&allowedClassIds.length?classQuery.in('id',allowedClassIds):Promise.resolve({data:[],error:null})]);if(s.error||c.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not load your permitted school data. '+(s.error||c.error).message,true);return}students=s.data||[];classes=c.data||[];setOfflineReadOnly(false);await saveOfflineSchoolSnapshot();render();applyRoleNavigation();await loadStaffAttendanceNotice();if(profile?.role==='Admin'){loadStaffProfiles();loadClassTeacherNamesAdmin();await loadDashboardIncomeForecast()}if(profile?.role==='Teacher')renderTeacherPortal()}
 function render(){ $('totalStudents').textContent=students.length;$('activeStudents').textContent=students.filter(s=>s.status==='Active').length;$('totalClasses').textContent=classes.length;
  const activeForChart=students.filter(x=>x.status==='Active'),classCounts=new Map();for(const x of activeForChart){const name=x.school_classes?.name||classes.find(c=>c.id===x.class_id)?.name||'Unassigned';classCounts.set(name,(classCounts.get(name)||0)+1)}
  renderRecordsBarChart('dashboardEnrolmentChart',[...classCounts].map(([label,value])=>({label,value})));
@@ -2492,7 +2588,7 @@ async function syncOfflineAttendanceCorrections(){
   
  }
 }
-window.addEventListener('online',()=>{syncOfflineAttendanceCorrections().catch(()=>{})});
+window.addEventListener('online',()=>{syncOfflineAttendanceCorrections().catch(()=>{});if(currentUserId&&window.cornhillOfflineReadOnly)refresh().catch(()=>{})});
 $('attendanceAdjustmentForm').addEventListener('submit',async e=>{
  e.preventDefault();clearMessage('attendanceMsg');
  if(!currentUserId){message('attendanceMsg','Please sign in again before submitting a request.',true);return}
@@ -2849,7 +2945,7 @@ $('signIn').addEventListener('click',()=>authenticateAccount('teacher.'+selected
 $('adminSignIn').addEventListener('click',()=>authenticateAccount($('adminEmail').value.trim(),$('adminPassword').value,'Admin','',$('adminSignIn')));
 
 loadPublicClassLoginDirectory();
-$('logout').addEventListener('click',async()=>{if(demoMode){demoMode=false;profile=null;location.reload();return}await db.auth.signOut();sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');profile=null;await startSession(null)});
+$('logout').addEventListener('click',async()=>{if(demoMode){demoMode=false;profile=null;location.reload();return}const owner=currentUserId;await db.auth.signOut();await offlineSchoolDelete(owner);sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');profile=null;setOfflineReadOnly(false);await startSession(null)});
 function syncBursaryAdmissionFields(){
  const enabled=$('bursaryStatus').value==='true';
  $('bursaryAmountWrap').classList.toggle('hidden',!enabled);
