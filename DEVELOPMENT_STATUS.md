@@ -540,3 +540,18 @@ The remaining programme now explicitly includes:
 - GitHub migration commits:
   - curriculum/UNEB grants: `e1fd36d619a00a6e19f2d16792b936d5c5ef24e7`
   - academic grade-band grants: `178419cf5c23936d68635dad5666d9e368a244f3`
+
+
+## 2026-11-06 — Finance, staff attendance and collaboration table grant hardening
+- A wider database grant audit found 18 tables with broad default grants to `anon`, even though their RLS policies were intended for signed-in administrators or staff.
+- Applied migration `20261106180241_remove_anon_and_excess_staff_finance_table_grants` to:
+  - class_teacher_access
+  - communication_outbox and communication_templates
+  - fee_items, fee_schedules, learner_charges, payment_allocations and school_payments
+  - school_position_catalogue
+  - staff_attendance_adjustments, staff_attendance_device_users, staff_attendance_events, staff_attendance_import_batches and staff_attendance_schedule_assignments
+  - staff_communication_comments, staff_communication_posts, staff_communication_reactions and staff_work_schedules
+- Removed all `anon` privileges and reset authenticated privileges to ordinary SELECT/INSERT/UPDATE/DELETE only. Existing RLS policies remain responsible for deciding which signed-in administrator or staff member may perform each operation. No TRUNCATE, TRIGGER or REFERENCES privilege is retained for authenticated client roles.
+- Kept the separate `class_login_directory` anonymous SELECT because the sign-in screen intentionally displays class labels and teacher display names before login. It contains no teacher password or private class code; those are handled by the protected teacher sign-in function.
+- Verification passed for all 18 tables: no anon SELECT; authenticated retains ordinary DML grants; no TRUNCATE/TRIGGER/REFERENCES. RLS policy inventory was checked for each table. Supabase health advisor returned zero lints.
+- GitHub migration file commit `6aa7fe00bc9223be7e5882294f4b39262b2e2af2`.
