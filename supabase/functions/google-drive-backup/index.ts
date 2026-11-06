@@ -1,9 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const cors = {
-  "Access-Control-Allow-Origin": Deno.env.get("APP_BASE_URL") ?? "*",
+  ...corsHeaders,
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Max-Age": "0",
   "Content-Type": "application/json",
 };
 const PROJECT_URL = Deno.env.get("SUPABASE_URL")!;
@@ -108,12 +111,40 @@ async function driveToken(connection: any) {
 async function ensureDriveFolder(accessToken: string, connection: any) {
   if (connection.drive_folder_id) return connection.drive_folder_id;
   const response = await fetch("https://www.googleapis.com/drive/v3/files?fields=id,name", {
-    method:"POST", headers:{ Authorization:"Bearer "+accessToken, "Content-Type":"application/json" },
-    body:JSON.stringify({ name:"CORNHILL School Backups", mimeType:"application/vnd.google-apps.folder" })
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: "CORNHILL School Backups",
+      mimeType: "application/vnd.google-apps.folder",
+    }),
   });
-  const data = await response.json();
-  if (!response.ok || !data.id) throw new Error("Could not create the CORNHILL backup folder in Google Drive.");
-  await adminDb.from("google_drive_backup_connections").update({drive_folder_id:data.id,updated_at:new Date().toISOString()}).eq("id",connection.id);
+  const responseText = await response.text();
+  let data: any = {};
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    data = { error: { message: responseText.slice(0, 500) } };
+  }
+  if (!response.ok || !data.id) {
+    const message = data?.error?.message || `HTTP ${response.status}`;
+    const reasons = Array.isArray(data?.error?.errors)
+      ? data.error.errors.map((item: any) => item.reason).filter(Boolean).join(", ")
+      : "";
+    throw new Error(
+      `Google Drive folder creation failed (${response.status}): ${message}` +
+      (reasons ? ` [${reasons}]` : "")
+    );
+  }
+  const { error: saveError } = await adminDb
+    .from("google_drive_backup_connections")
+    .update({ drive_folder_id: data.id, updated_at: new Date().toISOString() })
+    .eq("id", connection.id);
+  if (saveError) {
+    throw new Error(`Folder created, but its ID could not be saved: ${saveError.message}`);
+  }
   return data.id;
 }
 async function makeBackup(userId: string, connection: any) {
@@ -149,8 +180,8 @@ async function makeBackup(userId: string, connection: any) {
     const encrypted = await encrypt(JSON.stringify(snapshot));
     const stamp = new Date().toISOString().replace(/[:.]/g,"-");
     const fileName = "cornhill-school-backup-"+stamp+".json.enc";
-    const folderId = await ensureDriveFolder(await driveToken(connection),connection);
     const token = await driveToken(connection);
+    const folderId = await ensureDriveFolder(token, connection);
     const boundary = "cornhill_"+crypto.randomUUID();
     const metadata = { name:fileName, mimeType:"application/octet-stream", parents:[folderId], description:"Encrypted CORNHILL school database backup. AES-256-GCM." };
     const body = new Blob([
@@ -175,7 +206,26 @@ async function makeBackup(userId: string, connection: any) {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok",{headers:cors});
+  if (req.method === "OPTIONS") {
+    const requestedHeaders = req.headers.get("access-control-request-headers") || "";
+    const preflightHeaders = new Headers(cors);
+    if (requestedHeaders) preflightHeaders.set("Access-Control-Allow-Headers", requestedHeaders);
+    preflightHeaders.set("Access-Control-Allow-Origin", "*");
+    preflightHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    preflightHeaders.set("Access-Control-Max-Age", "0");
+    console.log("CORN HILL CORS PREFLIGHT RESPONSE", JSON.stringify({
+      origin: req.headers.get("origin"),
+      requestedMethod: req.headers.get("access-control-request-method"),
+      requestedHeaders,
+      allowOrigin: preflightHeaders.get("Access-Control-Allow-Origin"),
+      allowMethods: preflightHeaders.get("Access-Control-Allow-Methods"),
+      allowHeaders: preflightHeaders.get("Access-Control-Allow-Headers"),
+      userAgent: req.headers.get("user-agent")
+    }));
+    // Standard Supabase SDK CORS headers, with the browser's requested headers echoed.
+    // Administrator bearer-token validation remains mandatory on POST.
+    return new Response("ok", { status: 200, headers: preflightHeaders });
+  }
   const url = new URL(req.url);
   if (req.method === "GET" && url.searchParams.has("code")) {
     try {
@@ -205,8 +255,23 @@ Deno.serve(async (req: Request) => {
   }
   if (req.method !== "POST") return json({error:"Method not allowed"},405);
   try {
-    const user = await requireAdmin(req);
     const body = await req.json();
+    if (body.action === "scheduled_backup") {
+      const schedulerToken = req.headers.get("x-cornhill-scheduler-token") || "";
+      const { data: tokenValid, error: tokenError } = await adminDb.rpc("verify_cornhill_backup_scheduler_token", { p_token: schedulerToken });
+      if (tokenError || tokenValid !== true) return json({error:"Scheduled backup authentication failed."},401);
+      const { data: settings, error: settingsError } = await adminDb.from("google_drive_backup_settings").select("enabled,frequency").eq("id",true).maybeSingle();
+      if (settingsError) throw new Error("Could not read scheduled backup settings: "+settingsError.message);
+      if (!settings?.enabled) return json({success:true,skipped:true,reason:"Automatic backup is disabled in school settings."});
+      const connection = await getConnection();
+      if (!connection) throw new Error("Connect the dedicated school Google account before enabling automatic backups.");
+      const backup = await makeBackup(connection.connected_by, connection);
+      const scheduledAt = new Date().toISOString();
+      const { error: updateError } = await adminDb.from("google_drive_backup_settings").update({last_scheduled_at:scheduledAt}).eq("id",true);
+      if (updateError) throw new Error("Backup succeeded but schedule timestamp could not be saved: "+updateError.message);
+      return json({success:true,scheduled:true,backup});
+    }
+    const user = await requireAdmin(req);
     if (body.action === "connect") {
       const {clientId,redirectUri} = googleConfig();
       const state = await saveState(user.id);
