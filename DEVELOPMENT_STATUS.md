@@ -247,3 +247,15 @@ The remaining programme now explicitly includes:
 - Static verification: all 3 inline JavaScript blocks parse without syntax errors. Confirmed the bulk autosave input handler, same-assessment draft restore, pending-sync action, explicit-save cleanup, and “not official until synchronised” warning are present.
 - Not yet tested in a real browser: local IndexedDB persistence/reload, offline editing, reconnect sync, concurrent mark changes, teacher RLS enforcement, or Android/Windows behavior. No marks, report cards, learner records or other school data were changed during this code update.
 - GitHub commits: e77d47f26ed2ea8af820c7b6219f03cf013b4e94 (bulk mark-sheet autosave and sync), service-worker cache v9 commit recorded separately in this batch.
+
+## 2026-11-06 — Learner promotion, class setup and staff schedule form autosave
+
+- Added account-scoped local autosave to the administrator's Create Class / Stream form. Unfinished class details can be restored on the same signed-in account; after successful class creation, the local draft is cleared.
+- Added per-learner autosave to the dynamically generated Promote / Transfer Learner form. The draft key includes the learner ID, so drafts for different learners do not overwrite each other. The form restores only that learner's draft and clears it only after the promotion RPC succeeds.
+- Completed recovery behavior for the existing staff work-schedule and staff schedule-assignment autosave forms. Both forms now restore their own account-scoped drafts and clear them after successful server saves.
+- Kept staff profile editing out of local autosave because it contains personal staff information. Passwords and financial posting/reversal forms remain excluded.
+- No database schema or Supabase migration was required. All final record changes still require the existing online server submit; local drafts are not official school records.
+- Updated service-worker shell cache from cornhill-shell-v9 to cornhill-shell-v10.
+- Static verification: all 3 inline JavaScript blocks parse without syntax errors. Confirmed class form save/restore/clear, learner-specific promotion draft save/restore/clear, and schedule form restore/clear paths. Duplicate-ID scan only reported IDs embedded in dynamic HTML template strings (for example learner-specific rows/forms), not repeated static page IDs.
+- Not yet tested in a real browser: IndexedDB reload/restore, multiple learner promotion drafts, class creation after reconnect, schedule form recovery, server RPC/RLS behavior, or Android/Windows. No learner promotion, class, schedule, staff, finance, or attendance records were created or modified by this code update.
+- GitHub commits: 6625c1fe80dca7f000705492a85e4302eba83cef (class/promotion autosave), f769df25ff83f0c87b0784d6ef2592c6c74ec1fe (schedule draft restore/cleanup), service-worker cache v10 commit recorded separately in this batch.
