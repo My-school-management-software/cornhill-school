@@ -91,3 +91,33 @@ Last updated: 2026-11-06
 - Because the database currently has no actual academic-term records, automatic current-term allocation cannot yet be exercised. Do not invent school dates; configure CORNHILL's real term dates before live payment testing.
 - Supabase security advisors were run. Existing findings remain for service-only/RLS tables, SECURITY DEFINER functions, the `pg_net` extension schema and leaked-password protection. The payment RPC still checks `auth.uid()` and `is_school_admin()`; no broad permission changes were made to silence advisor warnings.
 - These are code/database/static checks, not a browser payment test, real receipt print test, Android/Windows test or deployment. Those remain pending.
+
+
+### Batch 2 follow-up — reversal history in learner statements
+- Updated learner statement retrieval to include both Posted and Reversed receipts, rather than hiding reversed receipts from the financial audit history.
+- Reversed receipt rows are explicitly labelled Reversed and display the reversal timestamp and reason. Their allocations remain excluded from paid totals because statement charge calculations continue to count only allocations whose payment status is Posted.
+- The active/closed enrolment balance view also excludes reversed payments, so reversing a receipt restores the corresponding outstanding amount without deleting the original receipt or allocation records.
+- Static verification after the update: all 3 inline JavaScript blocks parsed; no duplicate HTML IDs; the statement query includes reversal fields and the renderer displays the reversal reason.
+- The reversal RPC was inspected: it requires an authenticated school administrator, locks the payment row, accepts only a currently Posted receipt, records who/when/why, and does not delete payment or allocation records.
+- Browser execution, real reversal transaction testing and thermal-printer output remain pending.
+
+## Expanded completion programme requested on 2026-11-06
+The remaining programme now explicitly includes:
+1. Offline data entry and reliable synchronisation when connectivity returns, with duplicate protection and conflict handling.
+2. Actual SMS and WhatsApp provider integration, credentials stored server-side, send worker, delivery callbacks, consent and cost controls. Current communication outbox/templates do not send messages.
+3. Fingerprint attendance compatibility confirmation and integration after the exact device model, SDK/driver and supported connection method are supplied.
+4. Role-based access completion and tests for administrator, bursar, headteacher, DOS, teachers and other staff.
+5. Finance completion: all charge types, allocation and reversal consistency, reports, receipt previews and thermal printing.
+6. Parent/guardian verification and isolation tests.
+7. Backup scheduling, retention and a successful restore drill.
+8. Final navigation, themes, fonts, responsive mobile and missing-module review.
+9. Production setup using verified school identity, real academic dates, approved fee schedules and staff accounts.
+10. Verified deployment followed by Windows 10, Windows 11 and Android testing.
+
+## Current offline and deployment limitation
+- The current service worker caches the application shell only. It deliberately does not cache Supabase/authentication traffic.
+- The current offline banner explicitly warns that live learner records, finance and payments require an internet connection. It does not queue offline finance or learner writes.
+- Therefore offline data entry and synchronisation are NOT implemented yet. Do not represent the current shell cache as offline-capable school operations.
+- The service worker file exists at `service-worker.js`; `manifest.webmanifest` is referenced by the page. No `package.json` or `supabase/config.toml` was found at the repository root during this inspection.
+- Continue with an explicit IndexedDB pending-write queue, idempotent server-side sync RPCs, per-record validation, permission checks and conflict review before enabling offline writes. Do not queue financial payments offline until an audited, duplicate-safe reconciliation design has passed tests.
+- Deployment and physical-device testing remain pending. Vercel usage limit was previously exhausted; no deployment was attempted in this continuation.
