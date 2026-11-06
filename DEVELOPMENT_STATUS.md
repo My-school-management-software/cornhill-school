@@ -444,3 +444,10 @@ The remaining programme now explicitly includes:
 - Learner integrity checks: duplicate permanent pupil codes 0; learners with more than one Active enrolment period 0; invalid bursary amounts 0; invalid mid-term proration day/rate records 0.
 - The project currently has 2 enrolment-period rows, 2 school-payment rows, 0 payment-allocation rows and 1 learner-charge row. These counts are observations, not test fixtures; no rows were inserted, edited or deleted.
 - This was a read-only audit. It does not replace authenticated browser tests, backup decryption validation, restore drill, or Windows/Android tests.
+
+## 2026-11-06 — Assessment setup safeguards
+- Hardened administrator assessment creation in the Academic module. Before saving, the form now verifies the selected term, class and subject exist; confirms the subject is assigned to that class; requires a finite maximum score greater than zero; and requires any entered assessment date to fall within the selected term.
+- Prevents an exact duplicate assessment period/title for the same term, class and subject. It also checks the authenticated administrator session before setting `created_by`, prevents duplicate submissions while saving, and displays a clear failure message if the save flow errors.
+- The loaded class-subject assignment list is now retained in the academic client state for the pre-save validation. No class, subject, term, assessment or learner mark records were created or changed.
+- GitHub commits: application `06e16e68968b565ec37250fd952739f4d494409b`; service worker cache v24 `7d2385f913fb61744d0105571cd46613a8c6e88c`.
+- Static verification: all 3 inline JavaScript blocks parse successfully. Live academic tables currently contain 0 academic years, 0 terms, 0 assessments, 0 assessment scores and 0 report-card publication rows, so a genuine assessment save and mark-entry workflow cannot yet be exercised without school-authorized academic setup. Browser/runtime and Android/Windows tests remain pending.
