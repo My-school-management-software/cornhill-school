@@ -756,3 +756,13 @@ The remaining programme now explicitly includes:
 - Performance advisor reports 58 unindexed foreign keys, 18 unused indexes and 22 multiple-permissive-policy findings. These require per-table review; no bulk index/policy changes made without query-plan and behavior review.
 - Security advisor continues to report 20 authenticated SECURITY DEFINER RPCs and leaked-password protection disabled. Each RPC requires body-level authorization review before changing grants; no blanket revoke applied.
 - No learner or school transaction rows changed.
+
+## 2026-11-07 — Class progression and offline review batch
+
+- 107/107 static source assertions passed: 32 class-promotion/academic-calendar UI checks and 75 offline attendance, teacher assessment draft sync, local form autosave and academic-calendar checks.
+- 14/14 live Supabase metadata/function assertions passed for the class-promotion RPC, RLS and administrator-only history policies.
+- Read-only live counts: 10 classes, 2 learners, 2 enrolment periods, 0 class-history rows, 0 academic years and 0 terms. Both active enrolment periods match the learners' current classes.
+- No school records were inserted, updated or deleted. A real promotion, academic-year transition and term workflow were not executed because no approved test learner or school calendar dates were configured.
+- Clarified offline boundaries: attendance queues corrections only (not clock-in/out), teacher marks can remain local drafts until conflict-checked sync, form autosave is device-local, and payment posting remains online-only.
+- Documented in `docs/CLASS_PROGRESSION_OFFLINE_REVIEW_20261107.md`.
+- Paid Supabase leaked-password protection is explicitly out of scope; no upgrade is required.
