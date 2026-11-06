@@ -2,6 +2,10 @@
 
 Last updated: 2026-11-06
 
+## Password-security scope decision — 2026-11-07
+- Supabase Pro-only leaked-password protection is intentionally excluded from the CORNHILL plan. Do not enable it, upgrade for it, or list it as a release blocker.
+- Keep the agreed free Supabase Auth minimum-length and character-class policy as the server-side baseline. CORNHILL's free app-level breach-list screening is an additional check in the password-change and recovery screens; it is not equivalent to server-side global enforcement, and direct Auth API calls can bypass it.
+
 ## Development branch and deployment hold
 - Active working branch: `feature/cornhill-v3-foundation`.
 - Keep unfinished work on this branch. Do not replace it with an older deployed copy.
@@ -412,7 +416,7 @@ The remaining programme now explicitly includes:
 
 
 ## 2026-11-06 — Teacher code-reset employment safeguard and security review
-- Reviewed the live Supabase security and health advisors. Health advisor returned zero lints. Security advisor reports six RLS-enabled service-only tables with no client policies, pg_net in public, 20 authenticated-executable SECURITY DEFINER functions, and leaked-password protection disabled. The six service-only tables are intentionally inaccessible to ordinary clients; do not add broad policies. The 20 functions were sampled and the reviewed administrator/teacher RPCs contain explicit identity/role checks; do not revoke authenticated execution indiscriminately because the app calls these functions. Leaked-password protection remains a Supabase Auth configuration task.
+- Reviewed the live Supabase security and health advisors. Health advisor returned zero lints. Security advisor reports six RLS-enabled service-only tables with no client policies, pg_net in public, 20 authenticated-executable SECURITY DEFINER functions, and leaked-password protection disabled. The six service-only tables are intentionally inaccessible to ordinary clients; do not add broad policies. The 20 functions were sampled and the reviewed administrator/teacher RPCs contain explicit identity/role checks; do not revoke authenticated execution indiscriminately because the app calls these functions. Paid Supabase leaked-password protection is intentionally excluded from project scope; the free CORNHILL app-level breach-screening alternative is documented in the release audit.
 - Hardened the class-teacher-code Edge Function: before resetting an existing teacher password, it now checks the existing profile's role and employment_status. It refuses reset for any non-Active employment status rather than silently reactivating that staff member. It also verifies the class curriculum mapping exists before changing the auth account password.
 - Saved GitHub commit `d78ef0d3ad86ee1ff15e8e2e628920d24d0eaf1e`.
 - Deployed Supabase Edge Function `class-teacher-code` version 12, status ACTIVE, `verify_jwt=true`.
