@@ -3298,9 +3298,9 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
   const host=$('parentContactDirectoryTable');host.replaceChildren();
   if(!rows.length){const p=document.createElement('p');p.className='muted';p.textContent='No matching parent contacts were found.';host.append(p);return}
   const table=document.createElement('table'),thead=document.createElement('thead'),head=document.createElement('tr');
-  ['Learner / class','Pupil code','Parent / guardian','Active phone','WhatsApp','Consent','Status','Action'].forEach(x=>{const th=document.createElement('th');th.textContent=x;head.append(th)});
+  ['Learner / class','Pupil code','Parent / guardian','Active phone','WhatsApp','Consent','Status','Last SMS','Last WhatsApp','Last message','Action'].forEach(x=>{const th=document.createElement('th');th.textContent=x;head.append(th)});
   thead.append(head);table.append(thead);const body=document.createElement('tbody');
-  rows.forEach(r=>{const tr=document.createElement('tr');const vals=[r.learner_name+' · '+(r.class_name||'Class not set'),r.pupil_code,r.guardian_name,phoneDisplay(r.phone_e164),phoneDisplay(r.whatsapp_e164),(r.sms_opt_in?'SMS':'')+(r.sms_opt_in&&r.whatsapp_opt_in?' · ':'')+(r.whatsapp_opt_in?'WhatsApp':'')||'No consent',r.is_active?'Active':'Inactive'];
+  rows.forEach(r=>{const tr=document.createElement('tr');const vals=[r.learner_name+' · '+(r.class_name||'Class not set'),r.pupil_code,r.guardian_name,phoneDisplay(r.phone_e164),phoneDisplay(r.whatsapp_e164),(r.sms_opt_in?'SMS':'')+(r.sms_opt_in&&r.whatsapp_opt_in?' · ':'')+(r.whatsapp_opt_in?'WhatsApp':'')||'No consent',r.is_active?'Active':'Inactive',r.last_sms_status||'No records',r.last_whatsapp_status||'No records',r.last_message_at?new Date(r.last_message_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}):'No records'];
    vals.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});
    const action=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.textContent='Review / change';btn.addEventListener('click',()=>openParentContactEditor(r));action.append(btn);tr.append(action);body.append(tr)
   });
