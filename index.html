@@ -1633,7 +1633,7 @@ $('openAcademicCalendar').addEventListener('click',()=>tab('academics'));
 $('academicTermManagementRows').addEventListener('click',async e=>{
  if(profile?.role!=='Admin')return;
  const save=e.target.closest('[data-save-term-dates]');
- if(save){const id=save.dataset.saveTermDates,start=$('[data-term-start="'+id+'"]')?.value,end=$('[data-term-end="'+id+'"]')?.value;
+ if(save){const id=save.dataset.saveTermDates,start=document.querySelector('[data-term-start="'+id+'"]')?.value,end=document.querySelector('[data-term-end="'+id+'"]')?.value;
   if(!start||!end||end<start){message('academicMsg','Check the term dates. The closing date must be on or after the opening date.',true);return}
   const {error}=await db.from('academic_terms').update({starts_on:start,ends_on:end}).eq('id',id).eq('is_closed',false);
   if(error){message('academicMsg','Could not update term dates: '+error.message,true);return}
