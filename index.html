@@ -1926,6 +1926,53 @@ async function loadAcademics(){
  updateScoreLearners();
  populateReportFilters();
 }
+$('academicYearForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(demoMode||profile?.role!=='Admin'){message('academicMsg','Only the administrator can create an academic year.',true);return}
+ if(!navigator.onLine){message('academicMsg','Reconnect before saving an academic year. Your form remains saved locally on this device.',true);return}
+ const form=e.currentTarget,values=Object.fromEntries(new FormData(form).entries()),name=String(values.name||'').trim(),start=values.starts_on,end=values.ends_on,button=form.querySelector('button[type="submit"],button:not([type])');
+ if(!name||!start||!end||end<start){message('academicMsg','Enter an academic-year name and valid dates. The end date must be on or after the start date.',true);return}
+ button.disabled=true;const label=button.textContent;button.textContent='Checking dates…';
+ try{
+  const {data:existing,error:readError}=await db.from('academic_years').select('id,name,starts_on,ends_on').order('starts_on');
+  if(readError)throw readError;
+  if((existing||[]).some(y=>String(y.name).trim().toLowerCase()===name.toLowerCase()))throw new Error('An academic year with that name already exists.');
+  const overlap=(existing||[]).find(y=>start<=y.ends_on&&end>=y.starts_on);
+  if(overlap)throw new Error('These dates overlap academic year '+overlap.name+' ('+overlap.starts_on+' to '+overlap.ends_on+'). Academic years must not overlap.');
+  const {error}=await db.from('academic_years').insert({name,starts_on:start,ends_on:end,is_current:false});
+  if(error)throw error;
+  if(currentUserId)await clearLocalFormDraft(currentUserId,'academic-year');
+  form.reset();await loadAcademicControl();await loadAcademics();
+  message('academicMsg','Academic year '+name+' saved. It is not active yet; create its terms and explicitly activate the correct term when ready. Previous academic-year records remain unchanged.');
+ }catch(err){message('academicMsg','Academic year was not saved: '+(err?.message||'Please retry.'),true)}
+ finally{button.disabled=false;button.textContent=label}
+});
+$('academicTermForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(demoMode||profile?.role!=='Admin'){message('academicMsg','Only the administrator can create an academic term.',true);return}
+ if(!navigator.onLine){message('academicMsg','Reconnect before saving an academic term. Your form remains saved locally on this device.',true);return}
+ const form=e.currentTarget,values=Object.fromEntries(new FormData(form).entries()),yearId=values.academic_year_id,name=String(values.name||'').trim(),start=values.starts_on,end=values.ends_on,button=form.querySelector('button[type="submit"],button:not([type])');
+ if(!yearId||!name||!start||!end||end<start){message('academicMsg','Choose an academic year, term name and valid term dates.',true);return}
+ button.disabled=true;const label=button.textContent;button.textContent='Checking calendar…';
+ try{
+  const [{data:year,error:yearError},{data:existing,error:termError}]=await Promise.all([
+   db.from('academic_years').select('id,name,starts_on,ends_on').eq('id',yearId).maybeSingle(),
+   db.from('academic_terms').select('id,name,academic_year_id,starts_on,ends_on,is_closed').eq('academic_year_id',yearId)
+  ]);
+  if(yearError)throw yearError;if(termError)throw termError;
+  if(!year)throw new Error('The selected academic year no longer exists. Reload the calendar and choose again.');
+  if(start<year.starts_on||end>year.ends_on)throw new Error('Term dates must stay inside '+year.name+' ('+year.starts_on+' to '+year.ends_on+').');
+  if((existing||[]).some(t=>String(t.name).trim().toLowerCase()===name.toLowerCase()))throw new Error(name+' already exists in '+year.name+'.');
+  const overlap=(existing||[]).find(t=>start<=t.ends_on&&end>=t.starts_on);
+  if(overlap)throw new Error('These dates overlap '+overlap.name+' ('+overlap.starts_on+' to '+overlap.ends_on+').');
+  const {error}=await db.from('academic_terms').insert({academic_year_id:yearId,name,starts_on:start,ends_on:end,is_current:false,is_closed:false});
+  if(error)throw error;
+  if(currentUserId)await clearLocalFormDraft(currentUserId,'academic-term');
+  form.reset();await loadAcademicControl();await loadAcademics();
+  message('academicMsg',year.name+' · '+name+' saved as a planned term. It has not been activated; choose the correct term from the dashboard when the school is ready. Historical terms remain unchanged.');
+ }catch(err){message('academicMsg','Academic term was not saved: '+(err?.message||'Please retry.'),true)}
+ finally{button.disabled=false;button.textContent=label}
+});
 async function loadAcademicControl(){
  if(!db||demoMode)return;
  const admin=profile?.role==='Admin';
