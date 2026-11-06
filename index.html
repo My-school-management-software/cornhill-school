@@ -607,7 +607,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
    <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
    <button type="button" class="tab hidden" id="prepareExcelAssessments">Prepare class sheet</button>
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
-   <button type="button" id="saveExcelMarks">Save all marks</button>
+   <button type="button" id="saveExcelMarks">Save all marks</button><button type="button" id="syncOfflineMarks">Synchronise pending offline marks</button>
   </div>
   <div id="excelMarksMsg" class="notice hidden" style="margin-top:10px"></div>
   <div class="table-wrap" style="margin-top:12px;max-height:65vh;overflow:auto">
@@ -2369,7 +2369,40 @@ async function showOfflineAssessmentDraftCount(){
   if(el&&drafts.length)message('excelMarksMsg',drafts.length+' offline mark draft(s) are saved on this device. They are pending synchronisation; they are not yet official school records.');
  }catch(_){}
 }
+async function syncOfflineAssessmentDrafts(){
+ if(!navigator.onLine||!currentUserId)return {synced:0,conflicts:0,expired:0};
+ const auth=await db.auth.getUser(),user=auth.data?.user;
+ if(auth.error||!user||user.id!==currentUserId)return {synced:0,conflicts:0,expired:0};
+ const drafts=await listOfflineAssessmentDrafts(user.id),result={synced:0,conflicts:0,expired:0};
+ for(const draft of drafts){
+  if(draft.expires_at<=Date.now()){await deleteOfflineAssessmentDraft(draft.draft_id);result.expired++;continue}
+  if(draft.entered_by!==user.id)continue;
+  const values={score:draft.score,teacher_comment:draft.teacher_comment,entered_by:user.id};
+  let write;
+  if(draft.baseline_exists){
+   let query=db.from('assessment_scores').update(values).eq('assessment_id',draft.assessment_id).eq('student_id',draft.student_id).eq('score',draft.baseline_score);
+   query=draft.baseline_comment===null?query.is('teacher_comment',null):query.eq('teacher_comment',draft.baseline_comment);
+   write=await query.select('id').maybeSingle();
+   if(write.error){result.conflicts++;continue}
+   if(!write.data){result.conflicts++;continue}
+  }else{
+   write=await db.from('assessment_scores').insert({...values,assessment_id:draft.assessment_id,student_id:draft.student_id}).select('id').maybeSingle();
+   if(write.error){result.conflicts++;continue}
+  }
+  await deleteOfflineAssessmentDraft(draft.draft_id);result.synced++;
+ }
+ return result;
+}
 
+$('syncOfflineMarks').addEventListener('click',async()=>{
+ const button=$('syncOfflineMarks');button.disabled=true;button.textContent='Synchronising…';
+ try{
+  const result=await syncOfflineAssessmentDrafts();
+  message('excelMarksMsg','Offline marks synchronised: '+result.synced+' saved; '+result.conflicts+' conflict(s) kept pending; '+result.expired+' expired draft(s) removed. Conflicting drafts were not allowed to overwrite newer marks.');
+  if(result.synced){await loadAcademics();await loadExcelMarksGrid()}
+ }catch(err){message('excelMarksMsg','Offline mark synchronisation did not finish. Drafts remain on this device: '+(err?.message||'Unknown error'),true)}
+ finally{button.disabled=false;button.textContent='Synchronise pending offline marks'}
+});
 $('saveExcelMarks').addEventListener('click',async()=>{
  const button=$('saveExcelMarks');if(button.dataset.busy==='1')return;
  button.dataset.busy='1';button.disabled=true;button.textContent='Saving…';
@@ -2665,7 +2698,7 @@ async function syncOfflineAttendanceCorrections(){
   
  }
 }
-window.addEventListener('online',()=>{syncOfflineAttendanceCorrections().catch(()=>{});if(currentUserId&&window.cornhillOfflineReadOnly)refresh().catch(()=>{})});
+window.addEventListener('online',()=>{syncOfflineAttendanceCorrections().catch(()=>{});syncOfflineAssessmentDrafts().catch(()=>{});if(currentUserId&&window.cornhillOfflineReadOnly)refresh().catch(()=>{})});
 $('attendanceAdjustmentForm').addEventListener('submit',async e=>{
  e.preventDefault();clearMessage('attendanceMsg');
  if(!currentUserId){message('attendanceMsg','Please sign in again before submitting a request.',true);return}
