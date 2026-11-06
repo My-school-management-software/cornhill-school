@@ -5,7 +5,7 @@
 
 ## Results
 
-<badge>110 / 110 PASS</badge>
+**110 / 110 checks passed.**
 
 ### A. Database row-level security — 30 checks
 RLS enabled on the learner, class, teacher assignment, subject, class-subject, assessment, score, report publication, grade-band, enrolment, bursary, guardian, guardian audit, payment, allocation, charge, attendance, schedule, staff communication, direct message, call signal and backup tables.
