@@ -3305,7 +3305,14 @@ $('studentRows').addEventListener('click',async e=>{
   bindLocalAutosaveDynamicForm($('learnerPromotionForm'),()=> 'learner-promotion-'+learner.id,'learnerPromotionMsg',()=>profile?.role==='Admin');
   await restoreLocalAutosaveForm($('learnerPromotionForm'),'learner-promotion-'+learner.id,'learnerPromotionMsg');
   $('learnerPromotionForm').addEventListener('submit',async ev=>{
-   ev.preventDefault();const values=Object.fromEntries(new FormData(ev.currentTarget).entries());const submit=ev.currentTarget.querySelector('button[type="submit"]');submit.disabled=true;submit.textContent='Saving promotion…';
+   ev.preventDefault();const values=Object.fromEntries(new FormData(ev.currentTarget).entries());const submit=ev.currentTarget.querySelector('button[type="submit"]');
+   const destination=classes.find(x=>x.id===values.new_class_id),source=classes.find(x=>x.id===learner.class_id);
+   if(!destination||destination.id===learner.class_id){$('learnerPromotionMsg').textContent='Choose a valid destination different from the learner’s current class.';return}
+   if(!values.effective_date||Number.isNaN(Date.parse(values.effective_date))){$('learnerPromotionMsg').textContent='Choose a valid effective date for this class change.';return}
+   const sourceName=source?(source.name+(source.stream?' · '+source.stream:'')):'Current class not recorded';
+   const destinationName=destination.name+(destination.stream?' · '+destination.stream:'');
+   if(!confirm('Confirm this class placement change?\\n\\nLearner: '+[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')+'\\nFrom: '+sourceName+'\\nTo: '+destinationName+'\\nEffective date: '+values.effective_date+'\\n\\nThe system will record the movement in class history. Existing marks and financial records will remain unchanged.'))return;
+   submit.disabled=true;submit.textContent='Saving promotion…';
    try{const {data,error}=await db.rpc('promote_learner',{p_student_id:learner.id,p_new_class_id:values.new_class_id,p_effective_date:values.effective_date,p_notes:values.notes||null});if(error)throw error;if(currentUserId)await clearLocalFormDraft(currentUserId,'learner-promotion-'+learner.id);await refresh();message('appMsg','Learner promoted successfully. The previous class and new class have been recorded in the learner history.');const view=document.querySelector('.viewLearner[data-id="'+learner.id+'"]');if(view)view.click();}
    catch(err){$('learnerPromotionMsg').textContent='Promotion was not saved: '+(err.message||'Please try again.');}
    finally{submit.disabled=false;submit.textContent='Save class promotion'}
