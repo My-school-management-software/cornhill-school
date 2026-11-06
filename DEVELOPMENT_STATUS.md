@@ -727,3 +727,16 @@ The remaining programme now explicitly includes:
 - Health advisor: zero lints. Security advisor retains six informational service-only RLS/no-policy findings, one pg_net-in-public-schema warning, 20 authenticated SECURITY DEFINER RPC warnings and leaked-password protection disabled. No blanket changes were made to intentionally guarded admin RPCs or service-only tables.
 - No school data rows or credentials were changed/read. Runtime transaction tests, browser tests, parent OTP, backup restore, hardware, Windows/Android and deployment remain pending.
 - Created `docs/SECURITY_DATA_INTEGRITY_250_CHECKS.md` and both migration source files.
+
+
+## 2026-11-06 — Offline and backup source acceptance review (274 checks)
+- Reviewed offline class snapshots, form autosave/restoration, teacher assessment drafts and sync, staff attendance correction queue, service-worker cache/network boundaries, and Google Drive backup encryption/privacy/validator source.
+- Completed 274 static source assertions across six groups: class snapshots 51; form autosave 50; assessment queue 62; attendance correction queue 29; service worker 30; backup 52. First run matched 266; eight false negatives were caused by test-harness source-scope or outdated IndexedDB-version expectations. All eight were rechecked against the correct code regions/current version and passed. These were harness mismatches, not application defects.
+- Parsed all three inline JavaScript blocks in `index.html`; zero syntax errors.
+- Found and fixed offline marks pending counter: drafts have `expires_at:null`, but the counter previously required a future expiry and was not called after class-grid load. It now includes no-expiry drafts, is Teacher-only and runs after successful grid rendering.
+- Advanced service worker cache from v31 to v32.
+- Read-only live Supabase check: health advisor zero lints; security advisor still reports six service-only RLS/no-policy notices, pg_net in public, 20 authenticated SECURITY DEFINER functions and leaked-password protection disabled.
+- Backup history at review: 6 successful, 2 failed; latest successful completion 2026-11-06 09:06:05.842 UTC; max successful recorded total 232. Backup validation audit table still has zero rows; latest backup is not independently validated. Edge Function invocation action is not exposed through current tool connection, so validator was not invoked. No backup or restore run.
+- Server attendance correction requests and assessment score rows both remain zero; no live sync or mark transaction test occurred.
+- No learner, guardian, finance, academic, attendance, payroll, communications or backup rows were changed. Browser/IndexedDB, network reconnect, conflict, Android/Windows and deployment tests remain pending.
+- Added `docs/OFFLINE_BACKUP_ACCEPTANCE_TESTS_274.md`.
