@@ -2134,7 +2134,7 @@ async function loadHtml2Pdf(){
  return window.html2pdf;
 }
 $('downloadClassReportCards').addEventListener('click',async()=>{
- if(!generatedReportBatch.count)return;
+ if(profile?.role!=='Admin'||!generatedReportBatch.count)return;
  const btn=$('downloadClassReportCards'),status=$('reportBatchStatus');btn.disabled=true;status.textContent='Preparing PDF…';
  let node=document.createElement('div');node.innerHTML=generatedReportBatch.html;node.style.cssText='position:fixed;left:-12000px;top:0;width:190mm;background:#fff;color:#111;z-index:-1';document.body.appendChild(node);
  try{
@@ -2145,7 +2145,7 @@ $('downloadClassReportCards').addEventListener('click',async()=>{
  finally{node.remove();btn.disabled=false;}
 });
 $('printClassReportCards').addEventListener('click',()=>{
- if(!generatedReportBatch.count)return;
+ if(profile?.role!=='Admin'||!generatedReportBatch.count)return;
  const box=$('reportBatchPrint');box.classList.remove('hidden');document.body.classList.add('print-report-batch');window.print();document.body.classList.remove('print-report-batch');box.classList.add('hidden');
 });
 
