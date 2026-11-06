@@ -271,3 +271,13 @@ The remaining programme now explicitly includes:
 - Commits: da03c6d4596a5c51af74a15c081b4fda8d7b6dd5 (UI), ec2c1532ddcedb2c689dbf8c94ba8f83211263db (service worker).
 
 - Follow-up safety refinement: the reason draft is cleared immediately after the re-admission identity RPC succeeds, before fee-schedule lookup and page refresh. This avoids leaving a stale confirmation reason after the new enrolment has already been created. Commit: 1592f28304de9b47919efabb7cf457dcd1b93b45.
+
+
+## 2026-11-06 — Class placement confirmation safeguards
+
+- Improved the existing administrator-only Promote / Transfer Learner form. Before any database call, it now verifies that the destination class still exists, differs from the learner's current class, and the effective date is valid.
+- Shows an explicit confirmation summary with learner, previous class, destination class and effective date. The confirmation explains that class movement is recorded in history and existing marks and financial records are not changed.
+- Existing per-learner local draft recovery remains in place; no automatic submission was added. The existing `promote_learner` RPC remains responsible for the official history update.
+- Updated service-worker cache to cornhill-shell-v13.
+- Static checks: all 3 inline JavaScript blocks parse; validation and confirmation strings present. Real browser, RPC/RLS and Android/Windows tests remain pending. No learner placements or academic records were changed during this code update.
+- Commits: 5ce17378291b3f409ce64dc7c4e5c601b3ea0fca (UI), 230799072ee926d15b0a682f0dbb3eee377dd4a7 (service worker).
