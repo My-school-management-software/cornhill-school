@@ -207,3 +207,16 @@ The remaining programme now explicitly includes:
 - Privacy limitation: mark drafts and teacher comments are stored in browser IndexedDB and are not application-level encrypted. Use only trusted, device-locked school computers; sign out on shared devices and protect access to the browser profile.
 - This offline queue currently applies to the Excel/class assessment grid only. Individual mark entry and the separate bulk mark-sheet save have not yet been converted to offline drafts. No marks, report cards or other school records were changed by this code batch.
 - GitHub commits: d3f1d1e010a32ab45fdefcd445100fda6f6aa80e (draft queue), a3acd0996a53c984001c581622154f88d0313fa0 (sync controls and conditional sync), 7a6280538e13926de8a3ae337c17d5367330e146 (database upgrade compatibility), f047a3b0467dabae077c77e7a4240a06d302ca6b (service-worker cache v7), f8ae4292d8e3650b5f057c4956a903353ec23e3b (persistent drafts and offline session identity).
+
+
+## 2026-11-06 — OneDrive-style local autosave foundations (attendance, admissions and class assessment grid)
+
+- Upgraded the shared school IndexedDB cache from version 2 to version 3, preserving the class-list snapshot and assessment draft stores and adding a separate `formDrafts` store.
+- Added account-scoped autosave for the staff attendance correction form and administrator learner-admission form. Drafts save after a short pause while typing, survive reloads on the same device/account, and are restored when the relevant workspace opens. Successful submission clears the local draft.
+- Attendance correction drafts remain drafts until staff explicitly submit them. Offline submissions enter the existing pending correction queue and do not become administrator-approved attendance events.
+- Learner admission drafts remain local and do not create learner records, bursary awards, charges or enrolment periods until the administrator explicitly submits online. Photo files are not included in autosave.
+- Added automatic autosave for the Excel/class assessment grid. Valid edited marks are stored as account-scoped local drafts; while online, conditional conflict-checked sync attempts to save them to the server. Offline marks remain pending. Successful sync updates the in-memory baseline.
+- Kept manual mark-save and sync controls as fallbacks. Individual mark entry, separate bulk mark sheet, assessment setup and report-card publication are not yet converted to autosave.
+- Privacy limitation: drafts are stored in browser IndexedDB and are not application-level encrypted. Use trusted, device-locked school computers, sign out on shared devices, and do not leave administrator sessions open. Learner admission drafts may contain guardian and learner details.
+- Offline clock-in/out is not enabled: the database currently permits staff to read their own events but only administrators can insert attendance events. No client-side change bypasses that policy. Fingerprint attendance remains inactive until the device and Windows bridge are verified.
+- Static verification and real browser persistence/network/RLS/conflict/Android/Windows tests remain pending. No learner records, attendance events, marks, payments or report cards were changed by this code batch.
