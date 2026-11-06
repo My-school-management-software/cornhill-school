@@ -320,7 +320,12 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
 <nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="finance" id="financeTab">Finance</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">Staff Attendance</button><button class="tab" data-tab="inventory" id="inventoryTab">Inventory</button><button class="tab" data-tab="reports" id="reportsTab">Records Centre</button><button class="tab" data-tab="communication" id="communicationTab">Staff communication</button><button class="tab" data-tab="settings" id="settingsTab">Settings & themes</button></nav>
 <section id="dashboard" class="panel">
 <div class="dashboard-intro"><div><span class="dashboard-eyebrow">CORNHILL · SCHOOL MANAGEMENT</span><h2>School overview</h2><p class="muted">Your school at a glance. Choose a workspace below to continue.</p></div><span class="dashboard-live-label"><i></i> School workspace</span></div>
-<div id="teacherPortalSummary" class="teacher-workspace hidden"></div><div class="module-grid"><div class="panel" style="margin:12px 0"><h3>Live school snapshot</h3><p class="muted">A quick visual summary of the learners visible to your account.</p><div class="records-chart-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px"><div><strong>Active learners by class</strong><div id="dashboardEnrolmentChart" class="records-chart">Loading school figures…</div></div><div><strong>Learner gender distribution</strong><div id="dashboardGenderChart" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-height:170px"><span class="muted">Loading school figures…</span></div></div></div></div>
+<div id="teacherPortalSummary" class="teacher-workspace hidden"></div><section id="academicControlCard" class="panel" style="margin:14px 0;border:2px solid var(--accent);background:var(--panel)">
+ <div class="row" style="align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><span class="dashboard-eyebrow">SCHOOL CALENDAR CONTROL</span><h3 style="margin:4px 0">Academic year & active term</h3><p class="muted" style="margin:0">Choose the term currently used for school operations. Past terms remain in the records.</p></div><span id="academicControlStatus" class="badge">Loading calendar…</span></div>
+ <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:14px"><div><label for="dashboardTermSelect">Select active term</label><select id="dashboardTermSelect" style="width:100%"><option value="">No active term selected</option></select></div><div><label>Academic year</label><div id="dashboardYearDisplay" class="summary-value">Not set</div></div><div><label>Term dates</label><div id="dashboardTermDates" class="summary-value">Not set</div></div></div>
+ <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="primary" id="setActiveAcademicTerm">Set selected term as active</button><button type="button" id="openAcademicCalendar">Manage dates & term closing</button></div>
+ <p class="muted" id="academicControlHelp" style="margin:10px 0 0">Only administrators can change the active term. Teachers can view the current school term.</p>
+</section><div class="module-grid"><div class="panel" style="margin:12px 0"><h3>Live school snapshot</h3><p class="muted">A quick visual summary of the learners visible to your account.</p><div class="records-chart-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px"><div><strong>Active learners by class</strong><div id="dashboardEnrolmentChart" class="records-chart">Loading school figures…</div></div><div><strong>Learner gender distribution</strong><div id="dashboardGenderChart" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-height:170px"><span class="muted">Loading school figures…</span></div></div></div></div>
 <button class="module-card" data-module="students"><strong>👧 Learners</strong><span>Admissions, learner register and profiles</span><em>Available</em></button>
 <button class="module-card" data-module="classes"><strong>🏫 Classes</strong><span>Classes, streams and class lists</span><em>Available</em></button>
 <button class="module-card" data-module="academics"><strong>📚 Academics</strong><span>Subjects, marks, exams and report cards</span><em>Foundation available</em></button>
@@ -502,7 +507,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <h3>1. Academic year</h3>
  <form id="academicYearForm"><div><label>Academic year *</label><input name="name" required placeholder="e.g. 2027"></div><div><label>Make current?</label><select name="is_current"><option value="false">No</option><option value="true">Yes</option></select></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save academic year</button></div></form>
  <h3 style="margin-top:20px">2. Term</h3>
- <form id="academicTermForm"><div><label>Academic year *</label><select name="academic_year_id" id="academicYearSelect" required></select></div><div><label>Term name *</label><select name="name"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save term</button></div></form>
+ <form id="academicTermForm"><div><label>Academic year *</label><select name="academic_year_id" id="academicYearSelect" required></select></div><div><label>Term name *</label><select name="name"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save term</button></div></form><div class="panel" style="margin-top:12px"><h4>Term calendar & date adjustments</h4><p class="muted">You can extend or shorten a term before it closes. When its end date passes, the system marks it closed automatically. Closed terms stay available for reports.</p><div class="table-wrap"><table><thead><tr><th>Academic year / term</th><th>Starts</th><th>Ends</th><th>Status</th><th>Action</th></tr></thead><tbody id="academicTermManagementRows"><tr><td colspan="5">Loading terms…</td></tr></tbody></table></div></div>
  <h3 style="margin-top:20px">3. Subject</h3>
  <form id="subjectForm"><div><label>Subject name *</label><input name="name" required placeholder="e.g. Mathematics"></div><div><label>Subject code</label><input name="code" placeholder="e.g. MTC"></div><div class="full"><button class="primary">Add subject</button></div></form>
  <h3 style="margin-top:20px">4. Assign subject to class and teacher</h3>
@@ -850,6 +855,7 @@ const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone
 if(error){message('appMsg','Your account profile could not be loaded. Ask the administrator to check the database setup.',true);return}
 profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 await refresh();
+ await loadAcademicControl();
 }
 async function loadStaffAttendanceNotice(){
  const box=$('staffAttendanceNotice');
@@ -1555,6 +1561,7 @@ async function filterAssessmentSubjects(){
  if(group)message('academicMsg','Showing '+group+' curriculum subjects for '+(cls?.name||'this class')+'.');
 }
 async function loadAcademics(){
+ if(profile?.role==='Admin')await loadAcademicControl();
  $('prepareExcelAssessments').classList.toggle('hidden',profile?.role!=='Admin');
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
@@ -1594,6 +1601,51 @@ async function loadAcademics(){
  updateScoreLearners();
  populateReportFilters();
 }
+async function loadAcademicControl(){
+ if(!db||demoMode)return;
+ const admin=profile?.role==='Admin';
+ if(admin){const {error:closeError}=await db.rpc('admin_close_expired_academic_terms');if(closeError)console.warn('Academic term auto-close:',closeError.message)}
+ const [yearsResult,termsResult]=await Promise.all([
+  db.from('academic_years').select('*').order('starts_on',{ascending:false}),
+  db.from('academic_terms').select('*,academic_years(name,is_current,starts_on,ends_on)').order('starts_on',{ascending:false})
+ ]);
+ if(yearsResult.error||termsResult.error){$('academicControlStatus').textContent='Calendar unavailable';$('academicControlHelp').textContent='Could not load the school calendar. '+(yearsResult.error||termsResult.error).message;return}
+ const years=yearsResult.data||[],terms=termsResult.data||[],active=terms.find(t=>t.is_current&&!t.is_closed);
+ $('dashboardTermSelect').innerHTML='<option value="">Choose a term</option>'+terms.filter(t=>!t.is_closed&&new Date(t.ends_on+'T00:00:00')>=new Date(new Date().toDateString())).map(t=>'<option value="'+t.id+'" '+(t.is_current?'selected':'')+'>'+esc(t.name+' · '+(t.academic_years?.name||'Year not set'))+'</option>').join('');
+ $('dashboardTermSelect').disabled=!admin;
+ $('setActiveAcademicTerm').classList.toggle('hidden',!admin);
+ $('openAcademicCalendar').classList.toggle('hidden',!admin);
+ if(active){$('academicControlStatus').textContent='ACTIVE · '+active.name;$('dashboardYearDisplay').textContent=active.academic_years?.name||'Academic year';$('dashboardTermDates').textContent=active.starts_on+' to '+active.ends_on}
+ else{$('academicControlStatus').textContent='No active term';$('dashboardYearDisplay').textContent=years.find(y=>y.is_current)?.name||'Not set';$('dashboardTermDates').textContent='Select and activate a term'}
+ $('academicControlHelp').textContent=admin?'Set the correct term here. Date changes and term closure are managed below in Academics. Closing a term does not delete or alter its records.':'Read-only school calendar. Contact the administrator if the active term is incorrect.';
+ if($('academicTermManagementRows'))$('academicTermManagementRows').innerHTML=terms.map(t=>'<tr><td><strong>'+esc(t.academic_years?.name||'Year')+' · '+esc(t.name)+'</strong></td><td><input type="date" data-term-start="'+t.id+'" value="'+t.starts_on+'" '+(admin&&!t.is_closed?'':'disabled')+'></td><td><input type="date" data-term-end="'+t.id+'" value="'+t.ends_on+'" '+(admin&&!t.is_closed?'':'disabled')+'></td><td>'+(t.is_closed?'<span class="badge">CLOSED</span>':t.is_current?'<span class="badge">ACTIVE</span>':'<span class="badge">PLANNED</span>')+'</td><td>'+(admin&&!t.is_closed?'<button type="button" data-save-term-dates="'+t.id+'">Save dates</button> <button type="button" data-close-term="'+t.id+'" class="danger">Close term</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="5">No academic terms have been created. Add the academic year and terms above.</td></tr>';
+}
+$('setActiveAcademicTerm').addEventListener('click',async()=>{
+ if(profile?.role!=='Admin')return;
+ const id=$('dashboardTermSelect').value;if(!id){message('academicMsg','Select an academic term first.',true);return}
+ const term=$('dashboardTermSelect').selectedOptions[0]?.textContent||'selected term';
+ if(!confirm('Make '+term+' the active school term? New term-based work will use this selection. Previous records will remain unchanged.'))return;
+ const {error}=await db.rpc('admin_set_current_academic_term',{p_term_id:id});
+ if(error){message('academicMsg','Could not activate the term: '+error.message,true);return}
+ await loadAcademicControl();await loadAcademics();message('academicMsg',term+' is now the active term. Previous term records were preserved.');
+});
+$('openAcademicCalendar').addEventListener('click',()=>tab('academics'));
+$('academicTermManagementRows').addEventListener('click',async e=>{
+ if(profile?.role!=='Admin')return;
+ const save=e.target.closest('[data-save-term-dates]');
+ if(save){const id=save.dataset.saveTermDates,start=$('[data-term-start="'+id+'"]')?.value,end=$('[data-term-end="'+id+'"]')?.value;
+  if(!start||!end||end<start){message('academicMsg','Check the term dates. The closing date must be on or after the opening date.',true);return}
+  const {error}=await db.from('academic_terms').update({starts_on:start,ends_on:end}).eq('id',id).eq('is_closed',false);
+  if(error){message('academicMsg','Could not update term dates: '+error.message,true);return}
+  await loadAcademicControl();await loadAcademics();message('academicMsg','Term dates updated. The term will close automatically after its end date.');
+ }
+ const close=e.target.closest('[data-close-term]');
+ if(close){const id=close.dataset.closeTerm;const term=academic.terms.find(t=>t.id===id);if(!confirm('Close '+(term?.name||'this term')+'? This preserves all records and prevents it being selected as the active term. Confirm only when the term has finished.'))return;
+  const {error}=await db.rpc('admin_close_academic_term',{p_term_id:id});
+  if(error){message('academicMsg','Could not close term: '+error.message,true);return}
+  await loadAcademicControl();await loadAcademics();message('academicMsg','Term closed. Its academic and financial history remains available.');
+ }
+});
 function populateReportFilters(){
  const term=$('reportTermSelect'),cls=$('reportClassSelect');
  term.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');
