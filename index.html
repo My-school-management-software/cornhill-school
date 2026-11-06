@@ -505,7 +505,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <div id="academicMsg" class="notice hidden"></div>
  <div id="academicAdminSetup">
  <h3>1. Academic year</h3>
- <form id="academicYearForm"><div><label>Academic year *</label><input name="name" required placeholder="e.g. 2027"></div><div><label>Make current?</label><select name="is_current"><option value="false">No</option><option value="true">Yes</option></select></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save academic year</button></div></form>
+ <form id="academicYearForm"><div><label>Academic year *</label><input name="name" required placeholder="e.g. 2027"></div><div class="full"><p class="muted">The academic year becomes current when you activate one of its terms from the dashboard.</p></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save academic year</button></div></form>
  <h3 style="margin-top:20px">2. Term</h3>
  <form id="academicTermForm"><div><label>Academic year *</label><select name="academic_year_id" id="academicYearSelect" required></select></div><div><label>Term name *</label><select name="name"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save term</button></div></form><div class="panel" style="margin-top:12px"><h4>Term calendar & date adjustments</h4><p class="muted">You can extend or shorten a term before it closes. When its end date passes, the system marks it closed automatically. Closed terms stay available for reports.</p><div class="table-wrap"><table><thead><tr><th>Academic year / term</th><th>Starts</th><th>Ends</th><th>Status</th><th>Action</th></tr></thead><tbody id="academicTermManagementRows"><tr><td colspan="5">Loading terms…</td></tr></tbody></table></div></div>
  <h3 style="margin-top:20px">3. Subject</h3>
@@ -2057,7 +2057,7 @@ async function submitAcademic(formId,table,transform,success){
   e.target.reset();await loadAcademics();message('academicMsg',success);
  });
 }
-submitAcademic('academicYearForm','academic_years',v=>({...v,is_current:v.is_current==='true'}),'Academic year saved.');
+submitAcademic('academicYearForm','academic_years',v=>({...v,is_current:false}),'Academic year saved. Select one of its terms on the dashboard to make it active.');
 submitAcademic('academicTermForm','academic_terms',v=>v,'Term saved.');
 submitAcademic('subjectForm','subjects',v=>({name:v.name.trim(),code:v.code.trim()||null}),'Subject added.');
 submitAcademic('classSubjectForm','class_subjects',v=>({...v,teacher_user_id:v.teacher_user_id||null}),'Subject assigned to class.');
