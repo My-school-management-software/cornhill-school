@@ -79,3 +79,25 @@ The 27 integrity assertions covered:
 
 - `supabase/migrations/20261106205433_revoke_client_execution_from_trigger_functions.sql`
 - `supabase/migrations/20261106205651_limit_public_class_login_directory_columns.sql`
+
+
+## 2026-11-07 follow-on 70-check batch
+**Result: 70 / 70 PASS.**
+
+- 17 checks confirmed the exact learner-register columns needed by the teacher screen remain readable.
+- 10 checks confirmed private guardian, address, photo and bursary columns are not selectable by the authenticated client role.
+- 43 checks confirmed individual foreign-key constraints are validated and point to real referenced relations.
+
+### Security correction
+The audit found table-wide authenticated SELECT on `public.students`. Although row-level policies limited teachers to assigned classes, the table grant allowed clients to request private columns within those rows. Applied `restrict_teacher_student_select_columns` to revoke table-wide SELECT and grant only the 17 fields used by the class register. The existing row-level policies remain in force. Admin-only learner details continue through the guarded administrator RPC.
+
+Verification after the migration:
+- table-wide authenticated SELECT: false
+- allowed register columns: 17
+- private columns still selectable: 0
+- all 70 follow-on assertions: PASS
+
+### Remaining review items
+- 58 performance-advisor unindexed-FK findings, 18 unused-index notices and 22 multiple-permissive-policy notices need careful workload-specific review.
+- 20 authenticated SECURITY DEFINER RPC warnings remain under body-level authorization review; no blanket permission changes were made.
+- Runtime teacher/admin impersonation, report-card PDF export and live browser workflows are still pending.
