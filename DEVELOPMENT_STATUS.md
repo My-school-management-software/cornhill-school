@@ -163,3 +163,4 @@ The remaining programme now explicitly includes:
 - Not yet tested in an actual browser or on Android/Windows: IndexedDB persistence, expiry, logout clearing, reconnect refresh, shared-device behaviour, and CSV/print while offline.
 - Privacy limitation: browser IndexedDB is not application-level encrypted by this implementation. Use only trusted, device-locked school devices; never leave an administrator session open on a shared/public device. A later native app may use platform-protected encrypted storage.
 - No learner, finance, assessment or staff production records were changed by this code batch.
+- Follow-up syntax correction: class-roster summary line newline fixed in commit e7ef9f542225dfd749995cdc776467fdf4ce12b1; all 3 inline JavaScript blocks were re-parsed successfully after the correction.
