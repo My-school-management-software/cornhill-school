@@ -172,4 +172,12 @@ The remaining programme now explicitly includes:
 - Hid the fingerprint device mapping and terminal CSV-import controls from the normal attendance interface. Added code-level guards to both submission handlers so a hidden control cannot be used to register mappings or import terminal events while the fingerprint feature remains disabled.
 - Kept staff work schedules, attendance history, attendance correction requests and related attendance administration visible; deactivating the fingerprint hardware does not remove the general staff attendance foundation.
 - No biometric templates, fingerprint records, device mappings, attendance events or school records were created or changed. No hardware connection has been made.
-- Static checks are pending in this commit; browser/runtime and physical device tests remain pending. No deployment was performed.
+- Static verification after saving: all three inline JavaScript blocks parse successfully; the fingerprint registration and CSV-import controls are hidden; both handlers contain inactive-state guards; the inactive status banner and UA300 Pro designation are present; no duplicate HTML IDs were found.
+- Browser/runtime and physical device tests remain pending. No deployment was performed.
+
+## Offline assessment synchronisation — schema and permission review
+
+- Inspected the live `assessment_scores` schema before implementing offline marks. A unique constraint exists on `(assessment_id, student_id)`, so duplicate score rows are prevented.
+- Teacher INSERT policy requires `entered_by = auth.uid()` and an assigned-class check. Teacher UPDATE policy also checks the assigned class. These protections must remain in force during offline synchronisation.
+- The existing online mark-sheet save uses an upsert. Offline sync must not blindly reuse that behaviour: the next implementation should compare the saved server score/comment with the values observed when the offline draft was created, stop on conflicts, and only submit when the teacher is still authorised for that class.
+- No offline marks queue has been enabled yet; no scores or school records were changed during this review.
