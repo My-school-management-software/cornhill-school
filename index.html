@@ -2792,7 +2792,7 @@ $('admissionMatchResults').addEventListener('click',async e=>{
   const {data,error}=await db.rpc('admin_readmit_learner',{p_student_id:match.id,p_class_id:form.elements.class_id.value||null,p_admission_date:admissionDate,p_reason:reason.trim()});
   if(error)throw error;
   clearAdmissionMatches();form.reset();syncBursaryAdmissionFields();await refresh();tab('students');
-  message('appMsg','Former learner re-admitted successfully. The original pupil code and LIN are retained. A new enrolment and separate fee account have been opened; previous financial records remain in the learner history.');
+  message('appMsg','Former learner re-admitted successfully. The original pupil code and LIN are retained. A new enrolment and separate fee account have been opened; previous charges and receipts remain in the learner history. Any previous bursary is not automatically renewed and must be reviewed again.');
  }catch(err){btn.disabled=false;message('appMsg','Re-admission was not completed: '+(err.message||'Please check the learner record and try again.'),true)}
 });
 $('admissionMatchActions').addEventListener('click',e=>{
