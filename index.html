@@ -3105,7 +3105,7 @@ $('downloadSchoolBackup').addEventListener('click',async()=>{
   try{$('backupEncryptionPassphrase').value='';const retentionCutoff=Date.now()-30*24*60*60*1000;const history=JSON.parse(localStorage.getItem('cornhill-backup-history')||'[]').filter(item=>{const stamp=Date.parse(item.created_at||'');return Number.isFinite(stamp)&&stamp>=retentionCutoff});history.unshift({created_at:backup.created_at,filename:a.download,record_counts:counts});localStorage.setItem('cornhill-backup-history',JSON.stringify(history.slice(0,20)));localStorage.setItem('cornhill-last-backup-generated',backup.created_at)}catch(storageError){}refreshBackupReminderStatus();
   $('backupStatus').textContent='Encrypted backup generated and locally decrypted for verification: '+a.download+' · '+Object.values(counts).reduce((a,b)=>a+b,0).toLocaleString('en-UG')+' records across '+Object.keys(counts).length+' datasets. Confirm that your browser saved it, then copy it to a separate device or secure drive.';
  }catch(error){$('backupStatus').textContent='Backup was NOT created: '+(error.message||'Unknown error')+' Please check administrator access and retry.'}
- finally{button.disabled=false}
+ finally{button.disabled=false;$('backupEncryptionPassphrase').value=''}
 });
 
 async function callGoogleDriveBackup(action){
