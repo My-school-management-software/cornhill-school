@@ -2731,20 +2731,20 @@ $('bursaryCategory').addEventListener('change',syncBursaryAdmissionFields);
 let editingStudentId=null;
 let admissionMatchState={matches:[],confirmedDifferent:false,searchToken:0,timer:null};
 function clearAdmissionMatches(){
- admissionMatchState.matches=[];admissionMatchState.confirmedDifferent=false;
+ admissionMatchState.matches=[];admissionMatchState.confirmedDifferent=false;admissionMatchState.searchToken++;
  $('admissionMatchPanel')?.classList.add('hidden');
  if($('admissionMatchResults'))$('admissionMatchResults').replaceChildren();
  if($('admissionMatchActions'))$('admissionMatchActions').replaceChildren();
 }
 function scheduleAdmissionMatchSearch(){
  if(profile?.role!=='Admin'||editingStudentId)return;
+ const token=++admissionMatchState.searchToken;
  clearTimeout(admissionMatchState.timer);
  admissionMatchState.confirmedDifferent=false;
  admissionMatchState.timer=setTimeout(async()=>{
   const form=$('studentForm'),first=String(form.elements.first_name.value||'').trim(),last=String(form.elements.last_name.value||'').trim();
   const lin=String(form.elements.lin.value||'').trim(),phone=String(form.elements.guardian_phone.value||'').trim();
   if((first.length<2||last.length<2)&&!lin&&!phone){clearAdmissionMatches();return}
-  const token=++admissionMatchState.searchToken;
   const args={p_first_name:first,p_last_name:last,p_middle_name:String(form.elements.middle_name.value||'').trim()||null,p_date_of_birth:form.elements.date_of_birth.value||null,p_birth_year:form.elements.birth_year.value?Number(form.elements.birth_year.value):null,p_lin:lin||null,p_guardian_phone:phone||null};
   try{
    const {data,error}=await db.rpc('admin_find_learner_matches',args);
@@ -2801,7 +2801,7 @@ $('cancelLearnerEdit').addEventListener('click',()=>{editingStudentId=null;$('st
 $('backToLearners').addEventListener('click',()=>tab('students'));
 $('studentRows').addEventListener('click',async e=>{
  const view=e.target.closest('.viewLearner');if(!view)return;
- const learner=students.find(x=>x.id===view.dataset.id);if(!learner)return;
+ const learner=students.find(x=>x.id===view.dataset.id);if(!learner)return;clearAdmissionMatches();
  const fields=[['School learner code',learner.admission_number],['Ministry LIN',learner.lin],['P7 index number',learner.p7_index_number],['Full name',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')],['Gender',learner.gender],['Date of birth',learner.date_of_birth],['Admission date',learner.admission_date],['Class',learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name],['Learner type',learner.learner_type],['Status',learner.status],['Previous school',learner.previous_school],...(profile?.role==='Admin'?[['Guardian',learner.guardian_name],['Relationship',learner.guardian_relationship],['Guardian phone',learner.guardian_phone],['Guardian email',learner.guardian_email],['Alternative guardian',learner.alternate_guardian_name],['Alternative phone',learner.alternate_guardian_phone],['Home address',learner.address],['Bursary',learner.is_bursary?(learner.bursary_category||'Approved')+' · UGX '+money(learner.bursary_fee_ugx):'Regular fees'],['Bursary reason',learner.bursary_reason||learner.bursary_notes],['Bursary approval account reference',learner.bursary_approved_by],['Bursary approved at',learner.bursary_approved_at]]:[])];
  $('learnerProfileContent').innerHTML='<div class="panel"><div class="row"><div style="display:flex;align-items:center;gap:14px"><div id="learnerPhotoFallback" class="excel-photo-placeholder" style="width:76px;height:76px;font-size:18px">'+esc(([learner.first_name,learner.last_name].filter(Boolean).map(x=>x[0]).join('')||'CH').toUpperCase())+'</div><img id="learnerProfilePhoto" class="hidden" alt="Learner photograph" style="width:76px;height:76px;object-fit:cover;border-radius:50%"><h3>'+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+'</h3></div><button type="button" id="printLearnerProfile">Print learner profile</button></div><div class="table-wrap"><table><tbody>'+fields.map(x=>'<tr><th>'+esc(x[0])+'</th><td>'+esc(x[1]||'—')+'</td></tr>').join('')+'</tbody></table></div></div>';
  if(learner.photo_path){const {data:photoData,error:photoError}=await db.storage.from('learner-photos').createSignedUrl(learner.photo_path,3600);if(!photoError&&photoData?.signedUrl){$('learnerProfilePhoto').src=photoData.signedUrl;$('learnerProfilePhoto').classList.remove('hidden');$('learnerPhotoFallback').classList.add('hidden')}}
@@ -2910,7 +2910,7 @@ $('studentForm').addEventListener('submit',async e=>{
  const result=wasEditing?await db.from('students').update(record).eq('id',editingStudentId).select('id,admission_number').single():await db.from('students').insert(record).select('id,admission_number,lin,p7_index_number').single();
  if(result.error){message('appMsg',(wasEditing?'Could not update learner: ':'Could not save learner: ')+result.error.message,true);return}
  let photoWarning='';if(photoFile){try{const ext=photoFile.type==='image/jpeg'?'jpg':photoFile.type==='image/png'?'png':'webp';const photoPath=result.data.id+'/'+Date.now()+'.'+ext;const upload=await db.storage.from('learner-photos').upload(photoPath,photoFile,{contentType:photoFile.type,upsert:false,cacheControl:'3600'});if(upload.error)throw upload.error;const saved=await db.from('students').update({photo_path:photoPath}).eq('id',result.data.id);if(saved.error){await db.storage.from('learner-photos').remove([photoPath]);throw saved.error}const oldPhotoPath=students.find(x=>x.id===result.data.id)?.photo_path;if(oldPhotoPath&&oldPhotoPath!==photoPath)await db.storage.from('learner-photos').remove([oldPhotoPath])}catch(photoErr){photoWarning=' Learner record was saved, but photograph upload failed: '+(photoErr.message||'Please retry from Edit learner.')}}
- editingStudentId=null;e.target.reset();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();e.target.querySelector('button[type="submit"]').textContent='Save student record';
+ editingStudentId=null;e.target.reset();clearAdmissionMatches();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();e.target.querySelector('button[type="submit"]').textContent='Save student record';
  await refresh();if(!wasEditing&&record.class_id){tab('classes');currentRosterClassId=record.class_id;$('classRosterSearch').value='';$('classRosterStatus').value='all';renderClassRoster()}else tab('students');
  message('appMsg',(wasEditing?'Learner record updated. Permanent school learner code '+result.data.admission_number+' was retained.':'Student registered successfully. School learner code: '+result.data.admission_number+'. Ministry LIN: '+(result.data.lin||'to be entered when officially issued')+'. P7 index: '+(result.data.p7_index_number||'to be entered when registered')+(record.is_bursary?'. '+record.bursary_category+' recorded: UGX '+money(record.bursary_fee_ugx)+' payable. The compulsory reason and administrator approval details were saved. '+(record.bursary_fee_ugx>0?'A bursary charge was created automatically.':'No charge was created because the approved amount is UGX 0.'):'')+'. Please record this code on the learner file.')+photoWarning,!!photoWarning);
  }catch(err){
