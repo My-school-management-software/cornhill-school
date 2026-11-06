@@ -2359,7 +2359,7 @@ async function queueExcelMarksOffline(payload,ctx,userId){
    class_id:ctx.classId,term_id:ctx.termId,score:row.score,teacher_comment:row.teacher_comment,
    baseline_exists:!!old,baseline_score:old?.score??null,baseline_comment:old?.teacher_comment??null,
    entered_by:userId,assessment_title:assessment?.title||'Assessment',
-   queued_at:now,expires_at:now+OFFLINE_SCHOOL_MAX_AGE,status:'pending'
+   queued_at:now,expires_at:null,status:'pending'
   };
  });
  await saveOfflineAssessmentDrafts(drafts);
@@ -2379,7 +2379,7 @@ async function syncOfflineAssessmentDrafts(){
  if(auth.error||!user||user.id!==currentUserId)return {synced:0,conflicts:0,expired:0};
  const drafts=await listOfflineAssessmentDrafts(user.id),result={synced:0,conflicts:0,expired:0};
  for(const draft of drafts){
-  if(draft.expires_at<=Date.now()){await deleteOfflineAssessmentDraft(draft.draft_id);result.expired++;continue}
+  if(draft.expires_at&&draft.expires_at<=Date.now()){await deleteOfflineAssessmentDraft(draft.draft_id);result.expired++;continue}
   if(draft.entered_by!==user.id)continue;
   const values={score:draft.score,teacher_comment:draft.teacher_comment,entered_by:user.id};
   let write;
@@ -2414,8 +2414,8 @@ $('saveExcelMarks').addEventListener('click',async()=>{
   const ctx=window.cornhillExcelMarksContext;
   if(!ctx){message('excelMarksMsg','Load a class sheet first.',true);return}
   if(!['Admin','Teacher'].includes(profile?.role)){message('excelMarksMsg','Only authorised administrators and assigned teachers can save marks.',true);return}
-  const auth=await db.auth.getUser(),user=auth.data?.user;
-  if(auth.error||!user){message('excelMarksMsg','Your session has expired. Sign in again.',true);return}
+  const auth=navigator.onLine?await db.auth.getUser():await db.auth.getSession(),user=auth.data?.user||auth.data?.session?.user;
+  if(auth.error||!user){message('excelMarksMsg','Your local sign-in session is unavailable. Reconnect and sign in before saving marks.',true);return}
   const inputs=[...document.querySelectorAll('[data-grid-score]')],payload=[];
   for(const input of inputs){
    const raw=input.value.trim();if(raw==='')continue;
