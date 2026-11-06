@@ -96,7 +96,7 @@ Found that the previous `vercel.json` built only `index.html` and rewrote every 
 
 Updated `vercel.json` to build all root HTML pages, JavaScript files, the web manifest and assets as static files, and removed the catch-all rewrite. The updated JSON was parsed and all five routing/configuration assertions passed (the four file-pattern allowlists and absence of a catch-all rewrite).
 
-**Deployment verification is still pending.** The latest Vercel preview visible during this audit was still built from commit `8e8e06f8dace4e52dd9e39059d09e665bb5a5e8f`, before the routing correction. The new configuration must be built and the deployed `/parents.html` and `/manifest.webmanifest` routes checked before calling this correction live.
+**Deployment verification is still pending.** The latest Vercel preview visible during this audit was still built from commit `8e8e06f8dace4e52dd9e39059d09e665bb5a5e8f`, before the routing correction. I attempted a new preview deployment on the existing free Hobby team, but Vercel rejected the deployment API request with HTTP 402 because the free API deployment limit (100 per day) has been reached; it reports a 24-hour retry window. No paid upgrade or charge was accepted. The new configuration must be built when the free quota resets, and the deployed `/parents.html` and `/manifest.webmanifest` routes must be checked before calling this correction live.
 
 ## Outstanding release blockers and external checks
 
@@ -112,6 +112,8 @@ These are not being counted as passed:
 8. Windows 10/11 and Android browser/device compatibility, actual thermal printer output and the school's fingerprint terminal remain external hardware tests.
 9. The routing correction has not yet appeared in a new Vercel preview build. The currently visible preview is older than the correction.
 10. School administrator release sign-off is still required before production learner records or real payments are used.
+
+Supabase health advisor: zero lints at the time of this audit.
 
 ## Release decision
 
