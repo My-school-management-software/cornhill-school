@@ -281,3 +281,15 @@ The remaining programme now explicitly includes:
 - Updated service-worker cache to cornhill-shell-v13.
 - Static checks: all 3 inline JavaScript blocks parse; validation and confirmation strings present. Real browser, RPC/RLS and Android/Windows tests remain pending. No learner placements or academic records were changed during this code update.
 - Commits: 5ce17378291b3f409ce64dc7c4e5c601b3ea0fca (UI), 230799072ee926d15b0a682f0dbb3eee377dd4a7 (service worker).
+
+
+## 2026-11-06 — Academic year and term creation safeguards
+
+- Implemented explicit administrator-only submit handlers for the Academic Year and Term forms. These forms previously had local draft autosave/restore but no matching submit handlers in the inspected page code.
+- Academic year creation now checks required values, date order, duplicate year names and inclusive date overlap with existing academic years. New years are created with `is_current=false`; creating a year does not activate it or change existing school history.
+- Term creation now checks that the selected year still exists, dates fall entirely inside that year, and the term name and date range do not duplicate/overlap another term in that year. New terms are created as planned (`is_current=false`, `is_closed=false`) and require an explicit later activation from the dashboard.
+- On successful creation, the relevant local form draft is cleared and the calendar/academic views reload. Offline submission is blocked clearly while local autosaved drafts remain on the device.
+- Schema inspected from Supabase: year/term required columns, date checks, unique academic-year name, unique term name per year, and foreign key. No schema migration was needed.
+- Static checks: all 3 inline JavaScript blocks parse without syntax errors; year/term handlers, overlap checks, year boundary checks and non-active insert values confirmed.
+- Not tested: real browser submission, Supabase RLS on insert, duplicate race conditions, calendar reload in browser, Android/Windows. No academic years or terms were inserted or changed; database currently has no real configured school calendar rows.
+- Commits: 53b57fa83af673f9995029b1ba44054b445af76e (UI), 6e9b540abf010ce2d4a9c0b2b602076955fa96e4 (service worker).
