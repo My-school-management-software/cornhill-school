@@ -1919,6 +1919,19 @@ async function filterAssessmentSubjects(){
  $('assessmentSubjectSelect').innerHTML=subjects.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('')||'<option value="">No curriculum subjects assigned</option>';
  if(group)message('academicMsg','Showing '+group+' curriculum subjects for '+(cls?.name||'this class')+'.');
 }
+async function loadAllTeacherMarksRegister(){
+ const pageSize=1000;let offset=0,rows=[];
+ while(true){
+  const result=await db.from('assessment_scores')
+   .select('id,score,teacher_comment,entered_by,updated_at,students(admission_number,first_name,middle_name,last_name),assessments(title,max_score,school_classes(name),academic_terms(name),subjects(name))')
+   .order('updated_at',{ascending:false}).range(offset,offset+pageSize-1);
+  if(result.error)return {data:null,error:result.error};
+  const page=result.data||[];rows=rows.concat(page);
+  if(page.length<pageSize)break;
+  offset+=pageSize;
+ }
+ return {data:rows,error:null};
+}
 async function loadAcademics(){
  if(profile?.role==='Admin')await loadAcademicControl();
  $('prepareExcelAssessments').classList.toggle('hidden',profile?.role!=='Admin');
@@ -1941,7 +1954,7 @@ async function loadAcademics(){
   profile?.role==='Admin'?db.from('subjects').select('*').eq('is_active',true).order('name'):(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}),
   db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name').order('full_name'):Promise.resolve({data:[],error:null}),
-  db.from('assessment_scores').select('id,score,teacher_comment,entered_by,updated_at,students(admission_number,first_name,middle_name,last_name),assessments(title,max_score,school_classes(name),academic_terms(name),subjects(name))').order('updated_at',{ascending:false}).limit(1000),
+  loadAllTeacherMarksRegister(),
   profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id'))
  ]);
  const err=[y,t,s,a,staff,cscores,assignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
