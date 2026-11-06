@@ -2243,9 +2243,17 @@ async function refreshGoogleDriveStatus(){
  }catch(error){status.textContent=error.message;$('runGoogleDriveBackup').disabled=true}
 }
 $('connectGoogleDrive').addEventListener('click',async()=>{
- const button=$('connectGoogleDrive');button.disabled=true;$('googleDriveStatus').textContent='Preparing secure Google connection…';
- try{const data=await callGoogleDriveBackup('connect');window.location.assign(data.url)}
- catch(error){$('googleDriveStatus').textContent=error.message;button.disabled=false}
+ const button=$('connectGoogleDrive'),status=$('googleDriveStatus');
+ button.disabled=true;status.textContent='Preparing secure Google connection…';
+ try{
+  const data=await callGoogleDriveBackup('connect');
+  const authUrl=new URL(data?.url||'');
+  if(authUrl.protocol!=='https:'||authUrl.hostname!=='accounts.google.com')throw new Error('Supabase responded, but did not return a valid Google sign-in link. Please contact the system administrator.');
+  const link=document.createElement('a');
+  link.href=authUrl.href;link.textContent='Open Google sign-in';link.target='_self';link.rel='noopener';
+  status.replaceChildren(document.createTextNode('Your secure Google sign-in link is ready. Tap '),link,document.createTextNode(' to continue.'));
+  button.disabled=false;
+ }catch(error){status.textContent='Google connection could not start: '+(error.message||'Unknown error');button.disabled=false}
 });
 $('runGoogleDriveBackup').addEventListener('click',async()=>{
  const button=$('runGoogleDriveBackup');button.disabled=true;$('googleDriveStatus').textContent='Creating encrypted school backup and uploading it to Google Drive. Keep this page open…';
