@@ -774,3 +774,36 @@ The remaining programme now explicitly includes:
 - The preview commit contains the corrected static-page build configuration, but live route responses for `/parents.html` and `/manifest.webmanifest` have not been independently verified in a browser.
 - Removed the excluded paid Supabase leaked-password feature from the release-blocker list. The free app-level alternative and its server-side limitation remain documented.
 - Latest application source remains on `feature/cornhill-v3-foundation`; a new preview of that exact branch head is still required before device acceptance.
+
+
+## 2026-11-07 — Combined 75-point source and live database review
+
+### Application source review
+
+- Reviewed the current branch `index.html` and ran **75 targeted source-presence assertions** across learner admission/identity, guardian details, bursary, enrolment, teacher assessments, grading/report cards, payment allocations and receipts, attendance, offline draft handling, parent portal, staff communications, media/calls, fingerprint mapping, themes, mobile layout and password recovery.
+- **73/75 source assertions matched.** Two search-pattern checks did not match: a dedicated learner-status-filter token and a Google Drive backup token in the main `index.html`. These are not treated as confirmed defects: backup implementation is in separate server-side function files, and the learner status filter needs a targeted UI/code-path review. Neither is marked passed until verified in its actual implementation.
+- No code was changed and no live learner/payment records were modified in this batch.
+
+### Live Supabase metadata snapshot (read-only)
+
+- Public tables: **63 total, 63 with RLS enabled**.
+- Public RLS policies: **107** (count only; this batch did not re-execute every policy under real user identities).
+- Public views: **3 total, all 3 configured with security_invoker**.
+- Direct anon table privileges for SELECT/INSERT/UPDATE/DELETE: **0**.
+- Public database functions: **52 total**; **30 SECURITY DEFINER**.
+- SECURITY DEFINER functions executable by anon: **0**.
+- SECURITY DEFINER functions executable by authenticated: **20**; retain individual authorization-body review and live role tests as release requirements.
+- All 30 SECURITY DEFINER functions have an explicit function-level search_path configuration; an empty search_path is intentional hardening, not a missing setting.
+
+### Deployment state
+
+- The current feature branch head recorded for this review is `542d18c9094d0a11e560a334b2ddc02ffeef5b41`.
+- GitHub's commit status for that SHA reports the Vercel check as failed with the Vercel build-rate-limit/upgrade gate. No paid upgrade was made.
+- The most recent READY deployment listed by Vercel is still an older commit (`ecdd848908da1281bf7c750c2377a3bed90ce874`), not this branch head. Therefore the latest source review is not a claim that the current code is live.
+
+### Remaining validation
+
+- Inspect the actual learner status-filter UI and its query behaviour; do not infer failure solely from a missing variable-name pattern.
+- Locate and inspect the Google Drive backup Edge Function and run its validation/restore workflow only with a designated test backup.
+- Keep browser E2E, real administrator/teacher/guardian account isolation, OTP/email delivery, payment allocation/receipt posting, offline reconnect/conflict, Windows/Android, thermal printer, fingerprint hardware and current-commit deployment as pending external/runtime checks.
+- Free-tier-only policy remains in force. No paid Supabase/Vercel feature or upgrade is required or authorised.
