@@ -418,3 +418,12 @@ The remaining programme now explicitly includes:
 - Deployed Supabase Edge Function `class-teacher-code` version 12, status ACTIVE, `verify_jwt=true`.
 - No teacher code/password was reset and no staff profile or class assignment was changed. Runtime test with active/inactive teacher accounts remains pending.
 - The sign-in password recovery work remains saved in the prior commits; no recovery email has been sent and no account password changed. Full application deployment and Android/Windows tests remain pending.
+
+## 2026-11-06 — Persistent cloud-backup validation history
+- Added `google_drive_backup_validations` with a foreign key to backup runs, validating administrator, pass/fail result, filename, counts, error message and timestamp. RLS is enabled; authenticated users receive SELECT only through `is_school_admin()`. Anonymous and authenticated write access is revoked; the Edge Function uses its service-role client after its own administrator check.
+- Updated the Google Drive backup Edge Function: status now returns recent validation history; each successful validation is recorded; failed validation attempts are recorded when possible. Deployed Edge Function `google-drive-backup` version 24, ACTIVE. Its handler continues to enforce its own administrator authentication.
+- Updated Backup & Recovery history to show each backup's latest validation outcome and timestamp in Uganda time. Updated service-worker shell cache to `cornhill-shell-v23`.
+- Supabase migration applied and saved as `supabase/migrations/20261106160000_google_drive_backup_validation_audit.sql`.
+- GitHub commits: Edge Function `0baae87ed11c4d51804411f3022c97db6846a259`; UI history `3313d846ee70224d23fcc14c4bcc4c687a843dfa`; syntax correction `4b88a94fe063a22e20e3a9d5c6a055dcb1ee642c`; service worker `8e8c748777d923a86068867485eaec845c306ddf`; migration file commit recorded separately.
+- Verification: all 3 inline JavaScript blocks parse; live audit table exists with RLS enabled; zero validation rows (no backup validation was triggered); Supabase health advisor returned zero lints. No backup was created/downloaded/restored and no school records were changed.
+- Pending: run a real administrator validation against a completed cloud backup, confirm the pass/fail audit appears in the interface, and conduct a separate isolated restore drill. Full application deployment and Android/Windows browser tests remain pending.
