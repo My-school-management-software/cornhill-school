@@ -716,3 +716,14 @@ The remaining programme now explicitly includes:
 - Created GitHub migration sources and docs/PARENT_PORTAL_GUARDIAN_SECURITY_127_CHECKS.md.
 - Supabase health advisor returned zero lints. Security advisor still reports six service-only RLS/no-policy informational notices, pg_net in public schema, 20 authenticated SECURITY DEFINER warnings and leaked-password protection disabled. No broad changes made.
 - No guardian/learner/finance records were edited and no audit rows were fabricated. Actual OTP, browser, guardian-account isolation and Windows/Android tests remain pending.
+
+
+## 2026-11-06 — 250-check security and data-integrity cycle
+- Completed exactly 250 live Supabase assertions: 63 public-table RLS checks; 62 anonymous table-privilege checks; 50 checks across 25 trigger functions (attachment and no client EXECUTE); 46 checks for existence and anonymous denial of 23 key RPCs; 27 learner/guardian/finance/academic/attendance/backup integrity checks; and 2 public sign-in directory privilege checks. All 250 passed after the targeted corrections.
+- The first pass identified seven trigger-only functions with unnecessary client EXECUTE privileges. Applied migration `20261106205433_revoke_client_execution_from_trigger_functions` to revoke PUBLIC/anon/authenticated execution while preserving database trigger attachment. Verified all 25 inspected trigger functions remain attached and none is directly client-executable.
+- The first pass also flagged an over-broad anonymous SELECT grant on `class_login_directory`. Source review confirmed the sign-in page needs only class_key, class_label, teacher_name, administrator_name and display_order. Applied migration `20261106205651_limit_public_class_login_directory_columns` to remove table-wide anonymous SELECT and grant those five display columns only.
+- Verified the public directory has exactly five anonymous SELECT columns, zero unexpected columns, no anonymous write grants and no table-wide anonymous SELECT. Sign-in page source uses the allowed display fields.
+- Final 250 assertions all PASS. Separate allowlist query: five intended columns, zero unexpected columns.
+- Health advisor: zero lints. Security advisor retains six informational service-only RLS/no-policy findings, one pg_net-in-public-schema warning, 20 authenticated SECURITY DEFINER RPC warnings and leaked-password protection disabled. No blanket changes were made to intentionally guarded admin RPCs or service-only tables.
+- No school data rows or credentials were changed/read. Runtime transaction tests, browser tests, parent OTP, backup restore, hardware, Windows/Android and deployment remain pending.
+- Created `docs/SECURITY_DATA_INTEGRITY_250_CHECKS.md` and both migration source files.
