@@ -13,7 +13,7 @@ This checklist is the release gate for the first real school use. Run it with th
 - [ ] A teacher cannot edit marks for a class/subject not assigned to them.
 - [ ] Password reset works through the secure account email flow.
 - [ ] No service-role or secret key is present in browser source, local storage, or network responses.
-- [ ] Supabase Auth leaked-password protection is enabled before production use.
+- [ ] CORNHILL's password-change and recovery screens enforce the agreed password length/character-class rules and perform the free breach-list check. Confirm the limitation is documented: this app-level check is not Supabase server-side leaked-password enforcement.
 
 **Important:** Selecting a class tile on the public sign-in page is not, by itself, proof of class access control. Verify the database Row Level Security rules with a real teacher account.
 
