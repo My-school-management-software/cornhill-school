@@ -1020,7 +1020,8 @@ async function runTeacherVisitingSearch(){
  }catch(e){out.replaceChildren();status.textContent=(e?.message||'Search failed. Check the pupil code and your class assignment.').replace(/^Error:\s*/,'');status.className='notice error'}
  finally{button.disabled=false;button.textContent='Find learner'}
 }
-\n$('teacherPortalSummary').addEventListener('click',e=>{const b=e.target.closest('[data-teacher-open]');if(b)tab(b.dataset.teacherOpen);if(e.target.closest('#teacherVisitingSearchButton'))runTeacherVisitingSearch()});\n$('teacherPortalSummary').addEventListener('keydown',e=>{if(e.target.id==='teacherVisitingPupilCode'&&e.key==='Enter'){e.preventDefault();runTeacherVisitingSearch()}});
+
+$('teacherPortalSummary').addEventListener('click',e=>{const b=e.target.closest('[data-teacher-open]');if(b)tab(b.dataset.teacherOpen);if(e.target.closest('#teacherVisitingSearchButton'))runTeacherVisitingSearch()});\n$('teacherPortalSummary').addEventListener('keydown',e=>{if(e.target.id==='teacherVisitingPupilCode'&&e.key==='Enter'){e.preventDefault();runTeacherVisitingSearch()}});
 $('teacherPortalSummary').addEventListener('change',e=>{
  if(!['teacherThemeChoice','teacherFontChoice','teacherFontSize'].includes(e.target.id))return;
  const p={...readAppearance(),theme:$('teacherThemeChoice').value,font:$('teacherFontChoice').value,fontSize:$('teacherFontSize').value};
