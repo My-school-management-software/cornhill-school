@@ -121,3 +121,18 @@ The remaining programme now explicitly includes:
 - The service worker file exists at `service-worker.js`; `manifest.webmanifest` is referenced by the page. No `package.json` or `supabase/config.toml` was found at the repository root during this inspection.
 - Continue with an explicit IndexedDB pending-write queue, idempotent server-side sync RPCs, per-record validation, permission checks and conflict review before enabling offline writes. Do not queue financial payments offline until an audited, duplicate-safe reconciliation design has passed tests.
 - Deployment and physical-device testing remain pending. Vercel usage limit was previously exhausted; no deployment was attempted in this continuation.
+
+## 2026-11-06 — Combined batch 3: limited offline attendance-correction queue
+
+- Added durable browser IndexedDB storage for staff attendance correction requests only.
+- When a staff member submits a correction request without internet, the app stores the request on that device and clearly states that it has NOT yet reached the administrator.
+- When connectivity returns, or the staff member reopens the Attendance workspace while online, the app attempts to send only that signed-in user's queued requests.
+- Each queued request is assigned a UUID before storage. A retry after a lost network response checks for that same request ID before deciding it failed, reducing duplicate submissions.
+- Requests remain on the device when sync fails; requests belonging to a different signed-in account are not sent by the current account.
+- The offline banner now distinguishes this limited attendance-correction queue from live learner, marks, finance, payment and receipt operations.
+- Explicitly excluded learner edits, marks, financial payments, receipts and other sensitive school transactions from offline queuing.
+- Updated the service-worker cache version to `cornhill-shell-v5` so clients fetch the revised app shell.
+- GitHub commits: `e3cc56e44abd9763b9a2a7940e4f20683f29d62e` (offline queue), `38ebf7ff30766c5194a5f526c031bf24ae2e0d78` (service-worker cache), and `c3b2d2bc044a6315d189b677a596eb11f1189cfb` (sync when Attendance is reopened).
+- Static verification after the final update: all 3 inline JavaScript blocks parse without syntax errors. The simple duplicate-ID scan also flags IDs inside dynamic HTML template strings, so those flagged strings are not evidence of duplicate rendered page IDs.
+- Not yet verified in a real browser: offline IndexedDB persistence across reload, switching accounts, reconnect/retry, duplicate-response recovery, or administrator receipt of the request. This batch is code saved, not a completed end-to-end offline test.
+- No financial or learner records were queued, inserted, changed or deleted by this batch.
