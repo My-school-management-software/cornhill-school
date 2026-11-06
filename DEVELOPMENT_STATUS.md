@@ -409,3 +409,12 @@ The remaining programme now explicitly includes:
 - GitHub commits: UI `f210e0044f4ddcd3c5946abaf5953f165bb89b09`, recovery event routing `0740a29bbaa35cf611cf706c061927f1b22b0405`, teacher guidance `d35468dac311e8ceb46a1b18934b42be82c2cc95`, service worker `1a063031923816261ba7c9c9cfcfb82db6930c16`.
 - Static parse check: all 3 inline JavaScript blocks passed. No password reset email was sent and no account password was changed. Browser end-to-end recovery is not yet tested. Email delivery requires Supabase Auth email delivery/SMTP configuration and the deployed application URL must be allowed in Auth redirect URL settings. Teacher code reset still requires a secure administrator workflow; the current note directs staff to the administrator but does not itself change a teacher code.
 - Application deployment and Android/Windows browser tests remain pending.
+
+
+## 2026-11-06 — Teacher code-reset employment safeguard and security review
+- Reviewed the live Supabase security and health advisors. Health advisor returned zero lints. Security advisor reports six RLS-enabled service-only tables with no client policies, pg_net in public, 20 authenticated-executable SECURITY DEFINER functions, and leaked-password protection disabled. The six service-only tables are intentionally inaccessible to ordinary clients; do not add broad policies. The 20 functions were sampled and the reviewed administrator/teacher RPCs contain explicit identity/role checks; do not revoke authenticated execution indiscriminately because the app calls these functions. Leaked-password protection remains a Supabase Auth configuration task.
+- Hardened the class-teacher-code Edge Function: before resetting an existing teacher password, it now checks the existing profile's role and employment_status. It refuses reset for any non-Active employment status rather than silently reactivating that staff member. It also verifies the class curriculum mapping exists before changing the auth account password.
+- Saved GitHub commit `d78ef0d3ad86ee1ff15e8e2e628920d24d0eaf1e`.
+- Deployed Supabase Edge Function `class-teacher-code` version 12, status ACTIVE, `verify_jwt=true`.
+- No teacher code/password was reset and no staff profile or class assignment was changed. Runtime test with active/inactive teacher accounts remains pending.
+- The sign-in password recovery work remains saved in the prior commits; no recovery email has been sent and no account password changed. Full application deployment and Android/Windows tests remain pending.
