@@ -766,3 +766,11 @@ The remaining programme now explicitly includes:
 - Clarified offline boundaries: attendance queues corrections only (not clock-in/out), teacher marks can remain local drafts until conflict-checked sync, form autosave is device-local, and payment posting remains online-only.
 - Documented in `docs/CLASS_PROGRESSION_OFFLINE_REVIEW_20261107.md`.
 - Paid Supabase leaked-password protection is explicitly out of scope; no upgrade is required.
+
+## 2026-11-07 — Preview comparison and release-gate correction
+
+- Found a Vercel preview in READY state at `https://cornhill-school-97xjp2o32-cypher-projects1.vercel.app`, built from commit `42980a76f3395b8257884a986f5e0f01ee93adf9`.
+- Compared deployed-commit and current-branch blobs: `parents.html`, `manifest.webmanifest` and `vercel.json` match; `index.html` does not. The preview is therefore not the latest application code and must not be treated as the current release.
+- The preview commit contains the corrected static-page build configuration, but live route responses for `/parents.html` and `/manifest.webmanifest` have not been independently verified in a browser.
+- Removed the excluded paid Supabase leaked-password feature from the release-blocker list. The free app-level alternative and its server-side limitation remain documented.
+- Latest application source remains on `feature/cornhill-v3-foundation`; a new preview of that exact branch head is still required before device acceptance.
