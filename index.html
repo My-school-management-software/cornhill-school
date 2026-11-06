@@ -2910,9 +2910,10 @@ $('studentForm').addEventListener('submit',async e=>{
   if(admissionMatchState.searchPending||admissionMatchState.searchFailed){message('appMsg','Wait for the previous-learner check to finish successfully before saving. Retry the search if it failed.',true);return}
   const checks=[];
   if(record.lin?.trim())checks.push(db.from('students').select('id,admission_number').ilike('lin',record.lin.trim()).limit(1));
+  if(record.p7_index_number?.trim())checks.push(db.from('students').select('id,admission_number').ilike('p7_index_number',record.p7_index_number.trim()).limit(1));
   const found=await Promise.all(checks);
   if(found.some(x=>x.error)){message('appMsg','Could not verify duplicate official learner identifiers. Please retry before saving.',true);return}
-  if(found.some(x=>x.data?.length)){message('appMsg','That Ministry LIN or P7 examination index number is already assigned to another learner. Check the existing record or use the previous-learner recognition process.',true);return}
+  if(found.some(x=>x.data?.length)){message('appMsg','That Ministry LIN or P7 examination index number is already assigned to another learner. Use the previous-learner recognition process if this is the same child.',true);return}
   if(admissionMatchState.matches.length&&!admissionMatchState.confirmedDifferent){
    message('appMsg','A possible previous learner was found. Verify whether this is the same child and use Re-admit this learner, or confirm that the matches are different before creating a new record.',true);return;
   }
