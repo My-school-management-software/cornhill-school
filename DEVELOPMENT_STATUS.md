@@ -164,3 +164,12 @@ The remaining programme now explicitly includes:
 - Privacy limitation: browser IndexedDB is not application-level encrypted by this implementation. Use only trusted, device-locked school devices; never leave an administrator session open on a shared/public device. A later native app may use platform-protected encrypted storage.
 - No learner, finance, assessment or staff production records were changed by this code batch.
 - Follow-up syntax correction: class-roster summary line newline fixed in commit e7ef9f542225dfd749995cdc776467fdf4ce12b1; all 3 inline JavaScript blocks were re-parsed successfully after the correction.
+
+## 2026-11-06 — Fingerprint module deliberately deactivated pending hardware purchase
+
+- Restored the previously selected preferred machine from the user's earlier decision: **ZKTeco UA300 Pro**.
+- Updated the Staff Attendance workspace to show a clear INACTIVE status and explain that device registration, fingerprint matching, hardware connection and terminal-import controls are locked until the school purchases and tests the machine.
+- Hid the fingerprint device mapping and terminal CSV-import controls from the normal attendance interface. Added code-level guards to both submission handlers so a hidden control cannot be used to register mappings or import terminal events while the fingerprint feature remains disabled.
+- Kept staff work schedules, attendance history, attendance correction requests and related attendance administration visible; deactivating the fingerprint hardware does not remove the general staff attendance foundation.
+- No biometric templates, fingerprint records, device mappings, attendance events or school records were created or changed. No hardware connection has been made.
+- Static checks are pending in this commit; browser/runtime and physical device tests remain pending. No deployment was performed.
