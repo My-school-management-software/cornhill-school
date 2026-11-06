@@ -436,3 +436,11 @@ The remaining programme now explicitly includes:
 - GitHub commits: active-admin guard `ffa04dbd8b949262f7b94925aa9d9e81462bdd1d`; snapshot scope `ff2209348bd38c9a8f4cdf04747070321dd4ff71`; UI restore warning `86cc542d3702a28a6fd025e9ef14f12f6bce09db`.
 - Verification: all 3 inline JavaScript blocks parse; live Edge Function list confirms version 25 ACTIVE; Supabase health advisor returned zero lints. No Google Drive connection, backup, restore, account reset or school record mutation was performed.
 - Pending: administrator runtime test of active/inactive account guards, real backup validation, and an isolated restore drill. Full app deployment and Windows/Android tests remain pending.
+
+## 2026-11-06 — Read-only live finance and learner-data integrity audit
+- Read-only checks against the live Supabase project found the latest successful encrypted cloud backup run at `2026-11-06 09:06:05 UTC` (12:06:05 Uganda time), with 231 records in its run manifest. Automatic cloud backup is currently enabled with `daily` frequency. This checks the run metadata only; the encrypted Drive file has not yet been decrypted/validated in this session.
+- Backup validation audit table currently has 0 rows. No administrator validation was triggered because this development session has no authenticated school-admin browser session; do not treat the existing successful backup run as a validated backup.
+- Finance integrity checks: orphan payment allocations 0; payments allocated above their payment amount 0; charges allocated above their charge amount 0; incomplete reversal audit records 0; charges with missing enrolment-period links 0.
+- Learner integrity checks: duplicate permanent pupil codes 0; learners with more than one Active enrolment period 0; invalid bursary amounts 0; invalid mid-term proration day/rate records 0.
+- The project currently has 2 enrolment-period rows, 2 school-payment rows, 0 payment-allocation rows and 1 learner-charge row. These counts are observations, not test fixtures; no rows were inserted, edited or deleted.
+- This was a read-only audit. It does not replace authenticated browser tests, backup decryption validation, restore drill, or Windows/Android tests.
