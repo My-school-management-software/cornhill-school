@@ -644,3 +644,13 @@ The remaining programme now explicitly includes:
 - Authenticated RPC execution, concurrency, payroll/advance workflow, expense voiding, daily collection refresh, receipt printing and thermal-printer tests remain pending in an isolated authorised environment.
 - Updated docs/FINANCE_ACCEPTANCE_TESTS.md with the 24-check results and limitations.
 - This is a read-only database test batch and documentation update only; no deployment or device test.
+
+
+## 2026-11-06 — Combined admission and academic verification batches
+- Batch A: ran 24 read-only admission/learner identity/bursary/guardian/enrolment checks. All 24 returned PASS: RLS enabled, permanent admission-code uniqueness/nonblank, active learner class links, day/boarding values, bursary amount/reason/category consistency, award date ranges, one active enrolment per learner, valid exit dates, guardian consent-number consistency, one active primary guardian, and history foreign-key integrity.
+- Batch B: ran 22 read-only academic integrity checks. 21 returned PASS and one returned FAIL: one class-subject mapping is assigned to an Active Admin profile rather than a Teacher profile. Aggregate diagnostic confirmed one such mapping; no staff identity details were exposed. It was deliberately not changed pending administrator confirmation.
+- Academic checks also confirmed score uniqueness/non-negative/max-score bounds, assessment class/subject/term/date integrity, learner-to-assessment class matching, unique class-subject mapping, report-publication class/term/learner links and grade-band range validity.
+- Dataset at review: 2 students, 2 enrolment periods, 1 bursary award, 2 guardian contacts, 0 class/status history rows; 55 class-subject mappings; 0 academic years, 0 terms, 0 assessments, 0 scores and 0 report publications. Empty transaction/history tables limit the meaning of some PASS results.
+- No learner, guardian, bursary, enrolment, class-subject, assessment, mark or publication rows were changed. No browser/RPC/teacher-session test performed.
+- Added `docs/ADMISSIONS_ACADEMICS_ACCEPTANCE_TESTS.md` with all checks, the one configuration exception and required end-to-end tests.
+- Follow-up: school administrator should confirm the one Admin profile assigned to a class-subject row; use an isolated test learner, teacher and term for end-to-end admission and academic tests.
