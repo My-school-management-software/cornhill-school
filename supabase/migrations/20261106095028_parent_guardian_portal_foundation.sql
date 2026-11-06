@@ -7,8 +7,8 @@ create table if not exists public.parent_guardian_contacts (
  sms_opt_in boolean not null default false, whatsapp_opt_in boolean not null default false,
  is_primary boolean not null default false, is_active boolean not null default true, notes text,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
- constraint parent_guardian_contacts_phone_format check (phone_e164 is null or phone_e164 ~ '^\\+256[0-9]{9}$'),
- constraint parent_guardian_contacts_whatsapp_format check (whatsapp_e164 is null or whatsapp_e164 ~ '^\\+256[0-9]{9}$')
+ constraint parent_guardian_contacts_phone_format check (phone_e164 is null or phone_e164 ~ '^\+256[0-9]{9}$'),
+ constraint parent_guardian_contacts_whatsapp_format check (whatsapp_e164 is null or whatsapp_e164 ~ '^\+256[0-9]{9}$')
 );
 create unique index if not exists parent_guardian_contacts_student_phone_uidx on public.parent_guardian_contacts(student_id,phone_e164) where phone_e164 is not null;
 create index if not exists parent_guardian_contacts_phone_active_idx on public.parent_guardian_contacts(phone_e164) where is_active and phone_e164 is not null;
@@ -52,17 +52,17 @@ drop trigger if exists parent_contact_change_audit on public.parent_guardian_con
 create trigger parent_contact_change_audit before update on public.parent_guardian_contacts for each row execute function public.log_parent_contact_change();
 insert into public.parent_guardian_contacts(student_id,guardian_name,relationship,phone_e164,whatsapp_e164,sms_opt_in,whatsapp_opt_in,is_primary)
 select s.id,coalesce(nullif(s.guardian_name,''),'Parent/Guardian'),s.guardian_relationship,
- case when regexp_replace(coalesce(s.guardian_phone,''),'[^0-9+]','','g') ~ '^\\+256[0-9]{9}$' then regexp_replace(s.guardian_phone,'[^0-9+]','','g')
+ case when regexp_replace(coalesce(s.guardian_phone,''),'[^0-9+]','','g') ~ '^\+256[0-9]{9}$' then regexp_replace(s.guardian_phone,'[^0-9+]','','g')
  when regexp_replace(coalesce(s.guardian_phone,''),'[^0-9]','','g') ~ '^0[0-9]{9}$' then '+256'||substr(regexp_replace(s.guardian_phone,'[^0-9]','','g'),2)
  when regexp_replace(coalesce(s.guardian_phone,''),'[^0-9]','','g') ~ '^256[0-9]{9}$' then '+'||regexp_replace(s.guardian_phone,'[^0-9]','','g') else null end,
- case when regexp_replace(coalesce(s.guardian_whatsapp_phone,''),'[^0-9+]','','g') ~ '^\\+256[0-9]{9}$' then regexp_replace(s.guardian_whatsapp_phone,'[^0-9+]','','g')
+ case when regexp_replace(coalesce(s.guardian_whatsapp_phone,''),'[^0-9+]','','g') ~ '^\+256[0-9]{9}$' then regexp_replace(s.guardian_whatsapp_phone,'[^0-9+]','','g')
  when regexp_replace(coalesce(s.guardian_whatsapp_phone,''),'[^0-9]','','g') ~ '^0[0-9]{9}$' then '+256'||substr(regexp_replace(s.guardian_whatsapp_phone,'[^0-9]','','g'),2)
  when regexp_replace(coalesce(s.guardian_whatsapp_phone,''),'[^0-9]','','g') ~ '^256[0-9]{9}$' then '+'||regexp_replace(s.guardian_whatsapp_phone,'[^0-9]','','g') else null end,
  coalesce(s.guardian_sms_opt_in,false),coalesce(s.guardian_whatsapp_opt_in,false),true
 from public.students s where nullif(s.guardian_name,'') is not null or nullif(s.guardian_phone,'') is not null on conflict do nothing;
 insert into public.parent_guardian_contacts(student_id,guardian_name,relationship,phone_e164,is_primary)
 select s.id,coalesce(nullif(s.alternate_guardian_name,''),'Alternate Guardian'),'Alternate Guardian',
- case when regexp_replace(coalesce(s.alternate_guardian_phone,''),'[^0-9+]','','g') ~ '^\\+256[0-9]{9}$' then regexp_replace(s.alternate_guardian_phone,'[^0-9+]','','g')
+ case when regexp_replace(coalesce(s.alternate_guardian_phone,''),'[^0-9+]','','g') ~ '^\+256[0-9]{9}$' then regexp_replace(s.alternate_guardian_phone,'[^0-9+]','','g')
  when regexp_replace(coalesce(s.alternate_guardian_phone,''),'[^0-9]','','g') ~ '^0[0-9]{9}$' then '+256'||substr(regexp_replace(s.alternate_guardian_phone,'[^0-9]','','g'),2)
  when regexp_replace(coalesce(s.alternate_guardian_phone,''),'[^0-9]','','g') ~ '^256[0-9]{9}$' then '+'||regexp_replace(s.alternate_guardian_phone,'[^0-9]','','g') else null end,false
 from public.students s where nullif(s.alternate_guardian_name,'') is not null or nullif(s.alternate_guardian_phone,'') is not null on conflict do nothing;
