@@ -84,7 +84,7 @@ Last updated: 2026-11-06
 - The database still validates every manual allocation against the selected learner, the learner's active enrolment period, the unpaid charge balance, positive whole-shilling amounts and duplicate charge IDs. Closed former enrolment periods remain separate and are not silently carried forward.
 - Updated the payment screen wording to explain the optional previous-term choice and the current-term-only automatic rule.
 - Corrected the new-payment receipt balance lookup to read the balance for the payment's own enrolment period rather than the broader learner-account view.
-- Applied Supabase migration `20261106153000_current_term_first_payment_allocation`.
+- Applied Supabase migration `20261106125535_current_term_first_payment_allocation`.
 - GitHub commits: payment UI `fa1d663aef796cf09ccd0247f655e6225d6527f7`; migration `14203d025597c5bec7ff1413908b3835f82c8be6`.
 - Static verification: all 3 inline JavaScript blocks parsed successfully; no duplicate HTML IDs; the obsolete “oldest outstanding charges first” instruction is gone; the live database function contains the current-open-term filter.
 - Data safety check after the migration: 2 learner rows, 2 payment rows, 0 allocation rows, 1 charge row and 0 configured current open terms. No payment, allocation, charge or learner test rows were inserted or changed by this batch.
