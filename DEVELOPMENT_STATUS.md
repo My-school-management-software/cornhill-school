@@ -293,3 +293,12 @@ The remaining programme now explicitly includes:
 - Static checks: all 3 inline JavaScript blocks parse without syntax errors; year/term handlers, overlap checks, year boundary checks and non-active insert values confirmed.
 - Not tested: real browser submission, Supabase RLS on insert, duplicate race conditions, calendar reload in browser, Android/Windows. No academic years or terms were inserted or changed; database currently has no real configured school calendar rows.
 - Commits: 53b57fa83af673f9995029b1ba44054b445af76e (UI), 6e9b540abf010ce2d4a9c0b2b602076955fa96e4 (service worker).
+
+
+## 2026-11-06 — Academic-year progression review preparation
+- Added an administrator-only, read-only progression review in Academics. It loads active learners and class records, orders the standard Baby → Middle → Top → P1 → … → P7 sequence, and displays a suggested next class. P7 is marked for completion review rather than automatic graduation.
+- The decision selector is deliberately disabled and labelled Review only. No class, status, enrolment, assessment or finance records are changed. Actual decisions continue through individually audited learner workflows.
+- The report excludes inactive learners and active learners without a recognised class; administrators must resolve those cases separately.
+- Updated service-worker shell cache to cornhill-shell-v15.
+- Schema review confirmed the learner, class, class-history and status-history tables. The academic-year and term tables currently have no configured school-year rows. Browser printing, RLS execution and real-device tests remain pending.
+- No production learner records changed.
