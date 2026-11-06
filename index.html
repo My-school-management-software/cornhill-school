@@ -2749,7 +2749,7 @@ function scheduleAdmissionMatchSearch(){
   const form=$('studentForm'),first=String(form.elements.first_name.value||'').trim(),last=String(form.elements.last_name.value||'').trim();
   const lin=String(form.elements.lin.value||'').trim(),phone=String(form.elements.guardian_phone.value||'').trim();
   if((first.length<2||last.length<2)&&!lin&&!phone){clearAdmissionMatches();return}
-  const args={p_first_name:first,p_last_name:last,p_middle_name:String(form.elements.middle_name.value||'').trim()||null,p_date_of_birth:form.elements.date_of_birth.value||null,p_birth_year:form.elements.birth_year.value?Number(form.elements.birth_year.value):null,p_lin:lin||null,p_guardian_phone:phone||null};
+  const args={p_first_name:first,p_last_name:last,p_middle_name:String(form.elements.middle_name.value||'').trim()||null,p_date_of_birth:form.elements.date_of_birth.value||null,p_birth_year:form.elements.birth_year.value?Number(form.elements.birth_year.value):null,p_lin:lin||null,p_p7_index_number:String(form.elements.p7_index_number.value||'').trim()||null,p_guardian_phone:phone||null};
   try{
    const {data,error}=await db.rpc('admin_find_learner_matches',args);
    if(token!==admissionMatchState.searchToken)return;
@@ -2764,7 +2764,7 @@ function scheduleAdmissionMatchSearch(){
     const card=document.createElement('div');card.className='panel';card.style.margin='10px 0';card.style.padding='12px';
     const name=[m.first_name,m.middle_name,m.last_name].filter(Boolean).join(' ');
     const details=document.createElement('p');details.className='muted';
-    details.textContent='Gender: '+(m.gender||'Not recorded')+' · Date of birth: '+(m.date_of_birth||'Not recorded')+' · Class: '+(m.class_name||'Not recorded')+' · Status: '+(m.status||'Unknown')+' · Previous admission: '+(m.admission_date||'Not recorded')+' · Learner code: '+(m.admission_number||'Not recorded')+' · LIN: '+(m.lin||'Not recorded');
+    details.textContent='Gender: '+(m.gender||'Not recorded')+' · Date of birth: '+(m.date_of_birth||'Not recorded')+' · Class: '+(m.class_name||'Not recorded')+' · Status: '+(m.status||'Unknown')+' · Previous admission: '+(m.admission_date||'Not recorded')+' · Learner code: '+(m.admission_number||'Not recorded')+' · LIN: '+(m.lin||'Not recorded')+' · P7 index: '+(m.p7_index_number||'Not recorded');
     const heading=document.createElement('strong');heading.textContent=name;
     const score=document.createElement('small');score.className='muted';score.textContent=' Possible match · verification required';
     card.append(heading,score,details);
@@ -2905,7 +2905,6 @@ $('studentForm').addEventListener('submit',async e=>{
  if(!wasEditing){
   const checks=[];
   if(record.lin?.trim())checks.push(db.from('students').select('id,admission_number').ilike('lin',record.lin.trim()).limit(1));
-  if(record.p7_index_number?.trim())checks.push(db.from('students').select('id,admission_number').ilike('p7_index_number',record.p7_index_number.trim()).limit(1));
   const found=await Promise.all(checks);
   if(found.some(x=>x.error)){message('appMsg','Could not verify duplicate official learner identifiers. Please retry before saving.',true);return}
   if(found.some(x=>x.data?.length)){message('appMsg','That Ministry LIN or P7 examination index number is already assigned to another learner. Check the existing record or use the previous-learner recognition process.',true);return}
