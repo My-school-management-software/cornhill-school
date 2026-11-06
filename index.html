@@ -350,7 +350,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="primary" id="setActiveAcademicTerm">Set selected term as active</button><button type="button" id="openAcademicCalendar">Manage dates & term closing</button></div>
  <p class="muted" id="academicControlHelp" style="margin:10px 0 0">Only administrators can change the active term. Teachers can view the current school term.</p>
 </section><div class="module-grid"><div class="panel" style="margin:12px 0"><h3>Live school snapshot</h3><p class="muted">A quick visual summary of the learners visible to your account.</p><div class="records-chart-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px"><div><strong>Active learners by class</strong><div id="dashboardEnrolmentChart" class="records-chart">Loading school figures…</div></div><div><strong>Learner gender distribution</strong><div id="dashboardGenderChart" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-height:170px"><span class="muted">Loading school figures…</span></div></div></div>
-<div class="panel" style="margin-top:14px">
+<div id="dashboardIncomeForecastPanel" class="panel" style="margin-top:14px">
  <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><strong>School population & meal plan</strong><p class="muted" style="margin:3px 0">Live counts of active learners and selected services.</p></div><span id="dashboardForecastTerm" class="badge">Current term</span></div>
  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px">
   <div class="stat"><small>Female learners</small><div id="forecastFemale" class="num">—</div></div>
@@ -2955,7 +2955,7 @@ $('studentForm').addEventListener('input',e=>{
  if(['admission_date','bursary_fee_ugx'].includes(e.target.name))refreshAdmissionProrationPreview();
 });
 async function loadDashboardIncomeForecast(){
- const host=$('dashboardForecastMessage');if(!host||profile?.role!=='Admin'){if(host)host.textContent='Financial forecasts are restricted to administrators.';return}
+ const host=$('dashboardForecastMessage'),panel=$('dashboardIncomeForecastPanel');if(!host||!panel)return;if(profile?.role!=='Admin'){panel.classList.add('hidden');return}panel.classList.remove('hidden');
  try{
   const {data,error}=await db.rpc('admin_dashboard_income_forecast');if(error)throw error;
   const v=typeof data==='string'?JSON.parse(data):data||{};
