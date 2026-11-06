@@ -673,3 +673,14 @@ The remaining programme now explicitly includes:
 - Backup checks covered RLS on runs/settings/connection/OAuth-state/validation tables, no anon grants, admin-only validation history read, non-negative record totals, completion timestamp for successful runs and valid validation audit references.
 - Backup status at review: 8 runs (6 successful, 2 failed), one Drive connection, one settings row, zero validation audit rows. Latest backup has not yet been independently validated. No new backup, validation invocation, schedule change or restore was performed.
 - Added docs/PARENT_PORTAL_BACKUP_ACCEPTANCE_TESTS.md. Browser guardian isolation, OTP delivery, validation invocation and isolated restore rehearsal remain pending.
+
+
+## 2026-11-06 — Offline, role and communications security batch
+- Ran 16 source-level offline checks: IndexedDB stores/version compatibility, 24-hour class snapshot expiry, teacher-only assessment sync, online/session/owner checks, baseline score/comment conflict detection, pending conflict retention, reconnect sync, attendance queue owner check, read-only offline snapshot mode and service-worker same-origin cache restrictions. All 16 passed.
+- Ran 24 database policy/source checks covering active Admin/Teacher helpers, class assignment permissions, staff profile permissions, attendance permissions and review audit, salary/advance permissions, communication template/outbox/provider-setting access and participant-scoped direct messages/call signalling. All 24 passed.
+- Found a gap: staff collaboration policies across posts, comments, reactions, direct messages, media messages and call signals did not consistently require an active staff profile.
+- Applied migration 20261106202524_require_active_staff_for_staff_communications. Added active-staff session guard and wrapped all existing USING/WITH CHECK policy predicates on the six collaboration tables, preserving their prior audience/participant/role rules.
+- Applied migration 20261106202548_use_invoker_for_active_staff_guard. Changed the helper to SECURITY INVOKER, revoked PUBLIC/anon execution and granted authenticated execution only.
+- Verified all 18 policies across the six tables now include the guard; helper is SECURITY INVOKER, anon execute false, authenticated execute true.
+- Supabase health advisor returned zero lints. Security advisor remains at 20 authenticated SECURITY DEFINER notices, six informational RLS-enabled/no-policy service-only tables, pg_net in public schema and leaked-password protection disabled.
+- Added docs/OFFLINE_ROLES_COMMUNICATIONS_ACCEPTANCE_TESTS.md. Browser tests for inactive-user denial, actual messaging and offline IndexedDB/reconnect on Windows/Android remain pending. No school data rows were modified.
