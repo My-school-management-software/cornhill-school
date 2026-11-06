@@ -666,7 +666,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <p class="muted">*Position is a provisional ranking among learners with entered marks. Missing marks are excluded from each learner's average. Export is limited to the selected class and term.</p>
  <section id="adminTeacherMarksRegister" style="margin-top:20px">
  <h3>Administrator · teacher-submitted marks register</h3>
- <p class="muted">Read-only overview of marks saved by teachers. Select a class and term above to review results, then export the detailed register as CSV for Excel.</p>
+ <p class="muted">Read-only overview of marks saved by teachers. The table initially shows the latest 1,000 saved marks; load a selected class and term to fetch the complete register in pages, then export it as CSV for Excel.</p>
  <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="loadAdminTeacherMarksRegister">Load selected class and term</button><button type="button" id="exportTeacherMarksRegister" disabled>Export teacher marks register · CSV</button></div><p id="adminMarksRegisterStatus" class="muted">Choose a term and class, then load the teacher-submitted marks.</p>
  <div class="table-wrap"><table><thead><tr><th>Class</th><th>Term</th><th>Learner code</th><th>Learner</th><th>Subject</th><th>Assessment</th><th>Mark</th><th>Maximum</th><th>Teacher account</th><th>Last updated</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
  </section>
@@ -1166,7 +1166,8 @@ setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welco
 await refresh();
  if(!window.cornhillOfflineReadOnly)await loadAcademicControl();
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}
- if(['Admin','Teacher'].includes(profile?.role)){await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg')}
+ if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');
+ if(profile?.role==='Teacher')await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg');
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
 }
 async function loadStaffAttendanceNotice(){
@@ -1928,6 +1929,7 @@ async function loadAcademics(){
  $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
  $('adminTeacherMarksRegister').classList.toggle('hidden',profile?.role!=='Admin');
  $('adminReportActions').classList.toggle('hidden',profile?.role!=='Admin');
+ $('exportAcademicClassCsv').classList.toggle('hidden',profile?.role!=='Admin');
  $('downloadBlankReportTemplates').classList.toggle('hidden',profile?.role!=='Admin');
  $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
@@ -3452,7 +3454,7 @@ $('studentForm').addEventListener('input',e=>{
 });
 bindLocalAutosaveForm($('studentForm'),'learner-admission','appMsg',()=>profile?.role==='Admin'&&!editingStudentId);
 bindLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg',()=>['Admin','Teacher'].includes(profile?.role));
-bindLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg',()=>['Admin','Teacher'].includes(profile?.role));
+bindLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg',()=>profile?.role==='Teacher');
 bindLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg',()=>profile?.role==='Admin');
 bindLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg',()=>profile?.role==='Admin');
 bindLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg',()=>profile?.role==='Admin');
