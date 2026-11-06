@@ -698,7 +698,30 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
 <section id="communication" class="panel hidden">
 <h2>Communications Centre</h2>
 <p class="muted">One workspace for staff collaboration, parent and guardian notifications, WhatsApp and SMS preferences, and delivery history.</p>
-<div class="panel communication-parent-panel" style="margin:16px 0"><div class="dashboard-eyebrow">PARENTS & GUARDIANS</div><h3>Parent notifications and contact channels</h3><p class="muted">Manage payment notices, school announcements, parent SMS and WhatsApp preferences in one place. WhatsApp numbers are captured optionally during learner admission; consent is recorded separately.</p><div class="row" style="gap:10px;flex-wrap:wrap"><span class="badge">SMS · MTN & Airtel</span><span class="badge">WhatsApp Business</span><span class="badge">Consent-based delivery</span></div> <div class="panel" style="margin:12px 0"><h3>Parent and teacher messaging preferences</h3><p class="muted">Choose how CORNHILL should request and prepare notifications. These preferences do not send messages until an approved provider is connected.</p>
+<div class="panel communication-parent-panel" style="margin:16px 0"><div class="dashboard-eyebrow">PARENTS & GUARDIANS</div><h3>Parent notifications and contact channels</h3><p class="muted">Manage payment notices, school announcements, parent SMS and WhatsApp preferences in one place. WhatsApp numbers are captured optionally during learner admission; consent is recorded separately.</p>
+<div class="panel communication-parent-panel" id="parentContactDirectory" style="margin:12px 0">
+ <div class="row"><div><div class="dashboard-eyebrow">PRIVATE ADMIN REGISTER</div><h3>Parent & Guardian Contact Register</h3><p class="muted">On-screen directory only. Check the learner, guardian, active phone and message consent. This register has no print or spreadsheet-export action.</p></div><button type="button" class="primary" id="refreshParentContacts">Refresh directory</button></div>
+ <label for="parentContactSearch">Search learner, pupil code, guardian or phone</label><input id="parentContactSearch" placeholder="Search registered contacts">
+ <div id="parentContactDirectoryStatus" class="notice hidden" aria-live="polite"></div>
+ <div id="parentContactDirectoryTable" class="table-wrap"><p class="muted">Select Refresh directory to load the protected register.</p></div>
+ <div id="parentContactEditPanel" class="panel hidden" style="margin-top:14px">
+  <h3>Update parent or guardian contact</h3><p id="parentContactLearnerHeading" class="muted"></p>
+  <input type="hidden" id="parentContactEditId">
+  <div class="grid-2">
+   <div><label for="parentContactGuardianName">Parent/guardian name</label><input id="parentContactGuardianName" maxlength="120"></div>
+   <div><label for="parentContactRelationship">Relationship</label><input id="parentContactRelationship" maxlength="60" placeholder="Parent, mother, father, guardian…"></div>
+   <div><label for="parentContactPhone">Active SMS phone (+256…)</label><input id="parentContactPhone" type="tel" placeholder="+2567XXXXXXXX"></div>
+   <div><label for="parentContactWhatsApp">WhatsApp phone (+256…)</label><input id="parentContactWhatsApp" type="tel" placeholder="+2567XXXXXXXX"></div>
+  </div>
+  <label><input type="checkbox" id="parentContactSmsConsent"> Guardian has consented to SMS</label>
+  <label><input type="checkbox" id="parentContactWhatsappConsent"> Guardian has consented to WhatsApp</label>
+  <label><input type="checkbox" id="parentContactActive"> Contact is active</label>
+  <label for="parentContactChangeReason">Reason for change (required)</label><textarea id="parentContactChangeReason" rows="2" maxlength="500" placeholder="For example: guardian reported that the old phone was lost."></textarea>
+  <div class="row"><button type="button" class="primary" id="saveParentContact">Save verified contact changes</button><button type="button" id="cancelParentContactEdit">Cancel</button></div>
+  <div id="parentContactEditStatus" class="notice hidden" aria-live="polite"></div>
+  <h3 style="margin-top:16px">Contact change history</h3><div id="parentContactChangeHistory" class="muted">Choose a contact to view its history.</div>
+ </div>
+</div><div class="row" style="gap:10px;flex-wrap:wrap"><span class="badge">SMS · MTN & Airtel</span><span class="badge">WhatsApp Business</span><span class="badge">Consent-based delivery</span></div> <div class="panel" style="margin:12px 0"><h3>Parent and teacher messaging preferences</h3><p class="muted">Choose how CORNHILL should request and prepare notifications. These preferences do not send messages until an approved provider is connected.</p>
  <label for="parentPaymentNoticeMode">Payment notifications to parents</label><select id="parentPaymentNoticeMode"><option value="automatic">Automatically after every successful payment</option><option value="manual">Only when the bursar chooses to send</option><option value="off">Disabled</option></select>
  <label for="teacherAttendanceNoticeMode">Teacher attendance notifications</label><select id="teacherAttendanceNoticeMode"><option value="both">Clock-in and clock-out confirmations</option><option value="clockin">Clock-in confirmation only</option><option value="exceptions">Late arrival or missing attendance alerts only</option><option value="off">Disabled</option></select>
  <label for="parentMessageChannels">Parent communication channels</label><select id="parentMessageChannels"><option value="sms">SMS first; WhatsApp optional later</option><option value="both">SMS and WhatsApp</option><option value="whatsapp">WhatsApp only</option></select>
@@ -3260,6 +3283,69 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
  function updateConnection(){if(!status)return;const offline=!navigator.onLine;status.classList.toggle('hidden',!offline);status.textContent=offline?'You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.':'You are back online. Reconnect and refresh if records did not load.';if(!offline){status.classList.remove('hidden');setTimeout(()=>{if(navigator.onLine)status.classList.add('hidden')},4500)}}
  window.addEventListener('online',updateConnection);window.addEventListener('offline',updateConnection);updateConnection();
  
+})();
+</script>
+
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let parentContactRows=[], selectedParentContact=null;
+ const showStatus=(id,msg,isError=false)=>{const n=$(id);if(!n)return;n.textContent=msg;n.className='notice'+(isError?' error':'');n.classList.remove('hidden')};
+ const hideStatus=id=>$(id)?.classList.add('hidden');
+ const phoneDisplay=v=>v||'Not recorded';
+ function renderParentContacts(rows){
+  const host=$('parentContactDirectoryTable');host.replaceChildren();
+  if(!rows.length){const p=document.createElement('p');p.className='muted';p.textContent='No matching parent contacts were found.';host.append(p);return}
+  const table=document.createElement('table'),thead=document.createElement('thead'),head=document.createElement('tr');
+  ['Learner / class','Pupil code','Parent / guardian','Active phone','WhatsApp','Consent','Status','Action'].forEach(x=>{const th=document.createElement('th');th.textContent=x;head.append(th)});
+  thead.append(head);table.append(thead);const body=document.createElement('tbody');
+  rows.forEach(r=>{const tr=document.createElement('tr');const vals=[r.learner_name+' · '+(r.class_name||'Class not set'),r.pupil_code,r.guardian_name,phoneDisplay(r.phone_e164),phoneDisplay(r.whatsapp_e164),(r.sms_opt_in?'SMS':'')+(r.sms_opt_in&&r.whatsapp_opt_in?' · ':'')+(r.whatsapp_opt_in?'WhatsApp':'')||'No consent',r.is_active?'Active':'Inactive'];
+   vals.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});
+   const action=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.textContent='Review / change';btn.addEventListener('click',()=>openParentContactEditor(r));action.append(btn);tr.append(action);body.append(tr)
+  });
+  table.append(body);host.append(table)
+ }
+ function filterParentContacts(){const q=$('parentContactSearch').value.trim().toLowerCase();renderParentContacts(parentContactRows.filter(r=>[r.learner_name,r.pupil_code,r.guardian_name,r.phone_e164,r.whatsapp_e164,r.class_name].some(v=>String(v||'').toLowerCase().includes(q))))}
+ async function loadParentContactDirectory(){
+  if(typeof db==='undefined'||!db){showStatus('parentContactDirectoryStatus','The school database connection is not ready.',true);return}
+  $('refreshParentContacts').disabled=true;hideStatus('parentContactDirectoryStatus');
+  try{const {data,error}=await db.rpc('admin_parent_contact_directory');if(error)throw error;parentContactRows=Array.isArray(data)?data:[];filterParentContacts();showStatus('parentContactDirectoryStatus','Loaded '+parentContactRows.length+' registered guardian contact(s). This register is restricted to administrators.')}
+  catch(e){showStatus('parentContactDirectoryStatus','Could not load this register. Sign in with an administrator account or ask the administrator to check access.',true)}
+  finally{$('refreshParentContacts').disabled=false}
+ }
+ function openParentContactEditor(r){
+  selectedParentContact=r;$('parentContactEditId').value=r.contact_id;$('parentContactLearnerHeading').textContent='Learner: '+r.learner_name+' · '+r.pupil_code+' · '+(r.class_name||'Class not set');
+  $('parentContactGuardianName').value=r.guardian_name||'';$('parentContactRelationship').value=r.relationship||'';$('parentContactPhone').value=r.phone_e164||'';$('parentContactWhatsApp').value=r.whatsapp_e164||'';
+  $('parentContactSmsConsent').checked=!!r.sms_opt_in;$('parentContactWhatsappConsent').checked=!!r.whatsapp_opt_in;$('parentContactActive').checked=!!r.is_active;$('parentContactChangeReason').value='';
+  $('parentContactEditPanel').classList.remove('hidden');hideStatus('parentContactEditStatus');loadParentContactHistory(r.contact_id);$('parentContactEditPanel').scrollIntoView({behavior:'smooth',block:'start'})
+ }
+ async function loadParentContactHistory(id){
+  const host=$('parentContactChangeHistory');host.textContent='Loading history…';
+  try{const {data,error}=await db.from('parent_contact_change_log').select('changed_at,old_phone_e164,new_phone_e164,old_whatsapp_e164,new_whatsapp_e164,change_reason').eq('contact_id',id).order('changed_at',{ascending:false}).limit(20);if(error)throw error;
+   if(!data?.length){host.textContent='No contact changes have been recorded yet.';return}
+   const table=document.createElement('table'),body=document.createElement('tbody');['Date','Old phone','New phone','Old WhatsApp','New WhatsApp','Reason'].forEach(x=>{const th=document.createElement('th');th.textContent=x;table.append(th)});
+   data.forEach(x=>{const tr=document.createElement('tr');[new Date(x.changed_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}),x.old_phone_e164||'—',x.new_phone_e164||'—',x.old_whatsapp_e164||'—',x.new_whatsapp_e164||'—',x.change_reason||'—'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});body.append(tr)});table.append(body);host.replaceChildren(table)
+  }catch(e){host.textContent='History is unavailable for this account.'}
+ }
+ async function saveParentContact(){
+  if(!selectedParentContact)return;
+  const reason=$('parentContactChangeReason').value.trim();if(reason.length<5){showStatus('parentContactEditStatus','Please enter a clear reason for this change.',true);return}
+  const phone=$('parentContactPhone').value.trim(),wa=$('parentContactWhatsApp').value.trim();
+  const ug=/^\+256[0-9]{9}$/;
+  if(phone&&!ug.test(phone)){showStatus('parentContactEditStatus','Enter the SMS phone in +256 followed by nine digits.',true);return}
+  if(wa&&!ug.test(wa)){showStatus('parentContactEditStatus','Enter the WhatsApp phone in +256 followed by nine digits.',true);return}
+  $('saveParentContact').disabled=true;
+  try{const {error}=await db.rpc('admin_update_parent_contact',{p_contact_id:selectedParentContact.contact_id,p_guardian_name:$('parentContactGuardianName').value.trim(),p_relationship:$('parentContactRelationship').value.trim(),p_phone_e164:phone||null,p_whatsapp_e164:wa||null,p_sms_opt_in:$('parentContactSmsConsent').checked,p_whatsapp_opt_in:$('parentContactWhatsappConsent').checked,p_is_active:$('parentContactActive').checked,p_change_reason:reason});if(error)throw error;
+   showStatus('parentContactEditStatus','Contact updated and change recorded in the audit history.');await loadParentContactDirectory();await loadParentContactHistory(selectedParentContact.contact_id)
+  }catch(e){showStatus('parentContactEditStatus','The contact was not changed. Check administrator access, the phone format and whether this number is already linked to this learner.',true)}
+  finally{$('saveParentContact').disabled=false}
+ }
+ document.addEventListener('DOMContentLoaded',()=>{
+  $('refreshParentContacts')?.addEventListener('click',loadParentContactDirectory);
+  $('parentContactSearch')?.addEventListener('input',filterParentContacts);
+  $('saveParentContact')?.addEventListener('click',saveParentContact);
+  $('cancelParentContactEdit')?.addEventListener('click',()=>{$('parentContactEditPanel').classList.add('hidden');selectedParentContact=null});
+ });
 })();
 </script>
 </body></html>
