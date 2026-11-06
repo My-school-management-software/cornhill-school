@@ -527,3 +527,16 @@ The remaining programme now explicitly includes:
 - Verification query returned no anon/authenticated table grants for either table. Both remain RLS-enabled. Supabase health advisor returned zero lints.
 - This does not activate SMS or WhatsApp sending. Existing service-role backend workflows remain separate; no provider credentials or message records were changed.
 - GitHub migration file `supabase/migrations/20261106170215_lock_service_only_communication_tables.sql`, commit `a3182ae926d23b47f469b5ed4ed64fbbb4c4c654`.
+
+
+## 2026-11-06 — Academic grading and curriculum grant audit
+- Continued the grant-level review of the teacher/admin academic workflow. Found default broad anon/authenticated privileges on `school_curriculum_subjects`, `uneb_subject_grade_bands` and `academic_grade_bands`, even though RLS policies were already present.
+- Applied migrations:
+  - `20261106175929_restrict_curriculum_and_uneb_grade_table_grants`
+  - `20261106180058_restrict_academic_grade_band_table_grants`
+- Revoked all client grants, then restored SELECT/INSERT/UPDATE/DELETE only to authenticated users. Existing RLS remains the actual row-level permission gate: authenticated users can read these configuration tables; Admin-only ALL policies control writes. No anon access, TRUNCATE, TRIGGER or REFERENCES privilege remains.
+- Verification passed for all three tables: anon has no SELECT/INSERT; authenticated has the four required operations and no TRUNCATE/TRIGGER/REFERENCES. Existing RLS policies were confirmed. Supabase health advisor returned zero lints.
+- Related service-only communications lockdown is also saved and verified: `communication_delivery_events` and `communication_provider_settings` have no anon/authenticated table grants.
+- GitHub migration commits:
+  - curriculum/UNEB grants: `e1fd36d619a00a6e19f2d16792b936d5c5ef24e7`
+  - academic grade-band grants: `178419cf5c23936d68635dad5666d9e368a244f3`
