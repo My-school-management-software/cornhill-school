@@ -344,3 +344,11 @@ The remaining programme now explicitly includes:
 - Applied migration `active_employment_required_for_privileged_roles` to Supabase and queried both live function definitions to verify the predicates.
 - Security review: no public tables were found with RLS disabled; all inspected SECURITY DEFINER functions deny `anon` execution. Some service-only backup/provider/outbox tables intentionally have no authenticated policies. Security advisor still reports existing warnings for SECURITY DEFINER RPC exposure to authenticated users (inspected functions contain role/identity checks), `pg_net` extension placement, and leaked-password protection disabled. These are tracked for a separate compatibility/configuration pass.
 - No staff roles, employment statuses, school records or authentication settings were changed. A real suspended-account login/RPC denial test remains pending.
+
+
+## 2026-11-06 — Configurable encrypted cloud-backup frequency
+- Added administrator controls to enable/disable automatic Google Drive backups and choose daily, weekly (7 days), monthly, termly (4 months) or yearly frequency. The on-device reminder interval remains a separate reminder only.
+- Added a server-side administrator-only save action; only an active Admin profile can change the schedule. Enabling is blocked until the dedicated CORNHILL Google account is connected.
+- The existing 05:00 Uganda-time scheduler now checks whether the selected interval is due before starting a backup; it skips runs that are not yet due and records the successful scheduled run time. Manual “Back up now” remains available independently.
+- Existing database frequency constraint already supports all five choices; no schema migration was needed. The existing cron job remains a daily 05:00 Uganda-time checker, not a forced daily backup.
+- Static JavaScript syntax checks passed for all inline scripts. Live browser interaction, save path, actual weekly/monthly/termly/yearly timing and Android/Windows tests remain pending. No backup was triggered and no school records were changed.
