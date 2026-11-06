@@ -451,3 +451,11 @@ The remaining programme now explicitly includes:
 - The loaded class-subject assignment list is now retained in the academic client state for the pre-save validation. No class, subject, term, assessment or learner mark records were created or changed.
 - GitHub commits: application `06e16e68968b565ec37250fd952739f4d494409b`; service worker cache v24 `7d2385f913fb61744d0105571cd46613a8c6e88c`.
 - Static verification: all 3 inline JavaScript blocks parse successfully. Live academic tables currently contain 0 academic years, 0 terms, 0 assessments, 0 assessment scores and 0 report-card publication rows, so a genuine assessment save and mark-entry workflow cannot yet be exercised without school-authorized academic setup. Browser/runtime and Android/Windows tests remain pending.
+
+
+## 2026-11-06 — Report-card class integrity and ranking safeguards
+- Individual report-card preview now checks that the selected learner belongs to the selected class and that supplied assessment data matches both the selected class and term. This prevents a stale learner selection or mismatched report dataset from being previewed or approved under another class.
+- Report publication lookup and the final pre-insert duplicate check now include class ID as well as term and learner, so an approval is checked against the exact class context.
+- Report-card positions now rank by percentage rather than raw marks, and tied percentages receive the same competition rank (for example 1, 1, 3), consistent with class performance ranking. Learners without marks for that period remain unranked.
+- GitHub commits: application `26c68851a8d844521ad9b0010eeec32e4e58ad1f`; service worker cache v25 `e4aade67b30f2ce0c4559fe870bd39c3423cff11`.
+- Static verification: all 3 inline JavaScript blocks parse successfully. Live database still has no configured academic years, terms, assessments, marks or report-card publication rows, so runtime report preview/approval and tie-ranking tests cannot yet be exercised against real school academic records. No school records were changed. Browser, RLS and Windows/Android tests remain pending.
