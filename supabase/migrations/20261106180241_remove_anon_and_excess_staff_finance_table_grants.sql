@@ -1,0 +1,62 @@
+revoke all privileges on table
+  public.class_teacher_access,
+  public.communication_outbox,
+  public.communication_templates,
+  public.fee_items,
+  public.fee_schedules,
+  public.learner_charges,
+  public.payment_allocations,
+  public.school_payments,
+  public.school_position_catalogue,
+  public.staff_attendance_adjustments,
+  public.staff_attendance_device_users,
+  public.staff_attendance_events,
+  public.staff_attendance_import_batches,
+  public.staff_attendance_schedule_assignments,
+  public.staff_communication_comments,
+  public.staff_communication_posts,
+  public.staff_communication_reactions,
+  public.staff_work_schedules
+from anon;
+
+revoke all privileges on table
+  public.class_teacher_access,
+  public.communication_outbox,
+  public.communication_templates,
+  public.fee_items,
+  public.fee_schedules,
+  public.learner_charges,
+  public.payment_allocations,
+  public.school_payments,
+  public.school_position_catalogue,
+  public.staff_attendance_adjustments,
+  public.staff_attendance_device_users,
+  public.staff_attendance_events,
+  public.staff_attendance_import_batches,
+  public.staff_attendance_schedule_assignments,
+  public.staff_communication_comments,
+  public.staff_communication_posts,
+  public.staff_communication_reactions,
+  public.staff_work_schedules
+from authenticated;
+
+grant select, insert, update, delete on table
+  public.class_teacher_access,
+  public.communication_outbox,
+  public.communication_templates,
+  public.fee_items,
+  public.fee_schedules,
+  public.learner_charges,
+  public.payment_allocations,
+  public.school_payments,
+  public.school_position_catalogue,
+  public.staff_attendance_adjustments,
+  public.staff_attendance_device_users,
+  public.staff_attendance_events,
+  public.staff_attendance_import_batches,
+  public.staff_attendance_schedule_assignments,
+  public.staff_communication_comments,
+  public.staff_communication_posts,
+  public.staff_communication_reactions,
+  public.staff_work_schedules
+to authenticated;
