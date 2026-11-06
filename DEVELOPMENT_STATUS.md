@@ -234,3 +234,16 @@ The remaining programme now explicitly includes:
 
 
 - Follow-up static verification for learner-edit/academic-form autosave: all three inline JavaScript blocks parse without syntax errors after correcting the asynchronous edit-form restore handler. Confirmed separate learner-edit draft keys, restore on Edit Learner, clear on successful update, discard on explicit cancel, subject/class-subject autosave, and successful-submit cleanup paths. Browser runtime and device tests are still pending.
+
+## 2026-11-06 — Bulk mark-sheet autosave and conflict-checked synchronisation
+
+- Added OneDrive/Excel-style local autosave to the separate Bulk Class Mark Sheet. Score/comment edits are captured after a short pause into the existing account-scoped IndexedDB assessment-draft store.
+- When the mark sheet is loaded online, it records the server values as the comparison baseline. On reopening the same assessment, locally pending drafts for that same signed-in account and assessment are restored over the displayed values.
+- Online autosave attempts to synchronise pending drafts through the existing compare-before-write sync path. If the server mark changed since the baseline, the account no longer has permission, or a duplicate insert is detected, the draft stays pending rather than overwriting a newer value.
+- Added a dedicated “Synchronise pending drafts” action beside the bulk sheet. The existing explicit “Save all entered marks” action remains available; after it succeeds, local drafts for that assessment and current account are cleared.
+- The screen clearly distinguishes locally saved drafts from official school marks. Offline drafts are not official until accepted by the server. Report-card publication is not triggered by autosave.
+- Reused the existing assessmentDrafts store and conflict-checked sync mechanism; no new database schema or Supabase migration was needed. The shared store means a matching assessment/student draft is shared consistently with the Excel-style grid.
+- Updated the service-worker shell cache from cornhill-shell-v8 to cornhill-shell-v9.
+- Static verification: all 3 inline JavaScript blocks parse without syntax errors. Confirmed the bulk autosave input handler, same-assessment draft restore, pending-sync action, explicit-save cleanup, and “not official until synchronised” warning are present.
+- Not yet tested in a real browser: local IndexedDB persistence/reload, offline editing, reconnect sync, concurrent mark changes, teacher RLS enforcement, or Android/Windows behavior. No marks, report cards, learner records or other school data were changed during this code update.
+- GitHub commits: e77d47f26ed2ea8af820c7b6219f03cf013b4e94 (bulk mark-sheet autosave and sync), service-worker cache v9 commit recorded separately in this batch.
