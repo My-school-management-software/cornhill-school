@@ -596,7 +596,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="assessmentSubjectSelect" required></select></div><div><label>Assessment period *</label><select name="period" required><option value="Beginning">Beginning (1)</option><option value="Midterm">Midterm (2)</option><option value="End">End of term (3)</option></select></div><div><label>Assessment title / note</label><input name="title" placeholder="Optional: e.g. oral test, written exercise"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" step="0.01" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><button class="primary">Create assessment</button></div></form>
  </div>
  <h3 style="margin-top:20px">6. Enter learner marks</h3>
- <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score or X (Absent) *</label><input name="score" type="text" inputmode="decimal" placeholder="Enter a mark or X if absent" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form><div style="margin-top:18px"><h4>Class mark sheet</h4><p class="muted">Choose an assessment above to load its learners. Enter marks in one list and save together. Existing marks are shown so you can safely update them.</p><div id="bulkMarksMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Learner / school code</th><th>LIN</th><th>P7 index</th><th>Score</th><th>Comment</th></tr></thead><tbody id="bulkMarkRows"><tr><td colspan="5">Choose an assessment to load the class mark sheet.</td></tr></tbody></table></div><button type="button" class="primary" id="saveBulkMarks" style="margin-top:12px">Save all entered marks</button></div>
+ <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score or X (Absent) *</label><input name="score" type="text" inputmode="decimal" placeholder="Enter a mark or X if absent" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form><div style="margin-top:18px"><h4>Class mark sheet</h4><p class="muted">Choose an assessment above to load its learners. Enter marks in one list and save together. Existing marks are shown so you can safely update them.</p><div id="bulkMarksMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Learner / school code</th><th>LIN</th><th>P7 index</th><th>Score</th><th>Comment</th></tr></thead><tbody id="bulkMarkRows"><tr><td colspan="5">Choose an assessment to load the class mark sheet.</td></tr></tbody></table></div><div class="row" style="margin-top:12px;justify-content:flex-start"><button type="button" class="primary" id="saveBulkMarks">Save all entered marks</button><button type="button" id="syncBulkMarks">Synchronise pending drafts</button></div><p class="muted">Like Excel autosave, changes are first saved on this device. When internet is available, the system attempts conflict-checked synchronisation. A pending draft is not an official mark until the server accepts it.</p></div>
  <div class="excel-marks-panel" style="margin-top:24px">
   <h3>Class marks folders · Excel-style entry</h3>
   <p class="muted">Open your assigned class folder, choose Beginning, Midterm or End of term, and enter marks directly beside each admitted learner. All marks and assessment columns remain visible to teachers. Choose “All periods · full class sheet” to view Beginning, Midterm and End-of-Term marks together. On a phone, swipe horizontally across the sheet to reach every subject and calculation.</p>
@@ -2179,8 +2179,13 @@ async function loadBulkMarkSheet(){
  const {data,error}=await db.from('assessment_scores').select('student_id,score,teacher_comment').eq('assessment_id',id);
  if(error){body.innerHTML='<tr><td colspan="5">Could not load existing marks.</td></tr>';message('bulkMarksMsg','Could not load existing marks: '+error.message,true);return}
  const saved=Object.fromEntries((data||[]).map(x=>[x.student_id,x]));
- body.innerHTML=list.map(x=>{const mark=saved[x.id];return '<tr><td>'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</td><td>'+esc(x.lin||'Not entered')+'</td><td>'+esc(x.p7_index_number||'—')+'</td><td><input aria-label="Score for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-score="'+x.id+'" type="text" inputmode="decimal" placeholder="Mark / X" value="'+(mark?(isAbsentMark(mark)?'X':esc(mark.score)):'')+'" style="max-width:105px"></td><td><input aria-label="Comment for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-comment="'+x.id+'" value="'+(mark?.teacher_comment?esc(mark.teacher_comment):'')+'" placeholder="Optional comment"></td></tr>'}).join('')||'<tr><td colspan="5">No learners are registered in this class.</td></tr>';
- message('bulkMarksMsg',(data||[]).length+' existing mark(s) loaded. Maximum score: '+ass.max_score+'.');
+ const savedMarks=new Map((data||[]).map(x=>[id+'|'+x.student_id,x]));
+ window.cornhillBulkMarkContext={assessmentId:id,classId:ass.class_id,termId:ass.term_id||null,assessments:[ass],students:list,savedMarks};
+ let pending=[];
+ try{pending=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>x.assessment_id===id&&x.class_id===ass.class_id)}catch(_){}
+ const pendingByStudent=Object.fromEntries(pending.map(x=>[x.student_id,x]));
+ body.innerHTML=list.map(x=>{const mark=pendingByStudent[x.id]||saved[x.id];return '<tr><td>'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</td><td>'+esc(x.lin||'Not entered')+'</td><td>'+esc(x.p7_index_number||'—')+'</td><td><input aria-label="Score for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-score="'+x.id+'" type="text" inputmode="decimal" placeholder="Mark / X" value="'+(mark?(mark.status==='pending'?(mark.teacher_comment===ABSENT_MARKER?'X':esc(mark.score)):(isAbsentMark(mark)?'X':esc(mark.score))):'')+'" style="max-width:105px"></td><td><input aria-label="Comment for '+esc(x.first_name+' '+x.last_name)+'" data-bulk-comment="'+x.id+'" value="'+(mark?.teacher_comment?esc(mark.teacher_comment===ABSENT_MARKER?'':mark.teacher_comment):'')+'" placeholder="Optional comment"></td></tr>'}).join('')||'<tr><td colspan="5">No learners are registered in this class.</td></tr>';
+ message('bulkMarksMsg',(data||[]).length+' server mark(s) loaded. '+pending.length+' local draft(s) restored. Changes autosave on this device; drafts are not official until synchronised. Maximum score: '+ass.max_score+'.');
 }
 
 function setupExcelMarksFilters(){
@@ -2467,6 +2472,44 @@ $('saveExcelMarks').addEventListener('click',async()=>{
 });
 $('assessmentClassSelect').addEventListener('change',()=>{filterAssessmentSubjects();const cls=String(classes.find(c=>c.id===$('assessmentClassSelect').value)?.name||'').toUpperCase();const sets=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);const sel=document.querySelector('#assessmentForm select[name="period"]');if(sel)sel.innerHTML=(sets?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End']).map((p,i)=>'<option value="'+p+'">'+p+(sets?'':' ('+(i+1)+')')+'</option>').join('')});
 $('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
+let bulkMarksAutosaveTimer=null;
+async function autosaveBulkMarkDrafts(){
+ const ctx=window.cornhillBulkMarkContext,userId=currentUserId;
+ if(!ctx||!userId)return;
+ const payload=[];
+ for(const input of [...document.querySelectorAll('[data-bulk-score]')]){
+  const raw=input.value.trim();if(raw==='')continue;
+  const absent=raw.toUpperCase()==='X',score=Number(raw),studentId=input.dataset.bulkScore;
+  if(absent&&!allowsAbsentMarkForClass(ctx.classId))continue;
+  if(!absent&&(!Number.isFinite(score)||score<0||score>Number(ctx.assessments[0].max_score)))continue;
+  const comment=document.querySelector('[data-bulk-comment="'+CSS.escape(studentId)+'"]')?.value.trim()||null;
+  payload.push({assessment_id:ctx.assessmentId,student_id:studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:comment});
+ }
+ if(!payload.length)return;
+ try{
+  const count=await queueExcelMarksOffline(payload,ctx,userId);
+  message('bulkMarksMsg',count+' mark draft(s) autosaved on this device. '+(navigator.onLine?'Synchronising securely…':'Offline: not yet sent to school records.'));
+  if(navigator.onLine){
+   const result=await syncOfflineAssessmentDrafts();
+   if(result.synced||result.conflicts)message('bulkMarksMsg','Autosaved drafts: '+count+'. Synchronised: '+result.synced+'; conflicts kept pending: '+result.conflicts+'.');
+  }
+ }catch(err){message('bulkMarksMsg','Local autosave could not complete: '+(err?.message||'Storage unavailable')+'. Keep this sheet open and check the device storage.',true)}
+}
+$('bulkMarkRows').addEventListener('input',()=>{
+ clearTimeout(bulkMarksAutosaveTimer);
+ bulkMarksAutosaveTimer=setTimeout(autosaveBulkMarkDrafts,600);
+});
+async function clearBulkAssessmentDrafts(assessmentId){
+ if(!currentUserId)return;
+ const drafts=await listOfflineAssessmentDrafts(currentUserId);
+ for(const draft of drafts)if(draft.assessment_id===assessmentId)await deleteOfflineAssessmentDraft(draft.draft_id);
+}
+$('syncBulkMarks').addEventListener('click',async()=>{
+ const button=$('syncBulkMarks');button.disabled=true;button.textContent='Synchronising…';
+ try{const result=await syncOfflineAssessmentDrafts();message('bulkMarksMsg','Offline marks synchronised: '+result.synced+' saved; '+result.conflicts+' conflict(s) kept pending.');await loadBulkMarkSheet()}
+ catch(err){message('bulkMarksMsg','Synchronisation did not finish: '+(err?.message||'Unknown error'),true)}
+ finally{button.disabled=false;button.textContent='Synchronise pending drafts'}
+});
 $('saveBulkMarks').addEventListener('click',async()=>{
  const button=$('saveBulkMarks');if(button.dataset.busy==='1')return;
  button.dataset.busy='1';button.disabled=true;button.textContent='Saving…';
@@ -2490,7 +2533,8 @@ $('saveBulkMarks').addEventListener('click',async()=>{
   if(!payload.length){message('bulkMarksMsg','Enter at least one score before saving.',true);return}
   const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
   if(error){message('bulkMarksMsg','Could not save the mark sheet: '+error.message,true);return}
-  message('bulkMarksMsg','Saved '+payload.length+' learner mark(s).');await loadAcademics();await loadBulkMarkSheet();
+  await clearBulkAssessmentDrafts(id);
+  message('bulkMarksMsg','Saved '+payload.length+' learner mark(s) to school records. Local drafts for this assessment were cleared.');await loadAcademics();await loadBulkMarkSheet();
  }catch(err){message('bulkMarksMsg','Bulk mark save stopped unexpectedly. Check the mark sheet before retrying: '+(err?.message||'Unknown error'),true)}
  finally{button.disabled=false;button.textContent='Save all entered marks';delete button.dataset.busy}
 });
