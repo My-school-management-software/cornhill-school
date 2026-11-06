@@ -1,5 +1,5 @@
-const CACHE_NAME = 'cornhill-shell-v3';
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/assets/cornhill-icon.svg'];
+const CACHE_NAME = 'cornhill-shell-v4';
+const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/assets/cornhill-icon.svg', '/assets/cornhill-school-crest.jpg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(
