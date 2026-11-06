@@ -33,6 +33,17 @@ const TABLES = [
   "staff_media_messages","staff_call_signals","inventory_categories","inventory_items",
   "inventory_movements","school_position_catalogue"
 ];
+const PRIVATE_COMMUNICATION_TABLES = new Set([
+  "communication_delivery_events",
+  "communication_outbox",
+  "school_sms_outbox",
+  "staff_communication_posts",
+  "staff_communication_comments",
+  "staff_communication_reactions",
+  "staff_direct_messages",
+  "staff_media_messages",
+  "staff_call_signals"
+]);
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: cors });
@@ -159,6 +170,12 @@ async function makeBackup(userId: string, connection: any) {
   try {
     const records: Record<string, unknown[]> = {};
     for (const table of TABLES) {
+      // Preserve the dataset manifest but never copy private communication bodies,
+      // recipient phone numbers, media paths or call-signalling payloads into backups.
+      if (PRIVATE_COMMUNICATION_TABLES.has(table)) {
+        records[table] = [];
+        continue;
+      }
       const rows: unknown[] = [];
       let start = 0;
       while (true) {
@@ -174,10 +191,11 @@ async function makeBackup(userId: string, connection: any) {
     const total = Object.values(counts).reduce((sum,n)=>sum+n,0);
     const snapshot = {
       school:"CORNHILL NURSERY AND PRIMARY SCHOOL",
-      format:"cornhill-google-drive-backup-v1",
+      format:"cornhill-google-drive-backup-v2",
       created_at:new Date().toISOString(),
       created_by:userId,
-      scope:"Encrypted allowlisted application database snapshot, including school records and staff communication database rows. Excludes Supabase Storage binary files (photos, voice/video files and other uploads), authentication accounts/passwords/sessions, and database schema or platform configuration.",
+      scope:"Encrypted application database snapshot. Private communication tables are intentionally represented as empty datasets; Supabase Storage files and authentication accounts are not included.",
+      excluded_tables:[...PRIVATE_COMMUNICATION_TABLES],
       record_counts:counts,
       total_records:total,
       records
@@ -318,8 +336,16 @@ Deno.serve(async (req: Request) => {
         if (!response.ok) throw new Error("Google Drive could not download this backup for validation (HTTP " + response.status + ").");
         const encrypted = await response.text();
         const snapshot = JSON.parse(await decrypt(encrypted));
-        if (snapshot.format !== "cornhill-google-drive-backup-v1" || !snapshot.records || typeof snapshot.records !== "object")
+        if (!["cornhill-google-drive-backup-v1","cornhill-google-drive-backup-v2"].includes(snapshot.format) || !snapshot.records || typeof snapshot.records !== "object")
           throw new Error("Backup format is not recognised. No restore was attempted.");
+        if (snapshot.format === "cornhill-google-drive-backup-v2") {
+          const excluded = [...PRIVATE_COMMUNICATION_TABLES].sort();
+          const recordedExcluded = Array.isArray(snapshot.excluded_tables) ? [...snapshot.excluded_tables].sort() : [];
+          if (JSON.stringify(recordedExcluded) !== JSON.stringify(excluded) ||
+              excluded.some(name => !Array.isArray(snapshot.records[name]) || snapshot.records[name].length !== 0 ||
+                Number(snapshot.record_counts?.[name]) !== 0))
+            throw new Error("Backup privacy-scope verification failed. No restore was attempted.");
+        }
         const allowed = new Set(TABLES);
         const names = Object.keys(snapshot.records);
         if (names.length !== TABLES.length || names.some(name => !allowed.has(name)))
