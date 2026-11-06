@@ -1913,7 +1913,8 @@ async function filterAssessmentSubjects(){
   if(error){message('academicMsg','Could not load class curriculum: '+error.message,true);return}
   allowed=new Set((data||[]).map(x=>x.subject_id));
  }
- const subjects=academic.subjects.filter(x=>!allowed||allowed.has(x.id));
+ const assigned=profile?.role==='Teacher'?new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId&&x.teacher_user_id===currentUserId).map(x=>x.subject_id)):null;
+ const subjects=academic.subjects.filter(x=>(!allowed||allowed.has(x.id))&&(!assigned||assigned.has(x.id)));
  $('assessmentSubjectSelect').innerHTML=subjects.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('')||'<option value="">No curriculum subjects assigned</option>';
  if(group)message('academicMsg','Showing '+group+' curriculum subjects for '+(cls?.name||'this class')+'.');
 }
@@ -1923,6 +1924,10 @@ async function loadAcademics(){
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
+ $('assessmentSetup').classList.toggle('hidden',!['Admin','Teacher'].includes(profile?.role));
+ $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
+ $('adminTeacherMarksRegister').classList.toggle('hidden',profile?.role!=='Admin');
+ $('adminReportActions').classList.toggle('hidden',profile?.role!=='Admin');
  $('downloadBlankReportTemplates').classList.toggle('hidden',profile?.role!=='Admin');
  $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
@@ -1934,7 +1939,7 @@ async function loadAcademics(){
   profile?.role==='Admin'?db.from('subjects').select('*').eq('is_active',true).order('name'):(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}),
   db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name').order('full_name'):Promise.resolve({data:[],error:null}),
-  db.from('assessment_scores').select('id,score,teacher_comment,students(admission_number,first_name,last_name),assessments(title,max_score)').order('updated_at',{ascending:false}).limit(100),
+  db.from('assessment_scores').select('id,score,teacher_comment,entered_by,updated_at,students(admission_number,first_name,middle_name,last_name),assessments(title,max_score,school_classes(name),academic_terms(name),subjects(name))').order('updated_at',{ascending:false}).limit(1000),
   profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id'))
  ]);
  const err=[y,t,s,a,staff,cscores,assignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
@@ -1945,7 +1950,7 @@ async function loadAcademics(){
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
  $('academicYearSelect').innerHTML=opts(academic.years,x=>x.name);
  $('academicClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
- $('assessmentClassSelect').innerHTML=$('academicClassSelect').innerHTML;
+ $('assessmentClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
  $('academicSubjectSelect').innerHTML=opts(academic.subjects,x=>x.name);
  $('assessmentSubjectSelect').innerHTML=$('academicSubjectSelect').innerHTML;
  await filterAssessmentSubjects();
@@ -1955,7 +1960,9 @@ async function loadAcademics(){
  if(profile?.role==='Admin'&&currentUserId){for(const row of assignments.data||[]){try{const draft=await readLocalFormDraft(currentUserId,'academic-teacher-assignment-'+row.id);const select=document.querySelector('[data-assignment-teacher="'+CSS.escape(row.id)+'"]');if(draft&&select&&[...select.options].some(o=>o.value===draft.values?.teacher_user_id))select.value=draft.values.teacher_user_id}catch(_){}}}
  $('assessmentTermSelect').innerHTML=opts(academic.terms,x=>x.name+' · '+(x.academic_years?.name||''));
  $('scoreAssessmentSelect').innerHTML=opts(academic.assessments,x=>(x.title+' · '+(x.school_classes?.name||'')+' · '+(x.subjects?.name||'')));
- $('academicScoreRows').innerHTML=(cscores.data||[]).map(x=>'<tr><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>Saved</td></tr>').join('')||'<tr><td colspan="6">No marks entered yet.</td></tr>';
+ window.cornhillTeacherMarksRegister=cscores.data||[];
+ window.cornhillStaffNames=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||'Teacher account']));
+ $('academicScoreRows').innerHTML=profile?.role==='Admin'?window.cornhillTeacherMarksRegister.map(x=>'<tr><td>'+esc(x.assessments?.school_classes?.name||'—')+'</td><td>'+esc(x.assessments?.academic_terms?.name||'—')+'</td><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.middle_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.subjects?.name||'—')+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>'+esc(window.cornhillStaffNames[x.entered_by]||'Teacher account')+'</td><td>'+esc(x.updated_at?new Date(x.updated_at).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No teacher marks have been saved yet.</td></tr>':'<tr><td colspan="10">Administrator register only.</td></tr>';
  updateScoreLearners();
  populateReportFilters();
 }
@@ -2083,7 +2090,7 @@ $('reportTermSelect').addEventListener('change',()=>{renderClassPerformance();$(
 $('buildReportCard').addEventListener('click',renderReportCard);
 let generatedReportBatch={html:'',className:'',termName:'',count:0};
 $('buildClassReportCards').addEventListener('click',async()=>{
- if(!['Admin','Teacher'].includes(profile?.role)||demoMode)return;
+ if(profile?.role!=='Admin'||demoMode)return;
  const classId=$('reportClassSelect').value,termId=$('reportTermSelect').value;
  if(!classId||!termId){message('academicMsg','Choose a term and class before generating report cards.',true);return}
  const className=$('reportClassSelect').selectedOptions[0]?.textContent||'Selected class';
@@ -2241,8 +2248,19 @@ async function renderClassPerformance(){
  window.cornhillClassPerformanceRows=ranked.map((x,i)=>{const pct=x.x.score/x.x.max*100;if(lastPct===null||Math.abs(pct-lastPct)>0.000001)lastRank=i+1;lastPct=pct;return {position:lastRank,admission_code:x.l.admission_number,learner:[x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '),subjects_scored:x.x.subjects.size,total_marks:x.x.score,maximum_marks:x.x.max,average_percent:Number(pct.toFixed(1))}});
  $('classPerformanceRows').innerHTML=window.cornhillClassPerformanceRows.map(x=>'<tr><td>'+x.position+'</td><td>'+esc(x.admission_code)+' · '+esc(x.learner)+'</td><td>'+x.subjects_scored+'</td><td>'+money(x.total_marks)+' / '+money(x.maximum_marks)+'</td><td>'+x.average_percent.toFixed(1)+'%</td></tr>').join('')||'<tr><td colspan="5">No marks entered for this class and term.</td></tr>';
 }
+$('exportTeacherMarksRegister').addEventListener('click',()=>{
+ if(profile?.role!=='Admin'||demoMode)return;
+ const rows=window.cornhillTeacherMarksRegister||[];
+ if(!rows.length){message('academicMsg','There are no saved teacher marks to export yet.',true);return}
+ downloadCSV('cornhill-teacher-marks-register.csv',
+ ['Class','Term','Admission code','Learner','Subject','Assessment','Mark','Maximum','Teacher account','Last updated'],
+ rows.map(x=>[x.assessments?.school_classes?.name||'',x.assessments?.academic_terms?.name||'',x.students?.admission_number||'',
+ [x.students?.first_name,x.students?.middle_name,x.students?.last_name].filter(Boolean).join(' '),
+ x.assessments?.subjects?.name||'',x.assessments?.title||'',isAbsentMark(x)?'X':x.score,x.assessments?.max_score??'',
+ window.cornhillStaffNames?.[x.entered_by]||'Teacher account',x.updated_at||'']));
+});
 $('exportAcademicClassCsv').addEventListener('click',()=>{
- if(!['Admin','Teacher'].includes(profile?.role)||demoMode)return;
+ if(profile?.role!=='Admin'||demoMode)return;
  const rows=window.cornhillClassPerformanceRows||[];if(!rows.length){message('academicMsg','Generate class performance for a term and class before exporting.',true);return}
  const term=$('reportTermSelect').selectedOptions[0]?.textContent||'Selected term',cls=$('reportClassSelect').selectedOptions[0]?.textContent||'Selected class';
  downloadCSV('cornhill-academic-results.csv',['Term','Class','Position','Admission code','Learner','Subjects scored','Total marks','Maximum marks','Average percent'],rows.map(x=>[term,cls,x.position,x.admission_code,x.learner,x.subjects_scored,x.total_marks,x.maximum_marks,x.average_percent]));
@@ -2524,7 +2542,7 @@ $('saveExcelMarks').addEventListener('click',async()=>{
  try{
   const ctx=window.cornhillExcelMarksContext;
   if(!ctx){message('excelMarksMsg','Load a class sheet first.',true);return}
-  if(!['Admin','Teacher'].includes(profile?.role)){message('excelMarksMsg','Only authorised administrators and assigned teachers can save marks.',true);return}
+  if(profile?.role!=='Teacher'){message('excelMarksMsg','Only assigned teachers can save marks. Administrators have read-only access.',true);return}
   const auth=navigator.onLine?await db.auth.getUser():await db.auth.getSession(),user=auth.data?.user||auth.data?.session?.user;
   if(auth.error||!user){message('excelMarksMsg','Your local sign-in session is unavailable. Reconnect and sign in before saving marks.',true);return}
   const inputs=[...document.querySelectorAll('[data-grid-score]')],payload=[];
@@ -2598,7 +2616,7 @@ $('saveBulkMarks').addEventListener('click',async()=>{
  const button=$('saveBulkMarks');if(button.dataset.busy==='1')return;
  button.dataset.busy='1';button.disabled=true;button.textContent='Saving…';
  try{
-  if(!['Admin','Teacher'].includes(profile?.role)){message('bulkMarksMsg','Only administrators and assigned teachers can save marks.',true);return}
+  if(profile?.role!=='Teacher'){message('bulkMarksMsg','Only assigned teachers can save marks. Administrators have read-only access.',true);return}
   const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
   if(!ass){message('bulkMarksMsg','Choose an assessment first.',true);return}
   const auth=await db.auth.getUser(),user=auth.data?.user;
@@ -2626,7 +2644,7 @@ $('saveBulkMarks').addEventListener('click',async()=>{
 async function submitAcademic(formId,table,transform,success){
  $(formId).addEventListener('submit',async e=>{
   e.preventDefault();
-  if(profile?.role!=='Admin'){message('academicMsg','Only administrators can make academic changes at present.',true);return}
+  if(profile?.role!=='Admin'&&!(profile?.role==='Teacher'&&table==='assessments')){message('academicMsg','This action is reserved for the administrator, except teachers may prepare assessments for their assigned class and subjects.',true);return}
   const button=e.submitter||e.target.querySelector('[type="submit"]');
   if(button?.dataset.busy==='1')return;
   if(button){button.dataset.busy='1';button.disabled=true}
@@ -2651,7 +2669,7 @@ async function submitAcademic(formId,table,transform,success){
     const cls=classes.find(x=>x.id===values.class_id);
     const subject=academic.subjects.find(x=>x.id===values.subject_id);
     if(!term||!cls||!subject){message('academicMsg','Choose a valid academic term, class and subject.',true);return}
-    if(!academic.classSubjects.some(x=>x.class_id===values.class_id&&x.subject_id===values.subject_id)){message('academicMsg','This subject has not been assigned to the selected class. Assign the class subject first, then create its assessment.',true);return}
+    if(!academic.classSubjects.some(x=>x.class_id===values.class_id&&x.subject_id===values.subject_id&&(profile?.role!=='Teacher'||(x.teacher_user_id===currentUserId&&values.class_id===sessionStorage.getItem('cornhill_teacher_class_id'))))){message('academicMsg','This subject is not assigned to your teacher account for the selected class. Ask the administrator to assign it first.',true);return}
     const maximum=Number(values.max_score);
     if(!Number.isFinite(maximum)||maximum<=0){message('academicMsg','Maximum score must be a valid number greater than zero.',true);return}
     if(values.assessment_date&&(values.assessment_date<term.starts_on||values.assessment_date>term.ends_on)){message('academicMsg','Assessment date must fall within the selected term ('+term.starts_on+' to '+term.ends_on+').',true);return}
@@ -2727,7 +2745,7 @@ $('scoreForm').addEventListener('submit',async e=>{
  if(submitButton?.dataset.busy==='1')return;
  if(submitButton){submitButton.dataset.busy='1';submitButton.disabled=true}
  try{
- if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Only administrators and assigned teachers can enter marks.',true);return}
+ if(profile?.role!=='Teacher'){message('academicMsg','Only assigned teachers can enter or change learner marks. Administrators have read-only access.',true);return}
  const v=Object.fromEntries(new FormData(e.target).entries()),auth=await db.auth.getUser(),user=auth.data?.user,absent=String(v.score).trim().toUpperCase()==='X',score=Number(v.score),assessment=academic.assessments.find(x=>x.id===v.assessment_id);
  if(absent&&!allowsAbsentMarkForClass(assessment?.class_id)){message('academicMsg','X (Absent) is only available for P4–P7. Enter a mark for Nursery and P1–P3.',true);return}
  if(!absent&&(!Number.isFinite(score)||score<0||score>Number(assessment?.max_score))){message('academicMsg','Enter a valid score up to '+(assessment?.max_score??'the assessment maximum')+', or enter X if the learner was absent.',true);return}
