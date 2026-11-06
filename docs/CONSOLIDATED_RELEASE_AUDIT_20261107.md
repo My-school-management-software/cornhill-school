@@ -120,3 +120,35 @@ Supabase health advisor: zero lints at the time of this audit.
 **Not yet approved for school-wide production use.**
 
 The source and database checks in this audit passed, and two issues were corrected. It would be misleading to say every acceptance test is complete or that nothing remains: the outstanding items above require account/provider configuration, populated test fixtures, a new deployment, real browser sessions, devices or school sign-off.
+
+
+## Free password-protection alternative — additional checks
+
+The Pro-only Supabase leaked-password toggle remains **disabled by design**, as requested. No plan upgrade or paid service was enabled.
+
+### What was added
+
+The application now checks new passwords in both supported UI flows:
+- Administrator/staff password-recovery flow.
+- Signed-in user's own password-change flow.
+
+The application enforces the agreed minimum of 8 characters plus uppercase, lowercase, a digit and a symbol. Before sending a new password to Supabase Auth, it checks the free Have I Been Pwned Pwned Passwords range service using k-anonymity:
+- SHA-1 is computed locally in the browser solely to create the lookup.
+- Only the first 5 hexadecimal characters of the hash are sent to the external service.
+- The remaining 35 characters are compared locally; the password and full hash are not sent.
+- Response padding is requested, cookies/credentials are omitted, referrer transmission is disabled, and the lookup has a 9-second timeout.
+- A password found in the breach corpus is rejected.
+- If the breach-check service cannot be reached, the password change is paused rather than silently skipping the check.
+- Zero-count padding rows are correctly ignored.
+
+This uses the free Pwned Passwords endpoint; it does not require a HIBP subscription or API key.
+
+### Additional source checks — 16/16 passed
+
+Verified the hash-prefix lookup, local suffix comparison, padding handling, zero-count filtering, request privacy settings, timeout, 8-character mixed-character policy, both password-change call paths, password-recovery request wiring, recovery-event handling, sign-out after successful reset, and absence of a full password in the HIBP request URL.
+
+### Important security boundary
+
+This is a strong additional check on CORNHILL's password-change and recovery screens, but it is **not identical to Supabase's server-side leaked-password protection**. A user who deliberately bypasses the CORNHILL screens and calls Supabase Auth directly could bypass the app-level HIBP check. The free Supabase Auth minimum-length and required-character policy remains the server-side baseline and should stay enabled. The Supabase Pro-only leaked-password toggle remains off.
+
+The application code is committed to the feature branch, but a fresh Vercel deployment and real account tests are still required before this change can be verified in the live application.
