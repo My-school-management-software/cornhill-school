@@ -384,3 +384,10 @@ The remaining programme now explicitly includes:
 - Rechecked the authenticated SECURITY DEFINER inventory. The reviewed administrative finance, admission, re-admission, term-control, budget, parent-contact, and learner-search RPCs contain explicit active-admin guards; teacher lookup now uses the active-class-teacher helper; parent portal access is guarded by verified guardian phone and learner linkage.
 - Confirmed `user_profiles` exposes only two authenticated policies by name: users reading their own profile/admin reading all, and administrator staff-profile updates. Policy predicate inspection was blocked by the query safety layer, so those exact predicates remain to be checked with a supported inspection path.
 - No role, profile, learner, payment, or academic data changed. No authenticated user simulation or device test was run.
+
+
+## 2026-11-06 — Security migration source and role audit follow-up
+- Confirmed the source migration for `active_staff_directory_and_teacher_lookup` is saved in the repository at `supabase/migrations/20261106153000_active_staff_directory_and_teacher_lookup.sql`, matching the already-applied Supabase change.
+- Reviewed the SECURITY DEFINER inventory. The checked finance, bursary, learner admission/re-admission, term control, budget, parent contact and learner-match routines require the active administrator helper. Parent portal access checks verified guardian phone and learner linkage. Teacher visiting-day lookup now checks active teacher status and assigned class through the shared helper.
+- `user_profiles` has two authenticated policies by name: self/admin profile read and administrator profile update. Full predicate inspection was blocked by the SQL safety layer, so no policy changes were made without verifying the expressions.
+- No learner, staff, payment, mark or academic records changed. Runtime active/inactive/cross-class role tests remain pending.
