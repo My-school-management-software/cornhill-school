@@ -73,3 +73,28 @@ These tests must run in a dedicated isolated test project or approved test datas
 **Not yet tested:** authenticated RPC execution, database transaction rollback, actual receipt/charge balance reconciliation, previous-term allocation in a real session, reversal audit rows, duplicate/concurrent payment behavior, receipt printing and thermal-printer output.
 
 No live school finance rows were changed during this review. Do not use the two existing payment rows as test records or reverse them. A school-authorised isolated test environment and test-only learner/charges are required for the pending transaction tests.
+
+
+## 2026-11-06 — Combined read-only finance batch: 24 database checks
+
+A second grouped verification ran 24 read-only SQL checks against the connected project. No INSERT, UPDATE, DELETE, reversal, payroll payment or test transaction was executed.
+
+| # | Check | Result |
+|---:|---|---|
+| 1–6 | RLS enabled on payments, allocations, charges, expenses, salary agreements and salary advances | PASS |
+| 7 | No anon table grants on the inspected finance tables | PASS |
+| 8–12 | Positive payment/charge/expense amounts and bounded unallocated amounts | PASS |
+| 13–15 | Allocation totals do not exceed receipts; allocated + unallocated reconciles; posted allocations do not overpay a charge | PASS |
+| 16–18 | Receipt numbers unique; expense numbers unique; reversal audit fields complete | PASS |
+| 19–20 | Paid payroll items have a posted expense; no duplicate payroll-expense links | PASS |
+| 21–24 | Advance outstanding amounts bounded; salary agreement dates valid; salary agreements do not overlap per staff member; voided expenses have reason and timestamp | PASS |
+
+### Scope and limitations
+- Current row counts at test time: 2 school payments, 0 payment allocations, 1 learner charge, 0 school expenses, 0 payroll items, 0 salary agreements and 0 advances.
+- The checks passed, but empty payroll/expense tables make some payroll/expense invariants vacuously true. They do not prove the workflows work end to end.
+- Inspected RLS policies: payments, charges, allocations, expenses, salary agreements, salary advances, payroll items, payroll periods and daily collection records are administrator-scoped where applicable; staff have a separate own-advance SELECT policy.
+- Inspected payroll triggers: attendance deductions run before payroll item insertion; paid payroll items create a linked salary expense; approved advance recovery is settled on payroll status transition. The expense trigger requires an Approved/Part-paid payroll period and a Salaries & wages category.
+- Inspected database constraints for positive UGX amounts, unique receipt/expense identifiers, one expense per payroll item, valid payment methods/statuses, and bounded advance balances.
+- These were read-only structural and current-data integrity checks. No authenticated administrator/bursar/teacher session was simulated; no RPC transaction, concurrency, receipt print, thermal printer or payroll workflow was executed.
+
+**Still pending:** isolated test-environment transaction tests for payment posting/reversal, expense voiding, payroll payment/expense creation, advance recovery, daily collection refresh, role-specific browser workflows, and standard/thermal receipt printing. Do not use existing school records as test fixtures.
