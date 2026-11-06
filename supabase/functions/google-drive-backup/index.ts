@@ -70,8 +70,9 @@ async function requireAdmin(req: Request) {
   if (!token) throw new Error("Sign in as a school administrator first.");
   const { data: userData, error: userError } = await adminDb.auth.getUser(token);
   if (userError || !userData.user) throw new Error("Your session is invalid or has expired. Please sign in again.");
-  const { data: profile, error } = await adminDb.from("user_profiles").select("role").eq("id", userData.user.id).maybeSingle();
-  if (error || profile?.role !== "Admin") throw new Error("Only a signed-in CORNHILL administrator can manage Google Drive backups.");
+  const { data: profile, error } = await adminDb.from("user_profiles").select("role,employment_status").eq("id", userData.user.id).maybeSingle();
+  if (error || profile?.role !== "Admin" || (profile.employment_status && profile.employment_status !== "Active"))
+    throw new Error("Only a currently active CORNHILL administrator can manage Google Drive backups.");
   return userData.user;
 }
 async function saveState(userId: string) {
@@ -243,6 +244,9 @@ Deno.serve(async (req: Request) => {
       const {data:stateRow,error:stateError} = await adminDb.from("google_drive_backup_oauth_states").select("*").eq("state_hash",await digest(state)).gt("expires_at",new Date().toISOString()).maybeSingle();
       if (stateError || !stateRow) throw new Error("Google connection request expired or could not be verified. Start again from CORNHILL.");
       await adminDb.from("google_drive_backup_oauth_states").delete().eq("state_hash",stateRow.state_hash);
+      const {data:requester,error:requesterError}=await adminDb.from("user_profiles").select("role,employment_status").eq("id",stateRow.user_id).maybeSingle();
+      if(requesterError || requester?.role!=="Admin" || (requester.employment_status && requester.employment_status!=="Active"))
+        throw new Error("The administrator who started this Google connection is no longer active. Sign in with an active administrator and start again.");
       const {clientId,clientSecret,redirectUri} = googleConfig();
       const tokenResponse = await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,grant_type:"authorization_code"})});
       const tokens = await tokenResponse.json();
