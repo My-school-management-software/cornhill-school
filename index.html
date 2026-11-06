@@ -1132,7 +1132,7 @@ if(error){
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 await refresh();
  if(!window.cornhillOfflineReadOnly)await loadAcademicControl();
- if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg')}
+ if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}
  if(['Admin','Teacher'].includes(profile?.role)){await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg')}
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
 }
@@ -2815,14 +2815,14 @@ $('workScheduleForm').addEventListener('submit',async e=>{
  const payload={name:f.get('name').trim(),start_time:f.get('start_time'),end_time:f.get('end_time'),grace_minutes:Number(f.get('grace_minutes')||0),break_minutes:Number(f.get('break_minutes')||0),weekdays,created_by:user.id};
  const {error}=await db.from('staff_work_schedules').insert(payload);
  if(error){message('attendanceMsg','Could not create work schedule: '+error.message,true);return}
- e.target.reset();await setupAttendance();message('attendanceMsg','Work schedule created.');
+ e.target.reset();if(currentUserId)await clearLocalFormDraft(currentUserId,'staff-work-schedule');await setupAttendance();message('attendanceMsg','Work schedule created.');
 });
 $('scheduleAssignmentForm').addEventListener('submit',async e=>{
  e.preventDefault();clearMessage('attendanceMsg');const f=new FormData(e.target),user=(await db.auth.getUser()).data.user;
  const payload={staff_user_id:f.get('staff_user_id'),schedule_id:f.get('schedule_id'),assigned_by:user.id};
  const {error}=await db.from('staff_attendance_schedule_assignments').upsert(payload,{onConflict:'staff_user_id'});
  if(error){message('attendanceMsg','Could not assign work schedule: '+error.message,true);return}
- e.target.reset();await setupAttendance();message('attendanceMsg','Staff work schedule assigned.');
+ e.target.reset();if(currentUserId)await clearLocalFormDraft(currentUserId,'staff-schedule-assignment');await setupAttendance();message('attendanceMsg','Staff work schedule assigned.');
 });
 $('deviceMapForm').addEventListener('submit',async e=>{
  e.preventDefault();if(window.CORNHILL_FINGERPRINT_ENABLED!==true){message('attendanceMsg','Fingerprint attendance is inactive. The ZKTeco UA300 Pro connection will be enabled only after the school purchases and tests the device.',true);return}clearMessage('attendanceMsg');const f=new FormData(e.target);
