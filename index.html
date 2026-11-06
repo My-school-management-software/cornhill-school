@@ -413,7 +413,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  <div id="receiptLookupMsg" class="notice hidden"></div><div id="receiptLookupArea" class="receipt-print"></div><div id="receiptReverseControls" class="panel hidden" style="margin-top:12px"><h4>Reverse this receipt</h4><p class="muted">Reversal is permanent and audited. The original receipt remains in the register and is marked invalid; no payment or allocation rows are deleted.</p><label for="receiptReversalReason">Reason for reversal *</label><textarea id="receiptReversalReason" rows="2" maxlength="500" placeholder="Explain why this receipt must be reversed (at least 5 characters)"></textarea><button type="button" id="reverseReceiptButton" class="danger">Reverse posted receipt</button></div>
  <h3 style="margin-top:24px">10. Fee collection report by class and term</h3>
  <p class="muted">Compare charges, posted payments allocated to those charges and outstanding balances. This report uses the selected term's actual fee charges.</p>
- <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:180px"><label for="feeReportTerm">Academic term</label><select id="feeReportTerm"><option value="">All terms</option></select></div><div style="flex:1;min-width:180px"><label for="feeReportClass">Class</label><select id="feeReportClass"><option value="">All classes</option></select></div><button type="button" class="primary" id="runFeeReport">Generate report</button><button type="button" id="printFeeReport" disabled>Print report</button></div>
+ <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div style="flex:1;min-width:180px"><label for="feeReportYear">Academic year</label><select id="feeReportYear"><option value="">All years</option></select></div><div style="flex:1;min-width:180px"><label for="feeReportTerm">Academic term</label><select id="feeReportTerm"><option value="">All terms</option></select></div><div style="flex:1;min-width:180px"><label for="feeReportClass">Class</label><select id="feeReportClass"><option value="">All classes</option></select></div><button type="button" class="primary" id="runFeeReport">Generate report</button><button type="button" id="printFeeReport" disabled>Print report</button></div>
  <div id="feeReportMsg" class="notice hidden"></div>
  <div class="grid"><div class="stat"><small>Charges (UGX)</small><div id="feeReportCharges" class="num">0</div></div><div class="stat"><small>Allocated payments (UGX)</small><div id="feeReportPaid" class="num">0</div></div><div class="stat"><small>Outstanding (UGX)</small><div id="feeReportBalance" class="num">0</div></div></div>
  <div id="feeReportArea" class="table-wrap"><table><thead><tr><th>Class</th><th>Learners</th><th>Charges (UGX)</th><th>Paid (UGX)</th><th>Outstanding (UGX)</th></tr></thead><tbody id="feeReportRows"><tr><td colspan="5">Choose filters and generate the report.</td></tr></tbody></table></div>
@@ -2681,19 +2681,31 @@ $('reverseReceiptButton').addEventListener('click',async()=>{
  catch(err){message('receiptLookupMsg','Receipt was not confirmed as reversed: '+(err?.message||'Unknown error')+'. Check the receipt register before retrying.',true)}
  finally{button.disabled=false;button.textContent='Reverse posted receipt'}
 });
+let feeReportTerms=[];
+function renderFeeReportTermOptions(){
+ const yearId=$('feeReportYear').value;
+ const terms=feeReportTerms.filter(t=>!yearId||t.academic_year_id===yearId);
+ $('feeReportTerm').innerHTML='<option value="">All terms</option>'+terms.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('');
+}
 async function loadFeeReportOptions(){
  if(demoMode||profile?.role!=='Admin')return;
- const [terms,classes]=await Promise.all([db.from('academic_terms').select('id,name,academic_years(name)').order('starts_on',{ascending:false}),db.from('school_classes').select('id,name,stream').order('name')]);
- const failed=[terms,classes].find(x=>x.error);if(failed){message('feeReportMsg','Could not load report filters: '+failed.error.message,true);return}
- $('feeReportTerm').innerHTML='<option value="">All terms</option>'+(terms.data||[]).map(t=>'<option value="'+t.id+'">'+esc(t.academic_years?.name||'')+' · '+esc(t.name)+'</option>').join('');
+ const [years,terms,classes]=await Promise.all([db.from('academic_years').select('id,name,starts_on').order('starts_on',{ascending:false}),db.from('academic_terms').select('id,name,academic_year_id,starts_on').order('starts_on',{ascending:false}),db.from('school_classes').select('id,name,stream').order('name')]);
+ const failed=[years,terms,classes].find(x=>x.error);if(failed){message('feeReportMsg','Could not load report filters: '+failed.error.message,true);return}
+ feeReportTerms=terms.data||[];
+ $('feeReportYear').innerHTML='<option value="">All years</option>'+(years.data||[]).map(y=>'<option value="'+y.id+'">'+esc(y.name)+'</option>').join('');
+ renderFeeReportTermOptions();
  $('feeReportClass').innerHTML='<option value="">All classes</option>'+(classes.data||[]).map(c=>'<option value="'+c.id+'">'+esc(c.name)+(c.stream?' · '+esc(c.stream):'')+'</option>').join('');
 }
+$('feeReportYear').addEventListener('change',()=>{renderFeeReportTermOptions();$('feeReportRows').innerHTML='<tr><td colspan="5">Choose filters and generate the report.</td></tr>';$('feeReportCharges').textContent='0';$('feeReportPaid').textContent='0';$('feeReportBalance').textContent='0';$('printFeeReport').disabled=true;});
 $('runFeeReport').addEventListener('click',async()=>{
  if(demoMode||profile?.role!=='Admin'){message('feeReportMsg','Only administrators can generate finance reports.',true);return}
  $('runFeeReport').disabled=true;$('runFeeReport').textContent='Generating…';
  try{
   let query=db.from('learner_charges').select('id,student_id,amount_ugx,term_id,students!inner(class_id,school_classes(name,stream),status),payment_allocations(amount_ugx,school_payments(status))').order('created_at',{ascending:true});
-  const term=$('feeReportTerm').value,cls=$('feeReportClass').value;if(term)query=query.eq('term_id',term);if(cls)query=query.eq('students.class_id',cls);
+  const year=$('feeReportYear').value,term=$('feeReportTerm').value,cls=$('feeReportClass').value;
+  const yearTermIds=year?feeReportTerms.filter(t=>t.academic_year_id===year).map(t=>t.id):[];
+  if(term)query=query.eq('term_id',term);else if(year){if(!yearTermIds.length){$('feeReportRows').innerHTML='<tr><td colspan="5">No academic terms are configured for this year.</td></tr>';$('feeReportCharges').textContent='0';$('feeReportPaid').textContent='0';$('feeReportBalance').textContent='0';$('printFeeReport').disabled=true;message('feeReportMsg','No academic terms are configured for the selected year.');return}query=query.in('term_id',yearTermIds)}
+  if(cls)query=query.eq('students.class_id',cls);
   const {data,error}=await query;if(error)throw error;
   const groups=new Map();let totalCharge=0,totalPaid=0;
   for(const c of data||[]){
@@ -2709,8 +2721,8 @@ $('runFeeReport').addEventListener('click',async()=>{
   $('feeReportCharges').textContent=money(totalCharge);$('feeReportPaid').textContent=money(totalPaid);$('feeReportBalance').textContent=money(Math.max(0,totalCharge-totalPaid));
   $('feeReportRows').innerHTML=rows||'<tr><td colspan="5">No fee charges found for these filters.</td></tr>';
   $('printFeeReport').disabled=!(data||[]).length;
-  const termLabel=$('feeReportTerm').selectedOptions[0]?.textContent||'All terms',classLabel=$('feeReportClass').selectedOptions[0]?.textContent||'All classes';
-  $('feeReportArea').dataset.heading='Fee Collection Report · '+termLabel+' · '+classLabel;
+  const yearLabel=$('feeReportYear').selectedOptions[0]?.textContent||'All years',termLabel=$('feeReportTerm').selectedOptions[0]?.textContent||'All terms',classLabel=$('feeReportClass').selectedOptions[0]?.textContent||'All classes';
+  $('feeReportArea').dataset.heading='Fee Collection Report · '+yearLabel+' · '+termLabel+' · '+classLabel;
   message('feeReportMsg','Report generated from '+(data||[]).length+' fee charge record(s).');
  }catch(err){message('feeReportMsg','Could not generate report: '+(err?.message||'Unknown error'),true)}
  finally{$('runFeeReport').disabled=false;$('runFeeReport').textContent='Generate report'}
@@ -2718,8 +2730,8 @@ $('runFeeReport').addEventListener('click',async()=>{
 $('printFeeReport').addEventListener('click',()=>{if(!$('feeReportRows').innerHTML.includes('No fee charges'))window.print()});
 $('exportFeeReportCsv').addEventListener('click',()=>{
  if(profile?.role!=='Admin'||demoMode)return;const rows=window.cornhillFeeReportRows||[];if(!rows.length){message('feeReportMsg','Generate a fee report before exporting.',true);return}
- const term=$('feeReportTerm').selectedOptions[0]?.textContent||'All terms',cls=$('feeReportClass').selectedOptions[0]?.textContent||'All classes';
- downloadCSV('cornhill-fee-collection-report.csv',['Academic term','Selected class','Class group','Learners charged','Charges UGX','Paid UGX','Outstanding UGX'],rows.map(x=>[term,cls,x.class_name,x.learners,x.charges_ugx,x.paid_ugx,x.outstanding_ugx]));
+ const year=$('feeReportYear').selectedOptions[0]?.textContent||'All years',term=$('feeReportTerm').selectedOptions[0]?.textContent||'All terms',cls=$('feeReportClass').selectedOptions[0]?.textContent||'All classes';
+ downloadCSV('cornhill-fee-collection-report.csv',['Academic year','Academic term','Selected class','Class group','Learners charged','Charges UGX','Paid UGX','Outstanding UGX'],rows.map(x=>[year,term,cls,x.class_name,x.learners,x.charges_ugx,x.paid_ugx,x.outstanding_ugx]));
 });
 function kampalaToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Kampala',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
 $('cashReportFrom').value=kampalaToday();$('cashReportTo').value=kampalaToday();
