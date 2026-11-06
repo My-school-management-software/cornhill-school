@@ -491,3 +491,16 @@ The remaining programme now explicitly includes:
 - Final database inspection confirms marks policies are Admin SELECT only and Teacher SELECT/INSERT/UPDATE subject-scoped, with no score DELETE policy. Subject, class-subject and learner write policies remain administrator-controlled. The health advisor still reports zero lints. Static parsing of all 3 inline JS blocks passed after the final UI code update.
 
 - Migration filenames have been aligned with the actual Supabase migration versions: `20261106162015_block_teacher_assessments_in_closed_terms.sql` and `20261106162237_scope_teacher_marks_to_assigned_subjects.sql`. The matching migration versions are recorded in Supabase; the earlier mismatched filenames were removed from the branch.
+
+
+## 2026-11-06 — Academic database grant hardening
+- Audited effective table grants in addition to RLS policies. Found that the academic tables still had default broad grants to `anon` and `authenticated`, including unnecessary `TRUNCATE`, `TRIGGER` and `REFERENCES` privileges. RLS does not replace SQL table grants, so this needed a separate correction.
+- Applied migration `20261106165945_restrict_academic_table_grants`.
+- Revoked all table privileges from `anon` and `authenticated` on `academic_years`, `academic_terms`, `assessments`, `assessment_scores`, `class_subjects`, `school_classes`, `students` and `subjects`, then granted back only required operations to `authenticated`.
+  - `assessment_scores`: SELECT, INSERT and UPDATE only; no DELETE, TRUNCATE, TRIGGER or REFERENCES.
+  - Other listed academic tables: SELECT, INSERT, UPDATE and DELETE for authenticated users, still constrained by their existing RLS policies (administrator-only writes where defined).
+  - No `anon` table privileges remain on the eight tables.
+- Verification query passed all 10 checks: anon cannot read/insert marks or read assessments; authenticated retains needed mark SELECT/INSERT/UPDATE privileges; authenticated has no mark DELETE/TRUNCATE/TRIGGER/REFERENCES privilege. RLS remains enabled on all eight tables.
+- Supabase health advisor returned zero lints.
+- This is a grant-level verification, not a simulated teacher/admin sign-in or pgTAP policy test. The project does not currently have the pgTAP extension installed, and there are no teacher accounts or configured academic terms/assessment rows for an end-to-end mark-entry test. No school records were changed.
+- GitHub migration file: `supabase/migrations/20261106165945_restrict_academic_table_grants.sql`; commit `84bb4d32342bd4a981b7b5f3cddb2d43640f8c07`.
