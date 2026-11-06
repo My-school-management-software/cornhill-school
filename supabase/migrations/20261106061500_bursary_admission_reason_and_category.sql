@@ -32,6 +32,16 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  if tg_op = 'UPDATE'
+     and (
+       new.is_bursary is distinct from old.is_bursary
+       or new.bursary_category is distinct from old.bursary_category
+       or new.bursary_fee_ugx is distinct from old.bursary_fee_ugx
+       or new.bursary_reason is distinct from old.bursary_reason
+     ) then
+    raise exception 'Bursary awards are locked after admission. Use an approved bursary amendment workflow to change the award.';
+  end if;
+
   if new.is_bursary then
     if new.bursary_category not in ('Full bursary','Half bursary','Partial bursary','Fully sponsored') then
       raise exception 'Choose a valid bursary category';
@@ -46,13 +56,9 @@ begin
       raise exception 'Enter the approved amount payable for a half or partial bursary';
     end if;
 
-    if tg_op = 'INSERT'
-       or new.is_bursary is distinct from old.is_bursary
-       or new.bursary_category is distinct from old.bursary_category
-       or new.bursary_fee_ugx is distinct from old.bursary_fee_ugx
-       or new.bursary_reason is distinct from old.bursary_reason then
-      if auth.uid() is null then
-        raise exception 'An authenticated administrator is required to approve a bursary';
+    if tg_op = 'INSERT' then
+      if auth.uid() is null or not coalesce(public.is_school_admin(),false) then
+        raise exception 'An authenticated school administrator is required to approve a bursary';
       end if;
       new.bursary_approved_by := auth.uid();
       new.bursary_approved_at := now();
