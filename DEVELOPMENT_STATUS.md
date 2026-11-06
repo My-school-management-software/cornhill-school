@@ -316,3 +316,10 @@ The remaining programme now explicitly includes:
 - Replaced publication upsert with check-then-insert. Existing approval rows are preserved rather than overwritten by a second approval attempt; lookup errors stop the operation.
 - Existing publication display remains read-only and includes approver/timestamp. No bulk publication was added.
 - Updated service-worker cache to cornhill-shell-v17. Static JavaScript checks passed for all inline scripts. No production report publication rows or marks were changed. Browser/RLS concurrency testing remains pending.
+
+
+## 2026-11-06 — Encrypted backup coverage and verification batch
+- Expanded the application backup dataset list to include enrolment periods, bursary awards, guardian contacts/change history, conduct reports, daily collection records, user profiles, attendance configuration/import history, communication delivery/outbox/templates and staff collaboration records. Provider credentials, OAuth state/tokens, auth passwords and the class-login directory are intentionally excluded.
+- Local export now requires an administrator-chosen password of at least 12 characters. Browser Web Crypto derives an AES-256-GCM key using PBKDF2-SHA256 (310,000 iterations), random salt and IV; the passphrase is not stored. The export is an encrypted `.enc.json` package.
+- Before download, the browser decrypts the generated package in memory and verifies the record snapshot format and dataset count. Password field is cleared after successful generation. A failed dataset read aborts the export instead of creating a partial backup.
+- Updated shell cache to v18. Static JavaScript parsing passed. No records were edited. Full import/restore workflow, actual encrypted file round-trip on Android/Windows, cloud backup verification and disaster-recovery drill remain pending. Keep the password separately; losing it means the file cannot be decrypted.
