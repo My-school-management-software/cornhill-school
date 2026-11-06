@@ -2363,6 +2363,7 @@ function parseAttendanceTime(value){
 }
 async function setupAttendance(){
  if(demoMode){message('attendanceMsg','Attendance is not available in read-only demo mode.');return}
+ syncOfflineAttendanceCorrections().catch(()=>{});
  const admin=profile?.role==='Admin';
  $('attendanceAdmin').classList.toggle('hidden',!admin);
  $('attendanceStaff').classList.toggle('hidden',admin);
@@ -2488,7 +2489,7 @@ async function syncOfflineAttendanceCorrections(){
  if(synced||failed){
   const status=document.getElementById('attendanceMsg');
   if(status){status.textContent=failed?'Synced '+synced+' saved attendance correction request(s); '+failed+' remain safely stored on this device for retry.':'Synced '+synced+' saved attendance correction request(s) to the administrator.';status.className='notice';status.classList.remove('hidden')}
-  if(synced&&typeof setupAttendance==='function'&&document.getElementById('attendance')&&!document.getElementById('attendance').classList.contains('hidden'))await setupAttendance();
+  
  }
 }
 window.addEventListener('online',()=>{syncOfflineAttendanceCorrections().catch(()=>{})});
