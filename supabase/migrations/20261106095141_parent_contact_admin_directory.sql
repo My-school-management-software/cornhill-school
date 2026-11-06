@@ -37,8 +37,8 @@ begin
  if auth.uid() is null or not public.is_school_admin() then raise exception 'Administrator access required'; end if;
  if length(trim(coalesce(p_guardian_name,'')))<2 then raise exception 'Enter the parent or guardian name'; end if;
  if length(trim(coalesce(p_change_reason,'')))<5 then raise exception 'Enter a reason for the contact change'; end if;
- if v_phone is not null and v_phone !~ '^\\+256[0-9]{9}$' then raise exception 'Use a valid Ugandan number in +256 format'; end if;
- if v_whatsapp is not null and v_whatsapp !~ '^\\+256[0-9]{9}$' then raise exception 'Use a valid WhatsApp number in +256 format'; end if;
+ if v_phone is not null and v_phone !~ '^\+256[0-9]{9}$' then raise exception 'Use a valid Ugandan number in +256 format'; end if;
+ if v_whatsapp is not null and v_whatsapp !~ '^\+256[0-9]{9}$' then raise exception 'Use a valid WhatsApp number in +256 format'; end if;
  perform set_config('app.parent_contact_change_reason',trim(p_change_reason),true);
  update public.parent_guardian_contacts set guardian_name=trim(p_guardian_name),relationship=nullif(trim(coalesce(p_relationship,'')),''),phone_e164=v_phone,whatsapp_e164=v_whatsapp,sms_opt_in=coalesce(p_sms_opt_in,false),whatsapp_opt_in=coalesce(p_whatsapp_opt_in,false),is_active=coalesce(p_is_active,true) where id=p_contact_id;
  if not found then raise exception 'Parent contact was not found'; end if; return true;
