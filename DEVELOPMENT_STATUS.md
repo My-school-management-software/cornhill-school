@@ -323,3 +323,11 @@ The remaining programme now explicitly includes:
 - Local export now requires an administrator-chosen password of at least 12 characters. Browser Web Crypto derives an AES-256-GCM key using PBKDF2-SHA256 (310,000 iterations), random salt and IV; the passphrase is not stored. The export is an encrypted `.enc.json` package.
 - Before download, the browser decrypts the generated package in memory and verifies the record snapshot format and dataset count. Password field is cleared after successful generation. A failed dataset read aborts the export instead of creating a partial backup.
 - Updated shell cache to v18. Static JavaScript parsing passed. No records were edited. Full import/restore workflow, actual encrypted file round-trip on Android/Windows, cloud backup verification and disaster-recovery drill remain pending. Keep the password separately; losing it means the file cannot be decrypted.
+
+
+## 2026-11-06 — Cloud backup coverage and integrity verification
+- Confirmed Supabase project has an active Google Drive connection, automatic daily backup enabled, and cron schedule `0 2 * * *` (05:00 Uganda time). Database audit shows 6 successful and 2 failed backup runs; latest success at 09:06:05 UTC on 2026-11-06. Two historical failures remain visible in audit history; they were not deleted.
+- Expanded server-side encrypted Google Drive backup to include learner enrolment periods, bursary awards, guardian contacts/change history, conduct reports, communication delivery/outbox/templates, SMS outbox and staff collaboration records. Credential/configuration tables, OAuth state, auth passwords and class-login directory remain excluded.
+- Added decrypt-and-validate integrity check before upload; mismatched format, dataset count or record count cancels upload.
+- Backup status now reflects the actual enabled/frequency setting rather than always claiming daily scheduling.
+- Supabase health advisor returned no lints at inspection. No school data rows were modified. Full restore/import and an actual restore drill remain pending; existing cloud backup history has not been altered.
