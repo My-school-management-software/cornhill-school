@@ -331,3 +331,6 @@ The remaining programme now explicitly includes:
 - Added decrypt-and-validate integrity check before upload; mismatched format, dataset count or record count cancels upload.
 - Backup status now reflects the actual enabled/frequency setting rather than always claiming daily scheduling.
 - Supabase health advisor returned no lints at inspection. No school data rows were modified. Full restore/import and an actual restore drill remain pending; existing cloud backup history has not been altered.
+
+- Follow-up RLS review: the local browser export intentionally excludes service-only `communication_delivery_events` and participant-private staff direct/media/call records, because an administrator's browser session cannot reliably read all rows under those RLS policies. These records remain in the server-side encrypted Google Drive backup, which uses the service role after administrator authentication. This prevents a misleading partial local export.
+- Local encrypted backup is a protected records export only; it does not restore data into production. Do not upload or share it casually. The password is required to decrypt it.
