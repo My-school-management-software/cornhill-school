@@ -72,8 +72,11 @@ This checklist is the release gate for the first real school use. Run it with th
 - [ ] Device serial number and staff-ID mapping are confirmed against the actual fingerprint terminal.
 - [ ] Fingerprint terminal is tested at the school office; this web app does not itself capture fingerprints.
 - [ ] Android installation and Windows browser access are tested.
-- [ ] Internet interruption shows the offline warning. Do not enter marks or payments while offline.
-- [ ] Do not claim full offline record entry or automatic synchronisation until durable local storage, retry and conflict tests pass.
+- [ ] Internet interruption shows the offline warning and the application clearly distinguishes local drafts from server-confirmed records.
+- [ ] Teacher mark drafts may be saved locally for the assigned class while offline, but remain unofficial until conflict-checked synchronisation succeeds; verify conflict retention and retry on reconnect.
+- [ ] Staff attendance currently queues correction requests locally; do not treat this as offline clock-in/out capture. Verify the correction queue and retry behaviour separately.
+- [ ] Finance/payment posting remains online-only and must never be silently queued or posted offline.
+- [ ] Do not claim full offline operation until browser runtime tests confirm durable storage, retry, conflict handling, cross-account isolation and reconnect behaviour.
 
 ## G. Deployment and release sign-off
 
@@ -87,8 +90,8 @@ This checklist is the release gate for the first real school use. Run it with th
 ## Current known launch limitations
 
 - The active branch is still under development and must pass the checks above before school-wide production use.
-- The current database snapshot has only one learner, one assessment, no assessment scores and one class-subject assignment. The administrator must complete real class/teacher setup before teachers can use their mark books.
-- Offline support caches the app shell only. Live records and payments require internet.
+- The latest release audit observed two learner rows, zero assessment rows, zero saved assessment scores, two payment rows and zero payment allocations. These small datasets are insufficient for full multi-learner marks, payment-allocation and report-card workflow tests. Confirm current class/teacher assignments before live use.
+- Offline support includes the app shell, time-limited read-only class snapshots, local form autosave, teacher assessment drafts and staff attendance correction requests. These are source-verified foundations, not yet browser/device-verified full offline operation. Live finance posting and server records require internet.
 - Fingerprint hardware, thermal printers, SMS delivery and full offline synchronisation have not been validated end-to-end.
 
 ## H. Staff communication — test with two authorised staff accounts
