@@ -102,7 +102,6 @@ Updated `vercel.json` to build all root HTML pages, JavaScript files, the web ma
 
 These are not being counted as passed:
 
-1. Supabase Pro-only leaked-password protection remains intentionally disabled and is not a release requirement. CORNHILL's free app-level breach screening is an additional check in its password-change and recovery screens, not server-side global enforcement; keep the agreed native Supabase minimum-length and character-class policy as the server-side baseline. Direct Auth API calls can bypass the app-level breach lookup.
 2. Supabase security advisor still reports 20 authenticated-executable SECURITY DEFINER functions. They must be reviewed individually; do not blanket-revoke functions used by legitimate guarded workflows.
 3. Supabase security advisor still reports the `pg_net` extension in the public schema and six RLS-enabled service-only tables without client policies. These need a documented configuration review.
 4. The database snapshot has two learners, two guardian contacts, zero assessment rows, zero saved assessment scores, two payment rows, zero payment allocations and zero backup-validation rows. This is insufficient for full multi-learner marks, payment-allocation and report-card workflow tests.
