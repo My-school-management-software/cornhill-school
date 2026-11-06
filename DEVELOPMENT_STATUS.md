@@ -615,3 +615,12 @@ The remaining programme now explicitly includes:
 - No learner, charge, payment, allocation, receipt or balance records were changed. Browser rendering and printed statement layout still require runtime verification.
 - Service worker shell cache advanced from v28 to v29 so clients fetch the updated application shell.
 - This is a saved development-branch correction only; it is not deployed.
+
+
+## 2026-11-06 — Expense register reference and void-audit refinement
+- Corrected the expense report data queries to include payment references and supplier receipt/invoice references, which were previously omitted from the selected fields and therefore exported as blank.
+- Added both references to the on-screen expense register and printed expenditure report; expanded the CSV with separate payment-reference and supplier-receipt/invoice columns and aligned the empty-state column span.
+- Strengthened expense voiding: require a reason of 5–500 characters, confirm the action, disable the selected control while saving, and require the database update to return the exact posted expense row before reporting success. A concurrently voided or otherwise changed expense now produces a clear refresh/check message rather than a false success.
+- Static verification: all inline JavaScript blocks parsed; no duplicate HTML IDs; all seven report/query replacements and the void-handler replacement matched exactly.
+- No expense, payroll, salary or other school records were inserted, updated or voided during this code-only batch. Browser, RLS and actual expense workflow tests remain pending.
+- Service worker shell cache advanced from v29 to v30. This remains a development-branch change and is not deployed.
