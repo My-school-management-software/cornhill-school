@@ -136,3 +136,14 @@ The remaining programme now explicitly includes:
 - Static verification after the final update: all 3 inline JavaScript blocks parse without syntax errors. The simple duplicate-ID scan also flags IDs inside dynamic HTML template strings, so those flagged strings are not evidence of duplicate rendered page IDs.
 - Not yet verified in a real browser: offline IndexedDB persistence across reload, switching accounts, reconnect/retry, duplicate-response recovery, or administrator receipt of the request. This batch is code saved, not a completed end-to-end offline test.
 - No financial or learner records were queued, inserted, changed or deleted by this batch.
+
+## 2026-11-06 — Combined batch 4: access-control review (audit only; no permission widening)
+
+- Queried the live public-schema tables: every public base table inspected has Row Level Security enabled.
+- Reviewed key policies for learners, marks, payments, charges, payroll, staff communications, class assignments and attendance.
+- Confirmed the current live profile data contains one Admin account only; no Bursar, Headteacher, DOS, Teacher or general Staff accounts are present yet.
+- The current staff invitation Edge Function explicitly accepts only Teacher and Staff; it rejects all other role values. The browser form reflects that same limitation.
+- Current finance and payroll table policies are largely administrator-only. Teacher access to assessment scores is limited by assigned-class checks. Staff attendance correction requests allow a staff member to create/read their own request, with administrator review.
+- Did not add new job roles to invitations or loosen database policies during this audit. Adding a role label without a complete matching permission map across tables and RPCs could expose learner or financial records or create a role that cannot perform its intended work.
+- Next RBAC coding batch must define and implement the full permission matrix together: Admin, Bursar/Deputy Bursar, Headteacher/Deputy Headteacher, DOS, assigned teachers, and other staff; include matching Edge Function invitation validation, frontend navigation/actions, database RLS and RPC checks, then test with separate role accounts.
+- No user roles, school data, finance rows or permissions were changed in this audit.
