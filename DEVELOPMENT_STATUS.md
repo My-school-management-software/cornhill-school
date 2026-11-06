@@ -519,3 +519,11 @@ The remaining programme now explicitly includes:
 - Applied Supabase migration named `lock_service_only_communication_tables` to revoke all privileges from `anon` and `authenticated` on both tables. These are backend/service-managed records, not direct browser-client tables.
 - The immediate follow-up verification query was blocked by the tool, so the absence of client grants and the exact remote migration version still need confirmation. No table rows were changed.
 - Auditable SQL saved at `supabase/maintenance/lock_service_only_communication_tables.sql`, commit `f18142b57e704765d1eba7058c5c3e549044ec83`. This is a maintenance SQL record, not yet a timestamped migration file because the remote version could not be confirmed.
+
+
+## 2026-11-06 — Lock down service-only communications tables
+- Security advisor identified two communications tables with RLS enabled but no policies: `communication_delivery_events` and `communication_provider_settings`. Direct client grants were also still present, including anon access.
+- Applied migration `20261106170215_lock_service_only_communication_tables`, revoking all table privileges from both `anon` and `authenticated` on these two tables. They are service/backend-only; no browser client should read provider credentials or delivery event internals directly.
+- Verification query returned no anon/authenticated table grants for either table. Both remain RLS-enabled. Supabase health advisor returned zero lints.
+- This does not activate SMS or WhatsApp sending. Existing service-role backend workflows remain separate; no provider credentials or message records were changed.
+- GitHub migration file `supabase/migrations/20261106170215_lock_service_only_communication_tables.sql`, commit `a3182ae926d23b47f469b5ed4ed64fbbb4c4c654`.
