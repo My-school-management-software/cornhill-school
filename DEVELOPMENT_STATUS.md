@@ -309,3 +309,10 @@ The remaining programme now explicitly includes:
 - Existing publication remains per learner and term; batch preview does not itself approve or publish reports. Existing approved timestamp/approver display remains.
 - Supabase schema inspection confirmed report_card_publications stores term, class, learner, approving user and timestamp. No publication rows were inserted or changed during this work.
 - Updated service-worker shell cache to cornhill-shell-v16. Static syntax checks follow; live browser/RLS approval tests and Android/Windows tests remain pending.
+
+
+## 2026-11-06 — Report publication integrity batch
+- Approval button is hidden unless the report preview contains recorded assessment maximums; server submission path repeats the non-empty marks check from the prior batch.
+- Replaced publication upsert with check-then-insert. Existing approval rows are preserved rather than overwritten by a second approval attempt; lookup errors stop the operation.
+- Existing publication display remains read-only and includes approver/timestamp. No bulk publication was added.
+- Updated service-worker cache to cornhill-shell-v17. Static JavaScript checks passed for all inline scripts. No production report publication rows or marks were changed. Browser/RLS concurrency testing remains pending.
