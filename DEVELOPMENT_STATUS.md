@@ -370,3 +370,10 @@ The remaining programme now explicitly includes:
 - Verified the four resulting policies directly in `pg_policies`; their predicates now reference `is_school_admin()` and active employment status.
 - Security advisor still reports the existing warnings for `pg_net` schema placement, leaked-password protection disabled, and authenticated-executable SECURITY DEFINER functions. Six no-policy findings are the intentional service-only communication/backup tables. No broad EXECUTE revocations were made because application RPCs depend on these guarded functions.
 - No attendance, work schedule, staff account, learner or finance records were changed. Real authenticated role-denial tests and browser/device tests remain pending.
+
+
+## 2026-11-06 — Active-staff directory and teacher visiting-day lookup
+- Tightened `list_staff_directory()` so both the requesting staff member and returned directory entries must have Active employment status (NULL remains compatible as Active).
+- Tightened `teacher_visiting_day_lookup()` to require an Active Teacher and use `is_class_teacher_for_class()` for the target learner class, aligning it with the same active-class-teacher authorization helper used elsewhere.
+- Applied migration `active_staff_directory_and_teacher_lookup` and verified both functions in the database. Anonymous EXECUTE remains false; authenticated EXECUTE remains available for guarded application use.
+- No staff profiles, class assignments, learner records, marks or conduct records were changed. Runtime tests using active, inactive and cross-class accounts remain pending.
