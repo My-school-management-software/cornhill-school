@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cornhill-shell-v20';
+const CACHE_NAME = 'cornhill-shell-v21';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/assets/cornhill-icon.svg', '/assets/cornhill-school-crest.jpg'];
 
 self.addEventListener('install', event => {
