@@ -74,3 +74,20 @@ Last updated: 2026-11-06
 - These checks do not replace full browser/runtime testing of real admissions, re-admissions, bursary charges, boarding fee schedules and finance statements.
 - No deployment was performed. Continue on `feature/cornhill-v3-foundation`.
 
+
+
+## 2026-11-06 — Combined batch 2: payment allocation and receipt balance correction
+
+- Reviewed the payment form, allocation RPC, payment-allocation records, receipt generation/reprint, reversal RPC, learner statements and enrolment-period balance views together.
+- Corrected the allocation rule: previous-term charges within the learner's active enrolment are displayed as optional selections. The administrator must tick a previous-term charge to pay it; unticked previous-term charges are skipped.
+- Automatic allocation now applies remaining payment only to charges linked to the current open academic term. If no current open term is configured, the automatic portion remains unallocated rather than silently paying an older charge.
+- The database still validates every manual allocation against the selected learner, the learner's active enrolment period, the unpaid charge balance, positive whole-shilling amounts and duplicate charge IDs. Closed former enrolment periods remain separate and are not silently carried forward.
+- Updated the payment screen wording to explain the optional previous-term choice and the current-term-only automatic rule.
+- Corrected the new-payment receipt balance lookup to read the balance for the payment's own enrolment period rather than the broader learner-account view.
+- Applied Supabase migration `20261106153000_current_term_first_payment_allocation`.
+- GitHub commits: payment UI `fa1d663aef796cf09ccd0247f655e6225d6527f7`; migration `14203d025597c5bec7ff1413908b3835f82c8be6`.
+- Static verification: all 3 inline JavaScript blocks parsed successfully; no duplicate HTML IDs; the obsolete “oldest outstanding charges first” instruction is gone; the live database function contains the current-open-term filter.
+- Data safety check after the migration: 2 learner rows, 2 payment rows, 0 allocation rows, 1 charge row and 0 configured current open terms. No payment, allocation, charge or learner test rows were inserted or changed by this batch.
+- Because the database currently has no actual academic-term records, automatic current-term allocation cannot yet be exercised. Do not invent school dates; configure CORNHILL's real term dates before live payment testing.
+- Supabase security advisors were run. Existing findings remain for service-only/RLS tables, SECURITY DEFINER functions, the `pg_net` extension schema and leaked-password protection. The payment RPC still checks `auth.uid()` and `is_school_admin()`; no broad permission changes were made to silence advisor warnings.
+- These are code/database/static checks, not a browser payment test, real receipt print test, Android/Windows test or deployment. Those remain pending.
