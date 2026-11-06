@@ -1200,7 +1200,7 @@ $('payrollItemRows').addEventListener('click',async e=>{
 });
 $('loadExpenseReport').addEventListener('click',renderExpenseRows);
 $('expenseFrom').addEventListener('change',renderExpenseRows);$('expenseTo').addEventListener('change',renderExpenseRows);
-$('printExpenseReport').addEventListener('click',()=>{if($('expensePrint').innerHTML){document.body.classList.add('print-expenses');window.print();document.body.classList.remove('print-expenses')}});
+$('printExpenseReport').addEventListener('click',()=>{if($('expensePrint').innerHTML)printReceiptTarget($('expensePrint'))});
 $('exportExpenseReport').addEventListener('click',()=>{
  const rows=(window.cornhillExpenseRows||[]).filter(x=>(!$('expenseFrom').value||x.expense_date>=$('expenseFrom').value)&&(!$('expenseTo').value||x.expense_date<=$('expenseTo').value));
  const header=['Date','Expense number','Category','Description','Payee','Method','Reference','Amount UGX','Status'];
