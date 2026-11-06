@@ -399,3 +399,13 @@ The remaining programme now explicitly includes:
 - Validation deliberately does not claim to be a full restore. A safe restore workflow still requires a separate maintenance-window process, target confirmation, dependency ordering, transactional safeguards and an isolated restore drill.
 - Updated service-worker cache to cornhill-shell-v21.
 - Static JavaScript syntax checks and a live encrypted-file round-trip / Google Drive download validation remain pending. No backup was triggered and no school records were changed.
+
+
+## 2026-11-06 — Sign-in password recovery
+- Added a “Forgot password?” option inside the administrator sign-in panel. It submits the entered administrator email through Supabase Auth `resetPasswordForEmail` and uses the current app origin/path as the recovery redirect.
+- Added a dedicated recovery screen for the secure email-link session. The `PASSWORD_RECOVERY` auth event now routes directly to that screen (without opening the school dashboard); the user must enter and confirm a new password (minimum 8 characters). On success the app signs out and returns to sign-in.
+- Added clear teacher guidance: because teacher sign-in uses a class-specific school-managed code, a forgotten code must be handled through the school administrator rather than the administrator email-reset form. Existing administrator-initiated staff reset controls remain in Settings.
+- Updated the service-worker shell cache to `cornhill-shell-v22`.
+- GitHub commits: UI `f210e0044f4ddcd3c5946abaf5953f165bb89b09`, recovery event routing `0740a29bbaa35cf611cf706c061927f1b22b0405`, teacher guidance `d35468dac311e8ceb46a1b18934b42be82c2cc95`, service worker `1a063031923816261ba7c9c9cfcfb82db6930c16`.
+- Static parse check: all 3 inline JavaScript blocks passed. No password reset email was sent and no account password was changed. Browser end-to-end recovery is not yet tested. Email delivery requires Supabase Auth email delivery/SMTP configuration and the deployed application URL must be allowed in Auth redirect URL settings. Teacher code reset still requires a secure administrator workflow; the current note directs staff to the administrator but does not itself change a teacher code.
+- Application deployment and Android/Windows browser tests remain pending.
