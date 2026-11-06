@@ -2928,9 +2928,10 @@ async function refreshAdmissionProrationPreview(){
   if(token!==admissionProrationPreviewToken)return;
   if(termError)throw termError;if(classError)throw classError;
   if(!term||!classRow){host.textContent='An active term and a valid class are required to calculate the fee preview.';return}
-  const {data:schedules,error}=await db.from('fee_schedules').select('amount_ugx,learner_type,class_group,fee_items(name)').eq('is_active',true).eq('class_group',classRow.name).in('learner_type',['Any',learnerType]).or('academic_year_id.is.null,academic_year_id.eq.'+term.academic_year_id).or('term_id.is.null,term_id.eq.'+term.id);
+  const {data:schedules,error}=await db.from('fee_schedules').select('amount_ugx,learner_type,class_group,academic_year_id,term_id,fee_items(name)').eq('is_active',true).eq('class_group',classRow.name).in('learner_type',['Any',learnerType]);
   if(token!==admissionProrationPreviewToken)return;if(error)throw error;
-  const amountFor=name=>Math.max(0,...(schedules||[]).filter(x=>x.fee_items?.name===name).map(x=>Number(x.amount_ugx)||0));
+  const applicableSchedules=(schedules||[]).filter(x=>(!x.academic_year_id||x.academic_year_id===term.academic_year_id)&&(!x.term_id||x.term_id===term.id));
+  const amountFor=name=>Math.max(0,...applicableSchedules.filter(x=>x.fee_items?.name===name).map(x=>Number(x.amount_ugx)||0));
   const full=[
    {name:isBursary?'Approved bursary amount':'School fees',amount:isBursary?bursaryAmount:amountFor('School fees')},
    ...(learnerType==='Boarding'?[{name:'Boarding',amount:amountFor('Boarding')}]:[]),
