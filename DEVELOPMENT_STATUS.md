@@ -459,3 +459,28 @@ The remaining programme now explicitly includes:
 - Report-card positions now rank by percentage rather than raw marks, and tied percentages receive the same competition rank (for example 1, 1, 3), consistent with class performance ranking. Learners without marks for that period remain unranked.
 - GitHub commits: application `26c68851a8d844521ad9b0010eeec32e4e58ad1f`; service worker cache v25 `e4aade67b30f2ce0c4559fe870bd39c3423cff11`.
 - Static verification: all 3 inline JavaScript blocks parse successfully. Live database still has no configured academic years, terms, assessments, marks or report-card publication rows, so runtime report preview/approval and tie-ranking tests cannot yet be exercised against real school academic records. No school records were changed. Browser, RLS and Windows/Android tests remain pending.
+
+
+## 2026-11-06 — Teacher-owned mark entry and administrator review workflow
+- Reorganised the Academic interface into role-specific workspaces:
+  - Administrator-only controls remain for academic years/terms, subjects, class-subject/teacher assignments and grading-boundary decisions.
+  - The assessment preparation form is available to Admin and Teacher. A teacher's class selector is restricted to their assigned class, and the subject selector is filtered to that teacher's assigned class subjects and the class curriculum.
+  - Individual mark entry, the class mark sheet, Excel-style marks grid, bulk save and offline mark synchronisation are visible and enabled only for Teacher accounts.
+  - Administrators see a read-only teacher-submitted marks register, a selected class/term full register that fetches scores in pages, CSV export for Excel, class performance review and report-card controls.
+  - Class-wide report-card PDF generation, download and print controls are now Admin-only. The existing batch document keeps one report card per learner page in a single file.
+- Database permissions now make `assessment_scores` administrator read-only: the former administrator ALL policy was removed. Admins retain SELECT; assigned teachers retain scoped INSERT and UPDATE; there is no score DELETE policy. The existing teacher update/insert policies require the signed-in teacher identity and the learner to belong to the assessment class.
+- Updated `is_class_teacher_for_class` to recognise active teachers assigned through the class-subject map as well as the class access map. Teacher assessment INSERT requires the teacher's own account, their assigned class and subject, a positive maximum score, and an assessment date inside the term; a later migration also blocks creating assessments in closed terms. Teachers cannot edit/delete assessment definitions through this new policy.
+- Offline assessment-draft synchronisation now exits for non-Teacher roles. Local mark-form autosave/restore is Teacher-only. Admin export of class performance is hidden and blocked for Teacher accounts.
+- Live database policy inspection confirms Admin SELECT only on marks, Teacher INSERT/UPDATE only, and no DELETE policy. Assessment policies show Admin management, Teacher INSERT and scoped SELECT. Supabase health advisor returned zero lints.
+- Static verification: all 3 inline JavaScript blocks parse successfully. Service worker shell cache is `cornhill-shell-v26`. No browser runtime or authenticated teacher/admin role simulation was performed.
+- Live test readiness: database currently has 1 Admin profile, 0 Teacher profiles, 0 `class_teacher_access` rows, 0 academic years, 0 academic terms, 0 assessments and 0 assessment scores. Therefore teacher sign-in, mark entry, administrator visibility, report-card PDF output and permission-denial tests still require an administrator-provisioned teacher account and real school academic setup. No learner, teacher, assessment, mark or report-publication rows were changed by this batch.
+- GitHub commits:
+  - UI structure `8c7be808ec1a2b34f557a102195a761843e35d38`
+  - Teacher-only mark writes and admin register `b94ec4192a081f670e9cd6bb378ce121b60ba80d`
+  - Paginated admin register and CSV export `e812fec04041ab31bf56fcf993bd8821a3238ab3`
+  - Role/autosave refinements `542f953b6ddcc9581068dabd77677bbaa58d6d39`
+  - Final role text and offline sync guard `dd203e4d92be2655ffce753f6e47c16fe356ad23`
+  - Service worker cache v26 `2df14dece075b1d9baf76c32ccc76bc0b3675d18`
+  - Database migration files: `71a07e829fcfec0571b9a4d1708fbbd2762d27cb`, `9e4a4df2e5dc0fe29f0b6dcbaa1fa709f99be721`, `c7b612053db35347eceb7765d7c0330aba1fba66`.
+- Supabase migrations applied: `20261106160751_teacher_owned_assessment_entry_and_class_scope`, `20261106161114_restrict_marks_entry_to_assigned_teachers`, `20261106161400_block_teacher_assessments_in_closed_terms`.
+- Full application deployment, authenticated browser tests, Android/Windows tests and PDF print testing remain pending.
