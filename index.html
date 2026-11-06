@@ -3279,7 +3279,7 @@ $('exportClassRoster').addEventListener('click',()=>{
 });
 
 $('printClassRoster').addEventListener('click',()=>{document.body.classList.add('print-class-register');window.print();document.body.classList.remove('print-class-register')});
-$('studentRows').addEventListener('click',e=>{
+$('studentRows').addEventListener('click',async e=>{
  const button=e.target.closest('.editLearner');if(!button||demoMode||profile?.role!=='Admin')return;
  const learner=students.find(x=>x.id===button.dataset.id);if(!learner)return;
  editingStudentId=learner.id;const form=$('studentForm');
