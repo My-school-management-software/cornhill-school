@@ -663,3 +663,13 @@ The remaining programme now explicitly includes:
 - No attendance events, staff profiles, schedules, device mappings, import batches, incidents, alerts or payroll records were inserted or changed. No fingerprint device was connected or activated.
 - Added docs/STAFF_ATTENDANCE_ACCEPTANCE_TESTS.md with results and required isolated end-to-end tests.
 - Pending: schedule setup, clock-in/out, lateness, correction approval, CSV duplicate import, offline sync, payroll deduction linkage, role-based access and physical device compatibility tests.
+
+
+## 2026-11-06 — Parent portal and backup security batch: 24 checks
+- Ran 14 read-only guardian privacy checks and 10 backup security/audit checks. All 24 returned PASS.
+- Parent checks covered RLS, no anon grants, authenticated-only guardian lookup RPC, admin-only guardian directory/change-log policies, active primary guardian uniqueness, opt-in phone requirements, and contact-change audit references/reasons.
+- Inspected parent lookup function: requires authenticated user and confirmed phone, then requires active guardian contact phone plus exact permanent pupil code; payload is learner-scoped and gates assessment results by report publication, payments to Posted, balance to active enrolment period, and conduct to published guardian-visible reports.
+- No separate parent OTP table exists in public schema. Actual OTP delivery depends on Supabase phone authentication configuration and was not tested. No SMS/OTP was sent.
+- Backup checks covered RLS on runs/settings/connection/OAuth-state/validation tables, no anon grants, admin-only validation history read, non-negative record totals, completion timestamp for successful runs and valid validation audit references.
+- Backup status at review: 8 runs (6 successful, 2 failed), one Drive connection, one settings row, zero validation audit rows. Latest backup has not yet been independently validated. No new backup, validation invocation, schedule change or restore was performed.
+- Added docs/PARENT_PORTAL_BACKUP_ACCEPTANCE_TESTS.md. Browser guardian isolation, OTP delivery, validation invocation and isolated restore rehearsal remain pending.
