@@ -1256,9 +1256,11 @@ async function loadPaymentDueCharges(){
  const {data,error}=await db.from('learner_charges').select('id,description,amount_ugx,created_at,academic_terms(name,academic_years(name)),payment_allocations(amount_ugx,school_payments(status))').eq('student_id',id).order('created_at');
  if(error){host.textContent='Could not load fee balances: '+error.message;$('paymentBalanceSummary').textContent='Unavailable';currentPaymentOutstanding=0;renderPaymentQuickAmounts();return}
  const rows=(data||[]).map(c=>({...c,due:Math.max(0,Number(c.amount_ugx)-(c.payment_allocations||[]).filter(a=>a.school_payments?.status==='Posted').reduce((n,a)=>n+Number(a.amount_ugx||0),0))})).filter(c=>c.due>0);
- currentPaymentOutstanding=rows.reduce((n,c)=>n+c.due,0);
+ const {data:account,error:accountError}=await db.from('learner_account_balances').select('total_charged_ugx,total_paid_ugx,credit_ugx,balance_ugx').eq('student_id',id).maybeSingle();
+ currentPaymentOutstanding=!accountError&&account?Math.max(0,Number(account.balance_ugx||0)):rows.reduce((n,c)=>n+c.due,0);
  $('paymentBalanceSummary').textContent='UGX '+money(currentPaymentOutstanding);
- if(!rows.length){host.innerHTML='<div class="empty">No outstanding fees for this learner.</div>';renderPaymentQuickAmounts();return}
+ if(!accountError&&account&&Number(account.credit_ugx||0)>0)$('paymentLearnerSummary').textContent+=' · Credit UGX '+money(account.credit_ugx);
+ if(!rows.length){host.innerHTML='<div class="empty">No outstanding fee items recorded for this learner yet. Add the applicable fees, meals, boarding or other items in the learner charges section.</div>';renderPaymentQuickAmounts();return}
  host.innerHTML=rows.map(c=>{const term=c.academic_terms?(c.academic_terms.academic_years?.name+' · '+c.academic_terms.name):'Previous / unassigned term';return '<div class="payment-due-row"><input type="checkbox" class="paymentAllocateCheck" data-charge="'+c.id+'"><div><strong>'+esc(term)+'</strong><br>'+esc(c.description)+'<br><small>Outstanding UGX '+money(c.due)+'</small></div><input class="paymentAllocateAmount" data-charge="'+c.id+'" type="number" min="1" max="'+c.due+'" placeholder="Amount" disabled></div>'}).join('')+'<small>Only selected charges are manually allocated. If none are selected, the system uses oldest-first allocation.</small>';
  host.querySelectorAll('.paymentAllocateCheck').forEach(ch=>ch.addEventListener('change',()=>{const x=host.querySelector('.paymentAllocateAmount[data-charge="'+ch.dataset.charge+'"]');x.disabled=!ch.checked;if(ch.checked)x.value=''}));
  renderPaymentQuickAmounts();
