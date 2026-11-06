@@ -1809,7 +1809,16 @@ async function loadAcademicControl(){
  $('openAcademicCalendar').classList.toggle('hidden',!admin);
  if(active){const daysLeft=Math.ceil((new Date(active.ends_on+'T23:59:59').getTime()-new Date().setHours(0,0,0,0))/86400000);$('academicControlStatus').textContent=daysLeft<0?'TERM END DATE PASSED':daysLeft===0?'TERM ENDS TODAY':daysLeft<=7?'TERM ENDS IN '+daysLeft+' DAYS':'ACTIVE · '+active.name;$('academicControlStatus').className='badge'+(daysLeft<=7?' warning':'');$('dashboardYearDisplay').textContent=active.academic_years?.name||'Academic year';$('dashboardTermDates').textContent=active.starts_on+' to '+active.ends_on}
  else{$('academicControlStatus').textContent='No active term';$('dashboardYearDisplay').textContent=years.find(y=>y.is_current)?.name||'Not set';$('dashboardTermDates').textContent='Select and activate a term'}
- const dueTerms=terms.filter(t=>!t.is_closed&&Math.ceil((new Date(t.ends_on+'T23:59:59').getTime()-new Date().setHours(0,0,0,0))/86400000)<=14).map(t=>{const days=Math.ceil((new Date(t.ends_on+'T23:59:59').getTime()-new Date().setHours(0,0,0,0))/86400000);return t.name+(days<0?' is overdue by '+Math.abs(days)+' day(s)':days===0?' ends today':' ends in '+days+' day(s)')});$('academicControlHelp').textContent=admin?(dueTerms.length?'TERM CALENDAR WARNING: '+dueTerms.join('; ')+'. Review the dates below and either extend/shorten the term or close it. This warning remains until you take action.':'Set the correct term here. Date changes and term closure are managed below in Academics. Closing a term does not delete or alter its records.'):'Read-only school calendar. Contact the administrator if the active term is incorrect.';
+ const todayStart=new Date();todayStart.setHours(0,0,0,0);
+ const daysUntil=date=>Math.ceil((new Date(date+'T00:00:00').getTime()-todayStart.getTime())/86400000);
+ const dueTerms=terms.filter(t=>!t.is_closed&&daysUntil(t.ends_on)<=14).map(t=>{const days=daysUntil(t.ends_on);return t.name+(days<0?' is overdue by '+Math.abs(days)+' day(s)':days===0?' ends today':' ends in '+days+' day(s)')});
+ const openingTerms=terms.filter(t=>!t.is_closed&&!t.is_current&&daysUntil(t.starts_on)>=0&&daysUntil(t.starts_on)<=14).map(t=>{const days=daysUntil(t.starts_on);return t.name+(days===0?' opens today':' opens in '+days+' day(s)')});
+ const calendarAlerts=[...openingTerms,...dueTerms];
+ if(!active){
+  const nextTerm=terms.filter(t=>!t.is_closed&&daysUntil(t.starts_on)>=0).sort((a,b)=>a.starts_on.localeCompare(b.starts_on))[0];
+  if(nextTerm){const days=daysUntil(nextTerm.starts_on);$('academicControlStatus').textContent=days===0?'NEXT TERM OPENS TODAY':'NEXT TERM OPENS IN '+days+' DAYS';$('dashboardYearDisplay').textContent=nextTerm.academic_years?.name||'Academic year';$('dashboardTermDates').textContent=nextTerm.starts_on+' to '+nextTerm.ends_on}
+ }
+ $('academicControlHelp').textContent=admin?(calendarAlerts.length?'ACADEMIC CALENDAR REMINDERS: '+calendarAlerts.join('; ')+'. Review the dates below. Extend dates where approved, activate the correct upcoming term, or close a finished term. Terms are not closed automatically by this reminder.':'Set the correct term here. The calendar reminds you before opening and closing dates. Administrators control date changes, activation and term closure. Previous records remain available.'):'Read-only school calendar. Contact the administrator if the active term or dates are incorrect.';
  if($('academicTermManagementRows'))$('academicTermManagementRows').innerHTML=terms.map(t=>'<tr><td><strong>'+esc(t.academic_years?.name||'Year')+' · '+esc(t.name)+'</strong></td><td><input type="date" data-term-start="'+t.id+'" value="'+t.starts_on+'" '+(admin&&!t.is_closed?'':'disabled')+'></td><td><input type="date" data-term-end="'+t.id+'" value="'+t.ends_on+'" '+(admin&&!t.is_closed?'':'disabled')+'></td><td>'+(t.is_closed?'<span class="badge">CLOSED</span>':t.is_current?'<span class="badge">ACTIVE</span>':'<span class="badge">PLANNED</span>')+'</td><td>'+(admin&&!t.is_closed?'<button type="button" data-save-term-dates="'+t.id+'">Save dates</button> <button type="button" data-close-term="'+t.id+'" class="danger">Close term</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="5">No academic terms have been created. Add the academic year and terms above.</td></tr>';
 }
 $('setActiveAcademicTerm').addEventListener('click',async()=>{
@@ -1826,10 +1835,14 @@ $('academicTermManagementRows').addEventListener('click',async e=>{
  if(profile?.role!=='Admin')return;
  const save=e.target.closest('[data-save-term-dates]');
  if(save){const id=save.dataset.saveTermDates,start=document.querySelector('[data-term-start="'+id+'"]')?.value,end=document.querySelector('[data-term-end="'+id+'"]')?.value;
+  const termRecord=academic.terms.find(t=>t.id===id),yearRecord=academic.years.find(y=>y.id===termRecord?.academic_year_id);
   if(!start||!end||end<start){message('academicMsg','Check the term dates. The closing date must be on or after the opening date.',true);return}
+  if(!yearRecord||start<yearRecord.starts_on||end>yearRecord.ends_on){message('academicMsg','Term dates must remain within the academic-year dates ('+(yearRecord?.starts_on||'unknown')+' to '+(yearRecord?.ends_on||'unknown')+').',true);return}
+  const overlap=academic.terms.find(t=>t.id!==id&&t.academic_year_id===termRecord.academic_year_id&&!t.is_closed&&start<=t.ends_on&&end>=t.starts_on);
+  if(overlap){message('academicMsg','These dates overlap '+overlap.name+'. Adjust the dates so the terms do not overlap.',true);return}
   const {error}=await db.from('academic_terms').update({starts_on:start,ends_on:end}).eq('id',id).eq('is_closed',false);
   if(error){message('academicMsg','Could not update term dates: '+error.message,true);return}
-  await loadAcademicControl();await loadAcademics();message('academicMsg','Term dates updated. The term will close automatically after its end date.');
+  await loadAcademicControl();await loadAcademics();message('academicMsg','Term dates updated. The calendar will remind administrators as the closing date approaches; the term remains open until an administrator closes it.');
  }
  const close=e.target.closest('[data-close-term]');
  if(close){const id=close.dataset.closeTerm;const term=academic.terms.find(t=>t.id===id);if(!confirm('Close '+(term?.name||'this term')+'? This preserves all records and prevents it being selected as the active term. Confirm only when the term has finished.'))return;
@@ -2244,7 +2257,21 @@ $('saveBulkMarks').addEventListener('click',async()=>{
 async function submitAcademic(formId,table,transform,success){
  $(formId).addEventListener('submit',async e=>{
   e.preventDefault();if(profile?.role!=='Admin'){message('academicMsg','Only administrators can make academic changes at present.',true);return}
-  const values=Object.fromEntries(new FormData(e.target).entries());const payload=transform(values);if(table==='assessments')payload.created_by=(await db.auth.getUser()).data.user.id;
+  const values=Object.fromEntries(new FormData(e.target).entries());
+  if(table==='academic_years'){
+   if(!values.starts_on||!values.ends_on||values.ends_on<values.starts_on){message('academicMsg','Academic-year closing date must be on or after its opening date.',true);return}
+   const overlap=academic.years.find(y=>values.starts_on<=y.ends_on&&values.ends_on>=y.starts_on);
+   if(overlap){message('academicMsg','These dates overlap academic year '+overlap.name+'. Correct the dates before saving.',true);return}
+  }
+  if(table==='academic_terms'){
+   const year=academic.years.find(y=>y.id===values.academic_year_id);
+   if(!year){message('academicMsg','Choose a valid academic year before adding the term.',true);return}
+   if(!values.starts_on||!values.ends_on||values.ends_on<values.starts_on){message('academicMsg','Term closing date must be on or after its opening date.',true);return}
+   if(values.starts_on<year.starts_on||values.ends_on>year.ends_on){message('academicMsg','Term dates must fall within the selected academic-year dates ('+year.starts_on+' to '+year.ends_on+').',true);return}
+   const overlap=academic.terms.find(t=>t.academic_year_id===values.academic_year_id&&!t.is_closed&&values.starts_on<=t.ends_on&&values.ends_on>=t.starts_on);
+   if(overlap){message('academicMsg','These dates overlap '+overlap.name+'. Adjust the term dates so the terms do not overlap.',true);return}
+  }
+  const payload=transform(values);if(table==='assessments')payload.created_by=(await db.auth.getUser()).data.user.id;
   const {error}=await db.from(table).insert(payload);
   if(error){message('academicMsg','Could not save record: '+error.message,true);return}
   e.target.reset();await loadAcademics();message('academicMsg',success);
