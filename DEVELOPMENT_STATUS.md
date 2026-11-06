@@ -377,3 +377,10 @@ The remaining programme now explicitly includes:
 - Tightened `teacher_visiting_day_lookup()` to require an Active Teacher and use `is_class_teacher_for_class()` for the target learner class, aligning it with the same active-class-teacher authorization helper used elsewhere.
 - Applied migration `active_staff_directory_and_teacher_lookup` and verified both functions in the database. Anonymous EXECUTE remains false; authenticated EXECUTE remains available for guarded application use.
 - No staff profiles, class assignments, learner records, marks or conduct records were changed. Runtime tests using active, inactive and cross-class accounts remain pending.
+
+
+## 2026-11-06 — Migration source tracking and role-security audit follow-up
+- Added the source migration file for the already-applied `active_staff_directory_and_teacher_lookup` database change so the repository's migration history matches the live Supabase schema.
+- Rechecked the authenticated SECURITY DEFINER inventory. The reviewed administrative finance, admission, re-admission, term-control, budget, parent-contact, and learner-search RPCs contain explicit active-admin guards; teacher lookup now uses the active-class-teacher helper; parent portal access is guarded by verified guardian phone and learner linkage.
+- Confirmed `user_profiles` exposes only two authenticated policies by name: users reading their own profile/admin reading all, and administrator staff-profile updates. Policy predicate inspection was blocked by the query safety layer, so those exact predicates remain to be checked with a supported inspection path.
+- No role, profile, learner, payment, or academic data changed. No authenticated user simulation or device test was run.
