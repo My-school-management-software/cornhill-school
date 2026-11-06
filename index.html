@@ -3210,8 +3210,12 @@ function scheduleAdmissionMatchSearch(){
     const heading=document.createElement('strong');heading.textContent=name;
     const score=document.createElement('small');score.className='muted';score.textContent=' Possible match · verification required';
     card.append(heading,score,details);
+    const reasonLabel=document.createElement('label');reasonLabel.textContent='Reason for re-admission (required)';
+    const reasonInput=document.createElement('input');reasonInput.type='text';reasonInput.maxLength=500;reasonInput.placeholder='Explain why this former learner is returning';reasonInput.dataset.readmitReason=m.id;
+    reasonLabel.append(reasonInput);
     const btn=document.createElement('button');btn.type='button';btn.className='primary';btn.textContent='Re-admit this learner';btn.dataset.readmitLearner=m.id;
-    card.append(btn);results.append(card);
+    card.append(reasonLabel,btn);results.append(card);
+    if(profile?.role==='Admin'&&currentUserId){readLocalFormDraft(currentUserId,'learner-readmission-reason-'+m.id).then(draft=>{if(reasonInput.isConnected&&draft?.values?.reason)reasonInput.value=draft.values.reason}).catch(()=>{})}
    });
    const different=document.createElement('button');different.type='button';different.textContent='These are different learners — continue new admission';different.id='confirmDifferentLearner';
    actions.append(different);
@@ -3233,11 +3237,17 @@ bindLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg',()=>
 bindLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg',()=>profile?.role==='Admin');
 bindLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg',()=>profile?.role==='Admin');
 bindLocalAutosaveDynamicForm($('studentForm'),()=>editingStudentId?'learner-edit-'+editingStudentId:null,'appMsg',()=>profile?.role==='Admin'&&!!editingStudentId);
+$('admissionMatchResults').addEventListener('input',async e=>{
+ const input=e.target.closest('[data-readmit-reason]');if(!input||profile?.role!=='Admin'||!currentUserId)return;
+ try{await saveLocalFormDraft(currentUserId,'learner-readmission-reason-'+input.dataset.readmitReason,{reason:input.value})}
+ catch(error){message('appMsg','Could not autosave the re-admission reason on this device: '+(error?.message||'Storage unavailable'),true)}
+});
 $('admissionMatchResults').addEventListener('click',async e=>{
  const btn=e.target.closest('[data-readmit-learner]');if(!btn)return;
  const match=admissionMatchState.matches.find(x=>x.id===btn.dataset.readmitLearner);if(!match)return;
- const reason=prompt('Confirm that this is the same former CORNHILL learner. Enter the reason for re-admission (at least 5 characters):');
- if(!reason||reason.trim().length<5){message('appMsg','Re-admission cancelled. A reason of at least 5 characters is required.',true);return}
+ const reasonInput=$('admissionMatchResults').querySelector('[data-readmit-reason="'+CSS.escape(match.id)+'"]');
+ const reason=reasonInput?.value?.trim()||'';
+ if(reason.length<5){message('appMsg','Enter a re-admission reason of at least 5 characters before continuing.',true);reasonInput?.focus();return}
  const form=$('studentForm'),admissionDate=form.elements.admission_date.value||new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Kampala'});
  btn.disabled=true;
  try{
@@ -3252,6 +3262,7 @@ $('admissionMatchResults').addEventListener('click',async e=>{
    if(feeError)feeScheduleNote=' The learner was re-admitted, but fee schedule application needs administrator review: '+feeError.message;
    else{const row=Array.isArray(feeResult)?feeResult[0]:feeResult;feeScheduleNote=' Current-term fee schedule applied: '+Number(row?.created_charges||0)+' charge(s), UGX '+money(row?.total_amount_ugx||0)+'.';}
   }else feeScheduleNote=' No active term is selected, so no term fee schedule was applied.';
+  if(currentUserId)await clearLocalFormDraft(currentUserId,'learner-readmission-reason-'+match.id);
   clearAdmissionMatches();form.reset();syncBursaryAdmissionFields();await refresh();tab('students');
   message('appMsg','Former learner re-admitted successfully. The original pupil code and LIN are retained. A new enrolment and separate fee account have been opened; previous charges and receipts remain in the learner history. Any previous bursary is not automatically renewed and must be reviewed again.'+feeScheduleNote,!!feeScheduleNote&&feeScheduleNote.includes('needs administrator review'));
  }catch(err){btn.disabled=false;message('appMsg','Re-admission was not completed: '+(err.message||'Please check the learner record and try again.'),true)}
