@@ -982,7 +982,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
 const db=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
-let students=[],classes=[],profile=null,staffProfiles=[],demoMode=false,demoClassKey='',currentUserId=null,academic={years:[],terms:[],subjects:[],assessments:[]};
+let students=[],classes=[],profile=null,staffProfiles=[],demoMode=false,demoClassKey='',currentUserId=null,academic={years:[],terms:[],subjects:[],assessments:[],classSubjects:[]};
 const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
@@ -1927,7 +1927,7 @@ async function loadAcademics(){
  ]);
  const err=[y,t,s,a,staff,cscores,assignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
  if(profile?.role!=='Teacher')window.teacherClassIds=null;
- const scopedAssessments=profile?.role==='Teacher'?(a.data||[]).filter(x=>x.class_id===sessionStorage.getItem('cornhill_teacher_class_id')):(a.data||[]);academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:scopedAssessments};
+ const scopedAssessments=profile?.role==='Teacher'?(a.data||[]).filter(x=>x.class_id===sessionStorage.getItem('cornhill_teacher_class_id')):(a.data||[]);academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:scopedAssessments,classSubjects:assignments.data||[]};
  $('unebGradeSubject').innerHTML=academic.subjects.filter(x=>['english','mathematics','science','social studies'].includes(String(x.name).toLowerCase())).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  await loadUnebSubjectGradeBands();
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
@@ -2610,26 +2610,53 @@ $('saveBulkMarks').addEventListener('click',async()=>{
 
 async function submitAcademic(formId,table,transform,success){
  $(formId).addEventListener('submit',async e=>{
-  e.preventDefault();if(profile?.role!=='Admin'){message('academicMsg','Only administrators can make academic changes at present.',true);return}
-  const values=Object.fromEntries(new FormData(e.target).entries());
-  if(table==='academic_years'){
-   if(!values.starts_on||!values.ends_on||values.ends_on<values.starts_on){message('academicMsg','Academic-year closing date must be on or after its opening date.',true);return}
-   const overlap=academic.years.find(y=>values.starts_on<=y.ends_on&&values.ends_on>=y.starts_on);
-   if(overlap){message('academicMsg','These dates overlap academic year '+overlap.name+'. Correct the dates before saving.',true);return}
+  e.preventDefault();
+  if(profile?.role!=='Admin'){message('academicMsg','Only administrators can make academic changes at present.',true);return}
+  const button=e.submitter||e.target.querySelector('[type="submit"]');
+  if(button?.dataset.busy==='1')return;
+  if(button){button.dataset.busy='1';button.disabled=true}
+  try{
+   const values=Object.fromEntries(new FormData(e.target).entries());
+   if(table==='academic_years'){
+    if(!values.starts_on||!values.ends_on||values.ends_on<values.starts_on){message('academicMsg','Academic-year closing date must be on or after its opening date.',true);return}
+    const overlap=academic.years.find(y=>values.starts_on<=y.ends_on&&values.ends_on>=y.starts_on);
+    if(overlap){message('academicMsg','These dates overlap academic year '+overlap.name+'. Correct the dates before saving.',true);return}
+   }
+   if(table==='academic_terms'){
+    const year=academic.years.find(y=>y.id===values.academic_year_id);
+    if(!year){message('academicMsg','Choose a valid academic year before adding the term.',true);return}
+    if(!values.starts_on||!values.ends_on||values.ends_on<values.starts_on){message('academicMsg','Term closing date must be on or after its opening date.',true);return}
+    if(values.starts_on<year.starts_on||values.ends_on>year.ends_on){message('academicMsg','Term dates must fall within the selected academic-year dates ('+year.starts_on+' to '+year.ends_on+').',true);return}
+    const overlap=academic.terms.find(t=>t.academic_year_id===values.academic_year_id&&!t.is_closed&&values.starts_on<=t.ends_on&&values.ends_on>=t.starts_on);
+    if(overlap){message('academicMsg','These dates overlap '+overlap.name+'. Adjust the term dates so the terms do not overlap.',true);return}
+   }
+   let payload=transform(values);
+   if(table==='assessments'){
+    const term=academic.terms.find(x=>x.id===values.term_id);
+    const cls=classes.find(x=>x.id===values.class_id);
+    const subject=academic.subjects.find(x=>x.id===values.subject_id);
+    if(!term||!cls||!subject){message('academicMsg','Choose a valid academic term, class and subject.',true);return}
+    if(!academic.classSubjects.some(x=>x.class_id===values.class_id&&x.subject_id===values.subject_id)){message('academicMsg','This subject has not been assigned to the selected class. Assign the class subject first, then create its assessment.',true);return}
+    const maximum=Number(values.max_score);
+    if(!Number.isFinite(maximum)||maximum<=0){message('academicMsg','Maximum score must be a valid number greater than zero.',true);return}
+    if(values.assessment_date&&(values.assessment_date<term.starts_on||values.assessment_date>term.ends_on)){message('academicMsg','Assessment date must fall within the selected term ('+term.starts_on+' to '+term.ends_on+').',true);return}
+    const period=String(values.period||'').trim(),note=String(values.title||'').trim();
+    const finalTitle=period+(note?' · '+note:' Assessment');
+    const duplicate=academic.assessments.find(x=>x.term_id===values.term_id&&x.class_id===values.class_id&&x.subject_id===values.subject_id&&String(x.title||'').trim().toLowerCase()===finalTitle.toLowerCase());
+    if(duplicate){message('academicMsg','An assessment with this period/title already exists for the selected class, subject and term. Open the existing assessment instead of creating a duplicate.',true);return}
+    const auth=await db.auth.getUser(),user=auth.data?.user;
+    if(auth.error||!user){message('academicMsg','Your administrator session has expired. Sign in again before creating an assessment.',true);return}
+    payload={...payload,created_by:user.id};
+   }
+   const {error}=await db.from(table).insert(payload);
+   if(error){message('academicMsg','Could not save record: '+error.message,true);return}
+   await clearLocalFormDraft(currentUserId,({academic_years:'academic-year',academic_terms:'academic-term',subjects:'academic-subject',class_subjects:'academic-class-subject',assessments:'academic-assessment'})[table]);
+   e.target.reset();await loadAcademics();message('academicMsg',success);
+  }catch(err){
+   message('academicMsg','The academic record was not saved. '+(err?.message||'Please check the form and try again.'),true);
+  }finally{
+   if(button){button.disabled=false;delete button.dataset.busy}
   }
-  if(table==='academic_terms'){
-   const year=academic.years.find(y=>y.id===values.academic_year_id);
-   if(!year){message('academicMsg','Choose a valid academic year before adding the term.',true);return}
-   if(!values.starts_on||!values.ends_on||values.ends_on<values.starts_on){message('academicMsg','Term closing date must be on or after its opening date.',true);return}
-   if(values.starts_on<year.starts_on||values.ends_on>year.ends_on){message('academicMsg','Term dates must fall within the selected academic-year dates ('+year.starts_on+' to '+year.ends_on+').',true);return}
-   const overlap=academic.terms.find(t=>t.academic_year_id===values.academic_year_id&&!t.is_closed&&values.starts_on<=t.ends_on&&values.ends_on>=t.starts_on);
-   if(overlap){message('academicMsg','These dates overlap '+overlap.name+'. Adjust the term dates so the terms do not overlap.',true);return}
-  }
-  const payload=transform(values);if(table==='assessments')payload.created_by=(await db.auth.getUser()).data.user.id;
-  const {error}=await db.from(table).insert(payload);
-  if(error){message('academicMsg','Could not save record: '+error.message,true);return}
-  await clearLocalFormDraft(currentUserId,({academic_years:'academic-year',academic_terms:'academic-term',subjects:'academic-subject',class_subjects:'academic-class-subject',assessments:'academic-assessment'})[table]);
-  e.target.reset();await loadAcademics();message('academicMsg',success);
  });
 }
 submitAcademic('academicYearForm','academic_years',v=>({...v,is_current:false}),'Academic year saved. Select one of its terms on the dashboard to make it active.');
