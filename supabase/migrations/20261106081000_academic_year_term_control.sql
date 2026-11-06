@@ -32,7 +32,8 @@ begin
  if not found then raise exception 'Selected term was not found'; end if;
  if v_closed then raise exception 'This term is closed. A closed term cannot be activated'; end if;
  if v_end < current_date then raise exception 'This term end date has passed. Extend the term dates first, or close the term'; end if;
- update public.academic_years set is_current=(id=v_year_id);
+ update public.academic_years set is_current=false where is_current;
+ update public.academic_years set is_current=true where id=v_year_id;
  update public.academic_terms set is_current=false where is_current;
  update public.academic_terms set is_current=true where id=p_term_id;
 end $$;
