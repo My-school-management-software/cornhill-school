@@ -160,7 +160,7 @@ returns table(
  id uuid, admission_number text, first_name text, middle_name text, last_name text,
  is_bursary boolean, bursary_fee_ugx bigint, class_name text, learner_type text,
  takes_breakfast boolean, takes_lunch boolean, bursary_category text, bursary_reason text,
- bursary_approved_by uuid, bursary_approved_at timestamptz
+ bursary_approved_by uuid, bursary_approved_at timestamptz, bursary_approved_by_name text
 )
 language plpgsql stable security definer
 set search_path to ''
@@ -173,9 +173,10 @@ begin
  select s.id,s.admission_number,s.first_name,s.middle_name,s.last_name,
         s.is_bursary,s.bursary_fee_ugx,coalesce(c.name,''),s.learner_type,
         s.takes_breakfast,s.takes_lunch,s.bursary_category,s.bursary_reason,
-        s.bursary_approved_by,s.bursary_approved_at
+        s.bursary_approved_by,s.bursary_approved_at,up.full_name
  from public.students s
  left join public.school_classes c on c.id=s.class_id
+ left join public.user_profiles up on up.id=s.bursary_approved_by
  where s.status='Active'
  order by s.first_name,s.last_name
  limit 2000;
