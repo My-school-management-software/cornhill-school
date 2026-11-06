@@ -2304,6 +2304,72 @@ $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
 $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
 $('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
 $('excelMarksClass').addEventListener('change',()=>{document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
+
+// Offline assessment drafts are local, account-scoped and never publish report cards.
+// Synchronisation uses a compare-before-write check; conflicting server edits are kept pending.
+const OFFLINE_ASSESSMENT_STORE='assessmentDrafts';
+function offlineAssessmentDb(){
+ return new Promise((resolve,reject)=>{
+  if(!('indexedDB' in window)){reject(new Error('This browser does not support offline mark storage.'));return}
+  const req=indexedDB.open(OFFLINE_SCHOOL_DB,2);
+  req.onupgradeneeded=()=>{
+   const d=req.result;
+   if(!d.objectStoreNames.contains('classSnapshots'))d.createObjectStore('classSnapshots',{keyPath:'owner'});
+   if(!d.objectStoreNames.contains(OFFLINE_ASSESSMENT_STORE))d.createObjectStore(OFFLINE_ASSESSMENT_STORE,{keyPath:'draft_id'});
+  };
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Offline mark storage could not be opened.'));
+ });
+}
+async function saveOfflineAssessmentDrafts(drafts){
+ const d=await offlineAssessmentDb();
+ await new Promise((resolve,reject)=>{
+  const tx=d.transaction(OFFLINE_ASSESSMENT_STORE,'readwrite'),store=tx.objectStore(OFFLINE_ASSESSMENT_STORE);
+  drafts.forEach(x=>store.put(x));
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Offline mark drafts were not saved.'));
+ });
+ d.close();
+}
+async function listOfflineAssessmentDrafts(owner){
+ const d=await offlineAssessmentDb();
+ const rows=await new Promise((resolve,reject)=>{
+  const tx=d.transaction(OFFLINE_ASSESSMENT_STORE,'readonly'),req=tx.objectStore(OFFLINE_ASSESSMENT_STORE).getAll();
+  req.onsuccess=()=>resolve((req.result||[]).filter(x=>x.owner===owner));req.onerror=()=>reject(req.error);
+ });
+ d.close();return rows;
+}
+async function deleteOfflineAssessmentDraft(id){
+ const d=await offlineAssessmentDb();
+ await new Promise((resolve,reject)=>{
+  const tx=d.transaction(OFFLINE_ASSESSMENT_STORE,'readwrite');tx.objectStore(OFFLINE_ASSESSMENT_STORE).delete(id);
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+ });
+ d.close();
+}
+async function queueExcelMarksOffline(payload,ctx,userId){
+ const now=Date.now(),drafts=payload.map(row=>{
+  const old=ctx.savedMarks.get(row.assessment_id+'|'+row.student_id)||null;
+  const assessment=ctx.assessments.find(x=>x.id===row.assessment_id);
+  return {
+   draft_id:row.assessment_id+'|'+row.student_id+'|'+userId,
+   owner:userId,assessment_id:row.assessment_id,student_id:row.student_id,
+   class_id:ctx.classId,term_id:ctx.termId,score:row.score,teacher_comment:row.teacher_comment,
+   baseline_exists:!!old,baseline_score:old?.score??null,baseline_comment:old?.teacher_comment??null,
+   entered_by:userId,assessment_title:assessment?.title||'Assessment',
+   queued_at:now,expires_at:now+OFFLINE_SCHOOL_MAX_AGE,status:'pending'
+  };
+ });
+ await saveOfflineAssessmentDrafts(drafts);
+ return drafts.length;
+}
+async function showOfflineAssessmentDraftCount(){
+ try{
+  if(!currentUserId)return;
+  const drafts=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>x.expires_at>Date.now());
+  const el=$('excelMarksMsg');
+  if(el&&drafts.length)message('excelMarksMsg',drafts.length+' offline mark draft(s) are saved on this device. They are pending synchronisation; they are not yet official school records.');
+ }catch(_){}
+}
+
 $('saveExcelMarks').addEventListener('click',async()=>{
  const button=$('saveExcelMarks');if(button.dataset.busy==='1')return;
  button.dataset.busy='1';button.disabled=true;button.textContent='Saving…';
@@ -2328,6 +2394,11 @@ $('saveExcelMarks').addEventListener('click',async()=>{
    payload.push({assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:(ctx.savedMarks.get(assessment.id+'|'+input.dataset.studentId)?.teacher_comment??null),entered_by:user.id});
   }
   if(!payload.length){message('excelMarksMsg','There are no marks to save.',true);return}
+  if(!navigator.onLine){
+   const count=await queueExcelMarksOffline(payload,ctx,user.id);
+   message('excelMarksMsg',count+' mark(s) saved as OFFLINE DRAFTS on this device. They are not yet official marks. Reconnect to the internet and synchronise after checking for conflicts.');
+   return;
+  }
   const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
   if(error){message('excelMarksMsg','Could not save marks: '+error.message,true);return}
   message('excelMarksMsg','Successfully saved '+payload.length+' mark(s).');
