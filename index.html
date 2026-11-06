@@ -3145,7 +3145,7 @@ async function refreshGoogleDriveStatus(){
  const status=$('googleDriveStatus');if(!status)return;
  try{
   const data=await callGoogleDriveBackup('status');
-  status.textContent=data.connected?'Connected to '+data.connected_email+'. Cloud backup files are encrypted before upload. Automatic daily backup is enabled and scheduled for 5:00 AM Uganda time. Recent backup timestamps are displayed in Uganda time (Africa/Kampala).':'Google Drive is not connected. Connect the school account to enable encrypted cloud backups.';
+  const scheduleText=data.settings?.enabled?(data.settings.frequency==='daily'?'Automatic daily backup is enabled (5:00 AM Uganda time).':'Automatic backup is enabled ('+String(data.settings.frequency||'configured')+').'):'Automatic cloud backup is currently disabled.';status.textContent=data.connected?'Connected to '+data.connected_email+'. Cloud backup files are encrypted before upload. '+scheduleText+' Recent backup timestamps are displayed in Uganda time (Africa/Kampala).':'Google Drive is not connected. Connect the school account to enable encrypted cloud backups. '+scheduleText;
   $('runGoogleDriveBackup').disabled=!data.connected;
   $('connectGoogleDrive').textContent=data.connected?'Reconnect school Google account':'Connect school Google account';
   renderGoogleDriveHistory(data.runs);
