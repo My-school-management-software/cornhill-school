@@ -20,13 +20,17 @@ const TABLES = [
   "school_classes","academic_years","academic_terms","subjects","academic_grade_bands",
   "uneb_subject_grade_bands","school_curriculum_subjects","class_subjects","assessments",
   "assessment_scores","report_card_publications","student_class_history","student_status_history",
-  "students","user_profiles","fee_items","fee_schedules",
-  "learner_charges","school_payments","payment_allocations","daily_collection_records",
-  "school_expenses","expense_categories","payroll_periods","payroll_items","staff_salary_agreements",
-  "staff_salary_advances","staff_attendance_events","staff_attendance_adjustments",
-  "staff_attendance_incidents","staff_attendance_alerts","staff_attendance_deduction_settings",
-  "staff_attendance_device_users","staff_attendance_import_batches","staff_work_schedules",
-  "staff_attendance_schedule_assignments","inventory_categories","inventory_items",
+  "students","user_profiles","learner_enrolment_periods","learner_bursary_awards",
+  "parent_guardian_contacts","parent_contact_change_log","learner_conduct_reports",
+  "fee_items","fee_schedules","learner_charges","school_payments","payment_allocations",
+  "daily_collection_records","school_expenses","expense_categories","payroll_periods","payroll_items",
+  "staff_salary_agreements","staff_salary_advances","staff_attendance_events",
+  "staff_attendance_adjustments","staff_attendance_incidents","staff_attendance_alerts",
+  "staff_attendance_deduction_settings","staff_attendance_device_users","staff_attendance_import_batches",
+  "staff_work_schedules","staff_attendance_schedule_assignments","communication_delivery_events",
+  "communication_outbox","communication_templates","school_sms_outbox","staff_communication_posts",
+  "staff_communication_comments","staff_communication_reactions","staff_direct_messages",
+  "staff_media_messages","staff_call_signals","inventory_categories","inventory_items",
   "inventory_movements","school_position_catalogue"
 ];
 
@@ -178,6 +182,11 @@ async function makeBackup(userId: string, connection: any) {
       records
     };
     const encrypted = await encrypt(JSON.stringify(snapshot));
+    const verifiedSnapshot = JSON.parse(await decrypt(encrypted));
+    if (verifiedSnapshot.format !== snapshot.format || verifiedSnapshot.total_records !== total ||
+        Object.keys(verifiedSnapshot.records ?? {}).length !== Object.keys(records).length) {
+      throw new Error("Encrypted cloud backup failed its integrity verification; upload was cancelled.");
+    }
     const stamp = new Date().toISOString().replace(/[:.]/g,"-");
     const fileName = "cornhill-school-backup-"+stamp+".json.enc";
     const token = await driveToken(connection);
