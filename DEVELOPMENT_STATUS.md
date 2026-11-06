@@ -512,3 +512,10 @@ The remaining programme now explicitly includes:
 - Revoked all table privileges from `anon` and `authenticated`, then restored only SELECT, INSERT and UPDATE to authenticated users. Existing Admin-only RLS policy remains the row-level gate; DELETE, TRUNCATE, TRIGGER and REFERENCES are not granted to client roles. This preserves the application's check-and-insert/upsert publication workflow while preventing deletion of approval history through the client API.
 - Verification shows only authenticated SELECT/INSERT/UPDATE grants; no anon grants. Supabase health advisor returned zero lints. No publication records were inserted, changed or deleted.
 - GitHub migration file `supabase/migrations/20261106170123_restrict_report_publication_table_grants.sql`, commit `b07e91182dc9c58a01449c3b7e125713c27e23ed`.
+
+
+## 2026-11-06 — Service-only communications table grant lockdown
+- The security advisor identified two RLS-enabled service-only tables with no row policies but broad default client table grants: `communication_delivery_events` and `communication_provider_settings`.
+- Applied Supabase migration named `lock_service_only_communication_tables` to revoke all privileges from `anon` and `authenticated` on both tables. These are backend/service-managed records, not direct browser-client tables.
+- The immediate follow-up verification query was blocked by the tool, so the absence of client grants and the exact remote migration version still need confirmation. No table rows were changed.
+- Auditable SQL saved at `supabase/maintenance/lock_service_only_communication_tables.sql`, commit `f18142b57e704765d1eba7058c5c3e549044ec83`. This is a maintenance SQL record, not yet a timestamped migration file because the remote version could not be confirmed.
