@@ -565,3 +565,13 @@ The remaining programme now explicitly includes:
 - Security advisor still reports six informational RLS-without-policy findings on service-only backup/communication tables (no client grants), 20 SECURITY DEFINER RPC warnings (the inspected sensitive functions contain explicit administrator, active-teacher/class, or verified-guardian checks), `pg_net` installed in public schema, and leaked-password protection disabled. These require deliberate platform/function review; they were not blindly changed.
 - GitHub migration file `supabase/migrations/20261106180337_remove_excess_enrolment_period_table_privileges.sql`, commit `026a8e4722396d9772edf7eef0c6c65222700e4c`.
 - No school records were inserted, edited or deleted. No teacher sign-in, browser runtime, mobile or Windows tests were performed.
+
+
+## 2026-11-06 — Administrator teacher-marks register pagination
+- Reviewed the live academic UI and database policies against the requested separation: administrators manage learner identity, subjects, grading and report publication; teachers enter marks for assigned classes/subjects; administrators read the teacher-entered register.
+- Found that the administrator register loaded only the newest 1,000 assessment-score rows. This could silently omit marks in a larger school.
+- Replaced the fixed 1,000-row limit with ordered pagination in batches of 1,000 until all rows permitted by the signed-in user's RLS policies have been retrieved. The administrator's register can now display the complete permitted teacher-mark dataset; teacher queries remain constrained by database RLS.
+- Preserved the read-only administrator register and existing teacher-only score insert/update policies. No mark editing controls or delete permissions were added for administrators.
+- Static verification: all 3 inline JavaScript blocks parsed successfully after the change.
+- No learner marks, assessments, report-card approvals or other school records were changed. No browser/runtime test was performed; actual pagination and rendering should be checked with a teacher account and a dataset exceeding 1,000 marks.
+- Deployment remains on hold; this is a GitHub development-branch update, not a live application deployment.
