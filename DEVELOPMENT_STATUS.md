@@ -181,3 +181,14 @@ The remaining programme now explicitly includes:
 - Teacher INSERT policy requires `entered_by = auth.uid()` and an assigned-class check. Teacher UPDATE policy also checks the assigned class. These protections must remain in force during offline synchronisation.
 - The existing online mark-sheet save uses an upsert. Offline sync must not blindly reuse that behaviour: the next implementation should compare the saved server score/comment with the values observed when the offline draft was created, stop on conflicts, and only submit when the teacher is still authorised for that class.
 - No offline marks queue has been enabled yet; no scores or school records were changed during this review.
+
+
+## 2026-11-06 — Fingerprint attendance controls kept visible; activation gated by verified device
+
+- Corrected the earlier presentation change in response to the user's instruction: fingerprint setup and attendance import controls are no longer hidden. The administrator can see the preferred-device setup, staff-ID mapping form, connection checklist and CSV import section in the Staff Attendance workspace.
+- Kept **ZKTeco UA300 Pro** as the previously selected preferred attendance terminal.
+- Replaced the blanket “INACTIVE / controls locked” notice with a device-activation panel and visible OFF switch. The switch is disabled until a future Windows bridge can verify the correct terminal and a working connection; it must not be enabled merely because a cable is plugged in.
+- Existing submission handlers still fail closed while `window.CORNHILL_FINGERPRINT_ENABLED` is not explicitly true. This prevents device mappings/imports from being treated as live fingerprint attendance before a real connection is implemented.
+- Important limitation: automatic device detection and automatic activation are not implemented yet. The Windows companion/bridge service, terminal protocol/ADMS or SDK verification, and physical UA300 Pro test remain future work. The visible CSV import is a prepared workflow, not proof of live biometric matching.
+- GitHub UI commit: c70cdcf0c514078a8c9c834b4fe774792663259e.
+- Not deployed; no physical fingerprint device connected; no biometric templates or attendance records changed.
