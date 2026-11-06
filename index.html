@@ -21,7 +21,7 @@
 .excel-grade-detail{display:block;font-size:10px;color:var(--cornhill-muted);margin-top:3px}
 @media(max-width:700px){/* All assessment periods and learner details remain visible to teachers on every screen. */}
 
-.login-class-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.login-class-entry{min-width:0}.class-preview-button{width:100%;margin-top:5px;padding:8px;font-size:12px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}.login-class-tile{display:block;width:100%;min-height:90px;text-align:left;padding:13px;border:1px solid var(--cornhill-line);border-radius:13px;background:var(--cornhill-panel);color:var(--cornhill-ink)}.login-class-tile strong{display:block;font-size:16px;color:var(--cornhill-accent-dark)}.login-class-tile span{display:block;margin-top:7px;font-size:12px;color:var(--cornhill-muted);font-weight:500}.login-class-tile:hover{border-color:var(--cornhill-accent);background:var(--cornhill-page)}@media(max-width:390px){.login-class-grid{gap:7px}.login-class-tile{padding:10px;min-height:82px}.login-class-tile strong{font-size:14px}}
+.login-class-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.login-class-entry{min-width:0}.login-class-tile{display:block;width:100%;min-height:90px;text-align:left;padding:13px;border:1px solid var(--cornhill-line);border-radius:13px;background:var(--cornhill-panel);color:var(--cornhill-ink)}.login-class-tile strong{display:block;font-size:16px;color:var(--cornhill-accent-dark)}.login-class-tile span{display:block;margin-top:7px;font-size:12px;color:var(--cornhill-muted);font-weight:500}.login-class-tile:hover{border-color:var(--cornhill-accent);background:var(--cornhill-page)}@media(max-width:390px){.login-class-grid{gap:7px}.login-class-tile{padding:10px;min-height:82px}.login-class-tile strong{font-size:14px}}
 /* WhatsApp-inspired private staff chat and recording feedback */
 .direct-message-grid{grid-template-columns:minmax(210px,.72fr) minmax(0,1.8fr);align-items:stretch}
 .staff-chat-side{background:#f7fbf8}
@@ -2418,7 +2418,7 @@ function openTeacherLogin(classKey){
  $('selectedLoginTeacherName').textContent=tile?.querySelector('span')?.textContent||'';
  $('classLoginDirectory').classList.add('hidden');$('selectedTeacherLogin').classList.remove('hidden');$('adminLoginPanel').classList.add('hidden');$('teacherClassCode').value='';clearMessage('loginMsg');
 }
-$('classLoginDirectory').addEventListener('click',e=>{const preview=e.target.closest('[data-demo-class]');if(preview){enterDemoMode(preview.dataset.demoClass);return}const tile=e.target.closest('[data-login-class]');if(tile)openTeacherLogin(tile.dataset.loginClass)});
+$('classLoginDirectory').addEventListener('click',e=>{const tile=e.target.closest('[data-login-class]');if(tile)openTeacherLogin(tile.dataset.loginClass)});
 $('backToClassList').addEventListener('click',()=>{$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass='';$('teacherClassCode').value='';clearMessage('loginMsg')});
 $('adminLoginOpen').addEventListener('click',()=>{$('adminLoginPanel').classList.toggle('hidden');$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass=''});
 async function authenticateAccount(email,password,mode,selectedClass,button){
