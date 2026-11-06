@@ -2829,7 +2829,7 @@ $('admissionMatchActions').addEventListener('click',e=>{
  $('admissionMatchPanel').classList.add('hidden');
  message('appMsg','You confirmed that the possible matches are different children. Continue with the new admission.');
 });
-$('cancelLearnerEdit').addEventListener('click',()=>{editingStudentId=null;$('studentForm').reset();$('studentFormTitle').textContent='Register a student';$('studentForm').querySelector('button[type="submit"]').textContent='Save student record';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();message('appMsg','Learner edit cancelled. No changes were saved.');});
+$('cancelLearnerEdit').addEventListener('click',()=>{editingStudentId=null;$('studentForm').reset();$('studentForm').elements.admission_prorate.disabled=false;$('studentFormTitle').textContent='Register a student';$('studentForm').querySelector('button[type="submit"]').textContent='Save student record';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();message('appMsg','Learner edit cancelled. No changes were saved.');});
 $('backToLearners').addEventListener('click',()=>tab('students'));
 $('studentRows').addEventListener('click',async e=>{
  const view=e.target.closest('.viewLearner');if(!view)return;
@@ -2903,7 +2903,7 @@ $('studentRows').addEventListener('click',e=>{
  editingStudentId=learner.id;const form=$('studentForm');
  for(const key of ['first_name','middle_name','last_name','gender','birth_year','date_of_birth','admission_date','lin','p7_index_number','learner_type','status','bursary_fee_ugx','bursary_category','bursary_reason','previous_school','class_id','guardian_name','guardian_relationship','guardian_phone','guardian_email','alternate_guardian_name','alternate_guardian_phone','address'])if(form.elements[key])form.elements[key].value=learner[key]??'';
  if(form.elements.bursary_reason&&!form.elements.bursary_reason.value)form.elements.bursary_reason.value=learner.bursary_notes||'';
- form.elements.takes_breakfast.checked=!!learner.takes_breakfast;form.elements.takes_lunch.checked=!!learner.takes_lunch;
+ form.elements.takes_breakfast.checked=!!learner.takes_breakfast;form.elements.takes_lunch.checked=!!learner.takes_lunch;form.elements.admission_prorate.checked=!!learner.admission_prorate;form.elements.admission_prorate.disabled=true;
  form.elements.is_bursary.value=String(!!learner.is_bursary);form.elements.guardian_sms_opt_in.checked=!!learner.guardian_sms_opt_in;
  syncBursaryAdmissionFields();
  form.querySelector('button[type="submit"]').textContent='Update learner record';$('studentFormTitle').textContent='Edit learner record';$('cancelLearnerEdit').classList.remove('hidden');tab('register');
@@ -2947,7 +2947,7 @@ async function refreshAdmissionProrationPreview(){
   const withinTerm=admit>=start&&admit<=end;
   if(prorate&&!withinTerm){host.innerHTML='<strong>Cannot calculate proration.</strong><p>The admission date must fall between '+esc(term.starts_on)+' and '+esc(term.ends_on)+' for the active term. Turn the option off or correct the dates.</p>';return}
   const days=prorate?remainingDays:totalDays,ratio=prorate?remainingDays/totalDays:1;
-  const lines=full.map(x=>'<tr><td>'+esc(x.name)+'</td><td>UGX '+money(x.amount)+'</td><td>UGX '+money(Math.round(x.amount*ratio))+'</td></tr>').join('');
+  const lines=full.map(x=>'<tr><td>'+esc(x.name)+'</td><td>UGX '+money(x.amount)+'</td><td>UGX '+money(Math.round(x.amount*ratio))+'</td></tr>').join('');const calculatedTotal=full.reduce((sum,x)=>sum+Math.round(x.amount*ratio),0);
   host.innerHTML='<strong>'+(prorate?'Mid-term fee calculation':'Full-term fee estimate')+' · '+esc(term.name)+'</strong><p class="muted">Term: '+esc(term.starts_on)+' to '+esc(term.ends_on)+' · '+totalDays+' calendar days, including weekends</p><div class="table-wrap"><table><thead><tr><th>Charge</th><th>Full-term amount</th><th>Amount to charge</th></tr></thead><tbody>'+lines+'</tbody></table></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-top:10px"><div><small class="muted">Daily rate (combined)</small><strong>UGX '+money(totalDays?Math.round(fullTotal/totalDays):0)+'</strong></div><div><small class="muted">Days covered</small><strong>'+days+' / '+totalDays+'</strong></div><div><small class="muted">Amount to charge</small><strong>UGX '+money(Math.round(fullTotal*ratio))+'</strong></div></div><small class="muted">The calculation uses inclusive calendar days. Actual charges are created from the saved fee schedule; confirm that the fee schedule is up to date.</small>';
  }catch(err){if(token===admissionProrationPreviewToken)host.textContent='Fee preview unavailable: '+(err.message||'Please retry.')}
 }
@@ -3023,7 +3023,7 @@ $('studentForm').addEventListener('submit',async e=>{
  const result=wasEditing?await db.from('students').update(record).eq('id',editingStudentId).select('id,admission_number').single():await db.from('students').insert(record).select('id,admission_number,lin,p7_index_number').single();
  if(result.error){message('appMsg',(wasEditing?'Could not update learner: ':'Could not save learner: ')+result.error.message,true);return}
  let photoWarning='';if(photoFile){try{const ext=photoFile.type==='image/jpeg'?'jpg':photoFile.type==='image/png'?'png':'webp';const photoPath=result.data.id+'/'+Date.now()+'.'+ext;const upload=await db.storage.from('learner-photos').upload(photoPath,photoFile,{contentType:photoFile.type,upsert:false,cacheControl:'3600'});if(upload.error)throw upload.error;const saved=await db.from('students').update({photo_path:photoPath}).eq('id',result.data.id);if(saved.error){await db.storage.from('learner-photos').remove([photoPath]);throw saved.error}const oldPhotoPath=students.find(x=>x.id===result.data.id)?.photo_path;if(oldPhotoPath&&oldPhotoPath!==photoPath)await db.storage.from('learner-photos').remove([oldPhotoPath])}catch(photoErr){photoWarning=' Learner record was saved, but photograph upload failed: '+(photoErr.message||'Please retry from Edit learner.')}}
- editingStudentId=null;e.target.reset();clearAdmissionMatches();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();e.target.querySelector('button[type="submit"]').textContent='Save student record';
+ editingStudentId=null;e.target.reset();e.target.elements.admission_prorate.disabled=false;clearAdmissionMatches();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();e.target.querySelector('button[type="submit"]').textContent='Save student record';
  let feeScheduleNote='';
  if(!wasEditing&&record.status==='Active'&&record.class_id){
   try{
