@@ -616,7 +616,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
     <tbody id="excelMarksBody"><tr><td colspan="5">Choose a term and class, then load the class sheet.</td></tr></tbody>
    </table>
   </div>
-  <p class="muted">All assessment columns are available to the assigned teacher; no marks are hidden. Use the period selector for Beginning, Midterm, End of Term or All periods. Enter marks in the learner rows, then choose Save all marks. Totals, grades, positions for Nursery/P1–P3, and aggregates/divisions for P4–P7 are calculated from the saved assessment data.</p>
+  <p class="muted">All assessment columns are available to the assigned teacher. Marks autosave as you enter them: online changes synchronise after a short pause; offline changes remain as device drafts until synchronisation. Conflicts are held for review and are not allowed to overwrite newer marks. The Save all marks button remains available as a manual fallback. Totals, grades, positions and aggregates are calculated from saved marks.</p>
  </div>
  <h3 style="margin-top:20px">Grading bands</h3>
  <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
@@ -1017,14 +1017,24 @@ function enterDemoMode(classKey=''){
 // Guardian contacts, bursary details, finance records and authentication secrets are never cached here.
 const OFFLINE_SCHOOL_DB='cornhill-school-cache-v1';
 const OFFLINE_SCHOOL_MAX_AGE=24*60*60*1000;
+
+function localFormDraftDb(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('This browser does not support local autosave.'));return}const req=indexedDB.open(OFFLINE_SCHOOL_DB,3);req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('classSnapshots'))d.createObjectStore('classSnapshots',{keyPath:'owner'});if(!d.objectStoreNames.contains(OFFLINE_ASSESSMENT_STORE))d.createObjectStore(OFFLINE_ASSESSMENT_STORE,{keyPath:'draft_id'});if(!d.objectStoreNames.contains('formDrafts'))d.createObjectStore('formDrafts',{keyPath:'draft_id'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Local autosave storage could not be opened.'))})}
+async function saveLocalFormDraft(owner,key,values){const d=await localFormDraftDb(),draft={draft_id:owner+'|'+key,owner,key,values,updated_at:new Date().toISOString()};await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readwrite');tx.objectStore('formDrafts').put(draft);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Autosave did not finish.'))});d.close()}
+async function readLocalFormDraft(owner,key){const d=await localFormDraftDb(),draft=await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readonly'),r=tx.objectStore('formDrafts').get(owner+'|'+key);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});d.close();return draft}
+async function clearLocalFormDraft(owner,key){if(!owner)return;const d=await localFormDraftDb();await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readwrite');tx.objectStore('formDrafts').delete(owner+'|'+key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});d.close()}
+function localFormValues(form){const values={};[...form.elements].forEach(el=>{if(!el.name||el.type==='file'||['submit','button','reset','password'].includes(el.type))return;if(el.type==='checkbox')values[el.name]=!!el.checked;else if(el.type==='radio'){if(el.checked)values[el.name]=el.value}else values[el.name]=el.value});return values}
+function bindLocalAutosaveForm(form,key,statusId,allowed){if(!form||form.dataset.localAutosaveBound==='1')return;form.dataset.localAutosaveBound='1';let timer=null;const save=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(!currentUserId||!allowed())return;try{await saveLocalFormDraft(currentUserId,key,localFormValues(form));const box=$(statusId);if(box){box.textContent='Draft autosaved on this device · '+new Date().toLocaleTimeString();box.className='notice';box.classList.remove('hidden')}}catch(error){const box=$(statusId);if(box){box.textContent='Autosave could not store this draft. Keep the form open and retry. '+(error?.message||'');box.className='notice error';box.classList.remove('hidden')}}},450)};form.addEventListener('input',save);form.addEventListener('change',save)}
+async function restoreLocalAutosaveForm(form,key,statusId){if(!form||!currentUserId)return;try{const draft=await readLocalFormDraft(currentUserId,key);if(!draft)return;const hasTyped=[...form.elements].some(el=>el.name&&['text','email','tel','number','date','datetime-local','textarea'].includes(el.type||el.tagName.toLowerCase())&&String(el.value||'').trim()!=='');if(hasTyped)return;for(const [name,value] of Object.entries(draft.values||{})){const fields=[...form.elements].filter(el=>el.name===name);fields.forEach(el=>{if(el.type==='checkbox')el.checked=!!value;else if(el.type==='radio')el.checked=el.value===value;else if(el.type!=='file')el.value=value??''})}const box=$(statusId);if(box){box.textContent='Recovered an unfinished draft saved on this device ('+new Date(draft.updated_at).toLocaleString()+'). Review it before submitting.';box.className='notice';box.classList.remove('hidden')}}catch(_){}}
+
 function offlineSchoolDb(){
  return new Promise((resolve,reject)=>{
   if(!('indexedDB' in window)){reject(new Error('This browser does not support local school-data storage.'));return}
-  const req=indexedDB.open(OFFLINE_SCHOOL_DB,2);
+  const req=indexedDB.open(OFFLINE_SCHOOL_DB,3);
   req.onupgradeneeded=()=>{
    const d=req.result;
    if(!d.objectStoreNames.contains('classSnapshots'))d.createObjectStore('classSnapshots',{keyPath:'owner'});
    if(!d.objectStoreNames.contains(OFFLINE_ASSESSMENT_STORE))d.createObjectStore(OFFLINE_ASSESSMENT_STORE,{keyPath:'draft_id'});
+   if(!d.objectStoreNames.contains('formDrafts'))d.createObjectStore('formDrafts',{keyPath:'draft_id'});
   };
   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Local school-data storage could not be opened.'));
  });
@@ -1120,6 +1130,7 @@ if(error){
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 await refresh();
  if(!window.cornhillOfflineReadOnly)await loadAcademicControl();
+ if(profile?.role==='Admin')await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');
 }
 async function loadStaffAttendanceNotice(){
  const box=$('staffAttendanceNotice');
@@ -2305,6 +2316,9 @@ $('prepareExcelAssessments').addEventListener('click',async()=>{
  finally{button.disabled=false;button.textContent='Prepare class sheet';delete button.dataset.busy}
 });
 $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
+const excelAutosaveTimers=new Map();let excelAutosaveChain=Promise.resolve();
+async function autosaveExcelMarkCell(input){const ctx=window.cornhillExcelMarksContext;if(!ctx||!input||!['Admin','Teacher'].includes(profile?.role))return;const raw=String(input.value||'').trim();if(!raw)return;const assessment=ctx.assessments.find(x=>x.id===input.dataset.assessmentId);if(!assessment)return;const absent=raw.toUpperCase()==='X',score=Number(raw);if(absent&&!allowsAbsentMarkForClass(assessment.class_id||ctx.classId))return;if(!absent&&(!Number.isFinite(score)||score<0||score>Number(assessment.max_score)))return;const auth=await db.auth.getSession(),user=auth.data?.session?.user;if(auth.error||!user||user.id!==currentUserId)return;const row={assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:(ctx.savedMarks.get(assessment.id+'|'+input.dataset.studentId)?.teacher_comment??null),entered_by:user.id};await queueExcelMarksOffline([row],ctx,user.id);if(navigator.onLine){const result=await syncOfflineAssessmentDrafts();if(result.synced)message('excelMarksMsg','Autosaved '+result.synced+' mark(s) to the school record.');else if(result.conflicts)message('excelMarksMsg','Your mark draft is saved on this device, but a server change or permission conflict needs review before it can be synchronised.')}else message('excelMarksMsg','Autosaved on this device · pending sync · not yet an official school mark.')}
+$('excelMarksBody').addEventListener('input',e=>{const input=e.target.closest('[data-grid-score]');if(!input)return;const key=input.dataset.assessmentId+'|'+input.dataset.studentId;clearTimeout(excelAutosaveTimers.get(key));excelAutosaveTimers.set(key,setTimeout(()=>{excelAutosaveChain=excelAutosaveChain.then(()=>autosaveExcelMarkCell(input)).catch(err=>message('excelMarksMsg','Autosave is waiting for a retry: '+(err?.message||'storage/network issue'),true))},700));});
 $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
 $('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
 $('excelMarksClass').addEventListener('change',()=>{document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
@@ -2315,11 +2329,12 @@ const OFFLINE_ASSESSMENT_STORE='assessmentDrafts';
 function offlineAssessmentDb(){
  return new Promise((resolve,reject)=>{
   if(!('indexedDB' in window)){reject(new Error('This browser does not support offline mark storage.'));return}
-  const req=indexedDB.open(OFFLINE_SCHOOL_DB,2);
+  const req=indexedDB.open(OFFLINE_SCHOOL_DB,3);
   req.onupgradeneeded=()=>{
    const d=req.result;
    if(!d.objectStoreNames.contains('classSnapshots'))d.createObjectStore('classSnapshots',{keyPath:'owner'});
    if(!d.objectStoreNames.contains(OFFLINE_ASSESSMENT_STORE))d.createObjectStore(OFFLINE_ASSESSMENT_STORE,{keyPath:'draft_id'});
+   if(!d.objectStoreNames.contains('formDrafts'))d.createObjectStore('formDrafts',{keyPath:'draft_id'});
   };
   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Offline mark storage could not be opened.'));
  });
@@ -2394,6 +2409,7 @@ async function syncOfflineAssessmentDrafts(){
    if(write.error){result.conflicts++;continue}
   }
   await deleteOfflineAssessmentDraft(draft.draft_id);result.synced++;
+  const liveCtx=window.cornhillExcelMarksContext;if(liveCtx&&liveCtx.assessments.some(a=>a.id===draft.assessment_id)&&liveCtx.students.some(st=>st.id===draft.student_id))liveCtx.savedMarks.set(draft.assessment_id+'|'+draft.student_id,{assessment_id:draft.assessment_id,student_id:draft.student_id,score:draft.score,teacher_comment:draft.teacher_comment,entered_by:user.id});
  }
  return result;
 }
@@ -2572,6 +2588,7 @@ function parseAttendanceTime(value){
  return new Date(Date.UTC(y,mo-1,d,hh-3,mm,ss)).toISOString();
 }
 async function setupAttendance(){
+ if(profile?.role!=='Admin')restoreLocalAutosaveForm($('attendanceAdjustmentForm'),'attendance-correction','attendanceMsg').catch(()=>{});
  if(demoMode){message('attendanceMsg','Attendance is not available in read-only demo mode.');return}
  syncOfflineAttendanceCorrections().catch(()=>{});
  const admin=profile?.role==='Admin';
@@ -2714,13 +2731,16 @@ $('attendanceAdjustmentForm').addEventListener('submit',async e=>{
    const id=(crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)));
    payload.id=id;
    await offlineAttendancePut({id,owner:currentUserId,payload,queued_at:new Date().toISOString()});
+   await clearLocalFormDraft(currentUserId,'attendance-correction');
    e.target.reset();message('attendanceMsg','Saved on this device. This correction request has NOT reached the administrator yet. It will sync when internet returns and you sign in again on this device.');return;
   }catch(error){message('attendanceMsg','Offline save failed. Keep this form open and try again when storage is available. '+(error?.message||''),true);return}
  }
  const {error}=await db.from('staff_attendance_adjustments').insert(payload);
  if(error){message('attendanceMsg','Could not submit correction request: '+error.message,true);return}
+ await clearLocalFormDraft(currentUserId,'attendance-correction');
  e.target.reset();await setupAttendance();message('attendanceMsg','Your correction request has been sent to the administrator.');
 });
+bindLocalAutosaveForm($('attendanceAdjustmentForm'),'attendance-correction','attendanceMsg',()=>!!currentUserId&&profile?.role!=='Admin');
 $('attendanceAdjustmentRows').addEventListener('click',async e=>{
  const button=e.target.closest('[data-adjustment-review]');if(!button)return;
  if(profile?.role!=='Admin')return;
@@ -3140,6 +3160,7 @@ function scheduleAdmissionMatchSearch(){
 $('studentForm').addEventListener('input',e=>{
  if(['first_name','middle_name','last_name','date_of_birth','birth_year','lin','p7_index_number','guardian_phone'].includes(e.target.name))scheduleAdmissionMatchSearch();
 });
+bindLocalAutosaveForm($('studentForm'),'learner-admission','appMsg',()=>profile?.role==='Admin'&&!editingStudentId);
 $('admissionMatchResults').addEventListener('click',async e=>{
  const btn=e.target.closest('[data-readmit-learner]');if(!btn)return;
  const match=admissionMatchState.matches.find(x=>x.id===btn.dataset.readmitLearner);if(!match)return;
@@ -3424,6 +3445,7 @@ $('studentForm').addEventListener('submit',async e=>{
  if(wasEditing){const existing=students.find(x=>x.id===editingStudentId);if(existing){record.is_bursary=!!existing.is_bursary;record.bursary_fee_ugx=Number(existing.bursary_fee_ugx||0);record.bursary_category=existing.bursary_category||null;record.bursary_reason=existing.bursary_reason||existing.bursary_notes||null;record.bursary_notes=record.bursary_reason;}}
  const result=wasEditing?await db.from('students').update(record).eq('id',editingStudentId).select('id,admission_number').single():await db.from('students').insert(record).select('id,admission_number,lin,p7_index_number').single();
  if(result.error){message('appMsg',(wasEditing?'Could not update learner: ':'Could not save learner: ')+result.error.message,true);return}
+ await clearLocalFormDraft(currentUserId,'learner-admission');
  let photoWarning='';if(photoFile){try{const ext=photoFile.type==='image/jpeg'?'jpg':photoFile.type==='image/png'?'png':'webp';const photoPath=result.data.id+'/'+Date.now()+'.'+ext;const upload=await db.storage.from('learner-photos').upload(photoPath,photoFile,{contentType:photoFile.type,upsert:false,cacheControl:'3600'});if(upload.error)throw upload.error;const saved=await db.from('students').update({photo_path:photoPath}).eq('id',result.data.id);if(saved.error){await db.storage.from('learner-photos').remove([photoPath]);throw saved.error}const oldPhotoPath=students.find(x=>x.id===result.data.id)?.photo_path;if(oldPhotoPath&&oldPhotoPath!==photoPath)await db.storage.from('learner-photos').remove([oldPhotoPath])}catch(photoErr){photoWarning=' Learner record was saved, but photograph upload failed: '+(photoErr.message||'Please retry from Edit learner.')}}
  editingStudentId=null;e.target.reset();e.target.elements.admission_prorate.disabled=false;e.target.elements.admission_date.disabled=false;clearAdmissionMatches();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();e.target.querySelector('button[type="submit"]').textContent='Save student record';
  let feeScheduleNote='';
