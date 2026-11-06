@@ -3308,11 +3308,15 @@ $('validateLatestGoogleDriveBackup').addEventListener('click',async()=>{
  if(profile?.role!=='Admin'||demoMode){$('googleDriveStatus').textContent='Only an administrator can validate a cloud backup.';return}
  if(!latestSuccessfulGoogleDriveBackupId){$('googleDriveStatus').textContent='No completed cloud backup is available to validate.';return}
  button.disabled=true;$('googleDriveStatus').textContent='Downloading and checking the latest encrypted backup. No school data will be restored or changed…';
+ let validationMessage='';
  try{
   const result=await callGoogleDriveBackup('validate_backup',{run_id:latestSuccessfulGoogleDriveBackupId});
-  $('googleDriveStatus').textContent='Backup validation passed: '+result.file_name+' · '+Number(result.total_records).toLocaleString('en-UG')+' records across '+result.dataset_count+' datasets. '+result.message;
- }catch(error){$('googleDriveStatus').textContent='Backup validation failed: '+error.message}
- finally{button.disabled=!latestSuccessfulGoogleDriveBackupId}
+  validationMessage='Backup validation passed: '+result.file_name+' · '+Number(result.total_records).toLocaleString('en-UG')+' records across '+result.dataset_count+' datasets. '+result.message;
+ }catch(error){validationMessage='Backup validation failed: '+error.message}
+ // Refresh the audit history so the saved validation result is visible immediately.
+ await refreshGoogleDriveStatus();
+ $('googleDriveStatus').textContent=validationMessage;
+ button.disabled=!latestSuccessfulGoogleDriveBackupId;
 });
 $('saveGoogleDriveSchedule').addEventListener('click',async()=>{
  const button=$('saveGoogleDriveSchedule'),enabled=$('googleDriveAutoBackupEnabled').checked,frequency=$('googleDriveBackupFrequency').value;
