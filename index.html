@@ -1131,12 +1131,23 @@ async function restoreOfflineSchoolSnapshot(owner){
  }catch(_){return false}
 }
 
-async function startSession(session){demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
+async function startSession(session){demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';if(!session){profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];setOfflineReadOnly(false);sessionStorage.removeItem('cornhill_teacher_class_id');$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
 const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
 if(error){
  if(await restoreOfflineSchoolSnapshot(session.user.id))return;
  message('appMsg','Your account profile could not be loaded, and no valid offline class-list snapshot is available. Reconnect to the internet and sign in again.',true);return
+}
+if(p.employment_status&&p.employment_status!=='Active'){
+ const inactiveStatus=p.employment_status;
+ try{await offlineSchoolDelete(session.user.id)}catch(_){}
+ await db.auth.signOut();
+ currentUserId=null;profile=null;students=[];classes=[];
+ sessionStorage.removeItem('cornhill_teacher_class_id');
+ setOfflineReadOnly(false);
+ $('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');
+ message('loginMsg','Access blocked: this school account is marked "'+inactiveStatus+'". Please contact the school administrator if you believe this is incorrect.',true);
+ return;
 }
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 await refresh();
@@ -3243,7 +3254,7 @@ $('signIn').addEventListener('click',()=>authenticateAccount('teacher.'+selected
 $('adminSignIn').addEventListener('click',()=>authenticateAccount($('adminEmail').value.trim(),$('adminPassword').value,'Admin','',$('adminSignIn')));
 
 loadPublicClassLoginDirectory();
-$('logout').addEventListener('click',async()=>{if(demoMode){demoMode=false;profile=null;location.reload();return}const owner=currentUserId;await db.auth.signOut();await offlineSchoolDelete(owner);sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');profile=null;setOfflineReadOnly(false);await startSession(null)});
+$('logout').addEventListener('click',async()=>{if(demoMode){demoMode=false;profile=null;location.reload();return}const owner=currentUserId;await db.auth.signOut();await offlineSchoolDelete(owner);sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');profile=null;students=[];classes=[];setOfflineReadOnly(false);await startSession(null)});
 function syncBursaryAdmissionFields(){
  const enabled=$('bursaryStatus').value==='true';
  $('bursaryAmountWrap').classList.toggle('hidden',!enabled);
