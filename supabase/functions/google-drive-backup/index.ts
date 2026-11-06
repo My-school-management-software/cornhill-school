@@ -294,6 +294,43 @@ Deno.serve(async (req: Request) => {
       const {data:settings} = await adminDb.from("google_drive_backup_settings").select("enabled,frequency,last_scheduled_at").eq("id",true).maybeSingle();
       return json({connected:!!connection,connected_email:connection?.connected_email??null,runs:runs??[],settings:settings??{enabled:false,frequency:"daily"}});
     }
+    if (body.action === "validate_backup") {
+      const user = await requireAdmin(req);
+      const runId = String(body.run_id || "");
+      if (!/^[0-9a-f-]{36}$/i.test(runId)) throw new Error("Select a valid backup from the backup history.");
+      const { data: run, error: runError } = await adminDb.from("google_drive_backup_runs")
+        .select("id,status,drive_file_id,file_name,total_records,record_counts")
+        .eq("id", runId).eq("status", "success").maybeSingle();
+      if (runError || !run?.drive_file_id) throw new Error("That backup is not a completed, verifiable cloud backup.");
+      const connection = await getConnection();
+      if (!connection) throw new Error("Reconnect the dedicated CORNHILL Google account before validating backups.");
+      const token = await driveToken(connection);
+      const response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(run.drive_file_id) + "?alt=media", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (!response.ok) throw new Error("Google Drive could not download this backup for validation (HTTP " + response.status + ").");
+      const encrypted = await response.text();
+      const snapshot = JSON.parse(await decrypt(encrypted));
+      if (snapshot.format !== "cornhill-google-drive-backup-v1" || !snapshot.records || typeof snapshot.records !== "object")
+        throw new Error("Backup format is not recognised. No restore was attempted.");
+      const allowed = new Set(TABLES);
+      const names = Object.keys(snapshot.records);
+      if (names.length !== TABLES.length || names.some(name => !allowed.has(name)))
+        throw new Error("Backup dataset list does not match the current CORNHILL backup format.");
+      let counted = 0;
+      for (const name of TABLES) {
+        const rows = snapshot.records[name];
+        if (!Array.isArray(rows) || Number(snapshot.record_counts?.[name]) !== rows.length ||
+            Number(run.record_counts?.[name]) !== rows.length)
+          throw new Error("Backup record-count verification failed for " + name + ".");
+        counted += rows.length;
+      }
+      if (counted !== Number(snapshot.total_records) || counted !== Number(run.total_records))
+        throw new Error("Backup total-record verification failed.");
+      return json({ success: true, validated: true, run_id: run.id, file_name: run.file_name,
+        total_records: counted, dataset_count: names.length, created_at: snapshot.created_at,
+        message: "Encrypted backup decrypted successfully. Dataset names and all record counts match the backup audit. No school data was changed." });
+    }
     if (body.action === "backup") {
       const connection = await getConnection();
       if (!connection) throw new Error("Connect the school Google account before creating a cloud backup.");
