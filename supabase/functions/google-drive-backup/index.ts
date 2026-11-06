@@ -177,7 +177,7 @@ async function makeBackup(userId: string, connection: any) {
       format:"cornhill-google-drive-backup-v1",
       created_at:new Date().toISOString(),
       created_by:userId,
-      scope:"Encrypted application database snapshot. Supabase Storage files, authentication accounts and message contents are not included in this version.",
+      scope:"Encrypted allowlisted application database snapshot, including school records and staff communication database rows. Excludes Supabase Storage binary files (photos, voice/video files and other uploads), authentication accounts/passwords/sessions, and database schema or platform configuration.",
       record_counts:counts,
       total_records:total,
       records
