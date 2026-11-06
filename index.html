@@ -1546,14 +1546,32 @@ $('approvePayroll').addEventListener('click',async()=>{
  if(error){message('payrollMsg','Payroll approval failed: '+error.message,true);return}await loadExpensePayroll();await loadPayrollItems();message('payrollMsg','Payroll approved. Record each actual payment to create its salary expense automatically.');
 });
 $('payrollItemRows').addEventListener('click',async e=>{
- const btn=e.target.closest('[data-payroll-pay]');if(!btn)return;const id=btn.dataset.payrollPay;
- const allowance=Number($('payrollItemRows').querySelector('.payrollAllowance[data-id="'+id+'"]').value||0),deduction=Number($('payrollItemRows').querySelector('.payrollDeduction[data-id="'+id+'"]').value||0),advanceRecovery=Number($('payrollItemRows').querySelector('.payrollAdvanceRecovery[data-id="'+id+'"]').value||0),method=$('payrollItemRows').querySelector('.payrollMethod[data-id="'+id+'"]').value,reference=$('payrollItemRows').querySelector('.payrollReference[data-id="'+id+'"]').value.trim();
- const item=(window.cornhillCurrentPayroll||[]).find(x=>x.id===id);if(!item)return;
- if(deduction+advanceRecovery>Number(item.base_salary_ugx)+allowance||allowance<0||deduction<0||advanceRecovery<0){message('payrollMsg','Allowances and deductions are invalid. Check the net salary.',true);return}
- if(!confirm('Confirm that '+item.staff_name_snapshot+' has actually received UGX '+money(Number(item.base_salary_ugx)+allowance-deduction-advanceRecovery)+'? This will create a salary expense and recover UGX '+money(advanceRecovery)+' from advances.'))return;
- const {error}=await db.from('payroll_items').update({allowances_ugx:allowance,deductions_ugx:deduction,advance_recovery_ugx:advanceRecovery,payment_method:method,payment_reference:reference||null,status:'Paid',paid_at:new Date().toISOString()}).eq('id',id).eq('status','Pending');
- if(error){message('payrollMsg','Salary payment could not be recorded: '+error.message,true);return}
- await loadExpensePayroll();await loadPayrollItems();message('payrollMsg','Salary payment recorded. A matching salary expense has been added automatically.');
+ const btn=e.target.closest('[data-payroll-pay]');if(!btn||btn.disabled)return;
+ const id=btn.dataset.payrollPay,item=(window.cornhillCurrentPayroll||[]).find(x=>x.id===id);
+ if(!item||item.status!=='Pending'){message('payrollMsg','This payroll line is no longer pending. Reload the payroll before continuing.',true);return}
+ if(!['Approved','Part-paid'].includes(window.cornhillPayrollPeriodStatus)){message('payrollMsg','Approve the payroll period before recording salary payments.',true);return}
+ const allowanceInput=$('payrollItemRows').querySelector('.payrollAllowance[data-id="'+id+'"]');
+ const deductionInput=$('payrollItemRows').querySelector('.payrollDeduction[data-id="'+id+'"]');
+ const recoveryInput=$('payrollItemRows').querySelector('.payrollAdvanceRecovery[data-id="'+id+'"]');
+ const methodInput=$('payrollItemRows').querySelector('.payrollMethod[data-id="'+id+'"]');
+ const referenceInput=$('payrollItemRows').querySelector('.payrollReference[data-id="'+id+'"]');
+ if(!allowanceInput||!deductionInput||!recoveryInput||!methodInput||!referenceInput){message('payrollMsg','Payroll details are incomplete. Reload the payroll.',true);return}
+ const allowance=Number(allowanceInput.value||0),deduction=Number(deductionInput.value||0),advanceRecovery=Number(recoveryInput.value||0),maxRecovery=Number(recoveryInput.max||0),method=methodInput.value,reference=referenceInput.value.trim();
+ if(![allowance,deduction,advanceRecovery].every(x=>Number.isSafeInteger(x)&&x>=0)){message('payrollMsg','Allowances, deductions and advance recovery must be non-negative whole UGX amounts.',true);return}
+ if(advanceRecovery>maxRecovery){message('payrollMsg','Advance recovery cannot exceed the outstanding advance shown for this staff member.',true);return}
+ if(deduction+advanceRecovery>Number(item.base_salary_ugx)+allowance){message('payrollMsg','Deductions and advance recovery cannot exceed gross salary.',true);return}
+ if(!['Cash','Bank transfer','Mobile Money','Cheque','Other'].includes(method)){message('payrollMsg','Choose a valid salary payment method.',true);return}
+ const net=Number(item.base_salary_ugx)+allowance-deduction-advanceRecovery;
+ if(!Number.isSafeInteger(net)||net<0){message('payrollMsg','The calculated net salary is invalid.',true);return}
+ if(!confirm('Confirm that '+item.staff_name_snapshot+' has actually received UGX '+money(net)+'? This will create a salary expense and recover UGX '+money(advanceRecovery)+' from advances.'))return;
+ btn.disabled=true;btn.textContent='Recording…';
+ try{
+  const {data,error}=await db.from('payroll_items').update({allowances_ugx:allowance,deductions_ugx:deduction,advance_recovery_ugx:advanceRecovery,payment_method:method,payment_reference:reference||null,status:'Paid',paid_at:new Date().toISOString()}).eq('id',id).eq('status','Pending').select('id').maybeSingle();
+  if(error)throw error;
+  if(!data)throw new Error('This payroll line was changed by another user or is no longer pending. Reload and verify its status.');
+  await loadExpensePayroll();await loadPayrollItems();message('payrollMsg','Salary payment recorded. Verify the matching salary expense and advance balance in the refreshed registers.');
+ }catch(error){message('payrollMsg','Salary payment could not be confirmed: '+(error.message||'Reload the payroll and check the payment status.'),true)}
+ finally{btn.disabled=false;btn.textContent='Mark paid'}
 });
 $('loadExpenseReport').addEventListener('click',renderExpenseRows);
 $('expenseFrom').addEventListener('change',renderExpenseRows);$('expenseTo').addEventListener('change',renderExpenseRows);
