@@ -231,3 +231,6 @@ The remaining programme now explicitly includes:
 - Added local autosave/restore for subject creation and class-subject assignment forms. Academic year, term, subject, class-subject and assessment drafts are cleared after successful server submission. Individual mark drafts and general/UNEB grading-band drafts are cleared after successful save.
 - These drafts are not automatically submitted to the database. Administrators and teachers must still explicitly submit each form. Finance posting, salary/payroll posting, payment reversals, receipt generation and staff profile edits remain excluded from local draft capture in this extension.
 - Staff clock-in/out remains online/admin-authorised only under the existing RLS policy. Offline correction requests are not a substitute for official clock events.
+
+
+- Follow-up static verification for learner-edit/academic-form autosave: all three inline JavaScript blocks parse without syntax errors after correcting the asynchronous edit-form restore handler. Confirmed separate learner-edit draft keys, restore on Edit Learner, clear on successful update, discard on explicit cancel, subject/class-subject autosave, and successful-submit cleanup paths. Browser runtime and device tests are still pending.
