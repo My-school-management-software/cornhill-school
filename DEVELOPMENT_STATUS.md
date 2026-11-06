@@ -269,3 +269,5 @@ The remaining programme now explicitly includes:
 - Service-worker cache updated to cornhill-shell-v12.
 - Static checks: all three inline JavaScript blocks parse; reason capture, restore, minimum length and successful-flow cleanup confirmed. Browser/IndexedDB runtime tests and real re-admission workflow tests remain pending. No learner records were changed.
 - Commits: da03c6d4596a5c51af74a15c081b4fda8d7b6dd5 (UI), ec2c1532ddcedb2c689dbf8c94ba8f83211263db (service worker).
+
+- Follow-up safety refinement: the reason draft is cleared immediately after the re-admission identity RPC succeeds, before fee-schedule lookup and page refresh. This avoids leaving a stale confirmation reason after the new enrolment has already been created. Commit: 1592f28304de9b47919efabb7cf457dcd1b93b45.
