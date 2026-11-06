@@ -585,3 +585,14 @@ The remaining programme now explicitly includes:
 - Static verification: all 3 inline JavaScript blocks parsed successfully after the change.
 - No backup was created, no validation action was invoked, no schedule or connection setting was changed, and no school data was modified. Isolated restore testing remains pending.
 - Deployment remains pending; GitHub development branch only.
+
+
+## 2026-11-06 — Backup privacy boundary and recovery runbook
+- Reviewed the deployed backup Edge Function table allowlist against actual table columns. Found that the prior snapshot included private communications tables (including message bodies, recipient phone numbers, media paths and call-signalling payloads), contrary to the documented exclusion.
+- Read-only row-count check found two existing `school_sms_outbox` rows; other reviewed private communication tables had zero rows. No message contents were selected or exposed.
+- Updated `google-drive-backup` to write format v2. New snapshots retain the fixed dataset manifest but intentionally store empty arrays for private communication datasets: communication delivery events/outbox, school SMS outbox, staff posts/comments/reactions, direct messages, media messages and call signals. Reusable communication templates remain included.
+- Validator accepts historical v1 snapshots and new v2 snapshots. For v2, it explicitly verifies the exact excluded-table manifest and that all excluded datasets contain zero rows. No historical backup file was modified or deleted.
+- Deployed Edge Function version 26 (ACTIVE). GitHub source was synchronised to the deployed function.
+- Updated Google Drive setup documentation and added `docs/BACKUP_RECOVERY_RUNBOOK.md` with non-destructive validation, isolated restore gates, privacy boundaries and production recovery safeguards.
+- No backup was created, no validation action was invoked, no school table rows were modified, and no restore was attempted. The two existing SMS outbox rows remain untouched in the live database.
+- Static source guard checks passed before deployment; deployment returned ACTIVE version 26. A live end-to-end validation and isolated restore drill remain pending.
