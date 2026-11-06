@@ -2442,12 +2442,70 @@ async function setupAttendance(){
  const rows=Object.values(grouped).sort((a,b)=>b.day.localeCompare(a.day)||a.staff.localeCompare(b.staff));
  $('attendanceSummaryRows').innerHTML=rows.map(g=>'<tr><td>'+esc(g.day)+'</td><td>'+esc(g.staff)+'</td><td>'+fmt(g.ins[0])+'</td><td>'+fmt(g.outs[g.outs.length-1])+'</td><td>'+g.count+'</td><td>'+(g.ins.length&&g.outs.length?'<span class="badge">Complete events</span>':'<span class="badge">Check record</span>')+'</td></tr>').join('')||'<tr><td colspan="6">No attendance events recorded in the last 14 days.</td></tr>';
 }
+// Offline queue is deliberately limited to staff attendance correction requests.
+// Payments, learner edits, marks and receipts are never queued by this client.
+const OFFLINE_ATTENDANCE_DB='cornhill-offline-v1';
+function offlineAttendanceDb(){
+ return new Promise((resolve,reject)=>{
+  if(!('indexedDB' in window)){reject(new Error('This browser does not support secure offline storage.'));return}
+  const req=indexedDB.open(OFFLINE_ATTENDANCE_DB,1);
+  req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('correctionRequests'))d.createObjectStore('correctionRequests',{keyPath:'id'})};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Offline storage could not be opened.'));
+ });
+}
+async function offlineAttendancePut(item){
+ const d=await offlineAttendanceDb();
+ await new Promise((resolve,reject)=>{const tx=d.transaction('correctionRequests','readwrite');tx.objectStore('correctionRequests').put(item);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Offline save was cancelled.'))});
+ d.close();
+}
+async function offlineAttendanceAll(){
+ const d=await offlineAttendanceDb();
+ const rows=await new Promise((resolve,reject)=>{const tx=d.transaction('correctionRequests','readonly'),r=tx.objectStore('correctionRequests').getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)});
+ d.close();return rows;
+}
+async function offlineAttendanceDelete(id){
+ const d=await offlineAttendanceDb();
+ await new Promise((resolve,reject)=>{const tx=d.transaction('correctionRequests','readwrite');tx.objectStore('correctionRequests').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+ d.close();
+}
+async function syncOfflineAttendanceCorrections(){
+ if(!navigator.onLine||!db||!currentUserId||demoMode)return;
+ let queued=[];
+ try{queued=await offlineAttendanceAll()}catch(error){return}
+ let synced=0,failed=0;
+ for(const item of queued){
+  if(item.owner!==currentUserId)continue;
+  try{
+   const result=await db.from('staff_attendance_adjustments').insert(item.payload);
+   if(result.error){
+    // A retry after a lost network response may encounter the same UUID.
+    const existing=await db.from('staff_attendance_adjustments').select('id').eq('id',item.id).eq('staff_user_id',currentUserId).maybeSingle();
+    if(existing.error||!existing.data){failed++;continue}
+   }
+   await offlineAttendanceDelete(item.id);synced++;
+  }catch(_){failed++}
+ }
+ if(synced||failed){
+  const status=document.getElementById('attendanceMsg');
+  if(status){status.textContent=failed?'Synced '+synced+' saved attendance correction request(s); '+failed+' remain safely stored on this device for retry.':'Synced '+synced+' saved attendance correction request(s) to the administrator.';status.className='notice';status.classList.remove('hidden')}
+  if(synced&&typeof setupAttendance==='function'&&document.getElementById('attendance')&&!document.getElementById('attendance').classList.contains('hidden'))await setupAttendance();
+ }
+}
+window.addEventListener('online',()=>{syncOfflineAttendanceCorrections().catch(()=>{})});
 $('attendanceAdjustmentForm').addEventListener('submit',async e=>{
  e.preventDefault();clearMessage('attendanceMsg');
  if(!currentUserId){message('attendanceMsg','Please sign in again before submitting a request.',true);return}
  const f=new FormData(e.target),proposed=String(f.get('proposed_time')||'').trim();
  const payload={staff_user_id:currentUserId,attendance_date:f.get('attendance_date'),adjustment_type:f.get('adjustment_type'),proposed_time:proposed?parseAttendanceTime(proposed):null,reason:String(f.get('reason')||'').trim(),requested_by:currentUserId,status:'pending'};
  if(proposed&&!payload.proposed_time){message('attendanceMsg','Enter a valid proposed date and time.',true);return}
+ if(!navigator.onLine){
+  try{
+   const id=(crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)));
+   payload.id=id;
+   await offlineAttendancePut({id,owner:currentUserId,payload,queued_at:new Date().toISOString()});
+   e.target.reset();message('attendanceMsg','Saved on this device. This correction request has NOT reached the administrator yet. It will sync when internet returns and you sign in again on this device.');return;
+  }catch(error){message('attendanceMsg','Offline save failed. Keep this form open and try again when storage is available. '+(error?.message||''),true);return}
+ }
  const {error}=await db.from('staff_attendance_adjustments').insert(payload);
  if(error){message('attendanceMsg','Could not submit correction request: '+error.message,true);return}
  e.target.reset();await setupAttendance();message('attendanceMsg','Your correction request has been sent to the administrator.');
@@ -3654,7 +3712,7 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
 </script><script>
 (function(){
  const status=document.getElementById('connectionStatus');
- function updateConnection(){if(!status)return;const offline=!navigator.onLine;status.classList.toggle('hidden',!offline);status.textContent=offline?'You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.':'You are back online. Reconnect and refresh if records did not load.';if(!offline){status.classList.remove('hidden');setTimeout(()=>{if(navigator.onLine)status.classList.add('hidden')},4500)}}
+ function updateConnection(){if(!status)return;const offline=!navigator.onLine;status.classList.toggle('hidden',!offline);status.textContent=offline?'You are offline. The app shell is available. Learner records, marks, finance, payments and receipts need internet. Staff attendance correction requests can be saved on this device and sync after you reconnect; they are not sent while offline.':'You are back online. Saved attendance correction requests will sync after you sign in. Refresh if live records did not load.';if(!offline){status.classList.remove('hidden');setTimeout(()=>{if(navigator.onLine)status.classList.add('hidden')},4500)}}
  window.addEventListener('online',updateConnection);window.addEventListener('offline',updateConnection);updateConnection();
  
 })();
