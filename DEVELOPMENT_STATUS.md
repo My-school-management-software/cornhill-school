@@ -361,3 +361,12 @@ The remaining programme now explicitly includes:
 - Audited SECURITY DEFINER function privileges: no inspected public SECURITY DEFINER routine is executable by anon; authenticated-executable routines are intentionally available to signed-in users and the exposed admin/teacher/parent routines contain identity/role guard references. Internal trigger/scheduler routines are not executable by authenticated users. Service-only communication and Google backup tables have RLS enabled with no client policies, as intended for server-only access.
 - Supabase security advisor still reports its known warnings: pg_net extension schema placement, leaked-password protection disabled, and authenticated-executable SECURITY DEFINER functions. The six no-policy notices concern service-only tables and are intentional. Auth password-protection configuration is not exposed through the connected tools in this session, so it was not changed.
 - Static JavaScript syntax checks passed for all inline scripts. No staff account status, password, learner, finance or attendance record was changed. Live inactive-account login denial, reset-email delivery and Windows/Android tests remain pending.
+
+
+## 2026-11-06 — Active-account RLS for staff attendance and schedules
+- Applied migration `active_staff_attendance_and_schedule_rls` to Supabase.
+- Staff attendance inserts now require the active administrator helper and the signed-in recorder identity. Attendance reads are limited to active staff reading their own events or active administrators reading all events.
+- Staff work-schedule management now uses the active administrator helper. Active staff may read active schedules; inactive profiles cannot use the staff read policy.
+- Verified the four resulting policies directly in `pg_policies`; their predicates now reference `is_school_admin()` and active employment status.
+- Security advisor still reports the existing warnings for `pg_net` schema placement, leaked-password protection disabled, and authenticated-executable SECURITY DEFINER functions. Six no-policy findings are the intentional service-only communication/backup tables. No broad EXECUTE revocations were made because application RPCs depend on these guarded functions.
+- No attendance, work schedule, staff account, learner or finance records were changed. Real authenticated role-denial tests and browser/device tests remain pending.
