@@ -1,54 +1,63 @@
 # CORNHILL Google Drive Backup Setup
 
-This integration is being prepared on `feature/cornhill-v3-foundation`. The permitted school Google account is `info.cornhillnurandprisch2026@gmail.com`. The service rejects any other Google account. It is not connected until an administrator completes the OAuth setup below.
+The Google Drive backup connection is currently configured for the dedicated CORNHILL school account. The backup Edge Function is active in Supabase. Reconnection is needed only if the administrator sees an expired/revoked connection or the status screen says disconnected.
 
-## 1. Create the school Google OAuth client
+## 1. Google Drive connection
 
-1. Sign in to Google Cloud Console using the school's dedicated Google account.
-2. Create or select a project and enable **Google Drive API**.
-3. Configure the OAuth consent screen and add the school administrator as a test user if the app is in testing.
-4. Create an OAuth Client ID of type **Web application**.
-5. Use the dedicated school account `info.cornhillnurandprisch2026@gmail.com` as the Google Cloud project owner and the account that will authorize Drive access.
-6. Add this exact Authorized redirect URI:
+The integration uses a Google OAuth web client and the Drive `drive.file` scope, plus account email verification. The function accepts only the dedicated school account configured in its source. Its redirect URI is:
 
-   `https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/google-drive-backup`
+`https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/google-drive-backup`
 
-7. Keep the Client ID and Client Secret private.
+Keep OAuth credentials private. Never place Client IDs with secrets, Client Secrets, refresh tokens or encryption keys in GitHub, school records, screenshots or ChatGPT messages.
 
-The app requests only the `drive.file` scope plus the account email scope. This limits its Drive access to files created by this app.
+## 2. Server-side Supabase secrets
 
-## 2. Add server-side secrets in Supabase
+The Edge Function uses these server-side secrets:
 
-Open Supabase Dashboard → Project Settings / Edge Functions → Secrets and add:
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI`
+- `BACKUP_ENCRYPTION_KEY` — base64-encoded random 32-byte key
+- `APP_BASE_URL`
 
-- `GOOGLE_CLIENT_ID` — OAuth Client ID from Google Cloud
-- `GOOGLE_CLIENT_SECRET` — OAuth Client Secret from Google Cloud
-- `GOOGLE_REDIRECT_URI` — the exact redirect URI above
-- `BACKUP_ENCRYPTION_KEY` — a base64-encoded random 32-byte key
-- `APP_BASE_URL` — the current CORNHILL preview URL (include https://, no trailing slash)
+The encryption key is essential for decrypting backups. Keep a protected offline recovery copy accessible only to the school owner/authorised recovery administrator. If it is lost, the encrypted backups cannot be decrypted. Do not rotate it without a controlled key-migration and recovery plan.
 
-Generate the encryption key locally with:
+## 3. Current operation (checked 6 November 2026)
 
-```bash
-openssl rand -base64 32
-```
+- Google Drive connection row exists, with the Drive folder configured and refresh token stored encrypted. No token value was read or exposed.
+- Edge Function `google-drive-backup` is ACTIVE at version 26.
+- Automatic backup scheduling is implemented through a protected scheduled handler and a daily scheduler check at 5:00 AM Uganda time. The school can select Daily, Weekly, Monthly, Every school term or Yearly in the administrator settings. The live setting observed on 6 November was enabled / Daily; always refresh status before relying on that setting.
+- The latest successful backup observed during the 6 November review completed at 09:06:05 UTC (12:06:05 PM Uganda time), with 231 records. Two earlier attempts failed, followed by successful runs.
+- The administrator interface includes a separate encrypted-backup validation action. No validation audit row existed during the review; do not describe the latest backup as independently validated until a successful validation result is recorded.
 
-Do not send any secret to ChatGPT, put it in GitHub, or paste it into the school app. Store the encryption key safely: encrypted backups cannot be decrypted if this key is lost. Keep a protected offline copy accessible only to the school owner/authorised recovery administrator.
+## 4. Backup content and privacy boundary
 
-## 3. Connect the account
+New backups use format `cornhill-google-drive-backup-v2`. The snapshot is encrypted with AES-256-GCM before upload.
 
-After the secrets are saved and the latest preview is available:
+The configured application database datasets are included, except these private communication datasets, which are deliberately represented as empty arrays in new snapshots:
 
-1. Sign in to CORNHILL as an administrator.
-2. Open Settings → Backup & recovery.
-3. Choose **Connect school Google account** and approve the requested access.
-4. Return to CORNHILL, open Settings → Backup & recovery, and refresh cloud status.
-5. Run a manual cloud backup and verify the file appears in the **CORNHILL School Backups** folder in Google Drive.
+- `communication_delivery_events`
+- `communication_outbox`
+- `school_sms_outbox`
+- `staff_communication_posts`
+- `staff_communication_comments`
+- `staff_communication_reactions`
+- `staff_direct_messages`
+- `staff_media_messages`
+- `staff_call_signals`
 
-## Current implementation boundaries
+This prevents message bodies, recipient phone numbers, delivery payloads, media paths and call-signalling payloads from being copied into new backup files. Reusable communication templates remain part of the application configuration backup.
 
-- Database tables for encrypted OAuth tokens, OAuth state and backup audit history are protected from anon/authenticated API access.
-- The Edge Function verifies the signed-in administrator and encrypts the snapshot using AES-256-GCM before uploading it.
-- The current snapshot covers the configured school database tables. It does not yet include Supabase Storage objects (learner photos, staff media), authentication accounts/passwords, or private message content.
-- Automatic scheduling is not yet operational: a database schedule record exists, but the scheduled Edge Function handler and schedule controls still need implementation and verification.
-- Safe restore/rollback is not enabled yet. It must be designed with a dry-run, dependency ordering, confirmation and recovery validation before use.
+Supabase Storage objects (such as learner photos and staff media files) and Supabase Auth accounts/passwords/sessions are not included. They need separate, documented recovery arrangements.
+
+**Historical format-v1 backups were created before this privacy exclusion.** Treat those older files as potentially containing private communication data. Keep their Drive access restricted to authorised school recovery administrators. Do not delete historical files without the school owner's retention decision.
+
+## 5. Safe validation and restore boundary
+
+- Validation downloads and decrypts the selected encrypted backup, checks its format, dataset manifest and record counts, and writes an audit result. It does not restore or alter school records.
+- A successful validation is not the same as a successful restore.
+- No one-click restore is enabled. Do not restore into the live school database as a test.
+- A restore drill must use a separate isolated Supabase project/database, with no connection to the live school application, live parent portal, live communications provider or live Google Drive scheduler.
+- Before any production recovery, confirm the school owner's authorisation, backup timestamp, encryption key, schema/migration compatibility, dependency order, file/auth recovery plan, record counts and application-level checks. Require a second authorised reviewer and a written cutover/rollback decision.
+
+See [BACKUP_RECOVERY_RUNBOOK.md](BACKUP_RECOVERY_RUNBOOK.md) for the staged recovery gates.
