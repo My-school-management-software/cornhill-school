@@ -555,3 +555,13 @@ The remaining programme now explicitly includes:
 - Kept the separate `class_login_directory` anonymous SELECT because the sign-in screen intentionally displays class labels and teacher display names before login. It contains no teacher password or private class code; those are handled by the protected teacher sign-in function.
 - Verification passed for all 18 tables: no anon SELECT; authenticated retains ordinary DML grants; no TRUNCATE/TRIGGER/REFERENCES. RLS policy inventory was checked for each table. Supabase health advisor returned zero lints.
 - GitHub migration file commit `6aa7fe00bc9223be7e5882294f4b39262b2e2af2`.
+
+
+## 2026-11-06 — Final public-schema client table-grant sweep
+- Swept all public base tables for remaining anonymous table grants and authenticated high-risk structural privileges.
+- Only remaining anonymous table grant is SELECT on `class_login_directory`, which is intentionally used by the pre-login screen to show class labels and public teacher display names. No class codes, passwords or learner data are exposed by that table.
+- Found one remaining excessive authenticated grant set on `learner_enrolment_periods`; revoked TRUNCATE, TRIGGER and REFERENCES while preserving SELECT/INSERT/UPDATE/DELETE required by authenticated operations and constrained by RLS.
+- Verified no other public base table has authenticated TRUNCATE/TRIGGER/REFERENCES privileges. Supabase health advisor reports zero lints.
+- Security advisor still reports six informational RLS-without-policy findings on service-only backup/communication tables (no client grants), 20 SECURITY DEFINER RPC warnings (the inspected sensitive functions contain explicit administrator, active-teacher/class, or verified-guardian checks), `pg_net` installed in public schema, and leaked-password protection disabled. These require deliberate platform/function review; they were not blindly changed.
+- GitHub migration file `supabase/migrations/20261106180337_remove_excess_enrolment_period_table_privileges.sql`, commit `026a8e4722396d9772edf7eef0c6c65222700e4c`.
+- No school records were inserted, edited or deleted. No teacher sign-in, browser runtime, mobile or Windows tests were performed.
