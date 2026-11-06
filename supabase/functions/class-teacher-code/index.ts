@@ -17,12 +17,17 @@ Deno.serve(async(req:Request)=>{
  if(code.length<8||code.length>72||!/[a-z]/.test(code)||!/[0-9]/.test(code))return out(400,{error:"Use at least 8 characters, including at least one letter and one number."});
  const {data:cls,error:ce}=await admin.from("school_classes").select("id,name").ilike("name",classKey).maybeSingle();if(ce||!cls)return out(404,{error:"That class is not configured."});
  const email="teacher."+classKey.toLowerCase()+"@cornhill.school";
+ const group=["Baby","Middle","Top"].includes(classKey)?"Nursery":["P1","P2","P3"].includes(classKey)?"P1-P3":"P4-P7";
+ const {data:curr,error:currErr}=await admin.from("school_curriculum_subjects").select("subject_id").eq("school_level_group",group);
+ if(currErr||!curr?.length)return out(500,{error:"Class curriculum subjects could not be loaded."});
  const {data:list,error:le}=await admin.auth.admin.listUsers({page:1,perPage:1000});if(le)return out(500,{error:"Could not check existing teacher account."});
  const old=list.users.find(u=>(u.email||"").toLowerCase()===email);let uid:string;
  if(old){
   uid=old.id;
-  const {data:existingProfile}=await admin.from("user_profiles").select("role").eq("id",uid).maybeSingle();
+  const {data:existingProfile,error:profileLookupError}=await admin.from("user_profiles").select("role,employment_status").eq("id",uid).maybeSingle();
+  if(profileLookupError)return out(500,{error:"Could not verify the existing teacher employment status."});
   if(existingProfile?.role==="Admin")return out(409,{error:"This reserved class login belongs to an administrator and cannot be converted into a teacher account."});
+  if(existingProfile?.employment_status && existingProfile.employment_status!=="Active")return out(403,{error:"This teacher account is marked "+existingProfile.employment_status+". An administrator must review the staff record before resetting its sign-in code."});
   const {error}=await admin.auth.admin.updateUserById(uid,{password:code,email_confirm:true,user_metadata:{name:teacherName,class_key:classKey}});
   if(error)return out(400,{error:"Could not reset code: "+error.message});
  }else{
@@ -31,8 +36,7 @@ Deno.serve(async(req:Request)=>{
   uid=data.user.id;
  }
  const group=["Baby","Middle","Top"].includes(classKey)?"Nursery":["P1","P2","P3"].includes(classKey)?"P1-P3":"P4-P7";
- const {data:curr,error:currErr}=await admin.from("school_curriculum_subjects").select("subject_id").eq("school_level_group",group);
- if(currErr||!curr?.length)return out(500,{error:"Class curriculum subjects could not be loaded."});
+
  const {error:pe}=await admin.from("user_profiles").upsert({id:uid,full_name:teacherName,role:"Teacher",employment_status:"Active",job_title:"Class Teacher",department:cls.name},{onConflict:"id"});
  if(pe)return out(500,{error:"Teacher profile could not be saved."});
  // A teacher identity may belong to one class only. Remove any stale assignment before assigning this class.
