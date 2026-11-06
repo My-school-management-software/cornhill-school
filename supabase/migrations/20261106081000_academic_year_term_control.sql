@@ -14,6 +14,8 @@ begin
  end if;
 end $$;
 
+create unique index if not exists academic_years_one_current_idx on public.academic_years ((is_current)) where is_current;
+
 create unique index if not exists academic_terms_one_current_idx
  on public.academic_terms ((is_current)) where is_current and not is_closed;
 
