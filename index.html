@@ -542,7 +542,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
  </div>
  <h3 style="margin-top:20px">Grading bands</h3>
  <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
- <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add general grading band</button></div></form></div>
+ <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="1" inputmode="numeric" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="1" inputmode="numeric" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add general grading band</button></div></form></div>
  <div class="table-wrap"><table><thead><tr><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Comment</th></tr></thead><tbody id="gradeBandRows"></tbody></table></div>
  <h4 style="margin-top:16px">UNEB-style P4–P7 mock grading</h4>
  <p class="muted">Use these nine grade codes for internal tests and mock estimates. UNEB determines final examination subject grades through national standardisation, so percentage cut-offs here must be approved by the school for its own assessments and must not be presented as official UNEB cut-offs. Set the range separately for each core subject; aggregate remains unavailable until all required boundaries are configured.</p>
@@ -1518,11 +1518,12 @@ async function loadUnebSubjectGradeBands(){
  const {data,error}=await db.from('uneb_subject_grade_bands').select('id,subject_id,grade_code,grade_point,min_percent,max_percent,is_active,subjects(name)').order('grade_point');
  if(error){message('academicMsg','UNEB subject grading unavailable: '+error.message,true);return}
  unebSubjectGradeBands=data||[];
- $('unebGradeBandRows').innerHTML=unebSubjectGradeBands.map(x=>'<tr><td>'+esc(x.subjects?.name||'—')+'</td><td><strong>'+esc(x.grade_code)+'</strong></td><td>'+(x.min_percent===null?'Not configured':Number(x.min_percent).toFixed(2)+'%')+'</td><td>'+(x.max_percent===null?'Not configured':Number(x.max_percent).toFixed(2)+'%')+'</td><td>'+(x.min_percent===null?'Awaiting cut-off':'Configured')+'</td></tr>').join('')||'<tr><td colspan="5">No UNEB subject grades found.</td></tr>';
+ $('unebGradeBandRows').innerHTML=unebSubjectGradeBands.map(x=>'<tr><td>'+esc(x.subjects?.name||'—')+'</td><td><strong>'+esc(x.grade_code)+'</strong></td><td>'+(x.min_percent===null?'Not configured':Number(x.min_percent)+'%')+'</td><td>'+(x.max_percent===null?'Not configured':Number(x.max_percent)+'%')+'</td><td>'+(x.min_percent===null?'Awaiting cut-off':'Configured')+'</td></tr>').join('')||'<tr><td colspan="5">No UNEB subject grades found.</td></tr>';
 }
 $('unebGradeBandForm').addEventListener('submit',async e=>{
  e.preventDefault();if(profile?.role!=='Admin')return;
  const v=Object.fromEntries(new FormData(e.target).entries()),low=Number(v.min_percent),high=Number(v.max_percent);
+ if(!Number.isInteger(low)||!Number.isInteger(high)||low<0||high>100){message('academicMsg','Enter whole-number percentages from 0 to 100, without decimal places.',true);return}
  if(low>high){message('academicMsg','Minimum must not exceed maximum.',true);return}
  const current=unebSubjectGradeBands.filter(x=>x.subject_id===v.subject_id&&x.grade_code!==v.grade_code&&x.min_percent!==null);
  if(current.some(x=>low<=Number(x.max_percent)&&high>=Number(x.min_percent))){message('academicMsg','This range overlaps another configured grade for the same subject.',true);return}
