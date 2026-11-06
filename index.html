@@ -1146,16 +1146,17 @@ async function loadFinance(){
   return;
  }
  if(profile?.role!=='Admin'){message('financeMsg','Only the school administrator can access financial records.',true);return}
- const [items,sched,accounts,charges,payments,learners,bursaryCharges]=await Promise.all([
+ const [items,sched,accounts,charges,payments,learners,bursaryCharges,activePeriods]=await Promise.all([
   db.from('fee_items').select('id,name,category,is_active').order('name'),
   db.from('fee_schedules').select('id,class_group,learner_type,amount_ugx,fee_items(name)').eq('is_active',true).order('created_at',{ascending:false}),
   db.from('learner_account_balances').select('*').order('learner_name'),
   db.from('learner_charges').select('id,invoice_no,description,amount_ugx,created_at,students(admission_number,first_name,middle_name,last_name)').order('created_at',{ascending:false}).limit(25),
   db.from('school_payments').select('id,receipt_no,amount_ugx,payment_method,received_at,students(admission_number,first_name,middle_name,last_name)').order('received_at',{ascending:false}).limit(25),
   db.rpc('admin_list_active_finance_students_v2'),
-  db.from('learner_charges').select('student_id,amount_ugx,payment_allocations(amount_ugx,school_payments(status))').ilike('description','Approved bursary fee%')
+  db.from('learner_charges').select('student_id,enrolment_period_id,amount_ugx,payment_allocations(amount_ugx,school_payments(status))').ilike('description','Approved bursary fee%'),
+  db.from('learner_enrolment_periods').select('id').eq('status','Active')
  ]);
- const failed=[items,sched,accounts,charges,payments,learners,bursaryCharges].find(x=>x.error);
+ const failed=[items,sched,accounts,charges,payments,learners,bursaryCharges,activePeriods].find(x=>x.error);
  if(failed){message('financeMsg','Finance could not load: '+failed.error.message,true);return}
  financeItems=items.data||[];financeStudents=learners.data||[];
  const itemOptions=[...new Set(['School fees','Sweater','Sportswear','Graduation','Examination',...financeItems.map(x=>x.name).filter(Boolean),'Other / specify'])];$('paymentCollectionItem').innerHTML='<option value="">Choose payment reason</option>'+itemOptions.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
@@ -1168,7 +1169,8 @@ async function loadFinance(){
  $('feeScheduleRows').innerHTML=(sched.data||[]).map(x=>'<tr><td>'+esc(x.fee_items?.name||'—')+'</td><td>'+esc(x.class_group||'All classes')+'</td><td>'+esc(x.learner_type)+'</td><td>'+money(x.amount_ugx)+'</td></tr>').join('')||'<tr><td colspan="4">No fee schedules configured.</td></tr>';
  const bursaryLearners=financeStudents.filter(x=>x.is_bursary);
  const bursaryByLearner=new Map();
- (bursaryCharges.data||[]).forEach(charge=>{
+ const activePeriodIds=new Set((activePeriods.data||[]).map(x=>x.id));
+ (bursaryCharges.data||[]).filter(charge=>activePeriodIds.has(charge.enrolment_period_id)).forEach(charge=>{
   const entry=bursaryByLearner.get(charge.student_id)||{approved:0,paid:0};
   entry.approved+=Number(charge.amount_ugx||0);
   entry.paid+=(charge.payment_allocations||[]).filter(a=>a.school_payments?.status==='Posted').reduce((n,a)=>n+Number(a.amount_ugx||0),0);
