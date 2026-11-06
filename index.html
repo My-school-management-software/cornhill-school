@@ -353,9 +353,11 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
 <div id="dashboardIncomeForecastPanel" class="panel hidden" style="margin-top:14px">
  <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><strong>School population & meal plan</strong><p class="muted" style="margin:3px 0">Live counts of active learners and selected services.</p></div><span id="dashboardForecastTerm" class="badge">Current term</span></div>
  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px">
+  <div class="stat"><small>Active learners</small><div id="forecastActiveLearners" class="num">—</div></div>
   <div class="stat"><small>Female learners</small><div id="forecastFemale" class="num">—</div></div>
   <div class="stat"><small>Male learners</small><div id="forecastMale" class="num">—</div></div>
   <div class="stat"><small>Boarders</small><div id="forecastBoarders" class="num">—</div></div>
+  <div class="stat"><small>Day learners</small><div id="forecastDayLearners" class="num">—</div></div>
   <div class="stat"><small>Breakfast</small><div id="forecastBreakfastCount" class="num">—</div></div>
   <div class="stat"><small>Lunch</small><div id="forecastLunchCount" class="num">—</div></div>
   <div class="stat"><small>Bursary learners</small><div id="forecastBursaryCount" class="num">—</div></div>
@@ -368,7 +370,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
   <div class="stat"><small>Lunch</small><div id="forecastLunch" class="num" style="font-size:18px">UGX —</div></div>
  </div>
  <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap"><strong>Projected term income</strong><strong id="forecastTotal" style="font-size:24px;color:var(--accent)">UGX —</strong></div>
- <small class="muted">This is an estimate based on active learner choices and the current fee schedule. It is not cash collected and excludes unconfigured charges.</small>
+ <small class="muted">Projected income is calculated from active learners, their approved regular or bursary charges, boarding and selected meals using the current fee schedule. It is an estimate, not money received. Unconfigured charges and later changes in attendance or meal participation are not included.</small>
  <p id="dashboardForecastMessage" class="muted" style="margin:8px 0 0">Loading forecast…</p>
 </div></div>
 <button class="module-card" data-module="students"><strong>👧 Learners</strong><span>Admissions, learner register and profiles</span><em>Available</em></button>
@@ -2960,9 +2962,11 @@ async function loadDashboardIncomeForecast(){
  try{
   const {data,error}=await db.rpc('admin_dashboard_income_forecast');if(error)throw error;
   const v=typeof data==='string'?JSON.parse(data):data||{};
+  $('forecastActiveLearners').textContent=Number(v.active_learners||0).toLocaleString();
   $('forecastFemale').textContent=Number(v.female_learners||0).toLocaleString();
   $('forecastMale').textContent=Number(v.male_learners||0).toLocaleString();
   $('forecastBoarders').textContent=Number(v.boarders||0).toLocaleString();
+  $('forecastDayLearners').textContent=Number(v.day_learners||0).toLocaleString();
   $('forecastBreakfastCount').textContent=Number(v.breakfast_learners||0).toLocaleString();
   $('forecastLunchCount').textContent=Number(v.lunch_learners||0).toLocaleString();
   $('forecastBursaryCount').textContent=Number(v.bursary_learners||0).toLocaleString();
@@ -2972,7 +2976,7 @@ async function loadDashboardIncomeForecast(){
   $('forecastLunch').textContent='UGX '+money(v.lunch_income||0);
   $('forecastTotal').textContent='UGX '+money(v.estimated_total_income||0);
   $('dashboardForecastTerm').textContent=v.term_name||'No active term';
-  host.textContent='Active learners: '+Number(v.active_learners||0).toLocaleString()+' · Counts and estimates refresh when the dashboard loads.';
+  host.textContent='Active learners: '+Number(v.active_learners||0).toLocaleString()+' · Counts and estimates refresh after learner registration or when the dashboard loads.';
  }catch(err){host.textContent='Income forecast could not load: '+(err.message||'Please contact the administrator.')}
 }
 $('studentForm').addEventListener('submit',async e=>{
