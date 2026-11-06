@@ -2779,7 +2779,7 @@ function scheduleAdmissionMatchSearch(){
  },350);
 }
 $('studentForm').addEventListener('input',e=>{
- if(['first_name','middle_name','last_name','date_of_birth','birth_year','lin','guardian_phone'].includes(e.target.name))scheduleAdmissionMatchSearch();
+ if(['first_name','middle_name','last_name','date_of_birth','birth_year','lin','p7_index_number','guardian_phone'].includes(e.target.name))scheduleAdmissionMatchSearch();
 });
 $('admissionMatchResults').addEventListener('click',async e=>{
  const btn=e.target.closest('[data-readmit-learner]');if(!btn)return;
