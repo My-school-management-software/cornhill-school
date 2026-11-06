@@ -2733,9 +2733,9 @@ function syncBursaryAdmissionFields(){
 $('bursaryStatus').addEventListener('change',syncBursaryAdmissionFields);
 $('bursaryCategory').addEventListener('change',syncBursaryAdmissionFields);
 let editingStudentId=null;
-let admissionMatchState={matches:[],confirmedDifferent:false,searchToken:0,timer:null};
+let admissionMatchState={matches:[],confirmedDifferent:false,searchToken:0,timer:null,searchPending:false,searchFailed:false};
 function clearAdmissionMatches(){
- admissionMatchState.matches=[];admissionMatchState.confirmedDifferent=false;admissionMatchState.searchToken++;
+ admissionMatchState.matches=[];admissionMatchState.confirmedDifferent=false;admissionMatchState.searchPending=false;admissionMatchState.searchFailed=false;admissionMatchState.searchToken++;
  $('admissionMatchPanel')?.classList.add('hidden');
  if($('admissionMatchResults'))$('admissionMatchResults').replaceChildren();
  if($('admissionMatchActions'))$('admissionMatchActions').replaceChildren();
@@ -2744,7 +2744,7 @@ function scheduleAdmissionMatchSearch(){
  if(profile?.role!=='Admin'||editingStudentId)return;
  const token=++admissionMatchState.searchToken;
  clearTimeout(admissionMatchState.timer);
- admissionMatchState.confirmedDifferent=false;
+ admissionMatchState.confirmedDifferent=false;admissionMatchState.searchPending=true;admissionMatchState.searchFailed=false;
  admissionMatchState.timer=setTimeout(async()=>{
   const form=$('studentForm'),first=String(form.elements.first_name.value||'').trim(),last=String(form.elements.last_name.value||'').trim();
   const lin=String(form.elements.lin.value||'').trim(),phone=String(form.elements.guardian_phone.value||'').trim();
@@ -2755,7 +2755,7 @@ function scheduleAdmissionMatchSearch(){
    if(token!==admissionMatchState.searchToken)return;
    if(error)throw error;
    const matches=Array.isArray(data)?data:[];
-   admissionMatchState.matches=matches;
+   admissionMatchState.searchPending=false;admissionMatchState.searchFailed=false;admissionMatchState.matches=matches;
    const panel=$('admissionMatchPanel'),results=$('admissionMatchResults'),actions=$('admissionMatchActions');
    results.replaceChildren();actions.replaceChildren();
    if(!matches.length){panel.classList.add('hidden');return}
@@ -2774,7 +2774,7 @@ function scheduleAdmissionMatchSearch(){
    const different=document.createElement('button');different.type='button';different.textContent='These are different learners — continue new admission';different.id='confirmDifferentLearner';
    actions.append(different);
   }catch(err){
-   if(token===admissionMatchState.searchToken)message('appMsg','Previous learner search could not be completed. Please retry before saving this admission.',true);
+   if(token===admissionMatchState.searchToken){admissionMatchState.searchPending=false;admissionMatchState.searchFailed=true;message('appMsg','Previous learner search could not be completed. Please retry before saving this admission.',true)}
   }
  },350);
 }
@@ -2907,6 +2907,7 @@ $('studentForm').addEventListener('submit',async e=>{
  // admission_complete is computed securely by the database trigger; do not send this protected column from the browser.
  delete record.admission_complete;
  if(!wasEditing){
+  if(admissionMatchState.searchPending||admissionMatchState.searchFailed){message('appMsg','Wait for the previous-learner check to finish successfully before saving. Retry the search if it failed.',true);return}
   const checks=[];
   if(record.lin?.trim())checks.push(db.from('students').select('id,admission_number').ilike('lin',record.lin.trim()).limit(1));
   const found=await Promise.all(checks);
