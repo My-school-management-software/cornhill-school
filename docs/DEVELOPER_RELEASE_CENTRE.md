@@ -360,3 +360,12 @@ No production release is recorded by this document itself. Update this log only 
 - These tests used database transactions and were rolled back. The live learner register, existing bursary award, posted receipts, payment allocations and real pupil codes were not changed.
 - The remaining live tests are browser-based parent sign-in with a historical code, teacher notification display, notification archive/swipe interaction, and administrator bursary approval through the actual form.
 - Added migration \`20261107143553_resolve_only_matching_current_term_bursary_notification.sql\` so approving a bursary for one term resolves only that term's reminder, not older unresolved term reminders.
+
+
+## Preview availability — 7 November 2026, 14:32 UTC
+- Vercel preview is READY at https://cornhill-school-fgnqriour-cypher-projects1.vercel.app/
+- Preview deployment ID: dpl_DofdxjjPAmGfU5xyyH3aX5hyptBj
+- Preview commit: 00a0996592b11eea43aac81c60b41286bbfd7cb5 on feature/cornhill-v3-foundation.
+- Comparing that deployment commit with the current branch head shows only documentation and Supabase migration files changed afterward; index.html and parents.html are unchanged after the preview commit. Therefore the preview contains the latest front-end work for notifications, term-specific bursary defaults, pupil-code editing, historical-code search and parent code-change notices.
+- The database migrations, including the follow-up that resolves only the matching term's bursary notification, are already applied in Supabase.
+- This is a preview deployment (target is not production). The permanent production URL and production alias were not changed. Browser interaction tests by the school administrator are still required before any production release.
