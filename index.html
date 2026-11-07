@@ -1928,7 +1928,7 @@ async function loadNotifications(){
  if(badge){badge.textContent=String(rows.length);badge.classList.toggle('hidden',rows.length===0)}
  const summary=$('notificationSummary');
  if(summary){summary.textContent=rows.length?rows.length+' item'+(rows.length===1?'':'s')+' currently require attention.':'No active notifications. You are up to date.';summary.classList.remove('hidden')}
- host.innerHTML=rows.map(n=>'<article class="school-notification '+esc(n.severity||'info')+'" data-notification-card="'+esc(n.id)+'"><div class="notification-copy"><div class="notification-meta"><span class="badge '+esc(n.severity||'info')+'">'+esc(String(n.severity||'info').toUpperCase())+'</span><span>'+esc(String(n.category||'notice').replace(/_/g,' '))+'</span><time>'+esc(new Date(n.created_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}))+'</time></div><strong>'+esc(n.title)+'</strong><p>'+esc(n.message)+'</p>'+(n.student_id?'<small class="muted">Learner record linked</small>':'')+'</div><div class="notification-actions"><button type="button" class="primary" data-open-notification="'+esc(n.id)+'">Review</button><button type="button" class="danger" aria-label="Archive notification" title="Archive notification" data-archive-notification="'+esc(n.id)+'">×</button></div></article>').join('')||'<div class="empty">No notifications need attention right now.</div>';
+ host.innerHTML=rows.map(n=>'<article class="school-notification '+esc(n.severity||'info')+'" data-notification-card="'+esc(n.id)+'"><div class="notification-copy"><div class="notification-meta"><span class="badge '+esc(n.severity||'info')+'">'+esc(String(n.severity||'info').toUpperCase())+'</span><span>'+esc(String(n.category||'notice').replace(/_/g,' '))+'</span><time>'+esc(new Date(n.created_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}))+'</time></div><strong>'+esc(n.title)+'</strong><p>'+esc(n.message)+'</p>'+(n.student_id?'<small class="muted">Learner: '+esc([students.find(x=>x.id===n.student_id)?.first_name,students.find(x=>x.id===n.student_id)?.middle_name,students.find(x=>x.id===n.student_id)?.last_name].filter(Boolean).join(' ')||'Name unavailable')+' · Pupil code: '+esc(students.find(x=>x.id===n.student_id)?.pupil_code||students.find(x=>x.id===n.student_id)?.admission_number||'Not recorded')+'</small>':'')+'</div><div class="notification-actions"><button type="button" class="primary" data-open-notification="'+esc(n.id)+'">Review</button><button type="button" class="danger" aria-label="Archive notification" title="Archive notification" data-archive-notification="'+esc(n.id)+'">×</button></div></article>').join('')||'<div class="empty">No notifications need attention right now.</div>';
  if($('studentRows')&&profile?.role==='Admin')render();
 }
 async function archiveSchoolNotification(id){
@@ -1953,7 +1953,7 @@ $('notificationList')?.addEventListener('click',e=>{
    window.pendingBursaryReviewStudentId=learner.id;
    render();
    const target=document.querySelector('#studentRows .viewLearner[data-id="'+n.student_id+'"]');
-   if(target){target.click()}else{message('appMsg','The learner was found, but the register row could not be opened. Refresh the learner register and try Review again.',true)}
+   if(target){target.click()}else{window.pendingBursaryReviewStudentId=null;message('appMsg','The learner was found, but the register row could not be opened. Refresh the learner register and try Review again.',true)}
    return;
   }
   tab(n?.action_workspace||'dashboard');
