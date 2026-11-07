@@ -1615,7 +1615,44 @@ async function approveNewPassword(password,messageId){
 }
 
 if(!db){message('loginMsg','The secure sign-in service could not load. Check your internet connection, then refresh this page. If the problem continues, contact the school administrator.',true);$('signIn').disabled=true;$('signIn').textContent='Sign-in service unavailable'}
-function tab(name){if(window.cornhillOfflineReadOnly&&!['dashboard','students','classes'].includes(name))return;if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;if(profile?.role==='Teacher'&&!['dashboard','academics','communication','students','classes','learnerProfile'].includes(name))return;if(profile?.role!=='Admin'&&name==='midtermAdmissions')return;if(profile?.role==='Staff'&&!['dashboard','attendance','communication'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','inventory','reports','midtermAdmissions','communication','settings','learnerProfile'].forEach(x=>$(x).classList.toggle('hidden',x!==name));$('dashboardWelcomeHeader')?.classList.toggle('hidden',name!=='dashboard');if(name==='settings'){setupAppearance();refreshGoogleDriveStatus();requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));}if(name==='communication'){loadStaffCommunication();loadDirectMessageDirectory();}if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance();if(name==='inventory')loadInventory();if(name==='reports')loadSchoolReports();if(name==='midtermAdmissions')loadMidtermAdmissions()}
+function tab(name){
+ const workspaces=['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','inventory','reports','midtermAdmissions','communication','settings','learnerProfile'];
+ if(!workspaces.includes(name))return;
+ if(window.cornhillOfflineReadOnly&&!['dashboard','students','classes'].includes(name))return;
+ if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;
+ if(profile?.role==='Teacher'&&!['dashboard','academics','communication','students','classes','learnerProfile'].includes(name))return;
+ if(profile?.role!=='Admin'&&name==='midtermAdmissions')return;
+ if(profile?.role==='Staff'&&!['dashboard','attendance','communication'].includes(name))return;
+ const app=$('app');
+ app.dataset.activeWorkspace=name;
+ document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+ // Enforce one visible workspace at a time. In particular, the dashboard is fully
+ // removed from view whenever any other navigation item is selected.
+ workspaces.forEach(id=>{
+  const section=$(id);
+  if(!section)return;
+  const active=id===name;
+  section.hidden=!active;
+  section.classList.toggle('hidden',!active);
+  section.setAttribute('aria-hidden',String(!active));
+ });
+ const dashboardHeader=$('dashboardWelcomeHeader');
+ if(dashboardHeader){
+  const showDashboard=name==='dashboard';
+  dashboardHeader.hidden=!showDashboard;
+  dashboardHeader.classList.toggle('hidden',!showDashboard);
+  dashboardHeader.setAttribute('aria-hidden',String(!showDashboard));
+ }
+ if(name==='settings'){setupAppearance();refreshGoogleDriveStatus();requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));}
+ if(name==='communication'){loadStaffCommunication();loadDirectMessageDirectory();}
+ if(name==='attendance')setupAttendance();
+ if(name==='staffProfiles')loadStaffProfiles();
+ if(name==='academics')loadAcademics();
+ if(name==='finance')loadFinance();
+ if(name==='inventory')loadInventory();
+ if(name==='reports')loadSchoolReports();
+ if(name==='midtermAdmissions')loadMidtermAdmissions();
+}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 // Settings categories are opened by the dedicated workspace controller below.
 
