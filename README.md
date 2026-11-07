@@ -30,6 +30,16 @@ The feature/cornhill-v3-foundation branch has a Vercel preview deployment. Use t
 
 Offline support currently caches the application shell only. The live Supabase database, authentication, photos/storage, payments and other server operations require internet access. The app does not yet provide a durable IndexedDB record queue, conflict resolution or automatic data synchronisation. Do not enter school records or accept payments while offline.
 
+## Data protection and safe updates
+
+- The live school database is separate from the web application files. Publishing a new frontend build must never recreate, truncate, seed, or replace the live database.
+- Database changes must be reviewed, version-controlled migrations. Apply compatible additive changes first; preserve existing learner, finance, academic, staff, attendance, and audit records.
+- Before every production migration, take and verify a fresh backup, test the migration against a non-production copy, and define a rollback/recovery plan. Do not use destructive reset commands against production.
+- Keep the production application URL stable so installed home-screen apps continue opening the same address after approved releases.
+- The current encrypted Google Drive export is an application-level snapshot, not a complete disaster-recovery image. It omits private communication content, Supabase Storage objects, Auth users/passwords, database schema, and platform configuration. Its restore process is not yet implemented or proven.
+- The scheduled cloud export currently runs daily at 5:00 AM Uganda time. A successful upload is not proof of restore readiness; an administrator must validate the encrypted file and the school must complete an isolated restore exercise before relying on it for recovery.
+- Offline support currently caches the application shell only. Server-backed records and transactions require internet access; do not record real payments offline.
+
 ## One-time Supabase setup and security
 
 1. Create the first administrator through Supabase Authentication.
