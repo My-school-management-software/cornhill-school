@@ -2968,19 +2968,7 @@ function curriculumGroupForClass(name){
  if(/P[4567]/.test(n)||/PRIMARY[4567]/.test(n))return 'P4-P7';
  return null;
 }
-async function filterAssessmentSubjects(){
- const classId=$('assessmentClassSelect').value,cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name);
- let allowed=null;
- if(group){
-  const {data,error}=await db.from('school_curriculum_subjects').select('subject_id').eq('school_level_group',group);
-  if(error){message('academicMsg','Could not load class curriculum: '+error.message,true);return}
-  allowed=new Set((data||[]).map(x=>x.subject_id));
- }
- const assigned=profile?.role==='Teacher'?new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId&&x.teacher_user_id===currentUserId).map(x=>x.subject_id)):null;
- const subjects=academic.subjects.filter(x=>(!allowed||allowed.has(x.id))&&(!assigned||assigned.has(x.id)));
- $('assessmentSubjectSelect').innerHTML=subjects.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('')||'<option value="">No curriculum subjects assigned</option>';
- if(group)message('academicMsg','Showing '+group+' curriculum subjects for '+(cls?.name||'this class')+'.');
-}
+
 async function loadAllTeacherMarksRegister(){
  const pageSize=1000;let offset=0,rows=[];
  while(true){
