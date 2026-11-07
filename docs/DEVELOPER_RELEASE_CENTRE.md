@@ -165,6 +165,18 @@ No production release is recorded by this document itself. Update this log only 
 - Static JavaScript syntax checks passed for all seven script blocks after this change.
 - This is a source-level correction only. It has not yet been built into a new Vercel preview or tested interactively in a browser. Do not tell the school that the visual defect is resolved until the new preview is tested by switching repeatedly among Dashboard, Learner Register, Parent Access Links, and Register Learner on desktop and Android.
 
+## Parent-facing school contact directory — 7 November 2026
+
+- Added a **School Contacts** card to the authenticated Parent Portal. It displays official school telephone, email, website and physical address when administrators have entered those details, plus an ordered directory of active staff names and roles.
+- The school currently has no confirmed official telephone, email or website values in the project. The new contact fields are deliberately blank until CORNHILL supplies verified details; the portal explains that parents can use secure portal messaging meanwhile. No contact information or email address has been invented.
+- Added separate `parent_contact_phone` and `parent_contact_visible` fields to `user_profiles`. Existing `phone` remains the private staff phone field and is never used by the parent directory. A staff member's number appears to parents only when an administrator enters the approved school-facing number and explicitly enables visibility.
+- Added an administrator-only **School contact details shown to parents** form in Staff Profiles for official school phone, email, website and address. Blank values remain hidden.
+- Added parent directory API output through the authenticated parent session. The endpoint returns staff names/roles and only approved phone numbers, plus the school contact settings. Parent portal offers telephone and email links and only renders HTTPS website links.
+- Database changes applied as migrations `parent_public_contact_directory` and `school_public_contact_admin_access`; matching SQL files committed under `supabase/migrations/`.
+- Current staff directory data at implementation time contained one active Admin profile and no other active staff profiles. Staff contact entries will populate as accounts and approved numbers are added.
+- Static verification: all seven JavaScript blocks in `index.html` and the single Parent Portal JavaScript block parse successfully. `parent-portal-api` version 11 is ACTIVE. The endpoint does not return private `user_profiles.phone`.
+- Live parent-session visual testing remains pending. Vercel preview/production deployment remains blocked by the previously encountered free-tier deployment quota; do not claim these frontend changes are live until a current preview is deployed and checked.
+
 ## Parent-school inbox implementation update — 7 November 2026
 
 - Added a dedicated **Parent Inbox** view to the school Communications Centre on the development branch.
