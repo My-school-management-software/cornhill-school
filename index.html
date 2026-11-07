@@ -382,6 +382,58 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
 @media(prefers-reduced-motion:reduce){#dashboard .module-grid > .module-card{transition:none}#dashboard .module-grid > .module-card:hover{transform:none}}
 </style>
 
+
+<style id="cornhill-navigation-identity-refresh">
+/* CORNHILL professional identity and full-height application navigation */
+.top{min-height:116px;padding:17px clamp(18px,3vw,42px);background:linear-gradient(112deg,#103d27 0%,#14532d 58%,#1d7041 100%);box-shadow:0 5px 20px rgba(12,45,26,.15)}
+.top .brand{gap:15px!important;align-items:center!important;letter-spacing:.025em}
+.top .brand img{width:68px!important;height:68px!important;flex:0 0 68px!important;object-fit:contain!important;padding:7px!important;border:3px solid #e6c66c!important;border-radius:18px!important;background:#fff!important;box-shadow:0 0 0 4px rgba(255,255,255,.13),0 8px 18px rgba(0,0,0,.22)!important}
+.top .brand span{display:block;max-width:560px;font-size:clamp(16px,1.6vw,21px);line-height:1.25;font-weight:850}
+.top .sub{margin:5px 0 0 83px;font-size:12px;letter-spacing:.04em;color:#e3f2e8}
+.top .school-motto{margin:7px 0 0 83px}
+.top .school-motto>span{border-color:#e6c66c88;background:rgba(255,255,255,.1);letter-spacing:.13em}
+#app>.row:first-child{margin:0 0 15px 252px;min-height:46px}
+#app>.row:first-child h2{font-size:21px;margin:0}
+#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner{margin-left:252px}
+#app>.grid:first-of-type{margin-left:252px}
+#app .cornhill-sidebar{position:fixed;z-index:40;top:145px;bottom:16px;left:max(14px,calc((100vw - 1540px)/2 + 14px));width:220px;display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:4px;overflow-y:auto;overflow-x:hidden;margin:0;padding:13px 10px 16px;border:1px solid #dce8df;border-radius:18px;background:linear-gradient(180deg,#fff 0%,#f8fbf8 100%);box-shadow:0 10px 30px rgba(20,55,32,.09);scrollbar-width:thin}
+.cornhill-sidebar .sidebar-brand{display:flex;align-items:center;gap:10px;padding:5px 8px 14px;margin-bottom:5px;border-bottom:1px solid #e8eee9}
+.sidebar-brand-mark{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:linear-gradient(145deg,#14532d,#2d8150);color:#fff;font-size:13px;font-weight:900;letter-spacing:-.04em;box-shadow:0 4px 10px #14532d2b}
+.sidebar-brand strong,.sidebar-brand small{display:block}
+.sidebar-brand strong{font-size:13px;color:#173e27}
+.sidebar-brand small{font-size:10px;color:#718075;margin-top:3px}
+.cornhill-sidebar .sidebar-section-label{padding:12px 9px 5px;color:#849187;font-size:9px;line-height:1.2;letter-spacing:.13em;font-weight:900}
+.cornhill-sidebar .tab{display:flex;align-items:center;justify-content:flex-start;gap:11px;width:100%;min-height:40px;padding:9px 11px;border:1px solid transparent;border-radius:10px;background:transparent;color:#405548;text-align:left;font-size:12px;font-weight:700;white-space:normal;box-shadow:none}
+.cornhill-sidebar .tab .nav-icon{display:inline-grid;place-items:center;width:23px;height:23px;flex:0 0 23px;border-radius:7px;background:#edf4ee;color:#28613b;font-size:15px;line-height:1}
+.cornhill-sidebar .tab.active{background:#e8f3eb;border-color:#d5e7d9;color:#14532d;box-shadow:inset 3px 0 #1b7040}
+.cornhill-sidebar .tab.active .nav-icon{background:#14532d;color:#fff}
+.cornhill-sidebar .tab:hover:not(.active){background:#f0f6f1;border-color:#e1ebe3}
+#app>section:not(.tabs){margin-left:252px}
+#app>#dashboard{padding:clamp(16px,2.4vw,28px)}
+#app>.module-preview{margin-left:252px}
+#app .badge{display:inline-flex;align-items:center;justify-content:center;min-height:27px;padding:5px 11px;border:1px solid #cce3d1;border-radius:9px;background:#edf7ef;color:#205d35;font-size:11px;font-weight:800;letter-spacing:.015em;line-height:1.25;white-space:normal}
+#app .badge:empty{display:none}
+@media(max-width:900px){
+ #app .cornhill-sidebar{left:10px;width:194px}
+ #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type,#app>section:not(.tabs){margin-left:214px}
+}
+@media(max-width:700px){
+ .top{min-height:unset;padding:14px 15px}
+ .top .brand img{width:54px!important;height:54px!important;flex-basis:54px!important;border-radius:15px!important}
+ .top .brand span{font-size:15px}
+ .top .sub,.top .school-motto{margin-left:69px}
+ .top .school-motto small{font-size:9px}
+ #app .cornhill-sidebar{position:relative;top:auto;bottom:auto;left:auto;width:100%;max-height:none;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:6px;margin:12px 0 15px;padding:9px;border-radius:13px;overflow-x:auto;overflow-y:hidden}
+ .cornhill-sidebar .sidebar-brand,.cornhill-sidebar .sidebar-section-label{display:none}
+ .cornhill-sidebar .tab{flex:0 0 auto;width:auto;min-height:40px;padding:8px 11px;white-space:nowrap}
+ .cornhill-sidebar .tab .nav-icon{width:20px;height:20px;flex-basis:20px}
+ #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type,#app>section:not(.tabs){margin-left:0}
+ #app>.row:first-child{margin-bottom:12px}
+}
+@media(max-width:390px){.top .brand span{font-size:13px}.top .school-motto small{display:none}}
+@media(prefers-reduced-motion:reduce){.cornhill-sidebar .tab{transition:none}}
+</style>
+
 </head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -394,7 +446,7 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
 <div class="row"><div><h2 id="welcome">School dashboard</h2><p id="welcomeMessage" class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
 <div id="appMsg" class="notice hidden" role="status" aria-live="polite"></div><div id="staffAttendanceNotice" class="notice hidden" role="status" aria-live="polite" style="background:#fff7ed;color:#9a3412;border-left:4px solid #d97706"></div><div id="demoBanner" class="notice" style="display:none;background:#fff7ed;color:#9a3412">DEMO MODE · Sample records only · Changes are disabled · No real school data is being shown.</div>
 <div class="grid"><div class="stat"><small>Total students</small><div id="totalStudents" class="num">0</div></div><div class="stat"><small>Active students</small><div id="activeStudents" class="num">0</div></div><div class="stat"><small>Classes / levels</small><div id="totalClasses" class="num">0</div></div></div>
-<nav class="tabs"><button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="students">Learners</button><button class="tab" data-tab="register">Register student</button><button class="tab" data-tab="classes">Classes</button><button class="tab" data-tab="academics">Academics</button><button class="tab" data-tab="finance" id="financeTab">Finance</button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab">Staff profiles</button><button class="tab" data-tab="attendance" id="attendanceTab">Staff Attendance</button><button class="tab" data-tab="inventory" id="inventoryTab">Inventory</button><button class="tab" data-tab="reports" id="reportsTab">Records Centre</button><button class="tab" data-tab="midtermAdmissions" id="midtermAdmissionsTab">Mid-term admissions</button><button class="tab" data-tab="communication" id="communicationTab">Communications</button><button class="tab" data-tab="settings" id="settingsTab">Settings & themes</button></nav>
+<nav class="tabs cornhill-sidebar" aria-label="Main school navigation"><div class="sidebar-brand"><span class="sidebar-brand-mark">CN</span><span><strong>School menu</strong><small>Management workspace</small></span></div><div class="sidebar-section-label">OVERVIEW</div><button class="tab active" data-tab="dashboard"><span class="nav-icon">⌂</span><span>Dashboard</span></button><div class="sidebar-section-label">LEARNERS & ACADEMICS</div><button class="tab" data-tab="students"><span class="nav-icon">♧</span><span>Learner register</span></button><button class="tab" data-tab="register"><span class="nav-icon">＋</span><span>Register learner</span></button><button class="tab" data-tab="classes"><span class="nav-icon">▦</span><span>Classes</span></button><button class="tab" data-tab="academics"><span class="nav-icon">▤</span><span>Academics & results</span></button><div class="sidebar-section-label">SCHOOL OPERATIONS</div><button class="tab" data-tab="finance" id="financeTab"><span class="nav-icon">▣</span><span>Finance</span></button><button class="tab" data-tab="midtermAdmissions" id="midtermAdmissionsTab"><span class="nav-icon">◷</span><span>Mid-term admissions</span></button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab"><span class="nav-icon">♙</span><span>Staff profiles</span></button><button class="tab" data-tab="attendance" id="attendanceTab"><span class="nav-icon">◷</span><span>Staff attendance</span></button><button class="tab" data-tab="inventory" id="inventoryTab"><span class="nav-icon">▧</span><span>Inventory</span></button><div class="sidebar-section-label">COMMUNICATION & REPORTS</div><button class="tab" data-tab="communication" id="communicationTab"><span class="nav-icon">✉</span><span>Communications</span></button><button class="tab" data-tab="reports" id="reportsTab"><span class="nav-icon">▥</span><span>Records centre</span></button><div class="sidebar-section-label">ADMINISTRATION</div><button class="tab" data-tab="settings" id="settingsTab"><span class="nav-icon">⚙</span><span>Settings & themes</span></button></nav>
 <section id="dashboard" class="panel">
 <div class="dashboard-intro"><div><span class="dashboard-eyebrow">CORNHILL · SCHOOL MANAGEMENT</span><h2>School overview</h2><p class="muted">Your school at a glance. Choose a workspace below to continue.</p></div><span class="dashboard-live-label"><i></i> School workspace</span></div>
 <div id="teacherPortalSummary" class="teacher-workspace hidden"></div><section id="academicControlCard" class="panel" style="margin:14px 0;border:2px solid var(--accent);background:var(--panel)">
