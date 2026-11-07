@@ -2710,9 +2710,20 @@ $('confirmBulkLearners').addEventListener('click',async()=>{
   const payload=bulkLearnerRows.map((r,i)=>({first_name:r.first,last_name:r.last,gender:genders[i],birth_year:birthYears[i],class_id:r.classId,status:'Active',learner_type:'Day',admission_year:new Date().getFullYear(),admission_complete:false}));
   const {data,error}=await db.from('students').insert(payload).select('id,admission_number');
   if(error)throw error;
-  const imported=data?.length||0;bulkLearnerRows=[];$('bulkImportPreview').innerHTML='<p><strong>'+imported+' learner(s) imported successfully.</strong></p><p>Gender was captured for every learner. Learners with missing year of birth have temporary codes. Complete their remaining admission details to finish registration.</p>';$('confirmBulkLearners').classList.add('hidden');
-  message('bulkImportMsg',imported+' learner(s) added with gender recorded and admission marked incomplete where details remain outstanding.');await refresh();
- }catch(err){message('bulkImportMsg','Import did not complete: '+(err.message||'Unknown error')+'. Check the class registers before retrying.',true)}
+  const imported=data?.length||0;
+  // The database insert is the import transaction. Never relabel saved learners
+  // as a failed import merely because a later dashboard refresh/render throws.
+  bulkLearnerRows=[];
+  $('bulkImportPreview').innerHTML='<p><strong>'+imported+' learner(s) imported successfully.</strong></p><p>Gender was captured for every learner. Learners with missing year of birth have temporary codes. Complete their remaining admission details to finish registration.</p>';
+  $('confirmBulkLearners').classList.add('hidden');
+  message('bulkImportMsg',imported+' learner(s) saved successfully. Refreshing the class registers…');
+  try{
+   await refresh();
+   message('bulkImportMsg',imported+' learner(s) imported successfully. The class registers and dashboard have been refreshed.');
+  }catch(refreshError){
+   message('bulkImportMsg',imported+' learner(s) were saved successfully, but the dashboard/class-register refresh did not finish: '+(refreshError?.message||'Unknown refresh error')+'. Do not import this workbook again; use Refresh app or reopen the Learner Register.',true);
+  }
+ }catch(err){message('bulkImportMsg','Import was not saved: '+(err.message||'Unknown database error')+'. Check the class registers before retrying.',true)}
  finally{button.disabled=false;button.textContent='Import listed learners'}
 });
 
