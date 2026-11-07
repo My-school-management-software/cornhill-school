@@ -285,3 +285,11 @@ No production release is recorded by this document itself. Update this log only 
 - The Remove action remains restricted to the Admin role and continues to call the same reversible archive workflow; this change does not alter data or archive any learner.
 - Static verification: all 7 inline JavaScript blocks parse; the Actions-first header, sticky first column and Remove button are present.
 - A new preview deployment and on-device visual confirmation are still pending.
+
+## Windows full-screen kiosk launcher — 7 November 2026
+
+- Added `windows/Launch-CORNHILL-Kiosk.cmd` to open the existing permanent CORNHILL URL in Microsoft Edge full-screen kiosk mode, with a Google Chrome kiosk/app fallback.
+- Added `docs/WINDOWS_KIOSK_SETUP.md` with cautious one-computer-first setup, Windows standard-user / Assigned Access guidance, and limits.
+- This hides normal browser chrome during the school session; it does not uninstall or modify the PWA and does not claim to prevent a Windows administrator from changing installed apps.
+- The web manifest already uses `display: standalone`; it was intentionally left unchanged.
+- Device-level Windows testing is still required. The script has not been run on a school PC in this development environment.
