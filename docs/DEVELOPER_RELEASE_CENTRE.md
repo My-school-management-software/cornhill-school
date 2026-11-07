@@ -204,7 +204,7 @@ No production release is recorded by this document itself. Update this log only 
 - Parent portal UI now includes the learner photo area, academic history, class progression, recorded teacher history, report-card access status, and text/voice message composer and history. Session tokens remain in page memory and are not written to local storage.
 
 ### Known gaps and release blockers
-- The staff/administration inbox, staff replies, and staff-side message status management are not yet implemented. Parent messages are securely stored and addressed, but the portal explicitly tells parents that the school response inbox is still being connected; do not describe messages as delivered or answered.
+- The staff/administration inbox, staff replies, and staff-side message status management have since been implemented in the development branch. Live guardian-to-staff conversation testing remains pending because no controlled parent test session/message was available; do not claim a real conversation has been completed until tested.
 - The active-staff directory only lists profiles whose employment status is explicitly Active. The School Administration destination remains available.
 - The current database has no assessment rows, no assessment scores, and no approved report-card publication rows. The parent academic-history and fee-gating logic therefore has not been demonstrated against real learner records.
 - No learner currently has a photo path recorded, so signed photo delivery has not been verified with a real image.
@@ -213,3 +213,13 @@ No production release is recorded by this document itself. Update this log only 
 - The fee gate must be tested with synthetic cases for day and boarding learners, full/partial/no payment, bursary charges, prior-term arrears, reversed payments and direct-link/API attempts. No synthetic parent accounts or payment test records have been created in production.
 - End-to-end browser tests with a guardian account, voice-note recording on Android, staff inbox/reply tests, and real learner photo verification remain pending. Do not promote this branch to the permanent production website until these tests pass.
 - No real learner, finance, attendance or payment records were modified by this work.
+
+
+## Database security review — 7 November 2026
+
+- The Supabase security advisor identified that `public.track_class_subject_teacher_history()` was a SECURITY DEFINER trigger function with default direct EXECUTE grants to public-facing roles.
+- Applied migration `restrict_teacher_history_trigger_function_execute` and committed matching SQL at `supabase/migrations/20261107131500_restrict_teacher_history_trigger_function_execute.sql`.
+- Verification after the migration: `anon` cannot execute the function; `authenticated` cannot execute it; `service_role` retains EXECUTE; the existing enabled trigger on `public.class_subjects` remains present.
+- The advisor's authenticated SECURITY DEFINER finding count reduced from 24 to 23. The remaining 23 functions are executable by authenticated users and reference `auth.uid()`; this is not by itself proof that every function is correctly authorized. Their function bodies and role checks require a separate, function-by-function review. Do not revoke them in bulk because some are intended authenticated school workflows.
+- The advisor also reports 12 RLS-enabled tables without policies, one extension (`pg_net`) in the public schema, and the remaining authenticated SECURITY DEFINER findings. These require review. No broad permission changes were made as part of this narrow fix.
+- This change is a database security hardening action and does not deploy the school frontend or alter the permanent website URL.
