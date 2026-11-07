@@ -155,3 +155,28 @@ No production release is recorded by this document itself. Update this log only 
 - No existing historical marks, report cards or teacher records may be fabricated or overwritten to fill gaps. Backfill only from verifiable existing records and clearly label gaps.
 - Required tests include: full-fee payment unlocks End-of-Term results/report; partial payment keeps them locked; no payment keeps them locked; a posted payment allocation unlocks without a manual toggle; a reversed payment re-locks; bursary-adjusted charge clearance is correct; boarding package is not double-counted; parents cannot bypass the gate using direct RPC, API, cached links or report download URLs; Beginning/Mid-Term publication remains independent; guardian A cannot read learner B's history; teacher history is historically accurate or explicitly marked unavailable.
 
+
+
+## Parent portal implementation progress — 7 November 2026
+
+### Implemented in the current development branch
+- Added private parent-session, parent-message, message-event and report-access audit tables. Row-level security is enabled; anonymous and ordinary authenticated roles have no direct table access. Server-side service-role access is used by the parent portal API.
+- Added the `parent-portal-api` Supabase Edge Function. Guardian PIN verification now creates a random, two-hour session token; only its SHA-256 hash is stored. Sessions can be revoked on sign-out and expire automatically.
+- Moved guardian PIN verification, PIN reset and PIN change behind the Edge Function. The corresponding PIN RPCs are no longer executable by `anon` or `authenticated`; only `service_role` can execute them.
+- Added parent text-message and voice-note submission, recipient selection for active staff or School Administration, message history, rate limits, private voice-note storage and five-minute signed playback URLs. Voice notes are limited to 3 minutes and 4 MB. Audio/video calling is not included.
+- Added private learner-photo retrieval through a five-minute signed URL scoped to the learner bound to the parent session. The `learner-photos` bucket remains private.
+- Added a class-subject teacher-history table and a trigger to record future teacher assignment changes. Existing current assignments were backfilled from their original `created_at` timestamps; this does not reconstruct undocumented historical teacher changes.
+- Added a parent academic-history database function for published assessment scores, published report-card metadata, class progression and recorded subject-teacher assignments.
+- Added server-side End-of-Term access checks. For day learners, required fee charges are those categorised as School fees; for boarding learners, the single Boarding package category is used. Prior required school-fee arrears are included. Only allocations linked to Posted, non-reversed payments count. The current term must have a required charge record; if the fee ledger is missing or cannot be verified, End-of-Term access fails closed. Beginning/Mid-Term assessment labels are allowed; End-of-Term and unclassified assessments remain locked until the term is cleared. Access decisions are written to a private audit table.
+- Parent portal UI now includes the learner photo area, academic history, class progression, recorded teacher history, report-card access status, and text/voice message composer and history. Session tokens remain in page memory and are not written to local storage.
+
+### Known gaps and release blockers
+- The staff/administration inbox, staff replies, and staff-side message status management are not yet implemented. Parent messages are securely stored and addressed, but the portal explicitly tells parents that the school response inbox is still being connected; do not describe messages as delivered or answered.
+- The active-staff directory only lists profiles whose employment status is explicitly Active. The School Administration destination remains available.
+- The current database has no assessment rows, no assessment scores, and no approved report-card publication rows. The parent academic-history and fee-gating logic therefore has not been demonstrated against real learner records.
+- No learner currently has a photo path recorded, so signed photo delivery has not been verified with a real image.
+- Teacher history backfill can only use the current `class_subjects` assignments and their creation timestamps. It cannot infer which teachers taught learners before history capture began.
+- The parent portal currently lists approved report-card publication records and locks them correctly in its response data, but the generated report-card document/PDF rendering and secure download link still need to be connected.
+- The fee gate must be tested with synthetic cases for day and boarding learners, full/partial/no payment, bursary charges, prior-term arrears, reversed payments and direct-link/API attempts. No synthetic parent accounts or payment test records have been created in production.
+- End-to-end browser tests with a guardian account, voice-note recording on Android, staff inbox/reply tests, and real learner photo verification remain pending. Do not promote this branch to the permanent production website until these tests pass.
+- No real learner, finance, attendance or payment records were modified by this work.
