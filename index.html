@@ -914,6 +914,8 @@ main.wrap{
  #app>#dashboard #dashboardIncomeForecastPanel section .grid{grid-template-columns:1fr!important}
 }
 </style>
+
+<style>/* Keep the school identity inside the teacher sign-in card; remove the duplicate upper banner while signed out. */body.cornhill-signed-out .top{display:none!important}</style>
 </head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
