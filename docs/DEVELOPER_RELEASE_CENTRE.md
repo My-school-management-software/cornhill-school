@@ -157,6 +157,19 @@ No production release is recorded by this document itself. Update this log only 
 
 
 
+## Parent-school inbox implementation update — 7 November 2026
+
+- Added a dedicated **Parent Inbox** view to the school Communications Centre on the development branch.
+- Added staff-authenticated Edge Function actions: `staff-inbox`, `staff-reply`, and `staff-status`.
+- Staff access is verified server-side against the Supabase Auth access token and the current active `user_profiles` record. Administrators can oversee the school inbox; Teachers and Staff are restricted to messages addressed to their own user ID.
+- Inbox cards show the learner name, permanent pupil code, class, guardian name, message category, date, text or a short-lived signed voice-note URL, conversation replies, and status.
+- Staff replies are stored as private `parent_school_message_events` entries and are returned to the same verified guardian in Parent Portal message history. Sending a reply changes the message status to `answered`; status changes are also audited.
+- No anonymous or authenticated direct table grants were added. The message and event tables remain accessible to the server-side service role only; the Edge Function enforces staff identity and recipient ownership before reads or writes.
+- Supabase Edge Function `parent-portal-api` is active at version 10. Development branch commits: `230b323d67e7ad9c1d791f757ca9358510b0ebfd` (parent reply display) and `b0a0821d39e168ecad35290dc4d9935b62b6b272` (school inbox UI; later repository metadata showed index blob SHA `376d4a5bc460412556c04c6795001a00458e88f3`).
+- Static verification: all seven JavaScript blocks in `index.html` and the Parent Portal JavaScript block parse successfully; the deployed Edge Function bundle succeeded. Database grants confirm only `service_role` has table privileges on `parent_school_messages` and `parent_school_message_events`.
+- Live message/reply testing remains pending because the project currently has no parent message records or active guardian sessions available for a real conversation test. Do not claim a real guardian-to-staff reply has been completed until tested with a controlled test account.
+- The Vercel production site has not yet received these frontend commits. The previously encountered free-tier deployment quota block still applies; do not upgrade or change the permanent URL. Wait until deployment capacity resets, then build a preview, test, and promote safely.
+
 ## Parent portal implementation progress — 7 November 2026
 
 ### Implemented in the current development branch
