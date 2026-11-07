@@ -549,6 +549,44 @@ body[data-density="compact"] #dashboard .module-card{min-height:105px;padding:11
 }
 @media(max-width:380px){#classLoginDirectory.login-class-grid{grid-template-columns:1fr}}
 </style>
+
+<style id="cornhill-card-workspaces-and-login-cleanup">
+/* Sign-in is intentionally quiet: only the school identity remains in the header. */
+body:has(#login:not(.hidden)) .top .sub,
+body:has(#login:not(.hidden)) .top .school-motto,
+body:has(#login:not(.hidden)) #incomingMessagesBadge,
+body:has(#login:not(.hidden)) #logout{display:none!important}
+body:has(#login:not(.hidden)) .top{min-height:76px;padding-top:12px;padding-bottom:12px}
+body:has(#login:not(.hidden)) .wrap{padding-top:8px}
+body:has(#login:not(.hidden)) #login{margin-top:18px}
+/* Balanced summary cards; the fixed navigation owns its own reserved column. */
+#app>.grid:first-of-type{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px;margin-bottom:16px}
+#app>.grid:first-of-type>.stat{min-width:0;min-height:104px;height:auto;padding:15px 18px;border-radius:15px;box-shadow:0 4px 14px rgba(20,50,30,.055)}
+#app>.grid:first-of-type>.stat small{font-size:12px;line-height:1.35}
+#app>.grid:first-of-type>.stat .num{font-size:clamp(25px,2.4vw,32px);line-height:1.15;margin-top:7px}
+@media(min-width:701px){
+ #app>.grid:first-of-type{margin-left:260px;margin-right:0;width:calc(100% - 260px);max-width:calc(100% - 260px)}
+ #app .cornhill-sidebar{z-index:30;overflow-y:auto;overscroll-behavior:contain}
+}
+@media(min-width:701px) and (max-width:900px){
+ #app>.grid:first-of-type{margin-left:222px;width:calc(100% - 222px);max-width:calc(100% - 222px)}
+}
+@media(max-width:700px){
+ #app>.grid:first-of-type{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;max-width:100%;margin:10px 0 14px}
+ #app>.grid:first-of-type>.stat{min-height:88px;padding:12px 10px;border-radius:12px}
+ #app>.grid:first-of-type>.stat small{font-size:10px}
+ #app>.grid:first-of-type>.stat .num{font-size:24px}
+}
+@media(max-width:390px){#app>.grid:first-of-type{grid-template-columns:1fr}#app>.grid:first-of-type>.stat{min-height:72px}}
+/* Settings/control-centre landing page: cards first, one focused workspace after selection. */
+#settings .settings-launcher{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:22px 0 8px}
+#settings .settings-launcher button{min-height:122px;padding:18px;border-radius:17px;cursor:pointer}
+#settings .settings-launcher button:focus-visible{outline:3px solid #4b9b68;outline-offset:3px}
+#settings .settings-workspace-section{margin-top:18px;padding:18px;border:1px solid var(--cornhill-line);border-radius:16px;background:var(--cornhill-panel)}
+#settings .settings-workspace-section>.settings-category-heading{margin-top:0;padding-top:0;border-top:0}
+#settings .settings-workspace-back{margin:0 0 16px;min-height:42px;border-radius:10px}
+#settings .settings-card-intro{margin:10px 0 18px;max-width:680px}
+</style>
 </head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -4673,4 +4711,63 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
 </script>
 
 
+
+<script id="cornhill-settings-card-workspaces-v3">
+(()=>{
+ function initialiseSettingsCardWorkspaces(){
+  const root=document.getElementById('settings');
+  if(!root||root.dataset.cardWorkspacesReady==='yes')return;
+  const launcher=root.querySelector('.settings-launcher');
+  if(!launcher)return;
+  root.dataset.cardWorkspacesReady='yes';
+  const intro=document.createElement('p');
+  intro.className='muted settings-card-intro';
+  intro.textContent='Choose a card to open its own workspace. Use “Back to settings cards” to return here.';
+  launcher.after(intro);
+  const children=[...root.children];
+  let current=null;
+  for(let i=0;i<children.length;i++){
+   const heading=children[i];
+   if(!(heading.matches('h3[id^="settings"]')))continue;
+   const panel=document.createElement('div');
+   panel.className='settings-workspace-section hidden';
+   panel.dataset.settingsWorkspace=heading.id;
+   root.insertBefore(panel,heading);
+   panel.appendChild(heading);
+   i++;
+   while(i<children.length&&!children[i].matches('h3[id^="settings"]')){
+    const node=children[i];
+    if(node.parentNode===root)panel.appendChild(node);
+    i++;
+   }
+   i--;
+   const back=document.createElement('button');
+   back.type='button';back.className='tab settings-workspace-back';
+   back.textContent='← Back to settings cards';
+   back.addEventListener('click',()=>{
+    panel.classList.add('hidden');launcher.classList.remove('hidden');intro.classList.remove('hidden');
+    current=null;launcher.scrollIntoView({behavior:'smooth',block:'start'});
+   });
+   panel.insertBefore(back,panel.firstChild);
+  }
+  [...root.children].forEach(node=>{
+   if(node===launcher||node===intro||node.classList.contains('settings-workspace-section'))return;
+   if(node.matches('.row')&&node.querySelector('h2'))return;
+   if(node.classList.contains('notice'))node.classList.add('hidden');
+  });
+  launcher.addEventListener('click',event=>{
+   const card=event.target.closest('[data-settings-jump]');
+   if(!card)return;
+   const panel=root.querySelector('[data-settings-workspace="'+card.dataset.settingsJump+'"]');
+   if(!panel)return;
+   launcher.classList.add('hidden');intro.classList.add('hidden');
+   root.querySelectorAll('.settings-workspace-section').forEach(x=>x.classList.add('hidden'));
+   panel.classList.remove('hidden');current=panel;
+   panel.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialiseSettingsCardWorkspaces,{once:true});
+ else initialiseSettingsCardWorkspaces();
+})();
+</script>
 </body></html>
