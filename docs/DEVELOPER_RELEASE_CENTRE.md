@@ -298,7 +298,7 @@ No production release is recorded by this document itself. Update this log only 
 ## Central school notifications and term-scoped bursary reviews — 7 November 2026
 
 - Added a dedicated **Notifications** workspace to the school administration panel, with a navigation badge showing active notices.
-- The notification feed now includes staff attendance alerts (including existing unread alerts) and administrator bursary-review alerts. Notifications are ordered by urgency and include a Review action.
+- The notification feed now includes staff attendance alerts (including existing unread alerts), parent/guardian messages routed to the assigned staff member or administration, and administrator bursary-review alerts. Private message bodies are not copied into the notification feed. Notifications are ordered by urgency and include a Review action.
 - Administrators and staff can archive notices using the X control or by swiping the notification card on a touch screen. Archiving removes the notice from the active feed; it does not delete the learner, attendance, finance, or audit record.
 - When an administrator changes from one active academic term to another, the database creates a high-priority bursary review notice for each active learner with a bursary admission or a previous bursary award that does not match the new term. The learner register shows a red BURSARY REVIEW badge until a valid approval is recorded for that term.
 - Existing-learner bursary approvals are now restricted to the active term: the effective dates must fit inside the active term, the billing period label must match that term, and the approval must have an end date. The approval form defaults to the active term dates and label.
@@ -309,5 +309,6 @@ No production release is recorded by this document itself. Update this log only 
   - 20261107141100_scope_bursary_awards_to_active_academic_term.sql
   - 20261107141200_tighten_bursary_term_matching_and_persistent_review_flags.sql
   - 20261107141300_flag_existing_bursary_term_mismatches.sql
+  - 20261107141400_notify_staff_and_admins_of_parent_messages.sql
 - Verification: RLS is enabled on school_notifications; direct table SELECT is denied to anon and authenticated roles; anonymous users cannot execute notification RPCs; authenticated users can call the controlled list/archive RPCs. All 7 inline JavaScript blocks in index.html pass syntax parsing. The UI includes the notification workspace, X archive action, swipe handling, learner badge and active-term defaults.
 - Live term switching, actual bursary approval, archive interaction and phone/desktop visual checks have not been exercised with a synthetic learner. No learner or financial records were changed by these implementation checks. Production deployment remains separate.
