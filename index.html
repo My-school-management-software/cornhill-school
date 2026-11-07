@@ -3357,12 +3357,12 @@ function importSubjectAliases(token,group){
  return common[token]||[];
 }
 function importPeriodForColumn(header,clsName){
- const text=String(header||'').toUpperCase(),m=text.match(/(\d+)\s*$/),n=m?Number(m[1]):1;
+ const text=String(header||'').toUpperCase(),m=text.match(/(\d)\s*$/),n=m?Number(m[1]):1;
  if(/P\.?\s*[67]|PRIMARY\s*[67]/i.test(clsName||''))return 'Set '+(['','I','II','III','IV'][n]||'I');
  return ['','Beginning','Midterm','End','Fourth'][n]||'Beginning';
 }
 function matchImportAssessment(header,ctx){
- const clean=normaliseImportText(header),m=clean.match(/(\d+)$/),suffix=m?m[1]:'1',token=clean.replace(/\d+$/,'');
+ const clean=normaliseImportText(header),m=clean.match(/(\d)$/),suffix=m?m[1]:'1',token=clean.replace(/\d$/,'');
  const clsName=classes.find(c=>c.id===ctx.classId)?.name||'',group=curriculumGroupForClass(clsName);
  const aliases=importSubjectAliases(token,group);
  const period=importPeriodForColumn(header,clsName);
