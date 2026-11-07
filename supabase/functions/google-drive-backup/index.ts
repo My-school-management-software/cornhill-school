@@ -294,6 +294,16 @@ Deno.serve(async (req: Request) => {
       const { data: settings, error: settingsError } = await adminDb.from("google_drive_backup_settings").select("enabled,frequency").eq("id",true).maybeSingle();
       if (settingsError) throw new Error("Could not read scheduled backup settings: "+settingsError.message);
       if (!settings?.enabled) return json({success:true,skipped:true,reason:"Automatic backup is disabled in school settings."});
+      const frequency = settings.frequency || "daily";
+      const intervals: Record<string, number> = { daily: 1, weekly: 7, monthly: 30, termly: 120, yearly: 365 };
+      const intervalDays = intervals[frequency];
+      if (!intervalDays) throw new Error("The saved automatic backup frequency is not supported.");
+      const { data: scheduleState, error: scheduleReadError } = await adminDb.from("google_drive_backup_settings").select("last_scheduled_at").eq("id",true).single();
+      if (scheduleReadError) throw new Error("Could not read the last successful backup schedule: "+scheduleReadError.message);
+      const lastRun = scheduleState?.last_scheduled_at ? Date.parse(scheduleState.last_scheduled_at) : 0;
+      if (lastRun && Date.now() - lastRun < intervalDays * 24 * 60 * 60 * 1000) {
+        return json({success:true,skipped:true,reason:"The next "+frequency+" backup is not due yet."});
+      }
       const connection = await getConnection();
       if (!connection) throw new Error("Connect the dedicated school Google account before enabling automatic backups.");
       const backup = await makeBackup(connection.connected_by, connection);
@@ -317,6 +327,22 @@ Deno.serve(async (req: Request) => {
       const {data:validations} = runIds.length ? await adminDb.from("google_drive_backup_validations").select("id,backup_run_id,validation_status,file_name,total_records,dataset_count,error_message,validated_at").in("backup_run_id",runIds).order("validated_at",{ascending:false}) : {data:[]};
       const {data:settings} = await adminDb.from("google_drive_backup_settings").select("enabled,frequency,last_scheduled_at").eq("id",true).maybeSingle();
       return json({connected:!!connection,connected_email:connection?.connected_email??null,runs:runs??[],validations:validations??[],settings:settings??{enabled:false,frequency:"daily"}});
+    }
+    if (body.action === "save_settings") {
+      const frequency = String(body.frequency || "daily");
+      const allowed = new Set(["daily","weekly","monthly","termly","yearly"]);
+      if (!allowed.has(frequency)) throw new Error("Choose a supported backup frequency.");
+      const enabled = body.enabled === true;
+      const connection = await getConnection();
+      if (enabled && !connection) throw new Error("Connect the dedicated school Google account before enabling automatic backups.");
+      const { data: settings, error: settingsError } = await adminDb
+        .from("google_drive_backup_settings")
+        .update({ enabled, frequency, updated_by: user.id, updated_at: new Date().toISOString() })
+        .eq("id", true)
+        .select("enabled,frequency,last_scheduled_at")
+        .single();
+      if (settingsError || !settings) throw new Error("Could not save backup settings: " + (settingsError?.message || "Settings row not found."));
+      return json({ success: true, settings });
     }
     if (body.action === "validate_backup") {
       const user = await requireAdmin(req);
