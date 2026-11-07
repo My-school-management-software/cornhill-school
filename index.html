@@ -1864,6 +1864,7 @@ async function restoreOfflineSchoolSnapshot(owner){
 }
 
 function resetAccountScopedCommunicationState(){
+ window.cornhillSessionGeneration=(window.cornhillSessionGeneration||0)+1;
  // Never let a draft, recipient, inbox preview or cached directory survive an account change.
  try{if(typeof stopStaffMediaRecording==='function'&&staffMediaRecorder)stopStaffMediaRecording()}catch(_){}
  const form=$('directMessageForm');if(form)form.reset();
@@ -4963,6 +4964,7 @@ let staffDirectoryCache=[];
 let unreadAlertsBusy=false;
 async function loadUnreadMessageAlerts(){
  if(!currentUserId||demoMode||unreadAlertsBusy)return;
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  unreadAlertsBusy=true;
  try{
  const badge=$('incomingMessagesBadge'),countEl=$('incomingMessagesCount'),host=$('incomingMessageAlerts');
@@ -4971,6 +4973,7 @@ async function loadUnreadMessageAlerts(){
   db.from('staff_direct_messages').select('id,sender_user_id,body,created_at').eq('recipient_user_id',currentUserId).is('read_at',null).order('created_at',{ascending:false}).limit(50),
   db.from('staff_media_messages').select('id,sender_user_id,media_type,created_at').eq('recipient_user_id',currentUserId).is('read_at',null).order('created_at',{ascending:false}).limit(50)
  ]);
+ if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
  const error=textResult.error||mediaResult.error;
  if(error){badge.classList.add('hidden');if(host){host.textContent='Could not check new messages: '+error.message;host.classList.remove('hidden')}return}
  const unread=[...(textResult.data||[]).map(m=>({...m,kind:'text'})),...(mediaResult.data||[]).map(m=>({...m,kind:'media'}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
@@ -5098,6 +5101,7 @@ $('recordVoiceNote').addEventListener('click',()=>staffMediaRecorder?stopStaffMe
 $('recordVideoMessage').addEventListener('click',()=>staffMediaRecorder?stopStaffMediaRecording():startStaffMediaRecording('video'));
 let contactUnreadBusy=false;
 async function renderDirectMessageContacts(){
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  const host=$('directMessageContactList'),select=$('directMessageRecipient');
  if(!host||!select||contactUnreadBusy||!currentUserId)return;
  contactUnreadBusy=true;
@@ -5106,6 +5110,7 @@ async function renderDirectMessageContacts(){
    db.from('staff_direct_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null),
    db.from('staff_media_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null)
   ]);
+  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
   const error=textUnread.error||mediaUnread.error;
   if(error){host.innerHTML='<p class="muted">Could not refresh unread counts: '+esc(error.message)+'</p>';return}
   const counts={};
@@ -5124,8 +5129,10 @@ $('directMessageContactList').addEventListener('click',async e=>{
  await renderDirectMessageContacts();await loadDirectMessageThread();
 });
 async function loadDirectMessageDirectory(){
- const select=$('directMessageRecipient');if(!select||!currentUserId)return;
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
+ const select=$('directMessageRecipient');if(!select||!owner)return;
  const {data,error}=await db.rpc('list_staff_directory');
+ if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
  if(error){message('directMessageMsg','Could not load staff directory: '+error.message,true);return}
  staffDirectoryCache=data||[];await loadUnreadMessageAlerts();
  // Always start with no recipient selected. The previous account's selection is never reused.
@@ -5135,6 +5142,7 @@ async function loadDirectMessageDirectory(){
  await loadDirectMessageThread();
 }
 async function loadDirectMessageThread(){
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  const select=$('directMessageRecipient'),host=$('directMessageThread'),other=select?.value;
  if(!other){host.innerHTML='<p class="muted">Choose a colleague to view your private conversation.</p>';return}
  const filter='and(sender_user_id.eq.'+currentUserId+',recipient_user_id.eq.'+other+'),and(sender_user_id.eq.'+other+',recipient_user_id.eq.'+currentUserId+')';
@@ -5142,6 +5150,7 @@ async function loadDirectMessageThread(){
   db.from('staff_direct_messages').select('id,sender_user_id,recipient_user_id,body,created_at,read_at').or(filter).order('created_at',{ascending:true}).limit(100),
   db.from('staff_media_messages').select('id,sender_user_id,recipient_user_id,media_type,storage_path,mime_type,duration_seconds,created_at,read_at').or(filter).order('created_at',{ascending:true}).limit(100)
  ]);
+ if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0)||select.value!==other)return;
  if(textResult.error||mediaResult.error){host.innerHTML='<p class="muted">Could not load this conversation: '+esc((textResult.error||mediaResult.error).message)+'</p>';return}
  const all=[...(textResult.data||[]).map(m=>({...m,kind:'text'})),...(mediaResult.data||[]).map(m=>({...m,kind:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
  const html=await Promise.all(all.map(async m=>{
@@ -5153,6 +5162,7 @@ async function loadDirectMessageThread(){
   const player=m.media_type==='audio'?'<audio controls preload="none" src="'+src+'"></audio>':'<video class="staff-media-player" controls playsinline preload="metadata" src="'+src+'"></video>';
   return '<div class="direct-message-item '+(mine?'mine':'')+'"><strong>'+(m.media_type==='audio'?'🎙 Voice note':'▣ Video message')+'</strong>'+player+'<small>'+(mine?'You':'Colleague')+' · '+duration+' · '+stamp+'</small></div>';
  }));
+ if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0)||select.value!==other)return;
  host.innerHTML=html.join('')||'<p class="muted">No messages yet. Send a text, voice note or video message to start.</p>';
  host.scrollTop=host.scrollHeight;
  const unreadText=(textResult.data||[]).filter(m=>m.recipient_user_id===currentUserId&&!m.read_at).map(m=>m.id);
@@ -5188,6 +5198,7 @@ $('directMessageForm').addEventListener('submit',async e=>{
  });
 async function loadStaffCommunication(){
  if(demoMode||!profile||!currentUserId)return;
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  const audienceSelect=$('staffPostAudience');
  audienceSelect.value='all_staff';
  const teachersOption=audienceSelect.querySelector('option[value="teachers"]');
@@ -5195,6 +5206,7 @@ async function loadStaffCommunication(){
  if(teachersOption)teachersOption.disabled=!['Admin','Teacher'].includes(profile.role);
  if(adminsOption)adminsOption.disabled=profile.role!=='Admin';
  const {data:posts,error}=await db.from('staff_communication_posts').select('id,author_user_id,body,audience,is_pinned,created_at').order('is_pinned',{ascending:false}).order('created_at',{ascending:false}).limit(50);
+ if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
  if(error){message('staffCommMsg','Could not load staff messages: '+error.message,true);$('staffCommunicationFeed').innerHTML='';return}
  const ids=(posts||[]).map(p=>p.id);
  let comments=[],reactions=[];
