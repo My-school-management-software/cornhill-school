@@ -1281,10 +1281,10 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
 
  </div>
  <section id="assessmentSetup" class="panel" style="margin-top:14px">
-  <h3>Assessment preparation · teacher class and subject scope</h3>
-  <p class="muted">Administrators may prepare assessments for any class. Teachers may prepare assessments only for their assigned class and assigned subjects. Only teachers can enter learner marks.</p>
+  <h3>Assessment preparation · complete class marks sheet</h3>
+  <p class="muted">The class teacher prepares one assessment period for the whole class. Every subject is created together in the school’s existing Excel order and code format. The class is automatic for class teachers.</p>
   <h3>Create assessment</h3>
- <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Subject *</label><select name="subject_id" id="assessmentSubjectSelect" required></select></div><div><label>Assessment period *</label><select name="period" required><option value="Beginning">Beginning (1)</option><option value="Midterm">Midterm (2)</option><option value="End">End of term (3)</option></select></div><div><label>Assessment title / note</label><input name="title" placeholder="Optional: e.g. oral test, written exercise"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" step="0.01" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><button class="primary">Create assessment</button></div></form>
+ <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div id="assessmentClassField"><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Assessment period *</label><select name="period" required><option value="Beginning">Beginning (1)</option><option value="Midterm">Midterm (2)</option><option value="End">End of term (3)</option></select></div><div><label>Assessment title / note</label><input name="title" placeholder="Optional note for all subjects"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" max="1000" step="0.01" value="100" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><p class="muted">One preparation creates the full class sheet for every subject in the class curriculum. Your class-teacher account automatically uses its assigned class.</p><button class="primary">Create all subject columns</button></div></form>
  </section>
  <div id="teacherMarkEntry">
  <h3 style="margin-top:20px">Teacher mark entry · assigned class only</h3>
@@ -3028,7 +3028,7 @@ async function loadAcademics(){
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
  $('academicYearSelect').innerHTML=opts(academic.years,x=>x.name);
  $('academicClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
- $('assessmentClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
+ const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');$('assessmentClassSelect').innerHTML=profile?.role==='Teacher'?opts(classes.filter(x=>x.id===teacherClassId),x=>x.name+(x.stream?' - '+x.stream:'')):opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));$('assessmentClassField').classList.toggle('hidden',profile?.role==='Teacher');if(profile?.role==='Teacher')$('assessmentClassSelect').value=teacherClassId||'';
  $('academicSubjectSelect').innerHTML=opts(academic.subjects,x=>x.name);
  $('assessmentSubjectSelect').innerHTML=$('academicSubjectSelect').innerHTML;
  await filterAssessmentSubjects();
@@ -3866,7 +3866,7 @@ $('saveExcelMarks').addEventListener('click',async()=>{
  }catch(err){message('excelMarksMsg','Mark sheet save stopped unexpectedly. Check the saved marks before retrying: '+(err?.message||'Unknown error'),true)}
  finally{button.disabled=false;button.textContent='Save all marks';delete button.dataset.busy}
 });
-$('assessmentClassSelect').addEventListener('change',()=>{filterAssessmentSubjects();const cls=String(classes.find(c=>c.id===$('assessmentClassSelect').value)?.name||'').toUpperCase();const sets=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);const sel=document.querySelector('#assessmentForm select[name="period"]');if(sel)sel.innerHTML=(sets?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End']).map((p,i)=>'<option value="'+p+'">'+p+(sets?'':' ('+(i+1)+')')+'</option>').join('')});
+$('assessmentClassSelect').addEventListener('change',()=>{const cls=String(classes.find(c=>c.id===$('assessmentClassSelect').value)?.name||'').toUpperCase();const sets=/P\\.?\\s*[67]|PRIMARY\\s*[67]/i.test(cls);const sel=document.querySelector('#assessmentForm select[name="period"]');if(sel)sel.innerHTML=(sets?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End']).map((p,i)=>'<option value="'+p+'">'+p+(sets?'':' ('+(i+1)+')')+'</option>').join('')});
 $('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
 let bulkMarksAutosaveTimer=null;
 async function autosaveBulkMarkDrafts(){
@@ -3960,20 +3960,47 @@ async function submitAcademic(formId,table,transform,success){
    let payload=transform(values);
    if(table==='assessments'){
     const term=academic.terms.find(x=>x.id===values.term_id);
-    const cls=classes.find(x=>x.id===values.class_id);
-    const subject=academic.subjects.find(x=>x.id===values.subject_id);
-    if(!term||!cls||!subject){message('academicMsg','Choose a valid academic term, class and subject.',true);return}
-    if(!academic.classSubjects.some(x=>x.class_id===values.class_id&&x.subject_id===values.subject_id&&(profile?.role!=='Teacher'||(x.teacher_user_id===currentUserId&&values.class_id===sessionStorage.getItem('cornhill_teacher_class_id'))))){message('academicMsg','This subject is not assigned to your teacher account for the selected class. Ask the administrator to assign it first.',true);return}
-    const maximum=Number(values.max_score);
-    if(!Number.isFinite(maximum)||maximum<=0){message('academicMsg','Maximum score must be a valid number greater than zero.',true);return}
-    if(values.assessment_date&&(values.assessment_date<term.starts_on||values.assessment_date>term.ends_on)){message('academicMsg','Assessment date must fall within the selected term ('+term.starts_on+' to '+term.ends_on+').',true);return}
+    const classId=profile?.role==='Teacher'?sessionStorage.getItem('cornhill_teacher_class_id'):values.class_id;
+    const cls=classes.find(x=>x.id===classId);
+    if(!term||!cls){message('academicMsg','Choose a valid academic term. Your teacher account must have an assigned class.',true);return}
+    const group=curriculumGroupForClass(cls.name);
+    if(!group)throw new Error('No curriculum group is configured for '+cls.name+'.');
+    const {data:curriculum,error:curriculumError}=await db.from('school_curriculum_subjects').select('subject_id').eq('school_level_group',group);
+    if(curriculumError)throw curriculumError;
+    const subjectIds=[...new Set((curriculum||[]).map(x=>x.subject_id).filter(Boolean))];
+    if(!subjectIds.length)throw new Error('No subjects are configured in the '+group+' curriculum.');
+    const {data:subjectRows,error:subjectError}=await db.from('subjects').select('id,name,code').eq('is_active',true).in('id',subjectIds);
+    if(subjectError)throw subjectError;
+    const subjects=subjectRows||[];
+    if(!subjects.length)throw new Error('No active subjects were found for '+cls.name+'.');
+    const maximum=Number(values.max_score||100);
+    if(!Number.isFinite(maximum)||maximum<=0||maximum>1000)throw new Error('Maximum score must be a valid number greater than zero.');
+    if(values.assessment_date&&(values.assessment_date<term.starts_on||values.assessment_date>term.ends_on))throw new Error('Assessment date must fall within the selected term ('+term.starts_on+' to '+term.ends_on+').');
     const period=String(values.period||'').trim(),note=String(values.title||'').trim();
+    const setBased=/P\\.?\\s*[67]|PRIMARY\\s*[67]/i.test(cls.name);
+    const validPeriods=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End'];
+    if(!validPeriods.includes(period))throw new Error('Choose a valid assessment period for '+cls.name+'.');
     const finalTitle=period+(note?' · '+note:' Assessment');
-    const duplicate=academic.assessments.find(x=>x.term_id===values.term_id&&x.class_id===values.class_id&&x.subject_id===values.subject_id&&String(x.title||'').trim().toLowerCase()===finalTitle.toLowerCase());
-    if(duplicate){message('academicMsg','An assessment with this period/title already exists for the selected class, subject and term. Open the existing assessment instead of creating a duplicate.',true);return}
+    const existing=academic.assessments.filter(x=>x.term_id===values.term_id&&x.class_id===classId);
+    const present=new Set(existing.filter(x=>excelAssessmentPeriod(x)===period).map(x=>x.subject_id));
+    const missing=subjects.filter(x=>!present.has(x.id)).map(subject=>({
+      term_id:values.term_id,class_id:classId,subject_id:subject.id,title:finalTitle,
+      assessment_type:values.assessment_type||'Coursework',max_score:maximum,
+      assessment_date:values.assessment_date||null,created_by:currentUserId
+    }));
+    if(!missing.length){message('academicMsg','All '+subjects.length+' subject columns for '+period+' already exist in '+cls.name+'. No duplicates were created.');return}
     const auth=await db.auth.getUser(),user=auth.data?.user;
-    if(auth.error||!user){message('academicMsg','Your administrator session has expired. Sign in again before creating an assessment.',true);return}
-    payload={...payload,created_by:user.id};
+    if(auth.error||!user)throw new Error('Your session has expired. Sign in again before preparing assessments.');
+    missing.forEach(x=>x.created_by=user.id);
+    const {error:insertError}=await db.from('assessments').insert(missing);
+    if(insertError)throw insertError;
+    await clearLocalFormDraft(currentUserId,'academic-assessment');
+    e.target.reset();
+    if(profile?.role==='Teacher')$('assessmentClassSelect').value=classId;
+    await loadAcademics();
+    const created=missing.length,skipped=subjects.length-created;
+    message('academicMsg','Prepared '+created+' subject columns for '+cls.name+' · '+period+'.'+(skipped?' '+skipped+' existing subject column(s) were safely left unchanged.':'')+' Maximum score: '+maximum+'.');
+    return;
    }
    const {error}=await db.from(table).insert(payload);
    if(error){message('academicMsg','Could not save record: '+error.message,true);return}
