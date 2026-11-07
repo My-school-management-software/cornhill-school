@@ -157,6 +157,14 @@ No production release is recorded by this document itself. Update this log only 
 
 
 
+## Workspace isolation correction — 7 November 2026
+
+- User reported that learner/database content appeared to remain visible while switching between Parent Access Links, Register Learner, and other sections in a preview.
+- The latest Vercel deployment visible during investigation was `cornhill-school-7tps2x7xp-cypher-projects1.vercel.app`, built from commit `230b323d67e7ad9c1d791f757ca9358510b0ebfd`. The previous `lrcw9fsan` preview was older still (`f2594842...`). The current GitHub branch contains later frontend changes that were not yet in either preview.
+- Existing navigation already attempted to hide inactive workspaces. To harden this, the latest `index.html` change adds an explicit active-workspace data marker, a high-priority CSS rule that hides every non-current top-level workspace panel, the native `hidden` state, and `inert` for inactive workspaces. It also hides any unregistered top-level panel rather than allowing it to remain stacked under the selected page.
+- Static JavaScript syntax checks passed for all seven script blocks after this change.
+- This is a source-level correction only. It has not yet been built into a new Vercel preview or tested interactively in a browser. Do not tell the school that the visual defect is resolved until the new preview is tested by switching repeatedly among Dashboard, Learner Register, Parent Access Links, and Register Learner on desktop and Android.
+
 ## Parent-school inbox implementation update — 7 November 2026
 
 - Added a dedicated **Parent Inbox** view to the school Communications Centre on the development branch.
