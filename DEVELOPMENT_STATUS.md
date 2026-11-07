@@ -842,3 +842,19 @@ The remaining programme now explicitly includes:
 - Latest READY Vercel deployment in the inspected history uses commit `ecdd848908da1281bf7c750c2377a3bed90ce874`, not the current feature-branch head recorded in the prior audit. The current branch source is therefore not confirmed live.
 - No learner, guardian, attendance, assessment, payment, or backup records were created or changed in this batch. No paid plan or feature was enabled.
 - Still pending: browser E2E, live OTP delivery, real admin/teacher/guardian role-isolation tests, payment posting/allocation/receipt workflow with approved test data, successful Drive backup plus restore, offline reconnect/conflict runtime test, Windows 10/11 and Android device tests, thermal printer and fingerprint terminal tests, and deployment of the latest reviewed commit.
+
+
+## 2026-11-07 — Follow-on build verification: authenticated privileged function review
+
+- Queried all public-schema SECURITY DEFINER functions currently executable by authenticated users: **20 functions**.
+- Verified for all 20: anon cannot execute; all have explicit function-level `search_path`; all reference the authenticated caller identity (`auth.uid()`).
+- Role-specific authorization patterns:
+  - Admin-only functions use `is_school_admin()` and an explicit non-null caller check.
+  - Teacher-only functions use active Teacher checks and class-assignment checks.
+  - Parent learner lookup requires a verified phone claim and an active guardian-to-learner contact match.
+  - Staff directory requires an active staff caller profile.
+- Individually inspected the payment-posting RPC: requires active school administrator; validates positive amount, payment method, learner's active enrolment, charge ownership, duplicate allocation IDs, remaining charge balance, and prevents over-allocation. Previous-term charges are not automatically swept into current-term payments; they must be explicitly selected.
+- Individually inspected parent learner lookup: only returns the learner linked to the verified guardian phone and pupil code; assessment rows are gated by approved report-card publication; conduct records require guardian visibility and publication timestamp; payment history includes posted payments only.
+- Individually inspected class teacher helper and visiting-day lookup: current active Teacher and assigned class are required.
+- **No database schema or learner/payment records changed** during this review.
+- Follow-up still needed: execute negative/positive permission tests using dedicated test Admin, Teacher, and Guardian accounts; test phone OTP delivery; complete payment workflow using approved disposable test learner records.
