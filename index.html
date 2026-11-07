@@ -1863,7 +1863,34 @@ async function restoreOfflineSchoolSnapshot(owner){
  }catch(_){return false}
 }
 
-async function startSession(session){demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';if(!session){profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];setOfflineReadOnly(false);sessionStorage.removeItem('cornhill_teacher_class_id');$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
+function resetAccountScopedCommunicationState(){
+ // Never let a draft, recipient, inbox preview or cached directory survive an account change.
+ try{if(typeof stopStaffMediaRecording==='function'&&staffMediaRecorder)stopStaffMediaRecording()}catch(_){}
+ const form=$('directMessageForm');if(form)form.reset();
+ const body=$('directMessageBody');if(body)body.value='';
+ const picker=$('staffMessageAttachments');if(picker)picker.value='';
+ const recipient=$('directMessageRecipient');
+ if(recipient){recipient.innerHTML='<option value="">Choose a colleague</option>';recipient.value='';}
+ const thread=$('directMessageThread');if(thread)thread.innerHTML='<p class="muted">Choose a colleague to view your private conversation.</p>';
+ const contacts=$('directMessageContactList');if(contacts)contacts.innerHTML='';
+ const alerts=$('incomingMessageAlerts');if(alerts){alerts.innerHTML='';alerts.classList.add('hidden')}
+ const badge=$('incomingMessagesBadge');if(badge)badge.classList.add('hidden');
+ const count=$('incomingMessagesCount');if(count)count.textContent='0';
+ const directStatus=$('directMessageMsg');if(directStatus){directStatus.textContent='';directStatus.classList.add('hidden')}
+ const feed=$('staffCommunicationFeed');if(feed)feed.innerHTML='';
+ const postForm=$('staffPostForm');if(postForm)postForm.reset();
+ const commStatus=$('staffCommMsg');if(commStatus){commStatus.textContent='';commStatus.classList.add('hidden')}
+ const parentList=$('parentSchoolInboxList');if(parentList)parentList.innerHTML='';
+ const parentPanel=$('parentSchoolInboxPanel');if(parentPanel)parentPanel.classList.add('hidden');
+ const parentStatus=$('parentSchoolInboxStatus');if(parentStatus){parentStatus.textContent='';parentStatus.classList.add('hidden')}
+ staffDirectoryCache=[];
+ contactUnreadBusy=false;unreadAlertsBusy=false;
+ window.schoolNotifications=[];
+}
+async function startSession(session){
+ resetAccountScopedCommunicationState();
+ demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';
+ if(!session){profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;financeCodeAliases=[];setOfflineReadOnly(false);sessionStorage.removeItem('cornhill_teacher_class_id');$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
 const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
 if(error){
@@ -1958,7 +1985,23 @@ const registerClasses=[...classes].filter(cl=>profile?.role!=='Teacher'||cl.id==
 $('studentRows').innerHTML=filtered.map(s=>'<tr><td><strong>'+esc(s.admission_number)+'</strong>'+(window.bursaryReviewStudentIds?.has(s.id)?'<br><span class="badge" style="background:#fee2e2;color:#991b1b">BURSARY REVIEW</span>':'')+'</td><td>'+esc(s.lin||'Not entered')+'</td><td>'+esc(s.p7_index_number||'—')+'</td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.gender)+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(s.learner_type||'Day')+'</td><td>'+(profile?.role==='Admin'?(s.is_bursary?'<span class="badge">'+esc(s.bursary_category||'Bursary')+' · UGX '+money(s.bursary_fee_ugx)+'</span>':'Regular'):'Restricted')+'</td><td>'+(profile?.role==='Admin'?esc(s.guardian_name||'—')+'<br><span class="muted">'+esc(s.guardian_phone||'')+'</span>':'Restricted')+'</td><td><span class="badge">'+esc(s.status)+'</span>'+(s.admission_number?.startsWith('TMP')?'<br><span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800">TEMPORARY CODE · PERMANENT CODE PENDING</span>':'')+(s.admission_complete===false?'<br><span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800">ADMISSION INCOMPLETE · COMPLETE REQUIRED DETAILS</span>':'')+'</td><td class="learner-row-actions"><div class="learner-action-stack"><button type="button" class="viewLearner" data-id="'+esc(s.id)+'">View</button> '+(profile?.role==='Admin'?'<button type="button" class="editLearner" data-id="'+esc(s.id)+'">Edit</button> <button type="button" class="archiveLearner" data-id="'+esc(s.id)+'">Remove</button>':'')+'</div></td></tr>').join('');
 $('noStudents').textContent=filtered.length?'':'No learners match this class and search. Try another class or clear the search.';const archived=students.filter(s=>s.status==='Archived');$('archivedLearnersRows').innerHTML=archived.map(s=>'<tr><td>'+esc(s.admission_number)+'</td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(s.archive_reason||'—')+'</td><td>'+esc(s.archived_at?new Date(s.archived_at).toLocaleString():'—')+'</td><td><button type="button" class="restoreLearner" data-id="'+esc(s.id)+'">Restore</button></td></tr>').join('');$('noArchivedLearners').classList.toggle('hidden',archived.length>0);$('archivedLearnersPanel').classList.toggle('hidden',profile?.role!=='Admin');$('noStudents').classList.toggle('hidden',filtered.length>0);$('classSelect').innerHTML='<option value="">Unassigned</option>'+classes.map(c=>'<option value="'+c.id+'">'+esc(c.name+(c.stream?' - '+c.stream:''))+'</option>').join('');$('bulkImportClass').innerHTML='<option value="">Choose class fallback</option>'+classes.map(c=>'<option value="'+c.id+'">'+esc(c.name+(c.stream?' - '+c.stream:''))+'</option>').join('');
 const classOrder=['Baby','Middle','Top','P1','P2','P3','P4','P5','P6','P7'];const orderedClasses=[...classes].filter(c=>profile?.role!=='Teacher'||c.id===sessionStorage.getItem('cornhill_teacher_class_id')).sort((a,b)=>{const ai=classOrder.indexOf(String(a.name).trim()),bi=classOrder.indexOf(String(b.name).trim());return (ai<0?99:ai)-(bi<0?99:bi)||String(a.name).localeCompare(String(b.name))||String(a.stream||'').localeCompare(String(b.stream||''))});$('classList').innerHTML=orderedClasses.length?'<div class="panel" style="margin:12px 0 4px;padding:16px;border:1px solid var(--cornhill-line);border-radius:14px"><div class="row" style="align-items:center;gap:12px"><div style="min-width:0;flex:1"><h3 style="margin:0 0 4px">Class registers</h3><p class="muted" style="margin:0">Choose a class to open its live learner register. '+orderedClasses.length+' class'+(orderedClasses.length===1?'':'es')+' available.</p></div><span class="badge">Registers</span></div><div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:14px"><div style="flex:1;min-width:190px"><label for="classRegisterSelect">Select class / stream</label><select id="classRegisterSelect" style="margin-bottom:0">'+orderedClasses.map(c=>{const all=visibleStudents.filter(st=>st.class_id===c.id),active=all.filter(st=>st.status==='Active').length;return '<option value="'+esc(c.id)+'">'+esc(c.name)+(c.stream?' · '+esc(c.stream):'')+' — '+all.length+' learners ('+active+' active)</option>'}).join('')+'</select></div><button type="button" class="primary" id="openClassRegister" data-class-roster="'+esc(orderedClasses[0].id)+'">View class register</button></div></div>':'<div class="notice">No classes have been created yet. Use “Set up standard classes” to add Baby, Middle, Top and P1–P7.</div>'};$('classRosterPrint').classList.add('hidden');$('classRosterSearch').value='';$('classRosterStatus').value='all';
-function applyRoleNavigation(){const role=profile?.role;$('setupStandardClasses').classList.toggle('hidden',role!=='Admin');document.querySelectorAll('.tabs [data-tab]').forEach(b=>{const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','academics','communication','students','classes','attendance','parentAccess'].includes(b.dataset.tab))||(role==='Staff'&&['dashboard','notifications','attendance','communication'].includes(b.dataset.tab));b.classList.toggle('hidden',!allowed)});document.querySelectorAll('[data-module]').forEach(b=>b.classList.toggle('hidden',role!=='Admin'&&!(role==='Teacher'&&b.dataset.module==='academics')&&!(role==='Staff'&&b.dataset.module==='attendance')));$('teacherPortalSummary').classList.toggle('hidden',role!=='Teacher');$('classForm').classList.toggle('hidden',role!=='Admin')}
+function applyRoleNavigation(){
+ const role=profile?.role;
+ $('setupStandardClasses').classList.toggle('hidden',role!=='Admin');
+ document.querySelectorAll('.tabs [data-tab]').forEach(b=>{
+  const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','academics','communication','students','classes','attendance','parentAccess'].includes(b.dataset.tab))||(role==='Staff'&&['notifications','attendance','communication'].includes(b.dataset.tab));
+  b.classList.toggle('hidden',!allowed)
+ });
+ document.querySelectorAll('[data-module]').forEach(b=>b.classList.toggle('hidden',role!=='Admin'&&!(role==='Teacher'&&b.dataset.module==='academics')&&!(role==='Staff'&&b.dataset.module==='attendance')));
+ $('teacherPortalSummary').classList.toggle('hidden',role!=='Teacher');
+ $('classForm').classList.toggle('hidden',role!=='Admin');
+ // A class teacher sees a class workspace, never the school-wide administrator snapshot.
+ document.querySelectorAll('#dashboard .dashboard-summary-only,#dashboard .dashboard-intro,#dashboard #academicControlCard,#dashboard .module-grid,#dashboard #dashboardIncomeForecastPanel').forEach(node=>node.classList.toggle('hidden',role!=='Admin'));
+ const teacherIntro=$('teacherPortalSummary');
+ if(teacherIntro)teacherIntro.classList.toggle('hidden',role!=='Teacher');
+ const income=$('dashboardIncomeForecastPanel');
+ if(income)income.classList.toggle('hidden',role!=='Admin');
+}
 function renderTeacherPortal(){
  const assigned=(window.teacherAssignments||[]),teacherClassId=window.teacherClassId||sessionStorage.getItem('cornhill_teacher_class_id'),cls=classes.find(x=>x.id===teacherClassId),subjects=[...new Set(assigned.filter(a=>a.class_id===teacherClassId).map(a=>a.subjects?.name||'Assigned subject'))];
  const active=students.filter(s=>s.class_id===teacherClassId&&s.status==='Active').length;
@@ -4217,7 +4260,15 @@ $('signIn').addEventListener('click',()=>authenticateAccount('teacher.'+selected
 $('adminSignIn').addEventListener('click',()=>authenticateAccount($('adminEmail').value.trim(),$('adminPassword').value,'Admin','',$('adminSignIn')));
 
 loadPublicClassLoginDirectory();
-$('logout').addEventListener('click',async()=>{if(demoMode){demoMode=false;profile=null;location.reload();return}const owner=currentUserId;await db.auth.signOut();await offlineSchoolDelete(owner);sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');profile=null;students=[];classes=[];setOfflineReadOnly(false);await startSession(null)});
+$('logout').addEventListener('click',async()=>{
+ if(demoMode){resetAccountScopedCommunicationState();demoMode=false;profile=null;location.reload();return}
+ const owner=currentUserId;
+ resetAccountScopedCommunicationState();
+ await db.auth.signOut();await offlineSchoolDelete(owner);
+ sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');
+ profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;
+ setOfflineReadOnly(false);await startSession(null)
+});
 function syncBursaryAdmissionFields(){
  const enabled=$('bursaryStatus').value==='true';
  $('bursaryAmountWrap').classList.toggle('hidden',!enabled);
@@ -5077,9 +5128,9 @@ async function loadDirectMessageDirectory(){
  const {data,error}=await db.rpc('list_staff_directory');
  if(error){message('directMessageMsg','Could not load staff directory: '+error.message,true);return}
  staffDirectoryCache=data||[];await loadUnreadMessageAlerts();
- const previous=select.value;
+ // Always start with no recipient selected. The previous account's selection is never reused.
  select.innerHTML='<option value="">Choose a colleague</option>'+staffDirectoryCache.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.full_name)+' · '+esc(x.role)+'</option>').join('');
- if(staffDirectoryCache.some(x=>x.id===previous))select.value=previous;
+ select.value='';
  await renderDirectMessageContacts();
  await loadDirectMessageThread();
 }
@@ -5114,8 +5165,13 @@ async function loadDirectMessageThread(){
 $('directMessageRecipient').addEventListener('change',async()=>{await renderDirectMessageContacts();await loadDirectMessageThread();});
 $('refreshDirectMessages').addEventListener('click',async()=>{await loadDirectMessageDirectory();await loadDirectMessageThread()});
 $('directMessageForm').addEventListener('submit',async e=>{
-  e.preventDefault();const recipient=$('directMessageRecipient').value,body=$('directMessageBody').value.trim(),picker=$('staffMessageAttachments'),files=[...(picker?.files||[])];
-  if(!recipient){message('directMessageMsg','Choose a colleague first.',true);return}
+  e.preventDefault();
+  const {data:activeSession,error:sessionError}=await db.auth.getSession();
+  if(sessionError||!activeSession?.session?.user?.id||activeSession.session.user.id!==currentUserId||!profile){
+   resetAccountScopedCommunicationState();message('directMessageMsg','Your account session changed or expired. Sign in again before sending.',true);return;
+  }
+  const recipient=$('directMessageRecipient').value,body=$('directMessageBody').value.trim(),picker=$('staffMessageAttachments'),files=[...(picker?.files||[])];
+  if(!recipient||!staffDirectoryCache.some(person=>person.id===recipient&&person.id!==currentUserId)){message('directMessageMsg','Choose a valid colleague from your current account directory.',true);return}
   if(!body&&!files.length)return;
   const button=e.submitter;button.disabled=true;
   try{
