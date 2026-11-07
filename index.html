@@ -1941,7 +1941,22 @@ $('notificationList')?.addEventListener('click',e=>{
  const archive=e.target.closest('[data-archive-notification]');
  if(archive){archiveSchoolNotification(archive.dataset.archiveNotification);return}
  const open=e.target.closest('[data-open-notification]');
- if(open){const n=(window.schoolNotifications||[]).find(x=>x.id===open.dataset.openNotification);tab(n?.action_workspace||'dashboard')}
+ if(open){
+  const n=(window.schoolNotifications||[]).find(x=>x.id===open.dataset.openNotification);
+  if(n?.category==='bursary_review'&&n.student_id){
+   if(profile?.role!=='Admin'){message('appMsg','Only an administrator can review bursary approvals.',true);return}
+   const learner=students.find(x=>x.id===n.student_id);
+   if(!learner){message('appMsg','The learner linked to this bursary alert is not in the active learner register. Refresh the learner records or contact the administrator.',true);return}
+   tab('students');
+   if($('classFilter'))$('classFilter').value='';
+   if($('learnerSearch'))$('learnerSearch').value='';
+   render();
+   const target=document.querySelector('#studentRows .viewLearner[data-id="'+n.student_id+'"]');
+   if(target){target.click()}else{message('appMsg','The learner was found, but the register row could not be opened. Refresh the learner register and try Review again.',true)}
+   return;
+  }
+  tab(n?.action_workspace||'dashboard');
+ }
 });
 $('notificationList')?.addEventListener('touchstart',e=>{
  const card=e.target.closest('[data-notification-card]');
@@ -4411,6 +4426,21 @@ $('studentRows').addEventListener('click',async e=>{
  const fields=[['School learner code',learner.admission_number],['Ministry LIN',learner.lin],['P7 index number',learner.p7_index_number],['Full name',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')],['Gender',learner.gender],['Date of birth',learner.date_of_birth],['Admission date',learner.admission_date],['Class',learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name],['Learner type',learner.learner_type],['Status',learner.status],['Previous school',learner.previous_school],...(profile?.role==='Admin'?[['Guardian',learner.guardian_name],['Relationship',learner.guardian_relationship],['Guardian phone',learner.guardian_phone],['Guardian email',learner.guardian_email],['Alternative guardian',learner.alternate_guardian_name],['Alternative phone',learner.alternate_guardian_phone],['Home address',learner.address],['Bursary',learner.is_bursary?(learner.bursary_category||'Approved')+' · UGX '+money(learner.bursary_fee_ugx):'Regular fees'],['Bursary reason',learner.bursary_reason||learner.bursary_notes],['Bursary approval account reference',learner.bursary_approved_by],['Bursary approved at',learner.bursary_approved_at]]:[])];
  $('learnerProfileContent').innerHTML='<div class="panel"><div class="row"><div style="display:flex;align-items:center;gap:14px"><div id="learnerPhotoFallback" class="excel-photo-placeholder" style="width:76px;height:76px;font-size:18px">'+esc(([learner.first_name,learner.last_name].filter(Boolean).map(x=>x[0]).join('')||'CH').toUpperCase())+'</div><img id="learnerProfilePhoto" class="hidden" alt="Learner photograph" style="width:76px;height:76px;object-fit:cover;border-radius:50%"><h3>'+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+'</h3></div><button type="button" id="printLearnerProfile">Print learner profile</button></div><div class="table-wrap"><table><tbody>'+fields.map(x=>'<tr><th>'+esc(x[0])+'</th><td>'+esc(x[1]||'—')+'</td></tr>').join('')+'</tbody></table></div></div>';
  if(profile?.role==='Admin'){
+  if(window.pendingBursaryReviewStudentId===learner.id){
+   window.pendingBursaryReviewStudentId=null;
+  }
+  const [{data:bursaryAwards,error:bursaryAwardsError},{data:activeTerm,error:activeTermError}]=await Promise.all([
+   db.from('learner_bursary_awards').select('id,bursary_category,amount_payable_ugx,billing_period_label,effective_from,effective_until,reason,sponsor_source,approved_at').eq('student_id',learner.id).order('approved_at',{ascending:false}),
+   db.from('academic_terms').select('name,starts_on,ends_on,academic_years(name)').eq('is_current',true).maybeSingle()
+  ]);
+  const termStart=activeTerm?.starts_on?new Date(activeTerm.starts_on+'T00:00:00'):null;
+  const termEnd=activeTerm?.ends_on?new Date(activeTerm.ends_on+'T23:59:59'):null;
+  const matchingAward=(bursaryAwards||[]).find(a=>termStart&&termEnd&&new Date(a.effective_from+'T00:00:00')<=termEnd&&(!a.effective_until||new Date(a.effective_until+'T23:59:59')>=termStart));
+  const bursaryReviewHtml=bursaryAwardsError?'<p class="notice error">Bursary approval records could not be loaded: '+esc(bursaryAwardsError.message)+'</p>':(bursaryAwards||[]).map(a=>{
+   const matches=!!(termStart&&termEnd&&new Date(a.effective_from+'T00:00:00')<=termEnd&&(!a.effective_until||new Date(a.effective_until+'T23:59:59')>=termStart));
+   return '<tr><td>'+esc(a.billing_period_label||'—')+'</td><td>'+esc(a.bursary_category||'—')+'</td><td>UGX '+money(a.amount_payable_ugx)+'</td><td>'+esc(a.effective_from||'—')+'</td><td>'+esc(a.effective_until||'No expiry')+'</td><td><span class="badge '+(matches?'success':'warning')+'">'+(matches?'Covers active term':'Needs term review')+'</span></td><td>'+esc(a.reason||'—')+'</td></tr>';
+  }).join('')||'<tr><td colspan="7">No term-specific bursary awards are recorded for this learner.</td></tr>';
+  $('learnerProfileContent').innerHTML+='<div class="panel" id="learnerBursaryReviewPanel" style="margin-top:14px;border:2px solid '+(matchingAward?'#16a34a':'#d97706')+'"><div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Bursary approval review</h3><p class="muted" style="margin:4px 0">Exact bursary records for this learner. Reviewing does not approve, renew or reject an award.</p></div><span class="badge '+(matchingAward?'success':'warning')+'">'+(matchingAward?'Active-term award found':'Term-specific approval required')+'</span></div><p><strong>Active term:</strong> '+(activeTermError?'Could not load active term':activeTerm?esc(activeTerm.name+' · '+(activeTerm.academic_years?.name||'')+' ('+activeTerm.starts_on+' to '+activeTerm.ends_on+')'):'No active term is configured')+'</p><div class="table-wrap"><table><thead><tr><th>Billing period</th><th>Category</th><th>Amount payable</th><th>Effective from</th><th>Expires</th><th>Term check</th><th>Reason</th></tr></thead><tbody>'+bursaryReviewHtml+'</tbody></table></div></div>';
   const parentPortalUrl=window.location.origin+'/p';
   $('learnerProfileContent').innerHTML+='<div class="panel" style="margin-top:14px"><h3>Parent / Guardian Portal Access</h3><p class="muted">Use the same short portal address for every learner. Give the parent this learner’s permanent pupil code separately.</p><p><a href="'+esc(parentPortalUrl)+'" target="_blank" rel="noopener">Open parent portal</a></p><p><strong>Learner pupil code: '+esc(learner.pupil_code||learner.admission_number||'Not recorded')+'</strong></p><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div id="learnerParentPortalQr" style="width:112px;height:112px;background:#fff"></div><div><button type="button" id="copyLearnerParentPortalLink">Copy short portal link</button><p class="muted">Parents enter the pupil code after opening the portal, then verify their registered phone number.</p></div></div></div>';
   if(window.QRCode){$('learnerParentPortalQr').innerHTML='';new QRCode($('learnerParentPortalQr'),{text:parentPortalUrl,width:112,height:112,correctLevel:QRCode.CorrectLevel.M})}
