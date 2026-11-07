@@ -124,3 +124,34 @@ Add one entry for every production release with:
 - known limitations and rollback deployment.
 
 No production release is recorded by this document itself. Update this log only after the corresponding production deployment and checks have actually succeeded.
+
+
+## Parent academic history and fee-gated report cards (requirements added 7 November 2026)
+
+### Full academic history
+- The verified parent account must show a chronological academic history for the learner from admission through the current year, covering every year and term for which CORNHILL has records.
+- Show the learner's full name and permanent pupil code as the heading for the history.
+- Organise results by academic year, term, assessment period and subject. Include Beginning-of-Term, Mid-Term and End-of-Term assessments where recorded; show marks, maximum marks, grades/aggregates/division/position where those values are actually stored or generated for that class level, plus approved teacher comments.
+- Include class progression over time, using the learner's class/enrolment history. Make missing terms or years explicit as "No recorded results" rather than inventing marks or implying the learner was absent.
+- Show teacher attribution for each subject/assessment wherever the records support it. Prefer the teacher who actually entered/approved that assessment (assessment score attribution such as `entered_by` / assessment creator) and retain historical class-subject teacher assignments with effective dates. Do not display only today's subject teacher as though they taught the learner in earlier years.
+- Include a teacher-history timeline grouped by academic year, term, class and subject, showing the teacher's name and role only where historical assignment/assessment records prove the relationship. If historic teacher assignment data was never captured, label it unavailable; do not guess.
+- Preserve all historical records when the learner changes class, leaves and is readmitted, or changes teachers. Use stable learner IDs, not names alone.
+- The parent view must only include that learner's approved/published academic records. Draft, unapproved or staff-only marks/comments must remain hidden.
+
+### Report-card and End-of-Term results fee rule
+- Beginning-of-Term and Mid-Term results may be shown to a verified guardian according to the school's publication settings.
+- End-of-Term results and the generated End-of-Term report card must remain unavailable until the learner has fully cleared the required school-fee charges for the relevant term.
+- A partially paid or unpaid school-fee balance means the End-of-Term result/report remains locked. Do not reveal the End-of-Term marks, grades, position, comments, report-card PDF or a direct download URL while locked.
+- When the finance ledger confirms the relevant term's required school-fee balance is zero (after valid posted payment allocations, bursary adjustments and approved credits), End-of-Term results and the approved report card become available automatically on the next parent request/refresh. No manual staff toggle should be required.
+- Fee clearance must be calculated from authoritative term-level learner charges and posted payment allocations, not a stale summary, a browser-calculated balance, or a parent-supplied value. Include the correct bursary amount/adjustment. For boarding learners, use the single inclusive boarding package charge (tuition/fees plus meals) and do not add a duplicate tuition charge.
+- Keep other optional/non-school-fee purchases separate unless the school's approved fee policy explicitly includes them in the clearance calculation. Any carried school-fee arrears that are part of the learner's required school-fee account must be included consistently.
+- Recheck fee clearance on every server-side request for protected End-of-Term data and report downloads. If a payment is reversed, voided or reallocated and the balance becomes outstanding again, access must lock again.
+- Record an audit event for unlock/lock decisions with learner, term, timestamp and decision reason, without exposing private finance data to other guardians.
+
+### Implementation and verification status
+- Database structures already include assessment scores, assessments, report-card publication approvals, student class history, fee charges, payment allocations, enrolment-period balances, and score-entry attribution. These are useful source records, but the parent PIN response currently returns published assessments and reports without the requested complete academic-history/teacher timeline and without a term-level fee gate for End-of-Term records.
+- Current class-subject teacher assignments represent assignments currently stored in `class_subjects`; they are not by themselves proof of who taught a learner in prior years. Historical assignment records must be retained/added before promising a complete teacher timeline.
+- The current parent PIN verification RPC returns learner data but does not establish a revocable authenticated parent session. Secure parent messaging, signed photo delivery and all protected academic-history/report-card reads must be routed through a scoped, expiring server-side parent session before exposing new parent-only data.
+- No existing historical marks, report cards or teacher records may be fabricated or overwritten to fill gaps. Backfill only from verifiable existing records and clearly label gaps.
+- Required tests include: full-fee payment unlocks End-of-Term results/report; partial payment keeps them locked; no payment keeps them locked; a posted payment allocation unlocks without a manual toggle; a reversed payment re-locks; bursary-adjusted charge clearance is correct; boarding package is not double-counted; parents cannot bypass the gate using direct RPC, API, cached links or report download URLs; Beginning/Mid-Term publication remains independent; guardian A cannot read learner B's history; teacher history is historically accurate or explicitly marked unavailable.
+
