@@ -73,6 +73,45 @@ CORNHILL is a web application/PWA. When a new production release is published to
 
 The current offline support is limited to the application shell. Live database operations, authentication and synchronisation require connectivity; offline data-entry and conflict-safe synchronisation must be implemented and tested before claiming full offline operation.
 
+
+## Parent portal photographs and school communication (requirements added 7 November 2026)
+
+### Learner photographs
+- Admission already supports an optional JPEG, PNG or WebP learner photograph (maximum 4 MB) in the private `learner-photos` bucket. The `students.photo_path` field is present, and the administrator admission/edit workflow uploads and replaces photographs.
+- Staff learner profile and mark-sheet views already generate short-lived signed photo URLs under authenticated storage policies.
+- The parent portal currently does not display a learner photograph. Add it only after the guardian has successfully verified the pupil code, registered phone and 8-digit PIN.
+- Parent photo delivery must use a server-side, short-lived signed URL or equivalent narrowly scoped mechanism. Do not make the `learner-photos` bucket public and do not grant anonymous Storage access.
+- The parent must see only the photograph for the learner linked to that verified guardian contact.
+- Keep photo upload optional at admission. Administrators may add, replace or update the photo later as the learner grows. Preserve the previous photo until the new upload and database path update both succeed; remove obsolete objects only after the replacement is confirmed.
+- Keep upload validation (JPEG/PNG/WebP, 4 MB) and private bucket policies. Consider an audit entry for photo replacement (actor and timestamp), without exposing storage paths to parents.
+
+### Parent-to-school communication
+- Add a private “Contact the School” area inside the verified parent portal.
+- Parents may send typed text messages or recorded voice notes only. Do not add voice calls or video calls.
+- Provide recipient choices for the current active staff directory, grouped sensibly by role/office (e.g. Headteacher, Deputy Headteacher, DOS, Bursar, class teacher, administrator). Include a clear “Send to school administration” option.
+- Allow a parent to choose “Report an issue” and optionally select a relevant staff member. Messages must be routed to the chosen authorised recipient(s), with a school administration oversight queue for reports.
+- Display delivery/receipt status and a parent-visible conversation history for that guardian and learner. Staff must only see conversations addressed to them or explicitly routed to administration.
+- Voice notes need strict MIME/size/duration limits, private storage, signed playback URLs and retention controls. No public audio URLs.
+- No third-party SMS/WhatsApp/OTP provider is required for in-portal messaging. Do not activate paid providers or add calling features.
+
+### Required security architecture before enabling parent messaging
+- The existing parent PIN RPC returns learner information but does not establish an authenticated Supabase user session. Do not simply expose staff directories, message tables, or storage upload policies to the anonymous role.
+- Implement a short-lived, revocable parent portal session/token bound to the exact guardian contact, learner, and verified PIN event. Store only a hash of the token server-side; apply expiry, rate limits and revocation.
+- Route parent message creation, conversation listing, staff directory lookup and voice-note upload through server-side functions that validate that session token and enforce learner/guardian/recipient scope. Keep service-role credentials server-side only.
+- Add database tables, indexes, RLS and audit events for parent conversations/messages and attachments. Explicitly test that one guardian cannot read another learner's messages, and a parent cannot message arbitrary internal accounts outside the active staff directory.
+- Add abuse controls: message length limits, voice-note duration/size limits, rate limiting, reporting/blocking workflow and moderation/retention policy.
+- Test with synthetic guardian accounts and staff accounts before enabling in production. Do not use real family messages as test data.
+
+### Acceptance checks
+1. Photo absent at admission is accepted; all other admission validation still applies.
+2. Admin can add a photo later and replace it; the new image appears on staff learner profile and the verified parent portal.
+3. Failed upload leaves the existing photo path and file intact.
+4. A guardian sees only their linked learner's photo and approved published information.
+5. Parent can send text and a voice note to an active staff member or administration.
+6. Parent cannot view other learners, staff-only messages, internal directories beyond the intended contact list, or another guardian's conversation.
+7. Staff can reply only within permitted conversations; administration can triage issue reports.
+8. No video-call or audio-call controls are present in the parent portal.
+
 ## Release log
 
 Add one entry for every production release with:
