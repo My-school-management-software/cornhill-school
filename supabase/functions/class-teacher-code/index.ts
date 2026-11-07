@@ -44,11 +44,10 @@ Deno.serve(async(req:Request)=>{
  if(oldAccessErr)return out(500,{error:"Could not clear an old class assignment: "+oldAccessErr.message});
  const {error:ae}=await admin.from("class_teacher_access").upsert({class_id:cls.id,user_id:uid},{onConflict:"class_id"});
  if(ae)return out(500,{error:"Class access could not be saved: "+ae.message});
- // Replace the class subject map so the class teacher receives only this class's curriculum subjects.
- const {error:clearSubjectsErr}=await admin.from("class_subjects").delete().eq("class_id",cls.id);
- if(clearSubjectsErr)return out(500,{error:"Could not refresh class subject assignments: "+clearSubjectsErr.message});
+ // Preserve class_subjects row IDs so teacher-history foreign keys remain intact.
+ // Upsert the class curriculum mappings instead of deleting and recreating them.
  const rows=curr.map(x=>({class_id:cls.id,subject_id:x.subject_id,teacher_user_id:uid}));
- const {error:se}=await admin.from("class_subjects").insert(rows);
+ const {error:se}=await admin.from("class_subjects").upsert(rows,{onConflict:"class_id,subject_id"});
  if(se)return out(500,{error:"Class subjects could not be assigned: "+se.message});
  const {error:de}=await admin.from("class_login_directory").update({teacher_name:teacherName,updated_at:new Date().toISOString()}).eq("class_key",classKey);if(de)return out(500,{error:"Class teacher name could not be updated."});
  return out(200,{success:true,class_key:classKey,teacher_name:teacherName,subjects_assigned:rows.length});
