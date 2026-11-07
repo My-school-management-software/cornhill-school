@@ -3343,7 +3343,7 @@ function normaliseImportText(value){return String(value??'').normalize('NFD').re
 function importSubjectAliases(token,group){
  const nursery=group==='NURSERY',lower=group==='P1-P3',upper=group==='P4-P7';
  const common={
-  NU:['Numbers'],NUM:['Numbers'],EN:['English'],ENG:['English'],MTC:['Mathematics'],MT:['Mathematics'],MAT:['Mathematics'],MATH:['Mathematics'],SC:['Science'],SCI:['Science'],SST:['Social Studies'],SS:['Social Studies'],
+  NU:['Numbers'],NUM:['Numbers'],EN:['English'],ENG:['English'],MTC:['Mathematics'],MT:['Mathematics'],MAT:['Mathematics'],MA:['Mathematics'],MATH:['Mathematics'],SC:['Science'],SCI:['Science'],SST:['Social Studies'],SS:['Social Studies'],
   LI1:['Literacy I'],LIT1:['Literacy I'],LI:['Literacy I'],LIT:['Literacy I'],LIT2:['Literacy II'],LI2:['Literacy II'],LT2:['Literacy II'],L12:['Literacy II'],LL:['Local Language'],LOC:['Local Language'],
   RE:['Religious Education'],CRE:['Religious Education'],HH:['Health Habits'],SD:['Social Development'],WR:['Writing'],WRI:['Writing'],DR:['Drawing'],DRAW:['Drawing'],LD:['Language Development']
  };
