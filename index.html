@@ -3340,13 +3340,21 @@ async function loadExcelMarksGrid(){
  await showOfflineAssessmentDraftCount();
 }
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
-function importSubjectAliases(token){
- const map={
-  NU:['NUMBER','NUMERACY','NUMBERWORK'],EN:['ENGLISH','LANGUAGE DEVELOPMENT'],LD:['LANGUAGE DEVELOPMENT','LANGUAGE'],RE:['RELIGIOUS EDUCATION','RELIGION','CRE'],HH:['HEALTH HABITS','HEALTH'],SD:['SOCIAL DEVELOPMENT','SOCIAL STUDIES'],WR:['WRITING'],DR:['DRAWING'],
-  MT:['MATHEMATICS','MATHS','MATH'],MAT:['MATHEMATICS','MATHS','MATH'],MTC:['MATHEMATICS','MATHS','MATH'],ENG:['ENGLISH'],SCI:['SCIENCE'],SC:['SCIENCE'],SST:['SOCIAL STUDIES','SOCIAL STUDIES AND RELIGIOUS EDUCATION'],SS:['SOCIAL STUDIES'],
-  LI1:['LITERACY I','LITERACY 1','LITERACY ONE'],LIT1:['LITERACY I','LITERACY 1','LITERACY ONE'],LI2:['LITERACY II','LITERACY 2','LITERACY TWO'],LIT2:['LITERACY II','LITERACY 2','LITERACY TWO'],LL:['LOCAL LANGUAGE'],LT:['LOCAL LANGUAGE'],LOC:['LOCAL LANGUAGE']
+function importSubjectAliases(token,group){
+ const nursery=group==='NURSERY',lower=group==='P1-P3',upper=group==='P4-P7';
+ const common={
+  NU:['Numbers'],NUM:['Numbers'],EN:['English'],ENG:['English'],MTC:['Mathematics'],MT:['Mathematics'],MAT:['Mathematics'],MATH:['Mathematics'],SC:['Science'],SCI:['Science'],SST:['Social Studies'],SS:['Social Studies'],
+  LI1:['Literacy I'],LIT1:['Literacy I'],LI:['Literacy I'],LIT:['Literacy I'],LIT2:['Literacy II'],LI2:['Literacy II'],LT2:['Literacy II'],L12:['Literacy II'],LL:['Local Language'],LOC:['Local Language'],
+  RE:['Religious Education'],CRE:['Religious Education'],HH:['Health Habits'],SD:['Social Development'],WR:['Writing'],WRI:['Writing'],DR:['Drawing'],DRAW:['Drawing'],LD:['Language Development']
  };
- return map[token]||[];
+ if(nursery){
+  if(token==='EN'||token==='LD')return ['Language Development'];
+  if(token==='RE')return ['Reading'];
+  if(token==='NU')return ['Numbers'];
+ }
+ if(lower&&token==='RE')return ['Religious Education'];
+ if(upper&&token==='SS')return ['Social Studies'];
+ return common[token]||[];
 }
 function importPeriodForColumn(header,clsName){
  const text=String(header||'').toUpperCase(),m=text.match(/(\d+)\s*$/),n=m?Number(m[1]):1;
@@ -3355,8 +3363,9 @@ function importPeriodForColumn(header,clsName){
 }
 function matchImportAssessment(header,ctx){
  const clean=normaliseImportText(header),m=clean.match(/(\d+)$/),suffix=m?m[1]:'1',token=clean.replace(/\d+$/,'');
- const aliases=importSubjectAliases(token);
- const period=importPeriodForColumn(header,classes.find(c=>c.id===ctx.classId)?.name||'');
+ const clsName=classes.find(c=>c.id===ctx.classId)?.name||'',group=curriculumGroupForClass(clsName);
+ const aliases=importSubjectAliases(token,group);
+ const period=importPeriodForColumn(header,clsName);
  const candidates=ctx.assessments.filter(a=>excelAssessmentPeriod(a)===period);
  const found=candidates.find(a=>{
   const subject=normaliseImportText(a.subjects?.name||'');
