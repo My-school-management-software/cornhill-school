@@ -3246,7 +3246,7 @@ function setupExcelMarksFilters(){
  cls.innerHTML='<option value="">Choose class</option>'+classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
  const folders=$('excelClassFolders');if(folders)folders.innerHTML=classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<button type="button" class="module-card" data-excel-class="'+x.id+'"><strong>📁 '+esc(x.name)+'</strong><span>Open class marks folder</span><em>'+esc(curriculumGroupForClass(x.name)||'Class')+'</em></button>').join('');
 }
-function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();const cls=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);if(setBased){const m=t.match(/(?:set|assessment)\s*(iv|4|iii|3|ii|2|i|1)\b/i);if(m){const raw=m[1].toUpperCase();return 'Set '+({1:'I',2:'II',3:'III',4:'IV',I:'I',II:'II',III:'III',IV:'IV'}[raw]||'I')}if(/fourth|assessment\s*4/.test(t))return 'Set IV';if(/third|assessment\s*3/.test(t))return 'Set III';if(/second|assessment\s*2/.test(t))return 'Set II';return 'Set I'}if(/assessment\s*4|fourth assessment|fourth term/.test(t))return 'Fourth';if(/mid.?term|midterm/.test(t))return 'Midterm';if(/^end\b|end.?of.?term|end term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
+function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();const cls=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);if(setBased){const m=t.match(/(?:set|assessment)\s*(iv|4|iii|3|ii|2|i|1)\b/i);if(m){const raw=m[1].toUpperCase();return 'Set '+({1:'I',2:'II',3:'III',4:'IV',I:'I',II:'II',III:'III',IV:'IV'}[raw]||'I')}if(/fourth|assessment\s*4/.test(t))return 'Set IV';if(/third|assessment\s*3|end.?of.?term|\bend\b/.test(t))return 'Set III';if(/second|assessment\s*2|mid.?term/.test(t))return 'Set II';return 'Set I'}if(/assessment\s*4|fourth assessment|fourth term/.test(t))return 'Fourth';if(/mid.?term|midterm/.test(t))return 'Midterm';if(/^end\b|end.?of.?term|end term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
 function excelSubjectOrder(a){const name=(a.subjects?.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');const className=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const group=curriculumGroupForClass(className);let maps;if(group==='Nursery')maps=className.includes('MIDDLE')?['number','language','writing','health','reading','social','drawing']:['number','language','reading','health','social','writing','drawing'];else if(group==='P1-P3')maps=className.includes('P2')||className.includes('PRIMARY2')?['mathematics','english','literacyi','local','literacyii','religious']:className.includes('P3')||className.includes('PRIMARY3')?['english','mathematics','literacyi','literacyii','religious','local']:['english','mathematics','literacyi','literacyii','local','religious'];else maps=className.includes('P4')||className.includes('PRIMARY4')?['mathematics','english','science','socialstudies']:['english','mathematics','science','socialstudies'];const i=maps.findIndex(k=>name.includes(k));return i<0?99:i;}
 function excelSubjectLabel(assessment,index,clsArg){
  const subject=assessment.subjects||{},name=(subject.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -3342,7 +3342,7 @@ async function loadExcelMarksGrid(){
 }
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function importSubjectAliases(token,group){
- const nursery=group==='NURSERY',lower=group==='P1-P3',upper=group==='P4-P7';
+ const nursery=group==='Nursery',lower=group==='P1-P3',upper=group==='P4-P7';
  const common={
   NU:['Numbers'],NUM:['Numbers'],EN:['English'],ENG:['English'],MTC:['Mathematics'],MT:['Mathematics'],MAT:['Mathematics'],MA:['Mathematics'],MATH:['Mathematics'],SC:['Science'],SCI:['Science'],SST:['Social Studies'],SS:['Social Studies'],
   LI1:['Literacy I'],LIT1:['Literacy I'],LI:['Literacy I'],LIT:['Literacy I'],LIT2:['Literacy II'],LI2:['Literacy II'],LT2:['Literacy II'],L12:['Literacy II'],LL:['Local Language'],LOC:['Local Language'],
@@ -3505,8 +3505,9 @@ $('prepareExcelAssessments').addEventListener('click',async()=>{
   if(!subjectIds.length)throw new Error('No active curriculum subjects are configured for '+group+'.');
   const {data:existing,error:existingError}=await db.from('assessments').select('subject_id,title').eq('class_id',classId).eq('term_id',termId);
   if(existingError)throw existingError;
-  const phases=[{phase:'Beginning',title:'Beginning Assessment'},{phase:'Midterm',title:'Midterm Assessment'},{phase:'End',title:'End of Term Assessment'}];
-  if(/P\.?\s*7|PRIMARY\s*7/i.test(cls.name))phases.push({phase:'Fourth',title:'Fourth Assessment'});
+  const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls.name);
+  const phases=setBased?[{phase:'Set I',title:'Set I Assessment'},{phase:'Set II',title:'Set II Assessment'},{phase:'Set III',title:'Set III Assessment'}]:[{phase:'Beginning',title:'Beginning Assessment'},{phase:'Midterm',title:'Midterm Assessment'},{phase:'End',title:'End of Term Assessment'}];
+  if(/P\.?\s*7|PRIMARY\s*7/i.test(cls.name))phases.push({phase:'Set IV',title:'Set IV Assessment'});
   const present=new Set((existing||[]).map(x=>x.subject_id+'|'+excelAssessmentPeriod(x)));
   const userResult=await db.auth.getUser();if(userResult.error||!userResult.data?.user)throw new Error('Your administrator session has expired. Sign in again.');
   const missing=[];
