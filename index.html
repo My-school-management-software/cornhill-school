@@ -1628,6 +1628,7 @@ if(!db){message('loginMsg','The secure sign-in service could not load. Check you
 function tab(name){
  const workspaces=['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','inventory','reports','midtermAdmissions','communication','settings','learnerProfile','parentAccess'];
  if(!workspaces.includes(name))return;
+ $('adminParentPortalDirectory')?.classList.toggle('hidden',profile?.role!=='Admin');
  if(window.cornhillOfflineReadOnly&&!['dashboard','students','classes'].includes(name))return;
  if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;
  if(profile?.role==='Teacher'&&!['dashboard','academics','communication','students','classes','learnerProfile','parentAccess'].includes(name))return;
@@ -5140,7 +5141,6 @@ async function loadAdminParentPortalDirectory(){
  }catch(e){showStatus('adminParentPortalDirectoryStatus','Could not load the register. Sign in as a school administrator or check database permissions.',true)}finally{btn.disabled=false}
 }
 document.addEventListener('DOMContentLoaded',()=>{
-  if(profile?.role==='Admin')$('adminParentPortalDirectory')?.classList.remove('hidden');
   $('refreshAdminParentPortalDirectory')?.addEventListener('click',loadAdminParentPortalDirectory);
   $('adminParentPortalSearch')?.addEventListener('input',renderAdminParentPortalDirectory);
   $('adminParentPortalClass')?.addEventListener('change',renderAdminParentPortalDirectory);
