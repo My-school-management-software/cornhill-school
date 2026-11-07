@@ -1030,7 +1030,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <div id="admissionMatchResults"></div>
  <div id="admissionMatchActions" class="row" style="gap:8px;margin-top:10px"></div>
 </div>
-<form id="studentForm"><div class="full"><label>Permanent learner code</label><div class="notice">Generated automatically when you save this admission. It is permanent and will not change when the learner changes class.</div></div><div><label>First name *</label><input name="first_name" required></div><div><label>Middle name</label><input name="middle_name"></div><div><label>Last name *</label><input name="last_name" required></div><div><label>Gender *</label><select name="gender" required><option value="">Choose gender</option><option>Male</option><option>Female</option></select></div><div><label>Year of birth (needed for permanent code)</label><input name="birth_year" type="number" min="1900" max="2026" step="1" placeholder="e.g. 2005"></div><div><label>Date of birth (optional)</label><input name="date_of_birth" type="date"></div><div><label>Date of admission</label><input name="admission_date" type="date"></div>
+<form id="studentForm"><div class="full"><label>Permanent learner code</label><div class="notice">Generated automatically when you save this admission. If an administrator corrects the learner’s gender or year of birth, a new code is generated. Previous codes remain linked to the same learner and historical records.</div></div><div><label>First name *</label><input name="first_name" required></div><div><label>Middle name</label><input name="middle_name"></div><div><label>Last name *</label><input name="last_name" required></div><div><label>Gender *</label><select name="gender" required><option value="">Choose gender</option><option>Male</option><option>Female</option></select></div><div><label>Year of birth (needed for permanent code)</label><input name="birth_year" type="number" min="1900" max="2026" step="1" placeholder="e.g. 2005"></div><div><label>Date of birth (optional)</label><input name="date_of_birth" type="date"></div><div><label>Date of admission</label><input name="admission_date" type="date"></div>
 <div class="full panel" style="padding:14px;background:var(--panel);border:1px solid var(--line)">
  <label style="display:flex;align-items:center;gap:10px;font-weight:800"><input name="admission_prorate" id="admissionProrate" type="checkbox" value="true" style="width:20px;height:20px"> Calculate this learner's fees from the admission date (optional)</label>
  <small class="muted">When enabled, the system divides the selected full-term charges by all calendar days in the active term, including weekends, then multiplies by the remaining calendar days. When disabled, normal full-term charges apply.</small>
@@ -4451,7 +4451,7 @@ $('studentRows').addEventListener('click',async e=>{
  form.elements.is_bursary.value=String(!!learner.is_bursary);form.elements.guardian_sms_opt_in.checked=!!learner.guardian_sms_opt_in;
  syncBursaryAdmissionFields();
  form.querySelector('button[type="submit"]').textContent='Update learner record';$('studentFormTitle').textContent='Edit learner record';$('cancelLearnerEdit').classList.remove('hidden');await restoreLocalAutosaveForm(form,'learner-edit-'+learner.id,'appMsg');tab('register');
- message('appMsg','Editing learner record. The permanent school learner code will not change.');
+ message('appMsg','Editing learner record. Correcting gender or year of birth will generate a new pupil code. Previous codes and all learner history remain linked.');
 });
 function syncBoardingMealControls(){
  const form=$('studentForm');if(!form)return;
@@ -4609,8 +4609,21 @@ $('studentForm').addEventListener('submit',async e=>{
  }else{
   record.bursary_category=null;record.bursary_reason=null;record.bursary_notes=null;record.bursary_fee_ugx=0;
  }
- if(!record.class_id)record.class_id=null;record.birth_year=record.birth_year?Number(record.birth_year):null;if(record.birth_year!==null&&(!Number.isInteger(record.birth_year)||record.birth_year<1900||record.birth_year>new Date().getFullYear())){message('appMsg','Enter a valid year of birth or leave it blank for now.',true);return}if(!record.date_of_birth)record.date_of_birth=null;if(!record.admission_date)record.admission_date=null;
- const wasEditing=!!editingStudentId,editDraftKey=wasEditing?'learner-edit-'+editingStudentId:null;
+ if(!record.class_id)record.class_id=null;record.birth_year=record.birth_year?Number(record.birth_year):null;if(record.birth_year!==null&&(!Number.isInteger(record.birth_year)||record.birth_year<1900||record.birth_year>new Date().getFullYear())){message('appMsg','Enter a valid year of birth or leave it blank for now.',true);return}if(!record.date_of_birth)record.date_of_birth=null;
+ if(record.date_of_birth&&record.birth_year!==null&&Number(record.birth_year)!==Number(record.date_of_birth.slice(0,4))){
+  const prior=existingLearnerBeforeSave;
+  const birthYearChanged=!!prior&&Number(record.birth_year)!==Number(prior.birth_year||0);
+  const dobChanged=!!prior&&(record.date_of_birth!==(prior.date_of_birth||null));
+  if(prior&&dobChanged&&!birthYearChanged){record.birth_year=Number(record.date_of_birth.slice(0,4));}
+  else if(prior&&birthYearChanged&&!dobChanged){
+   const parts=record.date_of_birth.split('-').map(Number),year=Number(record.birth_year),month=parts[1],day=parts[2];
+   const maxDay=new Date(Date.UTC(year,month,0)).getUTCDate();
+   record.date_of_birth=String(year).padStart(4,'0')+'-'+String(month).padStart(2,'0')+'-'+String(Math.min(day,maxDay)).padStart(2,'0');
+  }else{message('appMsg','Year of birth and date of birth must match. Correct both fields to the same year before saving.',true);return}
+ }
+ if(record.date_of_birth&&record.birth_year===null)record.birth_year=Number(record.date_of_birth.slice(0,4));
+ if(!record.admission_date)record.admission_date=null;
+ const wasEditing=!!editingStudentId,existingLearnerBeforeSave=wasEditing?students.find(x=>x.id===editingStudentId):null,previousLearnerCode=existingLearnerBeforeSave?.admission_number||null,editDraftKey=wasEditing?'learner-edit-'+editingStudentId:null;
  // admission_complete is computed securely by the database trigger; do not send this protected column from the browser.
  delete record.admission_complete;
  if(!wasEditing){
@@ -4643,7 +4656,7 @@ $('studentForm').addEventListener('submit',async e=>{
  }
  editingStudentId=null;e.target.reset();clearAdmissionMatches();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();e.target.querySelector('button[type="submit"]').textContent='Save student record';
  await refresh();if(!wasEditing&&record.class_id){tab('classes');currentRosterClassId=record.class_id;$('classRosterSearch').value='';$('classRosterStatus').value='all';renderClassRoster()}else tab('students');
- message('appMsg',(wasEditing?'Learner record updated. Permanent school learner code '+result.data.admission_number+' was retained.':'Student registered successfully. School learner code: '+result.data.admission_number+'. Ministry LIN: '+(result.data.lin||'to be entered when officially issued')+'. P7 index: '+(result.data.p7_index_number||'to be entered when registered')+(record.is_bursary?'. '+record.bursary_category+' recorded: UGX '+money(record.bursary_fee_ugx)+' payable. The compulsory reason and administrator approval details were saved. '+(record.bursary_fee_ugx>0?'A bursary charge was created automatically.':'No charge was created because the approved amount is UGX 0.'):'')+'. Please record this code on the learner file.')+feeScheduleNote+photoWarning,!!photoWarning);
+ message('appMsg',(wasEditing?'Learner record updated. '+(previousLearnerCode&&previousLearnerCode!==result.data.admission_number?'Pupil code regenerated from '+previousLearnerCode+' to '+result.data.admission_number+'. The old code remains a valid historical reference; teachers and administrators have been notified.':'Pupil code '+result.data.admission_number+' was retained.'):'Student registered successfully. School learner code: '+result.data.admission_number+'. Ministry LIN: '+(result.data.lin||'to be entered when officially issued')+'. P7 index: '+(result.data.p7_index_number||'to be entered when registered')+(record.is_bursary?'. '+record.bursary_category+' recorded: UGX '+money(record.bursary_fee_ugx)+' payable. The compulsory reason and administrator approval details were saved. '+(record.bursary_fee_ugx>0?'A bursary charge was created automatically.':'No charge was created because the approved amount is UGX 0.'):'')+'. Please record this code on the learner file.')+feeScheduleNote+photoWarning,!!photoWarning);
  }catch(err){
   message('appMsg','Learner record processing stopped unexpectedly. Check the learner register before retrying: '+(err?.message||'Unknown error'),true);
  }finally{
