@@ -318,3 +318,34 @@ No production release is recorded by this document itself. Update this log only 
 - The post-change Security Advisor still reports 14 RLS-enabled tables without client policies. The new school_notifications table is intentionally included: direct SELECT is revoked from anon and authenticated, and the feed is available only through controlled RPC functions with sign-in and role/recipient checks.
 - The advisor reports 27 authenticated-callable SECURITY DEFINER functions across the project. The notification list/archive and bursary-review lookup RPCs are intentionally callable by signed-in users but check the current user and role before returning or changing anything. Trigger-only notification functions have direct EXECUTE revoked.
 - Existing warnings for pg_net in the public schema and leaked-password protection being disabled remain; no extension move or paid-plan change was made.
+
+
+## Correctable pupil codes, historical aliases and parent/teacher notices — 7 November 2026
+
+- Permanent pupil codes now regenerate only when an administrator corrects the learner's gender or effective year of birth. The original admission year is retained. Ordinary edits, class changes, name corrections and other profile changes do not regenerate the code.
+- When date of birth and year of birth are both supplied, their years must agree when either field is corrected. The learner-edit form synchronises the two fields when only one is changed and preserves unchanged legacy records if their existing values do not agree.
+- The learner's UUID remains unchanged. The previous pupil code is stored in a private alias table and the change is written to a private audit table. Old receipt snapshots and historical documents are not rewritten.
+- Parent sign-in, PIN reset/change and teacher visiting-day lookup resolve the current code or a historical alias, while still verifying the registered guardian contact, PIN, learner status and teacher's assigned class.
+- Parents who sign in with an earlier code see the current code after successful verification. The sign-in page also explains that a previous code may be accepted for this verified sign-in. Teachers who search an old code see the current code and receive a school notification; the assigned class teacher(s) also receive a notification automatically.
+- Administrators can search the learner register and payment selector using a previous code. Alias and audit tables are not directly readable by anon/authenticated clients; historical-code search is available through an administrator-checked RPC.
+- Database test: a synthetic learner was inserted and updated inside a rolled-back transaction. Gender correction, birth-year correction, two historical aliases, two audit entries, administrator notifications, unrelated-edit stability, and rejection of manual code edits all passed. No synthetic row or alias was retained and no real learner code was changed.
+- Parent Portal API version 12 is ACTIVE and includes the verified-parent code-change notice. The updated \`parents.html\` and \`index.html\` pass syntax parsing (1/1 and 7/7 inline scripts respectively). Live parent sign-in with an old alias and live teacher notification display remain pending visual/runtime tests.
+- Migrations recorded in Supabase:
+  - \`20261107142105_enable_safe_learner_code_regeneration_and_alias_lookup.sql\`
+  - \`20261107142133_fix_after_trigger_for_generated_learner_code_changes.sql\`
+  - \`20261107142150_remove_denormalized_view_update_from_code_change_trigger.sql\`
+  - \`20261107142249_allow_unchanged_legacy_dob_year_mismatch_during_other_edits.sql\`
+  - \`20261107142425_show_teacher_notice_when_old_pupil_code_is_used.sql\`
+  - \`20261107142641_add_admin_historical_learner_code_search.sql\`
+
+## Final active-term bursary charge safeguards — 7 November 2026
+
+- The active-term bursary label now matches the fee-schedule convention: \`Academic Year · Term\` (for example, \`2026 · Term 3\`). The approval form defaults to that exact label.
+- A new approval is attached to the learner's active enrolment period, current academic year and term, and the correct fee item. Day learners use the School fees item; boarding learners use the single inclusive Boarding package.
+- The fee-schedule routine skips the normal Boarding package when an active-term bursary award exists, preventing a second full boarding charge.
+- Full bursary awards (UGX 0 payable) remove an unpaid matching current-term charge rather than trying to set a charge to zero (charges must be positive). Partial awards update an unpaid matching charge or create a properly term-linked charge.
+- If a matching charge already has payment allocations and the approved amount would change it, the approval is blocked for bursar reconciliation. Existing receipts and allocations are not rewritten.
+- The existing Term 2 award was not changed. It remains flagged for review under the current Term 3 calendar. No new bursary approval or financial charge was created during these implementation checks.
+- Migration: \`20261107143153_correct_term_scoped_bursary_charge_and_boarding_package_handling.sql\`.
+- Verification: the database function now uses the active enrolment period, blocks changes to already-allocated charges, handles zero-payable charges without violating the positive-charge constraint, and keeps boarding bursaries on the inclusive package. Full live approval with an authenticated administrator and a synthetic learner remains pending.
+
