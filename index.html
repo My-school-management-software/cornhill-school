@@ -3423,8 +3423,8 @@ function excelSubjectLabel(assessment,index,clsArg){
   const isP2=/P\.?\s*2|PRIMARY\s*2/.test(className),isP3=/P\.?\s*3|PRIMARY\s*3/.test(className);
   if(contains('english'))prefix=isP2||isP3?'EN':'ENG';
   else if(contains('mathematics','maths'))prefix=isP2||isP3?'MT':'MTC';
-  else if(contains('literacyi','literacy1'))prefix=isP2||isP3?'LI1':'LIT1';
   else if(contains('literacyii','literacy2'))prefix=isP2||isP3?'LI2':'LIT2';
+  else if(contains('literacyi','literacy1'))prefix=isP2||isP3?'LI1':'LIT1';
   else if(contains('local','language'))prefix='LL';
   else if(contains('religious','religion'))prefix='RE';
  }else{
