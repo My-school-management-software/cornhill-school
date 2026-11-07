@@ -1260,16 +1260,6 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
    <button type="button" id="exportExcelMarks" disabled>Export marks · Excel</button>
   </div>
-  <div id="teacherExcelTransfer" style="margin:12px 0;padding:12px;border:1px solid #dce7de;border-radius:10px">
-   <h4>Import existing marks from Excel</h4>
-   <p class="muted">Teacher account only · Select the matching class and term above, load its class sheet, then choose your original workbook. Learners are matched to existing school records; names and learner records are never created or changed by this import.</p>
-   <input id="teacherMarksWorkbook" type="file" accept=".xlsx,.xls,.xlsm" />
-   <label><input id="replaceExistingImportedMarks" type="checkbox"> Replace marks that already exist (leave unticked to protect saved marks)</label>
-   <button type="button" id="previewTeacherMarksImport">Preview Excel marks</button>
-   <button type="button" class="primary" id="confirmTeacherMarksImport" disabled>Import matched marks</button>
-   <div id="teacherMarksImportMsg" class="notice hidden"></div>
-   <div class="table-wrap"><table><thead><tr><th>Workbook learner</th><th>Match</th><th>Marks found</th><th>Result</th></tr></thead><tbody id="teacherMarksImportRows"><tr><td colspan="4">Choose a workbook to preview its marks.</td></tr></tbody></table></div>
-  </div>
    <button type="button" id="saveExcelMarks">Save all marks</button><button type="button" id="syncOfflineMarks">Synchronise pending offline marks</button>
   </div>
   <div id="excelMarksMsg" class="notice hidden" style="margin-top:10px"></div>
@@ -1281,6 +1271,17 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
   </div>
   <p class="muted">All assessment columns are available to the assigned teacher. Marks autosave as you enter them: online changes synchronise after a short pause; offline changes remain as device drafts until synchronisation. Conflicts are held for review and are not allowed to overwrite newer marks. The Save all marks button remains available as a manual fallback. Totals, grades, positions and aggregates are calculated from saved marks.</p>
  </div>
+   <div id="teacherExcelTransfer" style="margin:12px 0;padding:12px;border:1px solid #dce7de;border-radius:10px">
+   <h4>Import existing marks from Excel</h4>
+   <p class="muted">Teacher account only · Select the matching class and term above, load its class sheet, then choose your original workbook. Learners are matched to existing school records; names and learner records are never created or changed by this import.</p>
+   <input id="teacherMarksWorkbook" type="file" accept=".xlsx,.xls,.xlsm" />
+   <label><input id="replaceExistingImportedMarks" type="checkbox"> Replace marks that already exist (leave unticked to protect saved marks)</label>
+   <button type="button" id="previewTeacherMarksImport">Preview Excel marks</button>
+   <button type="button" class="primary" id="confirmTeacherMarksImport" disabled>Import matched marks</button>
+   <div id="teacherMarksImportMsg" class="notice hidden"></div>
+   <div class="table-wrap"><table><thead><tr><th>Workbook learner</th><th>Match</th><th>Marks found</th><th>Result</th></tr></thead><tbody id="teacherMarksImportRows"><tr><td colspan="4">Choose a workbook to preview its marks.</td></tr></tbody></table></div>
+  </div>
+
  </div>
  <h3 style="margin-top:20px">Grading bands</h3>
  <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
