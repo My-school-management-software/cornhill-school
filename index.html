@@ -456,6 +456,42 @@ body[data-motion="on"] .panel,body[data-motion="on"] .stat,body[data-motion="on"
 body[data-density="compact"] #dashboard .panel,body[data-density="compact"] #dashboard .stat{padding:12px}
 body[data-density="compact"] #dashboard .module-grid{gap:8px}
 body[data-density="compact"] #dashboard .module-card{min-height:105px;padding:11px}
+</style><style id="cornhill-dashboard-layout-and-trends">
+@media(min-width:701px){
+ .wrap:has(#app){width:calc(100% - 36px);max-width:1780px}
+ #app{width:100%;max-width:none}
+ #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type,#app>section:not(.tabs),#app>.module-preview{margin-left:260px}
+ #app .cornhill-sidebar{position:fixed;top:132px;bottom:18px;left:18px;width:222px;max-height:calc(100vh - 150px);z-index:35}
+ #app>.grid:first-of-type{margin-right:0}
+}
+@media(min-width:701px) and (max-width:900px){
+ .wrap:has(#app){width:calc(100% - 24px)}
+ #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type,#app>section:not(.tabs),#app>.module-preview{margin-left:222px}
+ #app .cornhill-sidebar{left:10px;width:194px;top:122px;bottom:12px}
+}
+@media(max-width:700px){
+ .wrap:has(#app){width:100%;max-width:none;padding-left:10px;padding-right:10px}
+ #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type,#app>section:not(.tabs),#app>.module-preview{margin-left:0}
+ #app .cornhill-sidebar{position:relative;top:auto;bottom:auto;left:auto;width:100%;max-height:none}
+}
+#app>.grid:first-of-type>.stat{min-height:132px;padding:23px 25px}
+#app>.grid:first-of-type>.stat .num{font-size:clamp(28px,3vw,38px)}
+#dashboard{width:auto;max-width:none;padding:clamp(20px,2.5vw,34px)!important}
+#dashboard .dashboard-intro{padding:clamp(22px,2.4vw,32px);min-height:132px}
+#dashboard .module-grid{gap:18px!important}
+#dashboard .module-grid>.module-card{height:auto!important;min-height:178px!important;padding:22px!important}
+#dashboard .module-grid>.module-card strong{font-size:16px!important}
+#dashboard .module-grid>.module-card span{font-size:13px!important;min-height:38px}
+#dashboard .records-chart-grid>div{padding:18px;min-height:300px}
+#dashboard .records-chart{min-height:250px;max-height:360px}
+#dashboard .records-chart svg{max-height:340px}
+#dashboard #dashboardLearnerTrendChart{min-height:260px}
+#dashboard .records-chart-grid>#dashboardTrendPanel{grid-column:1/-1}
+@media(max-width:700px){
+ #dashboard{padding:14px!important}
+ #dashboard .module-grid>.module-card{min-height:148px!important;padding:15px!important}
+ #dashboard .records-chart-grid>div{min-height:240px;padding:12px}
+}
 </style></head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -476,7 +512,7 @@ body[data-density="compact"] #dashboard .module-card{min-height:105px;padding:11
  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:14px"><div><label for="dashboardTermSelect">Select active term</label><select id="dashboardTermSelect" style="width:100%"><option value="">No active term selected</option></select></div><div><label>Academic year</label><div id="dashboardYearDisplay" class="summary-value">Not set</div></div><div><label>Term dates</label><div id="dashboardTermDates" class="summary-value">Not set</div></div></div>
  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="primary" id="setActiveAcademicTerm">Set selected term as active</button><button type="button" id="openAcademicCalendar">Manage dates & term closing</button></div>
  <p class="muted" id="academicControlHelp" style="margin:10px 0 0">Only administrators can change the active term. Teachers can view the current school term.</p>
-</section><div class="module-grid"><div class="panel" style="margin:12px 0"><h3>Live school snapshot</h3><p class="muted">A quick visual summary of the learners visible to your account.</p><div class="records-chart-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px"><div><strong>Active learners by class</strong><div id="dashboardEnrolmentChart" class="records-chart">Loading school figures…</div></div><div><strong>Learner gender distribution</strong><div id="dashboardGenderChart" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-height:170px"><span class="muted">Loading school figures…</span></div></div></div>
+</section><div class="module-grid"><div class="panel" style="margin:12px 0"><h3>Live school snapshot</h3><p class="muted">A quick visual summary of the learners visible to your account.</p><div class="records-chart-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px"><div><strong>Active learners by class</strong><div id="dashboardEnrolmentChart" class="records-chart">Loading school figures…</div></div><div><strong>Learner gender distribution</strong><div id="dashboardGenderChart" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-height:170px"><span class="muted">Loading school figures…</span></div></div><div id="dashboardTrendPanel"><strong>Learner admission trend</strong><p class="muted" style="margin:3px 0 8px">Cumulative admissions by month, using recorded admission dates.</p><div id="dashboardLearnerTrendChart" class="records-chart">Preparing trend data…</div></div></div></div>
 <div id="dashboardIncomeForecastPanel" class="panel hidden" style="margin-top:14px">
  <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><strong>School population & meal plan</strong><p class="muted" style="margin:3px 0">Live counts of active learners and selected services.</p></div><span id="dashboardForecastTerm" class="badge">Current term</span></div>
  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px">
@@ -1340,6 +1376,7 @@ async function refresh(){clearMessage('appMsg');if(!navigator.onLine){if(await r
 function render(){ $('totalStudents').textContent=students.length;$('activeStudents').textContent=students.filter(s=>s.status==='Active').length;$('totalClasses').textContent=classes.length;
  const activeForChart=students.filter(x=>x.status==='Active'),classCounts=new Map();for(const x of activeForChart){const name=x.school_classes?.name||classes.find(c=>c.id===x.class_id)?.name||'Unassigned';classCounts.set(name,(classCounts.get(name)||0)+1)}
  renderRecordsBarChart('dashboardEnrolmentChart',[...classCounts].map(([label,value])=>({label,value})));
+ renderLearnerAdmissionTrend('dashboardLearnerTrendChart',students);
  const female=activeForChart.filter(x=>String(x.gender||'').toLowerCase()==='female').length,male=activeForChart.filter(x=>String(x.gender||'').toLowerCase()==='male').length,other=Math.max(0,activeForChart.length-female-male),total=Math.max(1,activeForChart.length),femalePct=female/total*100,malePct=male/total*100;
  $('dashboardGenderChart').innerHTML=activeForChart.length?'<div aria-label="Gender distribution: '+female+' female, '+male+' male, '+other+' other or unspecified" style="width:116px;height:116px;border-radius:50%;background:conic-gradient(#db70a4 0 '+femalePct+'%,#4b91d1 '+femalePct+'% '+(femalePct+malePct)+'%,#a3a3a3 '+(femalePct+malePct)+'% 100%);position:relative;flex:0 0 auto"><div style="position:absolute;inset:18px;border-radius:50%;background:var(--cornhill-panel);display:grid;place-items:center;font-weight:800">'+activeForChart.length+'</div></div><div style="font-size:13px;line-height:1.9"><div>● Female: '+female+'</div><div>● Male: '+male+'</div><div>● Other / not recorded: '+other+'</div></div>':'<span class="records-chart-empty">No active learners available for this account.</span>';
 
@@ -3317,6 +3354,19 @@ function recordsBucket(dateValue,mode,terms=[]){
  if(mode==='week'){const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));x.setUTCDate(x.getUTCDate()+4-(x.getUTCDay()||7));const y0=new Date(Date.UTC(x.getUTCFullYear(),0,1));return x.getUTCFullYear()+' W'+String(Math.ceil((((x-y0)/86400000)+1)/7)).padStart(2,'0')}
  if(mode==='day')return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
  const term=terms.find(t=>dateValue>=t.starts_on&&dateValue<=t.ends_on);return term?term.name+' '+(term.academic_years?.name||''):'Outside term';
+}
+function renderLearnerAdmissionTrend(hostId,learners){
+ const host=$(hostId);if(!host)return;
+ const buckets=new Map();
+ for(const learner of learners||[]){const raw=learner.admission_date||learner.created_at;if(!raw)continue;const d=new Date(raw);if(Number.isNaN(d.getTime()))continue;const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');buckets.set(key,(buckets.get(key)||0)+1)}
+ const entries=[...buckets.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+ if(entries.length<2){host.innerHTML='<div class="records-chart-empty">A trend line will appear when at least two different admission months have recorded dates. No sample figures are added.</div>';return}
+ let running=0;const points=entries.map(([month,count])=>{running+=count;return {month,value:running}}),w=760,h=270,left=54,right=24,top=20,bottom=48,pw=w-left-right,ph=h-top-bottom,max=Math.max(1,...points.map(p=>p.value)),step=points.length>1?pw/(points.length-1):pw;
+ const coords=points.map((p,i)=>({x:left+i*step,y:top+ph-(p.value/max)*ph,...p}));
+ const poly=coords.map(p=>p.x+','+p.y).join(' '),dots=coords.map(p=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="4.5" fill="var(--cornhill-accent)" stroke="var(--cornhill-panel)" stroke-width="2"><title>'+esc(p.month)+': '+p.value+' cumulative admissions</title></circle><text x="'+p.x+'" y="'+(p.y-10)+'" text-anchor="middle" font-size="10" fill="var(--cornhill-ink)">'+p.value+'</text>').join('');
+ const labels=coords.map(p=>'<text x="'+p.x+'" y="'+(h-18)+'" text-anchor="middle" font-size="10" fill="var(--cornhill-muted)">'+esc(p.month)+'</text>').join('');
+ const grid=[0,.25,.5,.75,1].map(f=>{const y=top+ph-f*ph,val=Math.round(max*f);return '<line x1="'+left+'" y1="'+y+'" x2="'+(w-right)+'" y2="'+y+'" stroke="var(--cornhill-line)" stroke-dasharray="3 4"/><text x="'+(left-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="var(--cornhill-muted)">'+val+'</text>'}).join('');
+ host.innerHTML='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Cumulative learner admissions trend line chart">'+grid+'<polyline points="'+poly+'" fill="none" stroke="var(--cornhill-accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>'+dots+labels+'</svg>';
 }
 function renderRecordsBarChart(hostId,items,format='number'){
  const host=$(hostId);if(!items?.length){host.innerHTML='<div class="records-chart-empty">No verified records are available for this chart yet.</div>';return}
