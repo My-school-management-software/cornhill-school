@@ -3256,7 +3256,7 @@ function excelSubjectLabel(assessment,index,clsArg){
  const prefix=found?.[found.length-1]||(subject.code||subject.name||assessment.title||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
  return prefix.toUpperCase()+n;
 }
-function excelPhaseCode(phase){return phase==='Beginning'?1:phase==='Midterm'?2:phase==='End'?3:4}
+function excelPhaseCode(phase){return phase==='Beginning'||phase==='Set I'?1:phase==='Midterm'||phase==='Set II'?2:phase==='End'||phase==='Set III'?3:4}
 function excelGradeMarkup(assessment,mark){
  if(!mark)return '—';
  if(isAbsentMark(mark))return 'X';
@@ -3265,7 +3265,7 @@ function excelGradeMarkup(assessment,mark){
 }
 function recalculateExcelMarkSheet(){
  const ctx=window.cornhillExcelMarksContext;if(!ctx)return;
- const {assessments,students:list}=ctx,phases=['Beginning','Midterm','End','Fourth'],saved=ctx.savedMarks||new Map();
+ const {assessments,students:list}=ctx,className=String(classes.find(c=>c.id===ctx.classId)?.name||''),setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(className),phases=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'],saved=ctx.savedMarks||new Map();
  const results=new Map();
  phases.forEach(phase=>{
   const phaseAssessments=assessments.filter(a=>excelAssessmentPeriod(a)===phase);
@@ -3296,7 +3296,7 @@ function recalculateExcelMarkSheet(){
    const code=excelPhaseCode(phase),totalCell=document.querySelector('[data-calc-total="'+phase+'|'+learner.id+'"]'),posCell=document.querySelector('[data-calc-position="'+phase+'|'+learner.id+'"]');
    if(totalCell)totalCell.textContent=result.entered?result.total:'—';
    const className=String(classes.find(c=>c.id===ctx.classId)?.name||'').trim();
-   if(posCell)posCell.textContent=(['P6','P7'].includes(className)?'—':(result.position||'—'));
+   if(posCell)posCell.textContent=(/P\.?\s*[67]|PRIMARY\s*[67]/i.test(className)?'—':(result.position||'—'));
    const aggCell=document.querySelector('[data-calc-aggregate="'+phase+'|'+learner.id+'"]'),divCell=document.querySelector('[data-calc-division="'+phase+'|'+learner.id+'"]');
    if(aggCell)aggCell.textContent=result.division?.ready?result.division.aggregate:'—';
    if(divCell)divCell.textContent=result.division?.ready?'Division '+result.division.division:'—';
@@ -3310,18 +3310,19 @@ async function loadExcelMarksGrid(){
  if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
  const cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
  const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId);
- const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>{const p=['Beginning','Midterm','End','Fourth'];return p.indexOf(excelAssessmentPeriod(a))-p.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b)});
+ const setBasedClass=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phaseOrder=setBasedClass?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'];
+ const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>phaseOrder.indexOf(excelAssessmentPeriod(a))-phaseOrder.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b));
  if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments exist for this class and term. Create the subject assessments for Beginning, Midterm and End of term first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
  const list=students.filter(x=>x.class_id===classId).sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||a.first_name.localeCompare(b.first_name));
  if(!list.length){head.innerHTML='<tr><th>Class register</th></tr>';body.innerHTML='<tr><td>No learners are enrolled in '+esc(cls?.name||'this class')+'. Register learners first.</td></tr>';message('excelMarksMsg','No learners are enrolled in this class.',true);return}
  const ids=assessments.map(x=>x.id);
- const showPosition=!['P6','P7'].includes(String(cls?.name||'').trim());
+ const showPosition=!setBasedClass;
  const {data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
  const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x]));
  window.cornhillExcelMarksContext={termId,classId,phase:phaseFilter,assessments,students:list,savedMarks:saved};
  $('exportExcelMarks').disabled=profile?.role!=='Teacher';
- const phases=phaseFilter==='All'?['Beginning','Midterm','End','Fourth']:[phaseFilter];
+ const phases=phaseFilter==='All'?phaseOrder:[phaseFilter];
  const phaseBlocks=phases.map(phase=>{const items=assessments.filter(a=>excelAssessmentPeriod(a)===phase),code=excelPhaseCode(phase);return {phase,items,code}});
  const groupHeader=phaseBlocks.map(block=>'<th colspan="'+(block.items.length+1+(group==='P4-P7'?2:0)+(showPosition?1:0))+'" class="'+(block.phase==='Beginning'?'beginning-column':'')+'">'+esc(block.phase)+' assessment</th>').join('');
  const secondHeader=phaseBlocks.map(block=>block.items.map(a=>'<th title="'+esc(a.title)+'" class="'+(block.phase==='Beginning'?'beginning-column':'')+'">'+esc(excelSubjectLabel(a,0,cls))+'<div style="font-size:10px;font-weight:400">'+esc(a.subjects?.name||a.title)+'</div><small>/ '+Number(a.max_score)+'</small></th>').join('')+'<th class="summary-column '+(block.phase==='Beginning'?'beginning-column':'')+'">TT'+block.code+'</th>'+(group==='P4-P7'?'<th class="calculation-column '+(block.phase==='Beginning'?'beginning-column':'')+'">AGG'+block.code+'</th><th class="calculation-column '+(block.phase==='Beginning'?'beginning-column':'')+'">DIV'+block.code+'</th>':'')+(showPosition?'<th class="summary-column '+(block.phase==='Beginning'?'beginning-column':'')+'">PN'+block.code+'</th>':'')).join('');
@@ -3526,7 +3527,7 @@ async function autosaveExcelMarkCell(input){const ctx=window.cornhillExcelMarksC
 $('excelMarksBody').addEventListener('input',e=>{const input=e.target.closest('[data-grid-score]');if(!input)return;const key=input.dataset.assessmentId+'|'+input.dataset.studentId;clearTimeout(excelAutosaveTimers.get(key));excelAutosaveTimers.set(key,setTimeout(()=>{excelAutosaveChain=excelAutosaveChain.then(()=>autosaveExcelMarkCell(input)).catch(err=>message('excelMarksMsg','Autosave is waiting for a retry: '+(err?.message||'storage/network issue'),true))},700));});
 $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
 $('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
-$('excelMarksClass').addEventListener('change',()=>{document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
+$('excelMarksClass').addEventListener('change',()=>{const cls=classes.find(x=>x.id===$('excelMarksClass').value),setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phase=$('excelMarksPhase'),current=phase.value;phase.innerHTML='<option value="All">All periods · full class sheet</option>'+(setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth']).map((x,i)=>'<option value="'+x+'">'+(setBased?x+' · '+(i+1):x+' · '+(i+1))+'</option>').join('');if([...phase.options].some(x=>x.value===current))phase.value=current;else phase.value='All';document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
 
 // Offline assessment drafts are local, account-scoped and never publish report cards.
 // Synchronisation uses a compare-before-write check; conflicting server edits are kept pending.
