@@ -690,6 +690,125 @@ main.wrap{
  .wa-view[data-view="chats"] .direct-message-contact-list{max-height:none}
 }
 </style>
+
+<style id="cornhill-dashboard-and-chat-layout-v2">
+/* Dashboard: use the real available workspace width; keep a dedicated gutter beside the sidebar. */
+@media(min-width:701px){
+ #app>#dashboard{
+  display:block!important;
+  width:calc(100% - 286px)!important;
+  max-width:none!important;
+  min-width:0!important;
+  margin-left:260px!important;
+  margin-right:18px!important;
+  box-sizing:border-box!important;
+ }
+ #app>#dashboard .module-grid{
+  display:grid!important;
+  width:100%!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  align-items:stretch!important;
+  gap:16px!important;
+ }
+ #app>#dashboard .module-grid>.panel:first-child{
+  grid-column:1/-1!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+ }
+ #app>#dashboard .records-chart-grid{
+  display:grid!important;
+  width:100%!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:14px!important;
+ }
+ #app>#dashboard .records-chart-grid>div{min-width:0!important;width:100%!important;box-sizing:border-box!important}
+ #app>#dashboard #dashboardTrendPanel{grid-column:auto!important}
+ #app>#dashboard #dashboardIncomeForecastPanel{grid-column:1/-1!important;width:100%!important;box-sizing:border-box!important}
+ #app>#dashboard #dashboardIncomeForecastPanel>.grid{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important;width:100%!important
+ }
+ #app>#dashboard #dashboardIncomeForecastPanel section .grid{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important
+ }
+ #app>#dashboard .module-grid>.module-card{
+  width:100%!important;min-width:0!important;height:auto!important;min-height:148px!important;
+  box-sizing:border-box!important;align-self:stretch!important
+ }
+}
+@media(min-width:701px) and (max-width:1100px){
+ #app>#dashboard{width:calc(100% - 238px)!important;margin-left:214px!important;margin-right:14px!important}
+ #app>#dashboard .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #app>#dashboard .records-chart-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #app>#dashboard #dashboardTrendPanel{grid-column:1/-1!important}
+ #app>#dashboard #dashboardIncomeForecastPanel>.grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #app>#dashboard #dashboardIncomeForecastPanel section .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:700px){
+ #app>#dashboard{width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
+ #app>#dashboard .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important}
+ #app>#dashboard .records-chart-grid{grid-template-columns:1fr!important;width:100%!important}
+ #app>#dashboard #dashboardTrendPanel{grid-column:auto!important}
+ #app>#dashboard #dashboardIncomeForecastPanel>.grid,
+ #app>#dashboard #dashboardIncomeForecastPanel section .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:390px){
+ #app>#dashboard .module-grid,
+ #app>#dashboard #dashboardIncomeForecastPanel>.grid,
+ #app>#dashboard #dashboardIncomeForecastPanel section .grid{grid-template-columns:1fr!important}
+}
+/* WhatsApp-style communication: clear app header, search, compact tabs, contact rows and conversation pane. */
+#communication.wa-communications{width:auto!important;box-sizing:border-box!important;background:#f7faf8!important;border:1px solid #dfe9e2!important}
+#communication.wa-communications .wa-shell{width:100%;min-width:0}
+#communication.wa-communications .wa-topbar{min-height:74px;padding:14px 20px;background:#075e54!important}
+#communication.wa-communications .wa-brand img{width:48px;height:48px}
+#communication.wa-communications .wa-nav{grid-template-columns:repeat(4,minmax(0,1fr));position:sticky;top:0;z-index:5}
+#communication.wa-communications .wa-nav button{min-height:48px;letter-spacing:.01em}
+#communication.wa-communications .wa-view[data-view="chats"] .direct-message-grid{
+ display:grid!important;grid-template-columns:minmax(260px,34%) minmax(0,1fr)!important;
+ width:100%!important;min-width:0!important;min-height:540px!important;background:#fff
+}
+#communication.wa-communications .wa-view[data-view="chats"] .staff-chat-side{
+ min-width:0!important;width:100%!important;box-sizing:border-box!important;border-right:1px solid #e3ebe6!important
+}
+#communication.wa-communications .wa-view[data-view="chats"] .direct-message-contact-list{
+ display:flex!important;flex-direction:column!important;gap:0!important;max-height:68vh!important;overflow-y:auto!important
+}
+#communication.wa-communications .wa-view[data-view="chats"] .direct-message-contact{
+ min-height:76px!important;display:flex!important;align-items:center!important;gap:12px!important;
+ padding:12px 14px!important;border-bottom:1px solid #edf1ee!important;border-radius:0!important
+}
+#communication.wa-communications .wa-view[data-view="chats"] .direct-message-contact:hover{background:#f3f8f5!important}
+#communication.wa-communications .wa-view[data-view="chats"] .direct-message-contact-avatar{
+ width:48px!important;height:48px!important;flex:0 0 48px!important;border-radius:50%!important
+}
+#communication.wa-communications .wa-view[data-view="chats"] .direct-message-thread{
+ min-width:0!important;width:100%!important;box-sizing:border-box!important;min-height:420px!important;height:58vh!important;
+ border:0!important;border-radius:0!important
+}
+#communication.wa-communications .wa-view[data-view="chats"] #directMessageForm{
+ display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:end!important;gap:8px!important
+}
+#communication.wa-communications .wa-view[data-view="chats"] #directMessageForm>label,
+#communication.wa-communications .wa-view[data-view="chats"] #directMessageForm>.staff-media-toolbar,
+#communication.wa-communications .wa-view[data-view="chats"] #directMessageForm>.staff-attachment-picker,
+#communication.wa-communications .wa-view[data-view="chats"] #directMessageForm>.staff-media-status,
+#communication.wa-communications .wa-view[data-view="chats"] #directMessageForm>.staff-recording-panel{grid-column:1/-1}
+#communication.wa-communications .wa-view[data-view="chats"] #directMessageForm textarea{margin:0!important;min-height:48px}
+#communication.wa-communications .wa-view[data-view="chats"] #directMessageForm>button[type="submit"]{grid-column:2;grid-row:2;min-height:48px;padding-inline:20px}
+@media(max-width:700px){
+ #communication.wa-communications{margin:0!important;border-radius:12px!important}
+ #communication.wa-communications .wa-topbar{padding:12px}
+ #communication.wa-communications .wa-nav button{font-size:11px;padding:10px 2px!important}
+ #communication.wa-communications .wa-view[data-view="chats"] .direct-message-grid{display:block!important;min-height:0!important}
+ #communication.wa-communications .wa-view[data-view="chats"] .staff-chat-side{display:block!important;border:0!important}
+ #communication.wa-communications .wa-view[data-view="chats"] .direct-message-thread,
+ #communication.wa-communications .wa-view[data-view="chats"] #directMessageForm{display:none!important}
+ #communication.wa-communications .wa-view[data-view="chats"] .direct-message-grid.wa-thread-open .staff-chat-side{display:none!important}
+ #communication.wa-communications .wa-view[data-view="chats"] .direct-message-grid.wa-thread-open .direct-message-thread{display:block!important;height:calc(100dvh - 260px)!important;min-height:300px!important}
+ #communication.wa-communications .wa-view[data-view="chats"] .direct-message-grid.wa-thread-open #directMessageForm{display:grid!important}
+ #communication.wa-communications .wa-view[data-view="chats"] .direct-message-contact-list{max-height:calc(100dvh - 320px)!important}
+}
+</style>
 </head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
