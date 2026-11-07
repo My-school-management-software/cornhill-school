@@ -312,3 +312,9 @@ No production release is recorded by this document itself. Update this log only 
   - 20261107141400_notify_staff_and_admins_of_parent_messages.sql
 - Verification: RLS is enabled on school_notifications; direct table SELECT is denied to anon and authenticated roles; anonymous users cannot execute notification RPCs; authenticated users can call the controlled list/archive RPCs. All 7 inline JavaScript blocks in index.html pass syntax parsing. The UI includes the notification workspace, X archive action, swipe handling, learner badge and active-term defaults.
 - Live term switching, actual bursary approval, archive interaction and phone/desktop visual checks have not been exercised with a synthetic learner. No learner or financial records were changed by these implementation checks. Production deployment remains separate.
+
+
+### Security-advisor follow-up for notification changes
+- The post-change Security Advisor still reports 14 RLS-enabled tables without client policies. The new school_notifications table is intentionally included: direct SELECT is revoked from anon and authenticated, and the feed is available only through controlled RPC functions with sign-in and role/recipient checks.
+- The advisor reports 27 authenticated-callable SECURITY DEFINER functions across the project. The notification list/archive and bursary-review lookup RPCs are intentionally callable by signed-in users but check the current user and role before returning or changing anything. Trigger-only notification functions have direct EXECUTE revoked.
+- Existing warnings for pg_net in the public schema and leaked-password protection being disabled remain; no extension move or paid-plan change was made.
