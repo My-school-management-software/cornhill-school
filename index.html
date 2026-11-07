@@ -636,6 +636,60 @@ main.wrap{
  #dashboardIncomeForecastPanel>.grid{grid-template-columns:1fr!important}
 }
 </style>
+
+<style id="cornhill-whatsapp-communications-v1">
+#communication.wa-communications{padding:0!important;overflow:hidden;border-radius:20px;background:#f5f8f6;color:#17251c}
+.wa-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;background:#075e54;color:#fff}
+.wa-brand{display:flex;align-items:center;gap:12px;min-width:0}.wa-brand img{width:42px;height:42px;object-fit:contain;border-radius:50%;background:#fff;padding:3px}.wa-brand strong{display:block;font-size:19px}.wa-brand small{display:block;color:#d4eee5;font-size:12px}
+.wa-search{padding:12px 16px;background:#f0f3f2;border-bottom:1px solid #e1e9e4}.wa-search input{width:100%;border:0!important;border-radius:30px!important;background:#fff!important;padding:13px 17px!important}
+.wa-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#fff;border-bottom:1px solid #e0e8e3}
+.wa-nav button{border:0!important;border-radius:0!important;background:transparent!important;color:#65756b!important;padding:13px 5px!important;font-size:12px;font-weight:800;border-bottom:3px solid transparent!important}
+.wa-nav button.active{color:#075e54!important;border-bottom-color:#128c7e!important;background:#f3faf6!important}
+.wa-view{display:none;padding:14px}.wa-view.active{display:block}
+.wa-view[data-view="chats"]{padding:0}
+.wa-view[data-view="chats"]>.panel{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+.wa-view[data-view="chats"] .staff-chat-heading{display:flex;align-items:center;gap:12px;border-radius:0;padding:12px 16px;background:#075e54}
+.wa-view[data-view="chats"] .staff-chat-heading strong{font-size:16px}
+.wa-view[data-view="chats"] .direct-message-grid{display:grid;grid-template-columns:minmax(230px,.72fr) minmax(0,1.6fr);gap:0;border-top:1px solid #e7eeea}
+.wa-view[data-view="chats"] .staff-chat-side{padding:10px;background:#fff;border-right:1px solid #e5ece7}
+.wa-view[data-view="chats"] .direct-message-contact-list{max-height:68vh;overflow:auto}
+.wa-view[data-view="chats"] .direct-message-contact{display:flex;align-items:center;gap:12px;width:100%;padding:12px 10px;border:0;border-bottom:1px solid #edf1ee;border-radius:0;background:#fff;text-align:left;color:#1e2b23}
+.wa-view[data-view="chats"] .direct-message-contact.active{background:#eaf5ef}
+.wa-view[data-view="chats"] .direct-message-contact-avatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;display:grid;place-items:center;background:#d9eee4;color:#075e54;font-weight:900;font-size:15px}
+.wa-view[data-view="chats"] .direct-message-contact-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.wa-view[data-view="chats"] .direct-message-contact-copy strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wa-view[data-view="chats"] .direct-message-contact-copy small{font-size:11px;color:#718077}
+.wa-view[data-view="chats"] .direct-message-thread{height:58vh;min-height:360px;border-radius:0;padding:16px;background-color:#e9f1eb;background-image:radial-gradient(#cbd9ce .65px,transparent .65px);background-size:14px 14px}
+.wa-view[data-view="chats"] #directMessageForm{padding:12px;background:#f7faf8;border-top:1px solid #e3ebe6}
+.wa-view[data-view="chats"] #directMessageForm textarea{border-radius:22px!important;background:#fff!important}
+.wa-view[data-view="chats"] #directMessageForm>button[type="submit"]{border-radius:24px;background:#087e65;color:#fff}
+.wa-view[data-view="chats"] .direct-message-item{padding:10px 13px;border-radius:13px 13px 13px 4px;margin:8px 0;max-width:82%;background:#fff;box-shadow:0 1px 2px #0001}
+.wa-view[data-view="chats"] .direct-message-item.mine{margin-left:auto;background:#d9fdd3;border-radius:13px 13px 4px 13px}
+.wa-thread-back{display:none;border:0;background:#ffffff22;color:white;border-radius:50%;width:36px;height:36px;font-size:20px}
+.wa-view[data-view="updates"] #staffPostForm,.wa-view[data-view="updates"] #staffCommunicationFeed{max-width:100%}
+.wa-view[data-view="updates"] #staffCommunicationFeed{display:grid;gap:12px}
+.wa-view[data-view="calls"]>.panel{margin:0!important}
+.wa-view[data-view="tools"]>.panel{margin:12px 0!important}
+@media(max-width:700px){
+ #communication.wa-communications{margin:0 -8px;border-radius:14px}
+ .wa-topbar{padding:14px 15px}.wa-brand strong{font-size:17px}
+ .wa-view{padding:10px}
+ .wa-view[data-view="chats"]{padding:0}
+ .wa-view[data-view="chats"] .direct-message-grid{display:block}
+ .wa-view[data-view="chats"] .staff-chat-side{display:block}
+ .wa-view[data-view="chats"] .direct-message-thread,#directMessageForm{display:none}
+ .wa-view[data-view="chats"] .direct-message-grid.wa-thread-open .staff-chat-side{display:none}
+ .wa-view[data-view="chats"] .direct-message-grid.wa-thread-open .direct-message-thread,
+ .wa-view[data-view="chats"] .direct-message-grid.wa-thread-open #directMessageForm{display:block}
+ .wa-view[data-view="chats"] .direct-message-thread{height:calc(100dvh - 300px);min-height:300px}
+ .wa-thread-back{display:inline-grid;place-items:center;flex:0 0 36px}
+ .wa-view[data-view="chats"] .staff-chat-heading{gap:10px}
+ .wa-view[data-view="chats"] .staff-chat-heading>div:nth-child(2){min-width:0}
+ .wa-view[data-view="chats"] .staff-chat-heading>div:nth-child(2) strong{font-size:15px}
+ .wa-view[data-view="chats"] .direct-message-contact{padding:13px 12px}
+ .wa-view[data-view="chats"] .direct-message-contact-list{max-height:none}
+}
+</style>
 </head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -4817,6 +4871,49 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialiseSettingsCardWorkspaces,{once:true});
  else initialiseSettingsCardWorkspaces();
+})();
+</script>
+
+<script id="cornhill-whatsapp-communications-controller">
+(()=>{
+ function build(){
+  const root=document.getElementById('communication');if(!root||root.dataset.waReady==='yes')return;
+  const title=root.querySelector(':scope > h2'),subtitle=title?.nextElementSibling;
+  const allPanels=[...root.querySelectorAll('.panel')];
+  const chat=allPanels.find(p=>p.querySelector('h3')?.textContent.trim().startsWith('Private staff messages'));
+  const calls=allPanels.find(p=>p.querySelector('h3')?.textContent.trim()==='Voice & video calls');
+  const post=root.querySelector('#staffPostForm'),feed=root.querySelector('#staffCommunicationFeed');
+  const feedHeading=[...root.querySelectorAll('.row')].find(x=>x.textContent.includes('School staff feed'));
+  if(!chat||!calls||!post||!feed)return;
+  root.dataset.waReady='yes';root.classList.add('wa-communications');
+  const shell=document.createElement('div');shell.className='wa-shell';
+  const top=document.createElement('header');top.className='wa-topbar';
+  top.innerHTML='<div class="wa-brand"><img src="/assets/cornhill-school-badge.png" alt=""><div><strong>CORNHILL Messages</strong><small>School communication workspace</small></div></div><span id="waCurrentIdentity" class="wa-identity"></span>';
+  const search=document.createElement('div');search.className='wa-search';search.innerHTML='<input id="waContactSearch" type="search" placeholder="Search staff and administrators" aria-label="Search staff and administrators">';
+  const nav=document.createElement('nav');nav.className='wa-nav';nav.setAttribute('aria-label','Communication sections');
+  const views=document.createElement('div');views.className='wa-views';
+  const makeView=(name,label)=>{const v=document.createElement('section');v.className='wa-view'+(name==='chats'?' active':'');v.dataset.view=name;v.setAttribute('aria-label',label);views.appendChild(v);return v};
+  const chats=makeView('chats','Private staff chats'),updates=makeView('updates','Staff updates'),callView=makeView('calls','Voice and video calls'),tools=makeView('tools','School communication tools');
+  const buttons=[['chats','Chats','▣'],['updates','Updates','◷'],['calls','Calls','☎'],['tools','School tools','⚙']];
+  buttons.forEach(([id,label,ico],i)=>{const b=document.createElement('button');b.type='button';b.dataset.waTarget=id;b.className=i===0?'active':'';b.innerHTML='<span>'+ico+'</span> '+label;b.addEventListener('click',()=>{nav.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));views.querySelectorAll('.wa-view').forEach(x=>x.classList.toggle('active',x.dataset.view===id));if(id!=='chats')chat.querySelector('.direct-message-grid')?.classList.remove('wa-thread-open')});nav.appendChild(b)});
+  const identity=document.getElementById('waCurrentIdentity');
+  if(title){title.remove()}if(subtitle?.tagName==='P')subtitle.remove();
+  // Put the existing private chat and call controls into dedicated WhatsApp-like views.
+  chats.appendChild(chat);callView.appendChild(calls);
+  const updateWrap=document.createElement('div');updateWrap.className='panel';updateWrap.style.margin='0';updateWrap.append(post);if(feedHeading)updateWrap.append(feedHeading);updateWrap.append(feed);updates.append(updateWrap);
+  // Preserve every other existing parent/SMS/template/consent control in the School tools view.
+  [...root.children].forEach(node=>{if(node===shell||node===top||node===search||node===nav||node===views)return;if(node.parentElement===root)tools.append(node)});
+  shell.append(top,search,nav,views);root.append(shell);
+  const grid=chat.querySelector('.direct-message-grid'),heading=chat.querySelector('.staff-chat-heading');
+  if(heading){const back=document.createElement('button');back.type='button';back.className='wa-thread-back';back.textContent='‹';back.setAttribute('aria-label','Back to chats');back.addEventListener('click',()=>grid?.classList.remove('wa-thread-open'));heading.prepend(back)}
+  const list=chat.querySelector('#directMessageContactList');
+  list?.addEventListener('click',e=>{if(e.target.closest('[data-staff-contact]'))grid?.classList.add('wa-thread-open')});
+  const filter=document.getElementById('waContactSearch');
+  filter?.addEventListener('input',()=>{const q=filter.value.trim().toLocaleLowerCase();list?.querySelectorAll('[data-staff-contact]').forEach(card=>{card.hidden=!card.textContent.toLocaleLowerCase().includes(q)})});
+  const setIdentity=()=>{const p=window.profile; if(identity&&p)identity.textContent=(p.full_name||'')+(p.role?' · '+p.role:'')};
+  setIdentity();setTimeout(setIdentity,900);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build,{once:true});else build();
 })();
 </script>
 </body></html>
