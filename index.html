@@ -4313,7 +4313,7 @@ $('studentRows').addEventListener('click',async e=>{
  editingStudentId=learner.id;const form=$('studentForm');
  for(const key of ['first_name','middle_name','last_name','gender','birth_year','date_of_birth','admission_date','lin','p7_index_number','learner_type','status','bursary_fee_ugx','bursary_category','bursary_reason','previous_school','class_id','guardian_name','guardian_relationship','guardian_phone','guardian_email','alternate_guardian_name','alternate_guardian_phone','address'])if(form.elements[key])form.elements[key].value=learner[key]??'';
  if(form.elements.bursary_reason&&!form.elements.bursary_reason.value)form.elements.bursary_reason.value=learner.bursary_notes||'';
- form.elements.takes_breakfast.checked=!!learner.takes_breakfast;form.elements.takes_lunch.checked=!!learner.takes_lunch;syncBoardingMealControls();form.elements.admission_prorate.checked=!!learner.admission_prorate;form.elements.admission_prorate.disabled=true;form.elements.admission_date.disabled=true;
+ form.elements.takes_breakfast.checked=!!learner.takes_breakfast;form.elements.takes_lunch.checked=!!learner.takes_lunch;syncBoardingMealControls();form.elements.admission_prorate.checked=!!learner.admission_prorate;form.elements.admission_prorate.disabled=true;form.elements.admission_date.disabled=false;
  form.elements.is_bursary.value=String(!!learner.is_bursary);form.elements.guardian_sms_opt_in.checked=!!learner.guardian_sms_opt_in;
  syncBursaryAdmissionFields();
  form.querySelector('button[type="submit"]').textContent='Update learner record';$('studentFormTitle').textContent='Edit learner record';$('cancelLearnerEdit').classList.remove('hidden');await restoreLocalAutosaveForm(form,'learner-edit-'+learner.id,'appMsg');tab('register');
