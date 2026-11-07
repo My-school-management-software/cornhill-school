@@ -11,16 +11,10 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/assets/cornhill-icon.svg",
+      "src": "/assets/cornhill-school-badge.png",
       "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/assets/cornhill-school-crest.jpg",
-      "sizes": "128x128",
-      "type": "image/jpeg",
-      "purpose": "any"
     }
   ]
 }
