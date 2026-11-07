@@ -4609,7 +4609,7 @@ $('studentForm').addEventListener('submit',async e=>{
  }else{
   record.bursary_category=null;record.bursary_reason=null;record.bursary_notes=null;record.bursary_fee_ugx=0;
  }
- if(!record.class_id)record.class_id=null;record.birth_year=record.birth_year?Number(record.birth_year):null;if(record.birth_year!==null&&(!Number.isInteger(record.birth_year)||record.birth_year<1900||record.birth_year>new Date().getFullYear())){message('appMsg','Enter a valid year of birth or leave it blank for now.',true);return}if(!record.date_of_birth)record.date_of_birth=null;
+ const wasEditing=!!editingStudentId,existingLearnerBeforeSave=wasEditing?students.find(x=>x.id===editingStudentId):null,previousLearnerCode=existingLearnerBeforeSave?.admission_number||null;if(!record.class_id)record.class_id=null;record.birth_year=record.birth_year?Number(record.birth_year):null;if(record.birth_year!==null&&(!Number.isInteger(record.birth_year)||record.birth_year<1900||record.birth_year>new Date().getFullYear())){message('appMsg','Enter a valid year of birth or leave it blank for now.',true);return}if(!record.date_of_birth)record.date_of_birth=null;
  if(record.date_of_birth&&record.birth_year!==null&&Number(record.birth_year)!==Number(record.date_of_birth.slice(0,4))){
   const prior=existingLearnerBeforeSave;
   const birthYearChanged=!!prior&&Number(record.birth_year)!==Number(prior.birth_year||0);
@@ -4623,7 +4623,7 @@ $('studentForm').addEventListener('submit',async e=>{
  }
  if(record.date_of_birth&&record.birth_year===null)record.birth_year=Number(record.date_of_birth.slice(0,4));
  if(!record.admission_date)record.admission_date=null;
- const wasEditing=!!editingStudentId,existingLearnerBeforeSave=wasEditing?students.find(x=>x.id===editingStudentId):null,previousLearnerCode=existingLearnerBeforeSave?.admission_number||null,editDraftKey=wasEditing?'learner-edit-'+editingStudentId:null;
+ const editDraftKey=wasEditing?'learner-edit-'+editingStudentId:null;
  // admission_complete is computed securely by the database trigger; do not send this protected column from the browser.
  delete record.admission_complete;
  if(!wasEditing){
