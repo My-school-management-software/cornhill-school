@@ -1661,7 +1661,7 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()
 const parentPortalMainLink=window.location.origin+'/parents.html';
 const parentPortalMainAnchor=$('parentPortalMainLink');if(parentPortalMainAnchor){parentPortalMainAnchor.href=parentPortalMainLink;parentPortalMainAnchor.textContent=parentPortalMainLink}
 $('copyParentPortalMainLink')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(parentPortalMainLink);$('copyParentPortalMainLink').textContent='Link copied'}catch(_){message('appMsg','Copy is unavailable. Select and copy the parent portal address above.',true)}});
-document.querySelectorAll('[data-teacher-open]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.teacherOpen)));
+$('teacherPortalSummary')?.addEventListener('click',event=>{const button=event.target.closest('[data-teacher-open]');if(button)tab(button.dataset.teacherOpen)});
 // Settings categories are opened by the dedicated workspace controller below.
 
 const commTemplatesKey='cornhill-communication-templates-v1';
