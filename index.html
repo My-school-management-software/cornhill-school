@@ -1951,9 +1951,10 @@ $('notificationList')?.addEventListener('click',e=>{
    studentRegisterClassFilter='all';
    if($('search'))$('search').value='';
    window.pendingBursaryReviewStudentId=learner.id;
+   window.pendingBursaryReviewNotificationId=n.id;
    render();
    const target=document.querySelector('#studentRows .viewLearner[data-id="'+n.student_id+'"]');
-   if(target){target.click()}else{window.pendingBursaryReviewStudentId=null;message('appMsg','The learner was found, but the register row could not be opened. Refresh the learner register and try Review again.',true)}
+   if(target){target.click()}else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null;message('appMsg','The learner was found, but the register row could not be opened. Refresh the learner register and try Review again.',true)}
    return;
   }
   tab(n?.action_workspace||'dashboard');
@@ -4438,8 +4439,40 @@ $('studentRows').addEventListener('click',async e=>{
    const matches=!!(termStart&&termEnd&&new Date(a.effective_from+'T00:00:00')<=termEnd&&(!a.effective_until||new Date(a.effective_until+'T23:59:59')>=termStart));
    return '<tr><td>'+esc(a.billing_period_label||'—')+'</td><td>'+esc(a.bursary_category||'—')+'</td><td>UGX '+money(a.amount_payable_ugx)+'</td><td>'+esc(a.effective_from||'—')+'</td><td>'+esc(a.effective_until||'No expiry')+'</td><td><span class="badge '+(matches?'success':'warning')+'">'+(matches?'Covers active term':'Needs term review')+'</span></td><td>'+esc(a.reason||'—')+'</td></tr>';
   }).join('')||'<tr><td colspan="7">No term-specific bursary awards are recorded for this learner.</td></tr>';
-  $('learnerProfileContent').innerHTML+='<div class="panel" id="learnerBursaryReviewPanel" style="margin-top:14px;border:2px solid '+(matchingAward?'#16a34a':'#d97706')+'"><div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Bursary approval review</h3><p class="muted" style="margin:4px 0">Exact bursary records for this learner. Reviewing does not approve, renew or reject an award.</p></div><span class="badge '+(matchingAward?'success':'warning')+'">'+(matchingAward?'Active-term award found':'Term-specific approval required')+'</span></div><p><strong>Active term:</strong> '+(activeTermError?'Could not load active term':activeTerm?esc(activeTerm.name+' · '+(activeTerm.academic_years?.name||'')+' ('+activeTerm.starts_on+' to '+activeTerm.ends_on+')'):'No active term is configured')+'</p><div class="table-wrap"><table><thead><tr><th>Billing period</th><th>Category</th><th>Amount payable</th><th>Effective from</th><th>Expires</th><th>Term check</th><th>Reason</th></tr></thead><tbody>'+bursaryReviewHtml+'</tbody></table></div></div>';
-  if(window.pendingBursaryReviewStudentId===learner.id){const reviewPanel=$('learnerBursaryReviewPanel');reviewPanel?.scrollIntoView({behavior:'smooth',block:'center'});reviewPanel?.setAttribute('tabindex','-1');reviewPanel?.focus({preventScroll:true});window.pendingBursaryReviewStudentId=null;}
+  $('learnerProfileContent').innerHTML+='<div class="panel" id="learnerBursaryReviewPanel" style="margin-top:14px;border:2px solid '+(matchingAward?'#16a34a':'#d97706')+'"><div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Bursary approval review</h3><p class="muted" style="margin:4px 0">Exact bursary records for this learner. Reviewing does not approve, renew or reject an award.</p></div><span class="badge '+(matchingAward?'success':'warning')+'">'+(matchingAward?'Active-term award found':'Term-specific approval required')+'</span></div><p><strong>Active term:</strong> '+(activeTermError?'Could not load active term':activeTerm?esc(activeTerm.name+' · '+(activeTerm.academic_years?.name||'')+' ('+activeTerm.starts_on+' to '+activeTerm.ends_on+')'):'No active term is configured')+'</p><div class="table-wrap"><table><thead><tr><th>Billing period</th><th>Category</th><th>Amount payable</th><th>Effective from</th><th>Expires</th><th>Term check</th><th>Reason</th></tr></thead><tbody>'+bursaryReviewHtml+'</tbody></table></div><div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px"><button type="button" id="markBursaryReviewChecked" class="hidden">Mark review as checked</button><small class="muted">Checking records does not approve, renew, reject or change any bursary amount.</small></div><div id="bursaryReviewAuditHistory" class="muted" style="margin-top:10px"></div></div>';
+  if(window.pendingBursaryReviewStudentId===learner.id){
+   const reviewPanel=$('learnerBursaryReviewPanel');
+   reviewPanel?.scrollIntoView({behavior:'smooth',block:'center'});
+   reviewPanel?.setAttribute('tabindex','-1');
+   reviewPanel?.focus({preventScroll:true});
+   window.pendingBursaryReviewStudentId=null;
+   const reviewNotificationId=window.pendingBursaryReviewNotificationId;
+   window.pendingBursaryReviewNotificationId=null;
+   if(reviewNotificationId){
+    const markButton=$('markBursaryReviewChecked');
+    const historyHost=$('bursaryReviewAuditHistory');
+    markButton?.classList.remove('hidden');
+    const loadReviewHistory=async()=>{
+     const {data,error}=await db.rpc('list_school_bursary_review_audit',{p_notification_id:reviewNotificationId});
+     if(error){if(historyHost)historyHost.innerHTML='<p class="notice error">Review history could not be loaded: '+esc(error.message)+'</p>';return}
+     const rows=Array.isArray(data)?data:[];
+     if(historyHost)historyHost.innerHTML=rows.length?'<strong>Administrator review history</strong><div class="table-wrap"><table><thead><tr><th>Action</th><th>Administrator</th><th>Date and time</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.action==='marked_reviewed'?'Marked as checked':'Opened review')+'</td><td>'+esc(x.actor_name||'School administrator')+(x.is_current_user?' (you)':'')+'</td><td>'+esc(new Date(x.created_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}))+'</td></tr>').join('')+'</tbody></table></div>':'No administrator review activity has been recorded yet.';
+     const checked=rows.some(x=>x.action==='marked_reviewed'&&x.is_current_user);
+     if(markButton){markButton.disabled=checked;markButton.textContent=checked?'Review marked checked':'Mark review as checked'}
+    };
+    const {error:openAuditError}=await db.rpc('record_school_bursary_review_event',{p_notification_id:reviewNotificationId,p_action:'opened'});
+    if(openAuditError)message('appMsg','The learner record opened, but the review view could not be recorded: '+openAuditError.message,true);
+    await loadReviewHistory();
+    markButton?.addEventListener('click',async()=>{
+     if(!markButton||markButton.disabled)return;
+     markButton.disabled=true;
+     const {error}=await db.rpc('record_school_bursary_review_event',{p_notification_id:reviewNotificationId,p_action:'marked_reviewed'});
+     if(error){markButton.disabled=false;message('appMsg','Could not mark this review as checked: '+error.message,true);return}
+     await loadReviewHistory();
+     message('appMsg','Bursary review marked as checked. No approval, renewal or payment was changed.');
+    });
+   }
+  }
   const parentPortalUrl=window.location.origin+'/p';
   $('learnerProfileContent').innerHTML+='<div class="panel" style="margin-top:14px"><h3>Parent / Guardian Portal Access</h3><p class="muted">Use the same short portal address for every learner. Give the parent this learner’s permanent pupil code separately.</p><p><a href="'+esc(parentPortalUrl)+'" target="_blank" rel="noopener">Open parent portal</a></p><p><strong>Learner pupil code: '+esc(learner.pupil_code||learner.admission_number||'Not recorded')+'</strong></p><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div id="learnerParentPortalQr" style="width:112px;height:112px;background:#fff"></div><div><button type="button" id="copyLearnerParentPortalLink">Copy short portal link</button><p class="muted">Parents enter the pupil code after opening the portal, then verify their registered phone number.</p></div></div></div>';
   if(window.QRCode){$('learnerParentPortalQr').innerHTML='';new QRCode($('learnerParentPortalQr'),{text:parentPortalUrl,width:112,height:112,correctLevel:QRCode.CorrectLevel.M})}
