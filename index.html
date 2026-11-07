@@ -3469,6 +3469,9 @@ function recalculateExcelMarkSheet(){
 async function loadExcelMarksGrid(){
  const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value;
  const head=$('excelMarksHead'),body=$('excelMarksBody'),phaseFilter=$('excelMarksPhase').value||'All';
+ // Invalidate any previous class/term sheet before attempting a new load.
+ window.cornhillExcelMarksContext=null;
+ $('exportExcelMarks').disabled=true;
  if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
  const cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
  const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId);
@@ -3539,12 +3542,24 @@ function matchImportAssessment(header,ctx){
 }
 let teacherExcelImportPlan=null;
 $('previewTeacherMarksImport').addEventListener('click',async()=>{
- const file=$('teacherMarksWorkbook').files?.[0],ctx=window.cornhillExcelMarksContext;
+ const file=$('teacherMarksWorkbook').files?.[0];
  const status=$('teacherMarksImportMsg'),confirm=$('confirmTeacherMarksImport');
  confirm.disabled=true;teacherExcelImportPlan=null;
  if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using an assigned teacher account to import marks.',true);return}
- if(!file||!ctx){message('teacherMarksImportMsg','Choose a workbook and load the selected class and term first.',true);return}
+ if(!file){message('teacherMarksImportMsg','Choose your Excel workbook first.',true);return}
  if(!window.XLSX){message('teacherMarksImportMsg','The Excel reader is unavailable. Reconnect and reload the page before importing.',true);return}
+ const selectedTermId=$('excelMarksTerm').value,selectedClassId=$('excelMarksClass').value;
+ if(!selectedTermId||!selectedClassId){message('teacherMarksImportMsg','Choose the academic term and class in the marks section first.',true);return}
+ let ctx=window.cornhillExcelMarksContext;
+ // A workbook preview must use the currently selected class and term, never a stale sheet.
+ if(!ctx||ctx.termId!==selectedTermId||ctx.classId!==selectedClassId){
+  message('teacherMarksImportMsg','Loading the selected class and term before previewing your workbook…');
+  await loadExcelMarksGrid();
+  ctx=window.cornhillExcelMarksContext;
+ }
+ if(!ctx||ctx.termId!==selectedTermId||ctx.classId!==selectedClassId){
+  message('teacherMarksImportMsg','The class sheet could not be loaded. Check that this class and term have assessments and learners, then try again.',true);return
+ }
  try{
   const buffer=await file.arrayBuffer(),wb=XLSX.read(buffer,{type:'array',cellDates:false});
   let chosen=null,headerRow=-1,rows=[];
@@ -3683,6 +3698,17 @@ $('prepareExcelAssessments').addEventListener('click',async()=>{
  finally{button.disabled=false;button.textContent='Prepare class sheet';delete button.dataset.busy}
 });
 $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
+['excelMarksTerm','excelMarksClass'].forEach(id=>$(id).addEventListener('change',()=>{
+ window.cornhillExcelMarksContext=null;
+ teacherExcelImportPlan=null;
+ $('confirmTeacherMarksImport').disabled=true;
+ $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">Load or preview the selected class and term to match this workbook.</td></tr>';
+}));
+$('teacherMarksWorkbook').addEventListener('change',()=>{
+ teacherExcelImportPlan=null;
+ $('confirmTeacherMarksImport').disabled=true;
+ $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">Workbook selected. Preview to check learner matches and marks.</td></tr>';
+});
 $('exportExcelMarks').disabled=true;
 const excelAutosaveTimers=new Map();let excelAutosaveChain=Promise.resolve();
 async function autosaveExcelMarkCell(input){const ctx=window.cornhillExcelMarksContext;if(!ctx||!input||!['Admin','Teacher'].includes(profile?.role))return;const raw=String(input.value||'').trim();if(!raw)return;const assessment=ctx.assessments.find(x=>x.id===input.dataset.assessmentId);if(!assessment)return;const absent=raw.toUpperCase()==='X',score=Number(raw);if(absent&&!allowsAbsentMarkForClass(assessment.class_id||ctx.classId))return;if(!absent&&(!Number.isFinite(score)||score<0||score>Number(assessment.max_score)))return;const auth=await db.auth.getSession(),user=auth.data?.session?.user;if(auth.error||!user||user.id!==currentUserId)return;const row={assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:(ctx.savedMarks.get(assessment.id+'|'+input.dataset.studentId)?.teacher_comment??null),entered_by:user.id};await queueExcelMarksOffline([row],ctx,user.id);if(navigator.onLine){const result=await syncOfflineAssessmentDrafts();if(result.synced)message('excelMarksMsg','Autosaved '+result.synced+' mark(s) to the school record.');else if(result.conflicts)message('excelMarksMsg','Your mark draft is saved on this device, but a server change or permission conflict needs review before it can be synchronised.')}else message('excelMarksMsg','Autosaved on this device · pending sync · not yet an official school mark.')}
