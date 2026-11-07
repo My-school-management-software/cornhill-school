@@ -265,3 +265,14 @@ No production release is recorded by this document itself. Update this log only 
   - `20261107134100_block_parent_portal_access_for_archived_learners.sql`
 - Static verification: all 7 inline JavaScript blocks in `index.html` parse; archive/restore controls and RPC references are present. Database verification confirms archive columns, admin-only function execution, no direct client access to the audit table, and archived-status checks in parent portal lookup/PIN functions.
 - Live archive/restore against a test learner and visual browser testing remain pending. Use only known test records and confirm identity before archiving. Permanent hard deletion is intentionally not provided because learner records have many financial and academic dependencies.
+
+
+## Whole-system appearance and navigation layouts — 7 November 2026
+
+- Expanded the colour theme collection from 8 to 12: Forest, Ocean, Royal, Sunrise, Ruby, Midnight, Slate, Teal, Emerald Luxury, Lavender Mist, Warm Sand and Graphite Dark.
+- Added four whole-administration navigation arrangements: left sidebar, top horizontal navigation, right sidebar and compact icon rail. On narrow phone screens, navigation returns to a horizontal scrollable strip for usability.
+- Navigation arrangement is stored with the existing device-local appearance preferences and restored to the left sidebar by the reset action.
+- Existing 24 font choices, 10 dashboard layouts, density, text size, motion and sign-in layouts remain available.
+- Theme/navigation preferences are device-local; this is not a school-wide forced setting. Parent Portal is a separate page and is not changed by this admin-interface update.
+- Static checks: all 7 inline JavaScript blocks in `index.html` parse. Verified the 12 theme options, navigation selector, save/apply/reset wiring and CSS layout selectors.
+- Visual browser testing across Android and desktop is still required before declaring the redesign fully approved.
