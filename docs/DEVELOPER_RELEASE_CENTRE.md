@@ -227,3 +227,27 @@ No production release is recorded by this document itself. Update this log only 
 - Guardian PIN generation hardening: replaced PostgreSQL `random()` with `extensions.gen_random_bytes(4)` plus rejection sampling, so generated eight-digit PINs use cryptographically secure randomness without modulo bias. Recovery codes continue to use secure random bytes. The function still requires an authenticated active school administrator, stores only bcrypt hashes, resets failed-attempt/lock state when issuing a new PIN, and returns the PIN/recovery code once to the authorized admin workflow.
 - Applied migration `use_cryptographic_randomness_for_guardian_pins`; matching repository migration is `supabase/migrations/20261107133000_use_cryptographic_randomness_for_guardian_pins.sql`. A read-only sample test generated 118 accepted values; all 118 matched the eight-digit format and were distinct. No real guardian PIN was issued or changed during testing.
 - Follow-up on the advisor's 12 RLS-enabled/no-policy findings: checked table privileges individually. All 12 tables deny SELECT/INSERT/UPDATE to both `anon` and `authenticated`; `service_role` has the expected backend access. These are currently service-role-only tables, so adding broad RLS policies would weaken their isolation. Keep the advisor findings documented and review again if client-side access is ever required.
+
+
+## Follow-up security review — 7 November 2026
+
+### Leaked-password protection
+- Supabase Security Advisor continues to report leaked-password protection disabled.
+- Current Supabase documentation states that the HaveIBeenPwned leaked-password check is available on the Pro plan and above. CORNHILL's standing requirement is to remain on free plans, so this feature was not enabled and no plan upgrade was made.
+- This warning does not mean that a CORNHILL account password has been found leaked. It means Supabase Auth is not checking newly set passwords against its known-compromised-password list.
+- The available database connection does not expose the Auth dashboard password-strength configuration. Minimum password length and character requirements therefore remain unverified; check those settings in Authentication → Sign In / Providers → Email without changing the subscription.
+- Reference: https://supabase.com/docs/guides/auth/password-security
+
+### pg_net extension placement and dependency review
+- Supabase reports pg_net 0.20.4 installed with extension metadata in the public schema. Its HTTP functions and queue tables live in the separate net schema.
+- The CORNHILL scheduled Google Drive backup job (cron job ID 2, schedule 0 2 * * *, Uganda time 05:00) calls net.http_post to invoke google-drive-backup. The extension must remain available for this scheduled backup trigger.
+- At review time, net.http_request_queue contained 0 pending requests. net._http_response contained one timeout response for the 7 November scheduled call. The corresponding backup run table nevertheless recorded the 7 November encrypted backup as success, with 236 records and completion at 02:00:11 UTC. Treat the HTTP timeout as an acknowledgement/transport discrepancy to monitor; it is not evidence that the backup file failed, and it is not proof of a restore.
+- No application function body referencing net.http_get or net.http_post was found; the scheduled cron command is the identified CORNHILL dependency. The extension's own helper event trigger grants the expected schema usage when the extension is created.
+- Supabase documents that pg_net is non-relocatable. Moving its extension registration requires dropping and recreating it in the extensions schema; this removes extension-owned queue/response objects and stored responses. The current queue is empty, but the one timeout response would be lost and the scheduled backup trigger depends on the extension remaining available.
+- No extension drop/recreate was performed. Keep the extension active. If the team later chooses to clear the advisor warning, schedule a controlled maintenance window, preserve any needed response evidence, verify the queue is empty immediately before the change, recreate the extension in extensions, and verify the cron job and a fresh scheduled backup afterward. Do not drop the extension as a routine or unreviewed security fix.
+- Reference: https://supabase.com/docs/guides/database/extensions/pg_net
+
+### Follow-up verification
+- Security advisor was rerun on 7 November 2026. It still reports 23 authenticated-callable SECURITY DEFINER functions, 12 service-role-only RLS tables with no client policies, the pg_net extension placement warning, and leaked-password protection disabled.
+- The 12 RLS/no-policy tables were previously verified to deny direct SELECT/INSERT/UPDATE to anon and authenticated; they remain intentionally backend-only. Do not add broad client policies just to remove informational advisor findings.
+- No learner, guardian, staff, academic, attendance or payment records were modified during this review. No production deployment, subscription change, extension drop, or Auth setting change was performed.
