@@ -35,7 +35,7 @@ Deno.serve(async(req:Request)=>{
   if(error||!data.user)return out(400,{error:"Could not create teacher account: "+(error?.message||"Unknown error")});
   uid=data.user.id;
  }
- const group=["Baby","Middle","Top"].includes(classKey)?"Nursery":["P1","P2","P3"].includes(classKey)?"P1-P3":"P4-P7";
+
 
  const {error:pe}=await admin.from("user_profiles").upsert({id:uid,full_name:teacherName,role:"Teacher",employment_status:"Active",job_title:"Class Teacher",department:cls.name},{onConflict:"id"});
  if(pe)return out(500,{error:"Teacher profile could not be saved."});
