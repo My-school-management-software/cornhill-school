@@ -251,3 +251,17 @@ No production release is recorded by this document itself. Update this log only 
 - Security advisor was rerun on 7 November 2026. It still reports 23 authenticated-callable SECURITY DEFINER functions, 12 service-role-only RLS tables with no client policies, the pg_net extension placement warning, and leaked-password protection disabled.
 - The 12 RLS/no-policy tables were previously verified to deny direct SELECT/INSERT/UPDATE to anon and authenticated; they remain intentionally backend-only. Do not add broad client policies just to remove informational advisor findings.
 - No learner, guardian, staff, academic, attendance or payment records were modified during this review. No production deployment, subscription change, extension drop, or Auth setting change was performed.
+
+
+## Reversible learner removal from active registers — 7 November 2026
+
+- Admins can remove a learner from active registers using the **Remove** action in the Student Register. A reason is required and a confirmation explains that this is an archive, not permanent deletion.
+- Archived learners are excluded from the active learner register, dashboard totals and class-register counts. They appear in the administrator-only **Removed / archived test learners** list and can be restored.
+- The database records archive/restore actor, reason, timestamp and previous status in a private audit table. The learner UUID and linked financial, academic, attendance and receipt history are preserved.
+- Archiving revokes existing parent portal sessions and blocks parent learner lookup and PIN change/reset for archived learners. Teachers' existing active-learner lookup already requires status Active.
+- No learner has been archived or deleted as part of implementation. No real learner data was changed.
+- Database migrations:
+  - `20261107134000_add_reversible_admin_learner_archiving.sql`
+  - `20261107134100_block_parent_portal_access_for_archived_learners.sql`
+- Static verification: all 7 inline JavaScript blocks in `index.html` parse; archive/restore controls and RPC references are present. Database verification confirms archive columns, admin-only function execution, no direct client access to the audit table, and archived-status checks in parent portal lookup/PIN functions.
+- Live archive/restore against a test learner and visual browser testing remain pending. Use only known test records and confirm identity before archiving. Permanent hard deletion is intentionally not provided because learner records have many financial and academic dependencies.
