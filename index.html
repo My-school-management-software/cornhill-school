@@ -1258,6 +1258,18 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
    <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
    <button type="button" class="tab hidden" id="prepareExcelAssessments">Prepare class sheet</button>
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
+   <button type="button" id="exportExcelMarks" disabled>Export marks · Excel</button>
+  </div>
+  <div id="teacherExcelTransfer" style="margin:12px 0;padding:12px;border:1px solid #dce7de;border-radius:10px">
+   <h4>Import existing marks from Excel</h4>
+   <p class="muted">Teacher account only · Select the matching class and term above, load its class sheet, then choose your original workbook. Learners are matched to existing school records; names and learner records are never created or changed by this import.</p>
+   <input id="teacherMarksWorkbook" type="file" accept=".xlsx,.xls,.xlsm" />
+   <label><input id="replaceExistingImportedMarks" type="checkbox"> Replace marks that already exist (leave unticked to protect saved marks)</label>
+   <button type="button" id="previewTeacherMarksImport">Preview Excel marks</button>
+   <button type="button" class="primary" id="confirmTeacherMarksImport" disabled>Import matched marks</button>
+   <div id="teacherMarksImportMsg" class="notice hidden"></div>
+   <div class="table-wrap"><table><thead><tr><th>Workbook learner</th><th>Match</th><th>Marks found</th><th>Result</th></tr></thead><tbody id="teacherMarksImportRows"><tr><td colspan="4">Choose a workbook to preview its marks.</td></tr></tbody></table></div>
+  </div>
    <button type="button" id="saveExcelMarks">Save all marks</button><button type="button" id="syncOfflineMarks">Synchronise pending offline marks</button>
   </div>
   <div id="excelMarksMsg" class="notice hidden" style="margin-top:10px"></div>
@@ -3307,6 +3319,7 @@ async function loadExcelMarksGrid(){
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
  const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x]));
  window.cornhillExcelMarksContext={termId,classId,phase:phaseFilter,assessments,students:list,savedMarks:saved};
+ $('exportExcelMarks').disabled=profile?.role!=='Teacher';
  const phases=phaseFilter==='All'?['Beginning','Midterm','End','Fourth']:[phaseFilter];
  const phaseBlocks=phases.map(phase=>{const items=assessments.filter(a=>excelAssessmentPeriod(a)===phase),code=excelPhaseCode(phase);return {phase,items,code}});
  const groupHeader=phaseBlocks.map(block=>'<th colspan="'+(block.items.length+1+(group==='P4-P7'?2:0)+(showPosition?1:0))+'" class="'+(block.phase==='Beginning'?'beginning-column':'')+'">'+esc(block.phase)+' assessment</th>').join('');
@@ -3326,6 +3339,136 @@ async function loadExcelMarksGrid(){
  message('excelMarksMsg',list.length+' learners loaded. '+assessments.length+' assessment columns shown'+(phaseFilter==='All'?' across all three periods': ' for '+phaseFilter)+'. Enter marks and save; totals, aggregate and division recalculate automatically for P4–P7; positions are shown for Nursery through P5; P6 and P7 use aggregate and division.');
  await showOfflineAssessmentDraftCount();
 }
+function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
+function importSubjectAliases(token){
+ const map={
+  NU:['NUMBER','NUMERACY','NUMBERWORK'],EN:['ENGLISH','LANGUAGE DEVELOPMENT'],LD:['LANGUAGE DEVELOPMENT','LANGUAGE'],RE:['RELIGIOUS EDUCATION','RELIGION','CRE'],HH:['HEALTH HABITS','HEALTH'],SD:['SOCIAL DEVELOPMENT','SOCIAL STUDIES'],WR:['WRITING'],DR:['DRAWING'],
+  MT:['MATHEMATICS','MATHS','MATH'],MAT:['MATHEMATICS','MATHS','MATH'],MTC:['MATHEMATICS','MATHS','MATH'],ENG:['ENGLISH'],SCI:['SCIENCE'],SC:['SCIENCE'],SST:['SOCIAL STUDIES','SOCIAL STUDIES AND RELIGIOUS EDUCATION'],SS:['SOCIAL STUDIES'],
+  LI1:['LITERACY I','LITERACY 1','LITERACY ONE'],LIT1:['LITERACY I','LITERACY 1','LITERACY ONE'],LI2:['LITERACY II','LITERACY 2','LITERACY TWO'],LIT2:['LITERACY II','LITERACY 2','LITERACY TWO'],LL:['LOCAL LANGUAGE'],LT:['LOCAL LANGUAGE'],LOC:['LOCAL LANGUAGE']
+ };
+ return map[token]||[];
+}
+function importPeriodForColumn(header,clsName){
+ const text=String(header||'').toUpperCase(),m=text.match(/(\d+)\s*$/),n=m?Number(m[1]):1;
+ if(/P\.?\s*[67]|PRIMARY\s*[67]/i.test(clsName||''))return 'Set '+(['','I','II','III','IV'][n]||'I');
+ return ['','Beginning','Midterm','End','Fourth'][n]||'Beginning';
+}
+function matchImportAssessment(header,ctx){
+ const clean=normaliseImportText(header),m=clean.match(/(\d+)$/),suffix=m?m[1]:'1',token=clean.replace(/\d+$/,'');
+ const aliases=importSubjectAliases(token);
+ const period=importPeriodForColumn(header,classes.find(c=>c.id===ctx.classId)?.name||'');
+ const candidates=ctx.assessments.filter(a=>excelAssessmentPeriod(a)===period);
+ const found=candidates.find(a=>{
+  const subject=normaliseImportText(a.subjects?.name||'');
+  return subject&&((subject===token)||(aliases.some(alias=>subject===normaliseImportText(alias)) )||aliases.some(alias=>subject.includes(normaliseImportText(alias))));
+ });
+ return found||null;
+}
+let teacherExcelImportPlan=null;
+$('previewTeacherMarksImport').addEventListener('click',async()=>{
+ const file=$('teacherMarksWorkbook').files?.[0],ctx=window.cornhillExcelMarksContext;
+ const status=$('teacherMarksImportMsg'),confirm=$('confirmTeacherMarksImport');
+ confirm.disabled=true;teacherExcelImportPlan=null;
+ if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using an assigned teacher account to import marks.',true);return}
+ if(!file||!ctx){message('teacherMarksImportMsg','Choose a workbook and load the selected class and term first.',true);return}
+ if(!window.XLSX){message('teacherMarksImportMsg','The Excel reader is unavailable. Reconnect and reload the page before importing.',true);return}
+ try{
+  const buffer=await file.arrayBuffer(),wb=XLSX.read(buffer,{type:'array',cellDates:false});
+  let chosen=null,headerRow=-1,rows=[];
+  for(const wsName of wb.SheetNames){
+   const matrix=XLSX.utils.sheet_to_json(wb.Sheets[wsName],{header:1,defval:null,raw:true});
+   const h=matrix.findIndex(row=>row.some(v=>/^(NAME|PUPIL.?S.?NAMES)$/i.test(String(v||'').trim())));
+   if(h>=0){chosen={name:wsName,matrix};headerRow=h;rows=matrix.slice(h+1);break}
+  }
+  if(!chosen)throw new Error('Could not find a worksheet with a NAME or PUPIL’S NAMES heading.');
+  const headers=chosen.matrix[headerRow].map(v=>String(v??'').trim()),nameIndex=headers.findIndex(v=>/^(NAME|PUPIL.?S.?NAMES)$/i.test(v));
+  const codeIndex=headers.findIndex(v=>/^ID\d*$/i.test(v)),linIndex=headers.findIndex(v=>/^LINS?$/i.test(v));
+  const markColumns=[];
+  headers.forEach((h,i)=>{
+   if(i===nameIndex||i===codeIndex||i===linIndex||i<6||!h)return;
+   if(/^(TT|PN|POTN|AGG|DIV|TOTAL|POSITION|GRADE|SN|PHOTO)/i.test(h))return;
+   const assessment=matchImportAssessment(h,ctx);
+   if(assessment)markColumns.push({index:i,header:h,assessment});
+  });
+  if(!markColumns.length)throw new Error('No spreadsheet subject columns matched assessments in this class and term. Check that assessments exist and the workbook is for the selected class.');
+  const byCode=new Map(),byLin=new Map(),byName=new Map();
+  for(const learner of ctx.students){
+   const code=normaliseImportText(learner.admission_number);if(code)byCode.set(code,learner);
+   const lin=normaliseImportText(learner.lin);if(lin)byLin.set(lin,learner);
+   const name=normaliseImportText([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '));
+   if(name){const list=byName.get(name)||[];list.push(learner);byName.set(name,list)}
+  }
+  const plan=[],display=[];
+  for(const row of rows){
+   const rawName=row[nameIndex];if(!rawName||!String(rawName).trim())continue;
+   const code=codeIndex>=0?normaliseImportText(row[codeIndex]):'',lin=linIndex>=0?normaliseImportText(row[linIndex]):'';
+   const name=normaliseImportText(rawName),nameMatches=byName.get(name)||[];
+   let learner=(lin&&byLin.get(lin))||(code&&byCode.get(code))||(nameMatches.length===1?nameMatches[0]:null);
+   const ambiguous=!learner&&nameMatches.length>1;
+   let matched=0;
+   if(learner){
+    for(const col of markColumns){
+     const cell=row[col.index];if(cell===null||cell===undefined||String(cell).trim()===''||typeof cell==='string'&&cell.startsWith('='))continue;
+     const absent=String(cell).trim().toUpperCase()==='X',score=absent?0:Number(cell);
+     if(!absent&&!Number.isFinite(score))continue;
+     if(absent&&!allowsAbsentMarkForClass(ctx.classId))continue;
+     if(!absent&&(score<0||score>Number(col.assessment.max_score)))continue;
+     plan.push({assessment_id:col.assessment.id,student_id:learner.id,score,teacher_comment:absent?ABSENT_MARKER:null,entered_by:currentUserId,source_name:String(rawName).trim(),source_header:col.header});
+     matched++;
+    }
+   }
+   display.push({name:String(rawName).trim(),match:learner?([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')):(ambiguous?'Ambiguous name':'No learner match'),count:matched,result:learner?(matched?'Ready':'No valid marks'): 'Skipped'});
+  }
+  if(!plan.length)throw new Error('No valid marks were matched. Check the class, term, learner identifiers and spreadsheet subject headings.');
+  const existingKeys=new Set([...ctx.savedMarks.keys()]);
+  const replace=$('replaceExistingImportedMarks').checked;
+  const filtered=plan.filter(x=>replace||!existingKeys.has(x.assessment_id+'|'+x.student_id));
+  teacherExcelImportPlan={payload:filtered,all:plan,display,workbook:file.name,ctxKey:ctx.classId+'|'+ctx.termId};
+  $('teacherMarksImportRows').innerHTML=display.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.match)+'</td><td>'+x.count+'</td><td>'+esc(x.result)+'</td></tr>').join('');
+  message('teacherMarksImportMsg','Preview: '+display.length+' workbook learner row(s); '+plan.length+' valid mark(s) identified; '+filtered.length+' will be imported'+(replace?' (existing marks may be replaced)':' (existing saved marks protected)')+'. Worksheet: '+chosen.name+'.');
+  confirm.disabled=!filtered.length;
+ }catch(err){message('teacherMarksImportMsg','Import preview failed: '+(err?.message||String(err)),true);$('teacherMarksImportRows').innerHTML='<tr><td colspan="4">No import preview is available.</td></tr>'}
+});
+$('confirmTeacherMarksImport').addEventListener('click',async()=>{
+ const plan=teacherExcelImportPlan,ctx=window.cornhillExcelMarksContext,button=$('confirmTeacherMarksImport');
+ if(profile?.role!=='Teacher'||demoMode||!plan||!ctx||plan.ctxKey!==ctx.classId+'|'+ctx.termId)return;
+ button.disabled=true;button.textContent='Importing…';
+ try{
+  const auth=await db.auth.getUser(),user=auth.data?.user;
+  if(auth.error||!user||user.id!==currentUserId)throw new Error('Your teacher sign-in session is unavailable. Sign in again.');
+  const payload=plan.payload.map(({source_name,source_header,...x})=>({...x,entered_by:user.id}));
+  const replace=$('replaceExistingImportedMarks').checked;
+  let inserted=0,skipped=0,failed=0;
+  for(const row of payload){
+   const key=row.assessment_id+'|'+row.student_id,existing=ctx.savedMarks.get(key);
+   if(existing&&replace){
+    const {error}=await db.from('assessment_scores').update({score:row.score,teacher_comment:row.teacher_comment,entered_by:user.id}).eq('assessment_id',row.assessment_id).eq('student_id',row.student_id);
+    if(error){failed++;continue}
+   }else if(existing){skipped++;continue}
+   else{
+    const {error}=await db.from('assessment_scores').insert(row);
+    if(error){failed++;continue}
+   }
+   ctx.savedMarks.set(key,{...row});inserted++;
+  }
+  message('teacherMarksImportMsg','Import finished: '+inserted+' mark(s) saved; '+skipped+' existing mark(s) protected; '+failed+' failed or blocked by teacher class/subject permissions. Check the mark sheet and grading before continuing.');
+  teacherExcelImportPlan=null;button.disabled=true;await loadAcademics();await loadExcelMarksGrid();
+ }catch(err){message('teacherMarksImportMsg','Import stopped: '+(err?.message||String(err)),true);button.disabled=false}
+ finally{button.textContent='Import matched marks'}
+});
+$('exportExcelMarks').addEventListener('click',()=>{
+ const ctx=window.cornhillExcelMarksContext;
+ if(profile?.role!=='Teacher'||!ctx||!window.XLSX)return;
+ const rows=[['SN','Pupil code','Learner name','Gender','LIN',...ctx.assessments.map(a=>(a.subjects?.name||a.title)+' · '+excelAssessmentPeriod(a)),'Total marks']];
+ ctx.students.forEach((learner,i)=>{
+  let total=0,has=false;
+  const scores=ctx.assessments.map(a=>{const mark=ctx.savedMarks.get(a.id+'|'+learner.id);if(!mark)return '';if(!isAbsentMark(mark)){total+=Number(mark.score);has=true}return isAbsentMark(mark)?'X':Number(mark.score)});
+  rows.push([i+1,learner.admission_number||'', [learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '),learner.gender||'',learner.lin||'',...scores,has?total:'']);
+ });
+ const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows);XLSX.utils.book_append_sheet(wb,ws,'Class marks');
+ XLSX.writeFile(wb,'CORNHILL-'+(classes.find(c=>c.id===ctx.classId)?.name||'Class')+'-marks.xlsx');
+});
+
 $('excelMarksBody').addEventListener('input',e=>{
  const input=e.target.closest('[data-grid-score]');if(!input)return;
  const ctx=window.cornhillExcelMarksContext;if(!ctx)return;
@@ -3366,6 +3509,7 @@ $('prepareExcelAssessments').addEventListener('click',async()=>{
  finally{button.disabled=false;button.textContent='Prepare class sheet';delete button.dataset.busy}
 });
 $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
+$('exportExcelMarks').disabled=true;
 const excelAutosaveTimers=new Map();let excelAutosaveChain=Promise.resolve();
 async function autosaveExcelMarkCell(input){const ctx=window.cornhillExcelMarksContext;if(!ctx||!input||!['Admin','Teacher'].includes(profile?.role))return;const raw=String(input.value||'').trim();if(!raw)return;const assessment=ctx.assessments.find(x=>x.id===input.dataset.assessmentId);if(!assessment)return;const absent=raw.toUpperCase()==='X',score=Number(raw);if(absent&&!allowsAbsentMarkForClass(assessment.class_id||ctx.classId))return;if(!absent&&(!Number.isFinite(score)||score<0||score>Number(assessment.max_score)))return;const auth=await db.auth.getSession(),user=auth.data?.session?.user;if(auth.error||!user||user.id!==currentUserId)return;const row={assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:score,teacher_comment:absent?ABSENT_MARKER:(ctx.savedMarks.get(assessment.id+'|'+input.dataset.studentId)?.teacher_comment??null),entered_by:user.id};await queueExcelMarksOffline([row],ctx,user.id);if(navigator.onLine){const result=await syncOfflineAssessmentDrafts();if(result.synced)message('excelMarksMsg','Autosaved '+result.synced+' mark(s) to the school record.');else if(result.conflicts)message('excelMarksMsg','Your mark draft is saved on this device, but a server change or permission conflict needs review before it can be synchronised.')}else message('excelMarksMsg','Autosaved on this device · pending sync · not yet an official school mark.')}
 $('excelMarksBody').addEventListener('input',e=>{const input=e.target.closest('[data-grid-score]');if(!input)return;const key=input.dataset.assessmentId+'|'+input.dataset.studentId;clearTimeout(excelAutosaveTimers.get(key));excelAutosaveTimers.set(key,setTimeout(()=>{excelAutosaveChain=excelAutosaveChain.then(()=>autosaveExcelMarkCell(input)).catch(err=>message('excelMarksMsg','Autosave is waiting for a retry: '+(err?.message||'storage/network issue'),true))},700));});
