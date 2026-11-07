@@ -2006,7 +2006,78 @@ async function loadStaffAttendanceNotice(){
  box.classList.remove('hidden');
 }
 
-async function refresh(){clearMessage('appMsg');if(!navigator.onLine){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','You are offline and this device has no valid class-list snapshot for this signed-in account. Reconnect to load the permitted records.',true);return}let allowedClassIds=null;if(profile?.role==='Teacher'){const selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id');if(!selectedClassId){message('appMsg','Your class workspace is not selected. Sign out and sign in again using Class teacher, then choose your assigned class.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}const access=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);if(access.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not verify your class access: '+access.error.message,true);return}const assignedClassIds=[...new Set((access.data||[]).map(x=>x.class_id))];if(assignedClassIds.length!==1||assignedClassIds[0]!==selectedClassId){await db.auth.signOut();sessionStorage.removeItem('cornhill_teacher_class_id');message('loginMsg','Access blocked. This teacher account must belong to exactly one class, and it must match the selected class. Contact the administrator.',true);await startSession(null);return}const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',selectedClassId);if(a.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not load your class subjects: '+a.error.message,true);return}window.teacherAssignments=a.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];window.teacherClassIds=allowedClassIds;window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id))]}else{window.teacherAssignments=[];window.teacherClassIds=null;window.teacherSubjectIds=null}const classQuery=db.from('school_classes').select('*').order('name');const studentColumns='id,admission_number,lin,p7_index_number,first_name,middle_name,last_name,gender,birth_year,date_of_birth,admission_date,class_id,learner_type,status,previous_school,created_at,admission_complete,school_classes(name)';const studentQuery=profile?.role==='Admin'?db.rpc('admin_list_students'):db.from('students').select(studentColumns).order('created_at',{ascending:false});const codeAliasQuery=profile?.role==='Admin'?db.rpc('admin_list_learner_code_aliases'):Promise.resolve({data:[],error:null});const [s,c,a]=await Promise.all([profile?.role==='Admin'?studentQuery:profile?.role==='Teacher'&&allowedClassIds.length?studentQuery.in('class_id',allowedClassIds):Promise.resolve({data:[],error:null}),profile?.role==='Admin'?classQuery:profile?.role==='Teacher'&&allowedClassIds.length?classQuery.in('id',allowedClassIds):Promise.resolve({data:[],error:null}),codeAliasQuery]);if(s.error||c.error||a.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not load your permitted school data. '+(s.error||c.error||a.error).message,true);return}students=s.data||[];classes=c.data||[];financeCodeAliases=a.data||[];setOfflineReadOnly(false);await saveOfflineSchoolSnapshot();render();applyRoleNavigation();await loadStaffAttendanceNotice();await loadNotifications();if(profile?.role==='Admin'){loadStaffProfiles();loadClassTeacherNamesAdmin();await loadDashboardIncomeForecast()}if(profile?.role==='Teacher')renderTeacherPortal()}
+function populateLearnerClassSelectors(){
+ const list=Array.isArray(classes)?classes:[];
+ const options='<option value="">Unassigned</option>'+list.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name+(c.stream?' - '+c.stream:''))+'</option>').join('');
+ const fallbackOptions='<option value="">Choose class fallback</option>'+list.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name+(c.stream?' - '+c.stream:''))+'</option>').join('');
+ const admissionSelect=$('classSelect'),fallbackSelect=$('bulkImportClass');
+ if(admissionSelect)admissionSelect.innerHTML=options;
+ if(fallbackSelect){
+  const previous=fallbackSelect.value;
+  fallbackSelect.innerHTML=fallbackOptions;
+  if(previous&&list.some(c=>c.id===previous))fallbackSelect.value=previous;
+  fallbackSelect.disabled=list.length===0;
+  fallbackSelect.title=list.length?'Choose the class to assign to learners when a worksheet name does not match.':'No classes have loaded. Use Refresh app or contact the administrator.';
+ }
+}
+async function refresh(){
+ clearMessage('appMsg');
+ if(!db)throw new Error('The secure school database is not connected. Refresh the page when internet access is available.');
+ if(!navigator.onLine){
+  if(await restoreOfflineSchoolSnapshot(currentUserId))return;
+  message('appMsg','You are offline and this device has no valid class-list snapshot for this signed-in account. Reconnect to load the permitted records.',true);return;
+ }
+ let allowedClassIds=null;
+ if(profile?.role==='Teacher'){
+  const selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id');
+  if(!selectedClassId){message('appMsg','Your class workspace is not selected. Sign out and sign in again using Class teacher, then choose your assigned class.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
+  const access=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);
+  if(access?.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not verify your class access: '+access.error.message,true);return}
+  const assignedClassIds=[...new Set((access?.data||[]).map(x=>x.class_id).filter(Boolean))];
+  if(assignedClassIds.length!==1||assignedClassIds[0]!==selectedClassId){
+   await db.auth.signOut();sessionStorage.removeItem('cornhill_teacher_class_id');
+   message('loginMsg','Access blocked. This teacher account must belong to exactly one class, and it must match the selected class. Contact the administrator.',true);
+   await startSession(null);return;
+  }
+  const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',selectedClassId);
+  if(a?.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not load your class subjects: '+a.error.message,true);return}
+  window.teacherAssignments=a?.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];
+  window.teacherClassIds=allowedClassIds;window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id).filter(Boolean))];
+ }else{window.teacherAssignments=[];window.teacherClassIds=null;window.teacherSubjectIds=null}
+ const classQuery=db.from('school_classes').select('id,name,stream').order('name');
+ const studentColumns='id,admission_number,lin,p7_index_number,first_name,middle_name,last_name,gender,birth_year,date_of_birth,admission_date,class_id,learner_type,status,previous_school,created_at,admission_complete,school_classes(name)';
+ const studentQuery=profile?.role==='Admin'?db.rpc('admin_list_students'):db.from('students').select(studentColumns).order('created_at',{ascending:false});
+ const codeAliasQuery=profile?.role==='Admin'?db.rpc('admin_list_learner_code_aliases'):Promise.resolve({data:[],error:null});
+ const [studentResult,classResult,aliasResult]=await Promise.all([
+  profile?.role==='Admin'?studentQuery:profile?.role==='Teacher'&&allowedClassIds?.length?studentQuery.in('class_id',allowedClassIds):Promise.resolve({data:[],error:null}),
+  profile?.role==='Admin'?classQuery:profile?.role==='Teacher'&&allowedClassIds?.length?classQuery.in('id',allowedClassIds):Promise.resolve({data:[],error:null}),
+  codeAliasQuery
+ ]);
+ const failed=[studentResult,classResult,aliasResult].find(result=>result?.error);
+ if(failed){
+  if(await restoreOfflineSchoolSnapshot(currentUserId))return;
+  const detail=failed.error?.message||'The database returned an incomplete response.';
+  message('appMsg','Could not load your permitted school data. '+detail,true);
+  throw new Error(detail);
+ }
+ students=Array.isArray(studentResult?.data)?studentResult.data:[];
+ classes=Array.isArray(classResult?.data)?classResult.data:[];
+ financeCodeAliases=Array.isArray(aliasResult?.data)?aliasResult.data:[];
+ // Populate the class selectors before drawing the rest of the dashboard. This keeps
+ // the Excel fallback usable even if a separate dashboard widget has a rendering issue.
+ populateLearnerClassSelectors();
+ setOfflineReadOnly(false);
+ await saveOfflineSchoolSnapshot();
+ render();
+ applyRoleNavigation();
+ await loadStaffAttendanceNotice();
+ await loadNotifications();
+ if(profile?.role==='Admin'){
+  loadStaffProfiles();loadClassTeacherNamesAdmin();
+  await loadDashboardIncomeForecast();
+ }
+ if(profile?.role==='Teacher')renderTeacherPortal();
+}
 function render(){ const visibleStudents=students.filter(s=>s.status!=='Archived'); $('totalStudents').textContent=visibleStudents.length;$('activeStudents').textContent=students.filter(s=>s.status==='Active').length;$('totalClasses').textContent=classes.length;
  const activeForChart=students.filter(x=>x.status==='Active'),classCounts=new Map();for(const x of activeForChart){const name=x.school_classes?.name||classes.find(c=>c.id===x.class_id)?.name||'Unassigned';classCounts.set(name,(classCounts.get(name)||0)+1)}
  renderRecordsBarChart('dashboardEnrolmentChart',[...classCounts].map(([label,value])=>({label,value})));
@@ -2588,7 +2659,15 @@ $('previewBulkLearners').addEventListener('click',async()=>{
  const file=$('bulkLearnerFile').files?.[0];if(!file){message('bulkImportMsg','Choose an Excel workbook or CSV file first.',true);return}
  if(profile?.role!=='Admin'||demoMode){message('bulkImportMsg','Only the administrator can import learners.',true);return}
  try{
-  const bytes=await file.arrayBuffer(),workbook=XLSX.read(bytes,{type:'array'}),preview=[],issues=[];
+  if(!window.XLSX||typeof window.XLSX.read!=='function')throw new Error('The Excel reader has not loaded. Refresh the app while connected to the internet, then try again.');
+  if(!Array.isArray(classes)||!classes.length){
+   const classResult=await db.from('school_classes').select('id,name,stream').order('name');
+   if(classResult.error)throw classResult.error;
+   classes=Array.isArray(classResult.data)?classResult.data:[];
+   populateLearnerClassSelectors();
+  }
+  if(!classes.length)throw new Error('No school classes are available to choose. Ask the administrator to check the Classes register.');
+  const bytes=await file.arrayBuffer(),workbook=window.XLSX.read(bytes,{type:'array'}),preview=[],issues=[];
   const fallback=$('bulkImportClass').value;
   for(const sheetName of workbook.SheetNames){
    const sheet=workbook.Sheets[sheetName],rows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:false,defval:''});
