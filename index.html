@@ -3405,39 +3405,62 @@ function setupExcelMarksFilters(){
  const folders=$('excelClassFolders');if(folders)folders.innerHTML=classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<button type="button" class="module-card" data-excel-class="'+x.id+'"><strong>📁 '+esc(x.name)+'</strong><span>Open class marks folder</span><em>'+esc(curriculumGroupForClass(x.name)||'Class')+'</em></button>').join('');
 }
 function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();const cls=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);if(setBased){const m=t.match(/(?:set|assessment)\s*(iv|4|iii|3|ii|2|i|1)\b/i);if(m){const raw=m[1].toUpperCase();return 'Set '+({1:'I',2:'II',3:'III',4:'IV',I:'I',II:'II',III:'III',IV:'IV'}[raw]||'I')}if(/fourth|assessment\s*4/.test(t))return 'Set IV';if(/third|assessment\s*3|end.?of.?term|\bend\b/.test(t))return 'Set III';if(/second|assessment\s*2|mid.?term/.test(t))return 'Set II';return 'Set I'}if(/assessment\s*4|fourth assessment|fourth term/.test(t))return 'Fourth';if(/mid.?term|midterm/.test(t))return 'Midterm';if(/^end\b|end.?of.?term|end term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
-function excelSubjectOrder(a){const name=(a.subjects?.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');const className=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const group=curriculumGroupForClass(className);let maps;if(group==='Nursery')maps=className.includes('MIDDLE')?['number','language','writing','health','reading','social','drawing']:['number','language','reading','health','social','writing','drawing'];else if(group==='P1-P3')maps=className.includes('P2')||className.includes('PRIMARY2')?['mathematics','english','literacyi','local','literacyii','religious']:className.includes('P3')||className.includes('PRIMARY3')?['english','mathematics','literacyi','literacyii','religious','local']:['english','mathematics','literacyi','literacyii','local','religious'];else maps=className.includes('P4')||className.includes('PRIMARY4')?['mathematics','english','science','socialstudies']:['english','mathematics','science','socialstudies'];const i=maps.findIndex(k=>name.includes(k));return i<0?99:i;}
-function excelSubjectLabel(assessment,index,clsArg){
- const subject=assessment.subjects||{},name=String(subject.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
- const cls=clsArg||classes.find(x=>x.id===assessment.class_id),className=String(cls?.name||'').toUpperCase(),group=curriculumGroupForClass(className),phase=excelAssessmentPeriod(assessment),n=excelPhaseCode(phase);
- const contains=(...keys)=>keys.some(k=>name.includes(k));
- let prefix='';
- if(group==='Nursery'){
-  if(contains('number','numeracy'))prefix='NU';
-  else if(contains('language','communication'))prefix=/TOP/.test(className)?'LD':'EN';
-  else if(contains('reading','read'))prefix='RE';
-  else if(contains('health'))prefix='HH';
-  else if(contains('social'))prefix='SD';
-  else if(contains('writing','handwriting'))prefix='WR';
-  else if(contains('drawing','shading','art'))prefix='DR';
- }else if(group==='P1-P3'){
-  const isP2=/P\.?\s*2|PRIMARY\s*2/.test(className),isP3=/P\.?\s*3|PRIMARY\s*3/.test(className);
-  if(contains('english'))prefix=isP2||isP3?'EN':'ENG';
-  else if(contains('mathematics','maths'))prefix=isP2||isP3?'MT':'MTC';
-  else if(contains('literacyii','literacy2'))prefix=isP2?( 'LI2'):(isP3?(phase==='Beginning'?'LT2':'LI2'):'LIT2');
-  else if(contains('literacyi','literacy1'))prefix=isP2||isP3?'LI1':'LIT1';
-  else if(contains('local','language'))prefix='LL';
-  else if(contains('religious','religion'))prefix='RE';
- }else{
-  const isP4=/P\.?\s*4|PRIMARY\s*4/.test(className),isP5=/P\.?\s*5|PRIMARY\s*5/.test(className),isP67=/P\.?\s*[67]|PRIMARY\s*[67]/.test(className);
-  if(contains('english'))prefix=isP67?'ENG':isP5?'EN':'EN';
-  else if(contains('mathematics','maths'))prefix=isP67?'MAT':isP4?'MT':'MT';
-  else if(contains('science'))prefix=isP67?'SCI':'SC';
-  else if(contains('social','sst'))prefix=isP67?'SST':isP4?'SST':'SS';
- }
- if(!prefix)prefix=String(subject.code||subject.name||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
- return prefix+n;
+function excelSubjectKey(raw){
+ const name=String(raw||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ if(name.includes('literacyii')||name.includes('literacy2'))return 'literacyii';
+ if(name.includes('literacyi')||name.includes('literacy1'))return 'literacyi';
+ if(name.includes('number')||name.includes('numeracy'))return 'number';
+ if(name.includes('language')||name.includes('communication'))return 'language';
+ if(name.includes('reading')||name==='read')return 'reading';
+ if(name.includes('health'))return 'health';
+ if(name.includes('social')||name.includes('sst'))return 'socialstudies';
+ if(name.includes('writing')||name.includes('handwriting'))return 'writing';
+ if(name.includes('drawing')||name.includes('shading')||name.includes('art'))return 'drawing';
+ if(name.includes('english'))return 'english';
+ if(name.includes('mathematics')||name.includes('maths'))return 'mathematics';
+ if(name.includes('science'))return 'science';
+ if(name.includes('local'))return 'local';
+ if(name.includes('religious')||name.includes('religion'))return 'religious';
+ return name;
 }
-function excelPhaseCode(phase){return phase==='Beginning'||phase==='Set I'?1:phase==='Midterm'||phase==='Set II'?2:phase==='End'||phase==='Set III'?3:4}
+function excelSubjectOrder(a){
+ const subjectKey=excelSubjectKey(a.subjects?.name),cls=classes.find(c=>c.id===a.class_id),className=String(cls?.name||'').toUpperCase(),group=curriculumGroupForClass(className),phase=excelAssessmentPeriod(a);
+ let maps=[];
+ if(group==='Nursery'){
+  if(/MIDDLE/.test(className))maps=phase==='End'?['number','language','health','socialstudies','reading','writing','drawing']:phase==='Midterm'?['number','language','reading','health','socialstudies','writing','drawing']:['number','language','writing','health','reading','socialstudies','drawing'];
+  else if(/BABY/.test(className)&&phase==='End')maps=['number','language','socialstudies','health','reading','writing','drawing'];
+  else maps=['number','language','reading','health','socialstudies','writing','drawing'];
+ }else if(group==='P1-P3'){
+  if(/P\.?\s*1|PRIMARY\s*1/.test(className)&&phase==='End')maps=['mathematics','english','literacyi','religious','literacyii','local'];
+  else if(/P\.?\s*2|PRIMARY\s*2/.test(className))maps=['mathematics','english','literacyi','local','literacyii','religious'];
+  else if(/P\.?\s*3|PRIMARY\s*3/.test(className))maps=['english','mathematics','literacyi','literacyii','religious','local'];
+  else maps=['english','mathematics','literacyi','literacyii','local','religious'];
+ }else{
+  maps=/P\.?\s*4|PRIMARY\s*4/.test(className)?['mathematics','english','science','socialstudies']:['english','mathematics','science','socialstudies'];
+ }
+ const index=maps.indexOf(subjectKey);return index<0?99:index;
+}
+function excelSubjectLabel(assessment,index,clsArg){
+ const subject=assessment.subjects||{},name=String(subject.name||''),key=excelSubjectKey(name);
+ const cls=clsArg||classes.find(x=>x.id===assessment.class_id),className=String(cls?.name||'').toUpperCase(),group=curriculumGroupForClass(className),phase=excelAssessmentPeriod(assessment),n=excelPhaseCode(phase);
+ const isP1=/P\.?\s*1|PRIMARY\s*1/.test(className),isP2=/P\.?\s*2|PRIMARY\s*2/.test(className),isP3=/P\.?\s*3|PRIMARY\s*3/.test(className),isP4=/P\.?\s*4|PRIMARY\s*4/.test(className),isP5=/P\.?\s*5|PRIMARY\s*5/.test(className),isP6=/P\.?\s*6|PRIMARY\s*6/.test(className),isP7=/P\.?\s*7|PRIMARY\s*7/.test(className);
+ const phaseNo=String(n),exact={
+  Baby:{1:{number:'NU1',language:'EN1',reading:'RE1',health:'HH1',socialstudies:'SD1',writing:'WR1',drawing:'DR1'},2:{number:'NU2',language:'EN2',reading:'RE2',health:'HH2',socialstudies:'SD2',writing:'WR2',drawing:'DR2'},3:{number:'NU3',language:'EN3',reading:'RE3',health:'HH3',socialstudies:'SD3',writing:'WR3',drawing:'DR3'}},
+  Middle:{1:{number:'NU1',language:'EN1',writing:'WR1',health:'HH1',reading:'RE1',socialstudies:'SD1',drawing:'DR1'},2:{number:'NU2',language:'EN2',writing:'WR2',health:'HH2',reading:'RE2',socialstudies:'SD2',drawing:'DR2'},3:{number:'NU3',language:'EN3',health:'HH3',socialstudies:'SD3',reading:'RE3',writing:'WR3',drawing:'DR3'}},
+  Top:{1:{number:'NU1',language:'LD1',reading:'RE1',health:'HH1',socialstudies:'SD1',writing:'WR1',drawing:'DR1'},2:{number:'NU2',language:'LD2',reading:'RE2',health:'HH2',socialstudies:'SD2',writing:'WR2',drawing:'DR2'},3:{number:'NU3',language:'EN3',reading:'RE3',health:'HH3',socialstudies:'SD3',writing:'WR3',drawing:'DR3'}},
+  P1:{1:{english:'ENG1',mathematics:'MTC1',literacyi:'LIT1',literacyii:'LIT21',local:'LL1',religious:'RE1'},2:{english:'EN2',mathematics:'MT2',literacyi:'LI12',literacyii:'LI22',local:'LL2',religious:'RE2'},3:{english:'EN3',mathematics:'MT3',literacyi:'LI13',literacyii:'L123',local:'LL3',religious:'RE3'}},
+  P2:{1:{mathematics:'MT1',english:'EN1',literacyi:'LI11',local:'LL1',literacyii:'LI21',religious:'RE1'},2:{mathematics:'MT2',english:'EN2',literacyi:'LI12',local:'LL2',literacyii:'LI22',religious:'RE2'},3:{mathematics:'MT3',english:'EN3',literacyi:'LI13',local:'LL3',literacyii:'LI23',religious:'RE3'}},
+  P3:{1:{english:'EN1',mathematics:'MT1',literacyi:'LI11',literacyii:'LT21',religious:'RE1',local:'LL1'},2:{english:'EN2',mathematics:'MT2',literacyi:'LI12',literacyii:'LI22',religious:'RE2',local:'LL2'},3:{english:'EN3',mathematics:'MT3',literacyi:'LI3',literacyii:'LI23',religious:'RE3',local:'LL3'}},
+  P4:{1:{mathematics:'MT1',english:'EN1',science:'SC1',socialstudies:'SST'},2:{mathematics:'MT2',english:'EN2',science:'SC2',socialstudies:'SS2'},3:{mathematics:'MT3',english:'EN3',science:'SC3',socialstudies:'SS3'}},
+  P5:{1:{english:'EN1',mathematics:'MT1',science:'SC1',socialstudies:'SS1'},2:{english:'ENG2',mathematics:'MT2',science:'SC2',socialstudies:'SS2'},3:{english:'EN3',mathematics:'MT3',science:'SC3',socialstudies:'SS3'}},
+  P6:{1:{english:'ENG1',mathematics:'MAT1',science:'SCI1',socialstudies:'SST1'},2:{english:'ENG2',mathematics:'MAT2',science:'SCI2',socialstudies:'SST2'},3:{english:'ENG3',mathematics:'MT3',science:'SC3',socialstudies:'SST3'},4:{english:'ENG4',mathematics:'MAT4',science:'SCI4',socialstudies:'SST4'}},
+  P7:{1:{english:'ENG1',mathematics:'MAT1',science:'SCI1',socialstudies:'SST1'},2:{english:'EN2',mathematics:'MA2',science:'SC2',socialstudies:'SS2'},3:{english:'ENG3',mathematics:'MAT3',science:'SCI3',socialstudies:'SST3'},4:{english:'ENG4',mathematics:'MAT4',science:'SCI4',socialstudies:'SST4'}}
+ };
+ const classKey=group==='Nursery'?(/BABY/.test(className)?'Baby':/MIDDLE/.test(className)?'Middle':'Top'):isP1?'P1':isP2?'P2':isP3?'P3':isP4?'P4':isP5?'P5':isP6?'P6':isP7?'P7':'';
+ const exactCode=exact[classKey]?.[phaseNo]?.[key];if(exactCode)return exactCode;
+ if(subject.code)return String(subject.code).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5)+n;
+ return String(name||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5)+n;
+}
 function excelGradeMarkup(assessment,mark){
  if(!mark)return '—';
  if(isAbsentMark(mark))return 'X';
