@@ -3028,10 +3028,8 @@ async function loadAcademics(){
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
  $('academicYearSelect').innerHTML=opts(academic.years,x=>x.name);
  $('academicClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
- const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');$('assessmentClassSelect').innerHTML=profile?.role==='Teacher'?opts(classes.filter(x=>x.id===teacherClassId),x=>x.name+(x.stream?' - '+x.stream:'')):opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));$('assessmentClassField').classList.toggle('hidden',profile?.role==='Teacher');if(profile?.role==='Teacher')$('assessmentClassSelect').value=teacherClassId||'';
+ const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');$('assessmentClassSelect').innerHTML=profile?.role==='Teacher'?opts(classes.filter(x=>x.id===teacherClassId),x=>x.name+(x.stream?' - '+x.stream:'')):opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));$('assessmentClassField').classList.toggle('hidden',profile?.role==='Teacher');if(profile?.role==='Teacher')$('assessmentClassSelect').value=teacherClassId||'';const initialAssessmentClass=String(classes.find(x=>x.id===$('assessmentClassSelect').value)?.name||'').toUpperCase(),initialAssessmentSets=/P\\.?\\s*[67]|PRIMARY\\s*[67]/i.test(initialAssessmentClass),initialAssessmentPeriod=$('#assessmentForm select[name="period"]');if(initialAssessmentPeriod)initialAssessmentPeriod.innerHTML=(initialAssessmentSets?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End']).map((p,i)=>'<option value="'+p+'">'+p+(initialAssessmentSets?'':' ('+(i+1)+')')+'</option>').join('');
  $('academicSubjectSelect').innerHTML=opts(academic.subjects,x=>x.name);
- $('assessmentSubjectSelect').innerHTML=$('academicSubjectSelect').innerHTML;
- await filterAssessmentSubjects();
  $('academicTeacherSelect').innerHTML='<option value="">Not assigned</option>'+opts((teacherDirectory.data||[]).filter(x=>x.employment_status==='Active'),x=>x.full_name);
  const availableTeacherAccounts=(staff.data||[]).filter(p=>!(teacherDirectory.data||[]).some(t=>t.linked_user_id===p.id));
  $('academicTeacherLinkedAccount').innerHTML='<option value="">No Keras account — directory only</option>'+opts(availableTeacherAccounts,x=>x.full_name||'Teacher account');
@@ -3434,7 +3432,7 @@ function excelSubjectLabel(assessment,index,clsArg){
   else if(contains('drawing','shading','art'))prefix='D';
  }else if(group==='P1-P3'){
   const isP2=/P\\.?\\s*2|PRIMARY\\s*2/.test(className),isP3=/P\\.?\\s*3|PRIMARY\\s*3/.test(className);
-  if(contains('english'))prefix=isP2?'EN':'ENG';
+  if(contains('english'))prefix=isP2||isP3?'EN':'ENG';
   else if(contains('mathematics','maths'))prefix=isP2||isP3?'MT':'MTC';
   else if(contains('literacyi','literacy1'))prefix=isP2||isP3?'LI1':'LIT1';
   else if(contains('literacyii','literacy2'))prefix=isP2||isP3?'LI2':'LIT2';
