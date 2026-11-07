@@ -349,3 +349,14 @@ No production release is recorded by this document itself. Update this log only 
 - Migration: \`20261107143153_correct_term_scoped_bursary_charge_and_boarding_package_handling.sql\`.
 - Verification: the database function now uses the active enrolment period, blocks changes to already-allocated charges, handles zero-payable charges without violating the positive-charge constraint, and keeps boarding bursaries on the inclusive package. Full live approval with an authenticated administrator and a synthetic learner remains pending.
 
+
+
+### Additional isolated database tests — 7 November 2026
+- Pupil-code teacher notification: passed using a synthetic learner in a class with an assigned teacher. The assigned teacher notification was created inside the test transaction; the transaction was rolled back.
+- Bursary approval/fee integration: passed under an isolated administrator test identity with three synthetic learners:
+  - Day learner with a partial bursary: one correctly linked School fees charge was created, and applying the normal fee schedule did not duplicate it.
+  - Day learner with a full bursary and an unpaid existing charge: the unpaid charge was removed and the original/adjusted amounts were retained in the bursary award record.
+  - Boarding learner with a partial bursary: one inclusive Boarding package charge was created, and applying the fee schedule did not create a second package.
+- These tests used database transactions and were rolled back. The live learner register, existing bursary award, posted receipts, payment allocations and real pupil codes were not changed.
+- The remaining live tests are browser-based parent sign-in with a historical code, teacher notification display, notification archive/swipe interaction, and administrator bursary approval through the actual form.
+- Added migration \`20261107143553_resolve_only_matching_current_term_bursary_notification.sql\` so approving a bursary for one term resolves only that term's reminder, not older unresolved term reminders.
