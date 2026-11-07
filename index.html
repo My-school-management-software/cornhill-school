@@ -1284,7 +1284,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
   <h3>Assessment preparation · complete class marks sheet</h3>
   <p class="muted">The class teacher prepares one assessment period for the whole class. Every subject is created together in the school’s existing Excel order and code format. The class is automatic for class teachers.</p>
   <h3>Create assessment</h3>
- <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div id="assessmentClassField"><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Assessment period *</label><select name="period" required><option value="Beginning">Beginning (1)</option><option value="Midterm">Midterm (2)</option><option value="End">End of term (3)</option></select></div><div><label>Assessment title / note</label><input name="title" placeholder="Optional note for all subjects"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" max="1000" step="0.01" value="100" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><p class="muted">One preparation creates the full class sheet for every subject in the class curriculum. Your class-teacher account automatically uses its assigned class.</p><button class="primary">Create all subject columns</button></div></form>
+ <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div id="assessmentClassField"><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Assessment period *</label><select name="period" required><option value="Beginning">Beginning (1)</option><option value="Midterm">Midterm (2)</option><option value="End">End of term (3)</option></select></div><div><label>Assessment title / note</label><input name="title" placeholder="Optional note for all subjects"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" max="100" step="0.01" value="100" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><p class="muted">One preparation creates the full class sheet for every subject in the class curriculum. Your class-teacher account automatically uses its assigned class.</p><button class="primary">Create all subject columns</button></div></form>
  </section>
  <div id="teacherMarkEntry">
  <h3 style="margin-top:20px">Teacher mark entry · assigned class only</h3>
@@ -1304,6 +1304,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
    <button type="button" id="saveExcelMarks">Save all marks</button><button type="button" id="syncOfflineMarks">Synchronise pending offline marks</button>
   </div>
   <div id="excelMarksMsg" class="notice hidden" style="margin-top:10px"></div>
+  <div id="excelMarksCodeKey" class="muted" style="margin-top:9px;padding:10px 12px;border:1px solid var(--cornhill-line);border-radius:10px;background:var(--cornhill-panel)">Subject code key will appear when the class sheet loads.</div>
   <div class="table-wrap" style="margin-top:12px;max-height:65vh;overflow:auto">
    <table id="excelMarksTable" class="excel-marks-table" style="min-width:760px;border-collapse:separate;border-spacing:0">
     <thead id="excelMarksHead"><tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>Choose term and class</th></tr></thead>
@@ -3510,6 +3511,8 @@ async function loadExcelMarksGrid(){
  if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments exist for this class and term. Create the subject assessments for Beginning, Midterm and End of term first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
  const list=students.filter(x=>x.class_id===classId).sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||a.first_name.localeCompare(b.first_name));
  if(!list.length){head.innerHTML='<tr><th>Class register</th></tr>';body.innerHTML='<tr><td>No learners are enrolled in '+esc(cls?.name||'this class')+'. Register learners first.</td></tr>';message('excelMarksMsg','No learners are enrolled in this class.',true);return}
+ const keyItems=[...new Map(assessments.map(a=>{const full=excelSubjectLabel(a,0,cls),code=full.replace(/\\d+$/,'');return [code,{code,name:code==='D'?'Drawing / Art':(a.subjects?.name||a.title||'Subject')}]})).values()];
+ $('excelMarksCodeKey').innerHTML='<strong>Subject code key:</strong> '+keyItems.map(x=>'<span style="display:inline-block;margin:3px 8px 3px 0"><b>'+esc(x.code)+'</b> = '+esc(x.name)+'</span>').join('');
  const ids=assessments.map(x=>x.id);
  const showPosition=!setBasedClass;
  const {data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);
@@ -3995,7 +3998,7 @@ async function submitAcademic(formId,table,transform,success){
     const subjects=subjectRows||[];
     if(!subjects.length)throw new Error('No active subjects were found for '+cls.name+'.');
     const maximum=Number(values.max_score||100);
-    if(!Number.isFinite(maximum)||maximum<=0||maximum>1000)throw new Error('Maximum score must be a valid number greater than zero.');
+    if(!Number.isFinite(maximum)||maximum<=0||maximum>100)throw new Error('Maximum score must be a valid number greater than zero.');
     if(values.assessment_date&&(values.assessment_date<term.starts_on||values.assessment_date>term.ends_on))throw new Error('Assessment date must fall within the selected term ('+term.starts_on+' to '+term.ends_on+').');
     const period=String(values.period||'').trim(),note=String(values.title||'').trim();
     const setBased=/P\\.?\\s*[67]|PRIMARY\\s*[67]/i.test(cls.name);
