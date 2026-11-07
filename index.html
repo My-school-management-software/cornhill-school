@@ -1060,7 +1060,7 @@ main.wrap{
  <div class="table-wrap"><table><thead><tr><th>Fee item</th><th>Class group</th><th>Learner type</th><th>Amount (UGX)</th></tr></thead><tbody id="feeScheduleRows"></tbody></table></div>
  <h3 style="margin-top:24px">3. Charge a learner</h3>
  <form id="learnerChargeForm"><div><label>Learner *</label><select name="student_id" id="chargeStudent" required></select></div><div><label>Fee item</label><select name="fee_item_id" id="chargeFeeItem"></select></div><div><label>Description *</label><input name="description" required placeholder="e.g. Term 1 school fees"></div><div><label>Amount (UGX) *</label><input name="amount_ugx" type="number" min="1" step="1" required></div><div><label>Due date</label><input name="due_date" type="date"></div><div class="full"><button class="primary">Create learner charge</button></div></form>
- <div class="form-row" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px"><div><label for="feeSchedulePeriod">Billing period *</label><input id="feeSchedulePeriod" placeholder="e.g. Term 1 2027" required></div><button type="button" class="primary" id="applyLearnerFeeSchedule">Apply school fees, boarding and selected meals</button></div><p class="muted">This creates separate learner charges from the approved class schedule. Boarding is added only for boarding learners. Breakfast and lunch are added only when selected in the learner admission record. Reapplying the same period will not duplicate existing charges.</p>
+ <div class="form-row" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px"><div><label for="feeSchedulePeriod">Billing period *</label><input id="feeSchedulePeriod" placeholder="e.g. Term 1 2027" required></div><button type="button" class="primary" id="applyLearnerFeeSchedule">Apply the correct fee package</button></div><p class="muted">This applies the approved charges for the learner type. Boarding is one inclusive package covering school fees and meals; boarding learners are not charged separate school fees or meals. Day learners are charged school fees and only selected meals. Reapplying the same period will not duplicate existing charges.</p>
  <h3 style="margin-top:24px">Thermal receipt printer settings</h3>
  <p class="muted">Choose the paper roll used by your portable ESC/POS thermal printer. Android print services or a compatible local printer bridge may be needed for Bluetooth printing.</p>
  <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><div><label for="receiptPaperWidth">Receipt paper width</label><select id="receiptPaperWidth"><option value="58">58 mm portable printer</option><option value="80">80 mm portable printer</option></select></div><button type="button" id="testThermalReceipt">Print test receipt</button><span class="muted" id="printerStatus">System print dialog fallback</span></div>
@@ -4367,12 +4367,13 @@ async function refreshAdmissionProrationPreview(){
   if(token!==admissionProrationPreviewToken)return;if(error)throw error;
   const applicableSchedules=(schedules||[]).filter(x=>(!x.academic_year_id||x.academic_year_id===term.academic_year_id)&&(!x.term_id||x.term_id===term.id));
   const amountFor=name=>Math.max(0,...applicableSchedules.filter(x=>x.fee_items?.name===name).map(x=>Number(x.amount_ugx)||0));
-  const full=[
-   {name:isBursary?'Approved bursary amount':'School fees',amount:isBursary?bursaryAmount:amountFor('School fees')},
-   ...(learnerType==='Boarding'?[{name:'Boarding',amount:amountFor('Boarding')}]:[]),
-   ...(breakfast?[{name:'Breakfast',amount:amountFor('Breakfast')}]:[]),
-   ...(lunch?[{name:'Lunch',amount:amountFor('Lunch')}]:[])
-  ];
+  const full=boarding
+   ?[{name:'Boarding package (school fees and meals included)',amount:amountFor('Boarding')}]
+   :[
+    {name:isBursary?'Approved bursary amount':'School fees',amount:isBursary?bursaryAmount:amountFor('School fees')},
+    ...(breakfast?[{name:'Breakfast',amount:amountFor('Breakfast')}]:[]),
+    ...(lunch?[{name:'Lunch',amount:amountFor('Lunch')}]:[])
+   ];
   const fullTotal=full.reduce((n,x)=>n+x.amount,0);
   const start=new Date(term.starts_on+'T00:00:00Z'),end=new Date(term.ends_on+'T00:00:00Z'),admit=new Date(admissionDate+'T00:00:00Z');
   const totalDays=Math.round((end-start)/86400000)+1;
