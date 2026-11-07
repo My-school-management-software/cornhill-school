@@ -3420,12 +3420,35 @@ function setupExcelMarksFilters(){
 function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();const cls=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);if(setBased){const m=t.match(/(?:set|assessment)\s*(iv|4|iii|3|ii|2|i|1)\b/i);if(m){const raw=m[1].toUpperCase();return 'Set '+({1:'I',2:'II',3:'III',4:'IV',I:'I',II:'II',III:'III',IV:'IV'}[raw]||'I')}if(/fourth|assessment\s*4/.test(t))return 'Set IV';if(/third|assessment\s*3|end.?of.?term|\bend\b/.test(t))return 'Set III';if(/second|assessment\s*2|mid.?term/.test(t))return 'Set II';return 'Set I'}if(/assessment\s*4|fourth assessment|fourth term/.test(t))return 'Fourth';if(/mid.?term|midterm/.test(t))return 'Midterm';if(/^end\b|end.?of.?term|end term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
 function excelSubjectOrder(a){const name=(a.subjects?.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');const className=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const group=curriculumGroupForClass(className);let maps;if(group==='Nursery')maps=className.includes('MIDDLE')?['number','language','writing','health','reading','social','drawing']:['number','language','reading','health','social','writing','drawing'];else if(group==='P1-P3')maps=className.includes('P2')||className.includes('PRIMARY2')?['mathematics','english','literacyi','local','literacyii','religious']:className.includes('P3')||className.includes('PRIMARY3')?['english','mathematics','literacyi','literacyii','religious','local']:['english','mathematics','literacyi','literacyii','local','religious'];else maps=className.includes('P4')||className.includes('PRIMARY4')?['mathematics','english','science','socialstudies']:['english','mathematics','science','socialstudies'];const i=maps.findIndex(k=>name.includes(k));return i<0?99:i;}
 function excelSubjectLabel(assessment,index,clsArg){
- const subject=assessment.subjects||{},name=(subject.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
- const cls=clsArg||classes.find(x=>x.id===assessment.class_id),group=curriculumGroupForClass(cls?.name||''),phase=excelAssessmentPeriod(assessment),n=phase==='Beginning'?1:phase==='Midterm'?2:phase==='End'?3:phase==='Set I'?1:phase==='Set II'?2:phase==='Set III'?3:4;
- const nurseryLanguageCode=/TOP/.test(String(cls?.name||'').toUpperCase())&&phase!=='End'?'ld':'en';const mappings=group==='Nursery'?[['number','numeracy','nu'],['language',nurseryLanguageCode],['reading','re'],['health','hh'],['social','sd'],['writing','wr'],['drawing','dr']]:group==='P1-P3'?[['english','eng'],['mathematics','mtc'],['literacyi','lit1'],['literacyii','lit2'],['local','ll'],['religious','re']]:[['english','eng'],['mathematics','mtc'],['science','sci'],['socialstudies','sst']];
- const found=mappings.find(x=>x.slice(0,-1).some(k=>name.includes(k)));
- const prefix=found?.[found.length-1]||(subject.code||subject.name||assessment.title||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
- return prefix.toUpperCase()+n;
+ const subject=assessment.subjects||{},name=String(subject.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const cls=clsArg||classes.find(x=>x.id===assessment.class_id),className=String(cls?.name||'').toUpperCase(),group=curriculumGroupForClass(className),phase=excelAssessmentPeriod(assessment),n=excelPhaseCode(phase);
+ const contains=(...keys)=>keys.some(k=>name.includes(k));
+ let prefix='';
+ if(group==='Nursery'){
+  if(contains('number','numeracy'))prefix='NU';
+  else if(contains('language','communication'))prefix=/TOP/.test(className)?'LD':'EN';
+  else if(contains('reading','read'))prefix='RE';
+  else if(contains('health'))prefix='HH';
+  else if(contains('social'))prefix='SD';
+  else if(contains('writing','handwriting'))prefix='WR';
+  else if(contains('drawing','shading','art'))prefix='D';
+ }else if(group==='P1-P3'){
+  const isP2=/P\\.?\\s*2|PRIMARY\\s*2/.test(className),isP3=/P\\.?\\s*3|PRIMARY\\s*3/.test(className);
+  if(contains('english'))prefix=isP2?'EN':'ENG';
+  else if(contains('mathematics','maths'))prefix=isP2||isP3?'MT':'MTC';
+  else if(contains('literacyi','literacy1'))prefix=isP2||isP3?'LI1':'LIT1';
+  else if(contains('literacyii','literacy2'))prefix=isP2||isP3?'LI2':'LIT2';
+  else if(contains('local','language'))prefix='LL';
+  else if(contains('religious','religion'))prefix='RE';
+ }else{
+  const isP4=/P\\.?\\s*4|PRIMARY\\s*4/.test(className),isP5=/P\\.?\\s*5|PRIMARY\\s*5/.test(className),isP67=/P\\.?\\s*[67]|PRIMARY\\s*[67]/.test(className);
+  if(contains('english'))prefix=isP67?'ENG':isP5?'EN':'EN';
+  else if(contains('mathematics','maths'))prefix=isP67?'MAT':isP4?'MT':'MT';
+  else if(contains('science'))prefix=isP67?'SCI':'SC';
+  else if(contains('social','sst'))prefix=isP67?'SST':isP4?'SST':'SS';
+ }
+ if(!prefix)prefix=String(subject.code||subject.name||'SUB').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
+ return prefix+n;
 }
 function excelPhaseCode(phase){return phase==='Beginning'||phase==='Set I'?1:phase==='Midterm'||phase==='Set II'?2:phase==='End'||phase==='Set III'?3:4}
 function excelGradeMarkup(assessment,mark){
