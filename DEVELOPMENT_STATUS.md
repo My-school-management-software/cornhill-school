@@ -858,3 +858,14 @@ The remaining programme now explicitly includes:
 - Individually inspected class teacher helper and visiting-day lookup: current active Teacher and assigned class are required.
 - **No database schema or learner/payment records changed** during this review.
 - Follow-up still needed: execute negative/positive permission tests using dedicated test Admin, Teacher, and Guardian accounts; test phone OTP delivery; complete payment workflow using approved disposable test learner records.
+
+
+## 2026-11-07 — Bursary review audit trail
+
+- Added `school_bursary_review_audit` to record when an administrator opens a bursary review and when they explicitly mark it as checked.
+- Added guarded RPCs `record_school_bursary_review_event` and `list_school_bursary_review_audit`. Both require a signed-in school administrator; anonymous execution is revoked.
+- The audit table has RLS enabled and no direct `anon` or `authenticated` table privileges. Access is only through the guarded RPCs.
+- The learner review panel now shows administrator name and Kampala-local date/time. “Mark review as checked” records an audit event only; it does not approve, renew, reject, alter charges, or post a payment.
+- Added handling so the exact bursary notification ID follows the deep-link into the learner profile; a failed row lookup clears the pending notification context.
+- Verification: 31 targeted source/schema/security assertions checked; database metadata confirms RLS enabled, no direct client table privileges, no anonymous RPC execution, and authenticated RPC execution restricted by administrator checks. Supabase security advisor still reports broader existing findings (including 17 RLS-enabled tables without policies and 30 authenticated-callable SECURITY DEFINER functions); the audit table is intentionally service/RPC-only with no direct policies or client grants.
+- Not yet completed: browser interaction tests with a real administrator session, negative teacher/guardian role tests, and confirmation on the deployed Vercel build. No learner bursary approval, fee, payment, or notification status was changed by this work.
