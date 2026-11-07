@@ -276,3 +276,12 @@ No production release is recorded by this document itself. Update this log only 
 - Theme/navigation preferences are device-local; this is not a school-wide forced setting. Parent Portal is a separate page and is not changed by this admin-interface update.
 - Static checks: all 7 inline JavaScript blocks in `index.html` parse. Verified the 12 theme options, navigation selector, save/apply/reset wiring and CSS layout selectors.
 - Visual browser testing across Android and desktop is still required before declaring the redesign fully approved.
+
+
+## Learner removal button visibility correction — 7 November 2026
+
+- The learner register placed its Actions column at the far right of a wide table. On phone screens, the Remove action could be outside the initial horizontal viewport.
+- Moved the Actions column to the first position, made it sticky at the left edge while horizontally scrolling, and gave the Remove button a clear high-contrast treatment.
+- The Remove action remains restricted to the Admin role and continues to call the same reversible archive workflow; this change does not alter data or archive any learner.
+- Static verification: all 7 inline JavaScript blocks parse; the Actions-first header, sticky first column and Remove button are present.
+- A new preview deployment and on-device visual confirmation are still pending.
