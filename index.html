@@ -1020,6 +1020,25 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
 
 
 
+
+<div id="dashboardClassBoardsPanel" class="panel" style="margin:16px 0">
+ <div class="row" style="align-items:center;gap:12px;flex-wrap:wrap"><div><span class="dashboard-eyebrow">CLASS BOARDS</span><h3 style="margin:4px 0">Classroom overview</h3><p class="muted" style="margin:0">Live learner counts for each class. Open a class board to view its register.</p></div><span class="badge">Live class registers</span></div>
+ <div id="dashboardClassBoards" class="class-register-grid" aria-live="polite"><div class="empty">Class boards will appear after school records load.</div></div>
+</div>
+<div id="dashboardQuickActionsPanel" class="panel" style="margin:16px 0">
+ <div class="row" style="align-items:center;gap:12px;flex-wrap:wrap"><div><span class="dashboard-eyebrow">SCHOOL WORKSPACES</span><h3 style="margin:4px 0">Quick access</h3><p class="muted" style="margin:0">Open the main school management areas from your home dashboard.</p></div></div>
+ <div class="module-grid" style="margin-top:14px">
+  <button type="button" class="module-card" data-module="students"><strong>👩‍🎓 Learner register</strong><span>Admissions, pupil codes, LIN, learner profiles and archived learners.</span><em>Open learner records →</em></button>
+  <button type="button" class="module-card" data-module="classes"><strong>🏫 Classes & registers</strong><span>Class boards, class lists, streams and class details.</span><em>Open class boards →</em></button>
+  <button type="button" class="module-card" data-module="academics"><strong>📚 Academics & results</strong><span>Assessments, marks entry, class performance and report cards.</span><em>Open academics →</em></button>
+  <button type="button" class="module-card" data-module="finance"><strong>💳 Finance</strong><span>Fees, payments, receipts, balances and school accounts.</span><em>Open finance →</em></button>
+  <button type="button" class="module-card" data-module="staff"><strong>👥 Staff & HR</strong><span>Staff profiles, roles and attendance administration.</span><em>Open staff records →</em></button>
+  <button type="button" class="module-card" data-module="communication"><strong>✉ Communications</strong><span>Staff updates, private messages and parent communication.</span><em>Open communications →</em></button>
+  <button type="button" class="module-card" data-module="inventory"><strong>📦 Inventory</strong><span>School stock, supplies and inventory records.</span><em>Open inventory →</em></button>
+  <button type="button" class="module-card" data-module="reports"><strong>📊 Records centre</strong><span>School reports, history and downloadable records.</span><em>Open reports →</em></button>
+  <button type="button" class="module-card" data-module="settings"><strong>⚙ Settings & themes</strong><span>School configuration, accounts, permissions and appearance.</span><em>Open settings →</em></button>
+ </div>
+</div>
 </div></section>
 <section id="modulePreview" class="panel hidden"><h2 id="moduleTitle">Module</h2><p id="moduleDescription" class="muted"></p><div class="notice">This module is visible in the dashboard, but its full working features have not been built yet. We will implement it in stages and update the progress tracker.</div><button class="tab" data-tab="dashboard">← Back to dashboard</button></section>
 <section id="students" class="panel hidden"><div class="row"><h2>Student register</h2><input id="search" style="max-width:300px" placeholder="Search name, pupil code or LIN"></div><div id="studentRegisterClassCards" aria-label="Filter student register by class" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin:14px 0 18px"></div><p id="studentRegisterFilterLabel" class="muted" style="margin:0 0 10px">Showing learners from all classes.</p><div class="table-wrap"><table><thead><tr><th class="learner-row-actions">Actions</th><th>School learner code</th><th>LIN (Ministry)</th><th>P7 index no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Day / Boarding</th><th>Bursary (Admin only)</th><th>Guardian / Phone (Admin only)</th><th>Status</th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="noStudents" class="empty hidden">No learners match this class and search. Try another class or clear the search.</div></section>
@@ -1913,10 +1932,12 @@ function resetAccountScopedCommunicationState(){
  window.schoolNotifications=[];
 }
 async function startSession(session){
+ window.cornhillStartupStage='resetting account state';
  resetAccountScopedCommunicationState();
  demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';
  if(!session){profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;financeCodeAliases=[];setOfflineReadOnly(false);sessionStorage.removeItem('cornhill_teacher_class_id');$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
+window.cornhillStartupStage='loading signed-in user profile';
 const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
 if(error){
  if(await restoreOfflineSchoolSnapshot(session.user.id))return;
@@ -1934,8 +1955,9 @@ if(p.employment_status&&p.employment_status!=='Active'){
  return;
 }
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
+window.cornhillStartupStage='loading permitted school records';
 await refresh();
- if(!window.cornhillOfflineReadOnly)await loadAcademicControl();
+ if(!window.cornhillOfflineReadOnly){window.cornhillStartupStage='loading academic year and term controls';await loadAcademicControl();}
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}
  if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');
  if(profile?.role==='Teacher')await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg');
@@ -2021,6 +2043,7 @@ function populateLearnerClassSelectors(){
  }
 }
 async function refresh(){
+ window.cornhillStartupStage='starting school data refresh';
  clearMessage('appMsg');
  if(!db)throw new Error('The secure school database is not connected. Refresh the page when internet access is available.');
  if(!navigator.onLine){
@@ -2031,6 +2054,7 @@ async function refresh(){
  if(profile?.role==='Teacher'){
   const selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id');
   if(!selectedClassId){message('appMsg','Your class workspace is not selected. Sign out and sign in again using Class teacher, then choose your assigned class.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
+  window.cornhillStartupStage='checking teacher class access';
   const access=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);
   if(access?.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not verify your class access: '+access.error.message,true);return}
   const assignedClassIds=[...new Set((access?.data||[]).map(x=>x.class_id).filter(Boolean))];
@@ -2039,6 +2063,7 @@ async function refresh(){
    message('loginMsg','Access blocked. This teacher account must belong to exactly one class, and it must match the selected class. Contact the administrator.',true);
    await startSession(null);return;
   }
+  window.cornhillStartupStage='loading assigned teacher subjects';
   const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',selectedClassId);
   if(a?.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not load your class subjects: '+a.error.message,true);return}
   window.teacherAssignments=a?.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];
@@ -2048,6 +2073,7 @@ async function refresh(){
  const studentColumns='id,admission_number,lin,p7_index_number,first_name,middle_name,last_name,gender,birth_year,date_of_birth,admission_date,class_id,learner_type,status,previous_school,created_at,admission_complete,school_classes(name)';
  const studentQuery=profile?.role==='Admin'?db.rpc('admin_list_students'):db.from('students').select(studentColumns).order('created_at',{ascending:false});
  const codeAliasQuery=profile?.role==='Admin'?db.rpc('admin_list_learner_code_aliases'):Promise.resolve({data:[],error:null});
+ window.cornhillStartupStage='loading learner, class and pupil-code records';
  const [studentResult,classResult,aliasResult]=await Promise.all([
   profile?.role==='Admin'?studentQuery:profile?.role==='Teacher'&&allowedClassIds?.length?studentQuery.in('class_id',allowedClassIds):Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?classQuery:profile?.role==='Teacher'&&allowedClassIds?.length?classQuery.in('id',allowedClassIds):Promise.resolve({data:[],error:null}),
@@ -2068,17 +2094,32 @@ async function refresh(){
  populateLearnerClassSelectors();
  setOfflineReadOnly(false);
  await saveOfflineSchoolSnapshot();
+ window.cornhillStartupStage='drawing dashboard and class boards';
  render();
  applyRoleNavigation();
+ window.cornhillStartupStage='loading staff attendance notice';
  await loadStaffAttendanceNotice();
+ window.cornhillStartupStage='loading school notifications';
  await loadNotifications();
  if(profile?.role==='Admin'){
   loadStaffProfiles();loadClassTeacherNamesAdmin();
+  window.cornhillStartupStage='loading dashboard income forecast';
   await loadDashboardIncomeForecast();
  }
  if(profile?.role==='Teacher')renderTeacherPortal();
+ window.cornhillStartupStage='dashboard ready';
 }
 function render(){ const visibleStudents=students.filter(s=>s.status!=='Archived'); $('totalStudents').textContent=visibleStudents.length;$('activeStudents').textContent=students.filter(s=>s.status==='Active').length;$('totalClasses').textContent=classes.length;
+ const dashboardBoards=$('dashboardClassBoards');
+ if(dashboardBoards){
+  const order=['Baby','Middle','Top','P1','P2','P3','P4','P5','P6','P7'];
+  const boardClasses=[...classes].filter(cl=>profile?.role!=='Teacher'||cl.id===sessionStorage.getItem('cornhill_teacher_class_id')).sort((a,b)=>{const ai=order.indexOf(String(a.name).trim()),bi=order.indexOf(String(b.name).trim());return (ai<0?99:ai)-(bi<0?99:bi)||String(a.name).localeCompare(String(b.name))||String(a.stream||'').localeCompare(String(b.stream||''))});
+  dashboardBoards.innerHTML=boardClasses.map(cl=>{
+   const members=visibleStudents.filter(st=>st.class_id===cl.id),active=members.filter(st=>st.status==='Active').length;
+   return '<article class="class-register-card"><div class="class-register-card-top"><span class="class-register-icon">🏫</span><span class="badge">'+active+' active</span></div><h3>'+esc(cl.name+(cl.stream?' · '+cl.stream:''))+'</h3><p class="muted">'+members.length+' learner'+(members.length===1?'':'s')+' in register</p><div class="class-register-count"><strong>'+members.length+'</strong><span>Total learners</span></div><button type="button" class="primary" data-dashboard-class="'+esc(cl.id)+'">Open class board</button></article>';
+  }).join('')||'<div class="empty">No class records are available for this account yet.</div>';
+ }
+
  const activeForChart=students.filter(x=>x.status==='Active'),classCounts=new Map();for(const x of activeForChart){const name=x.school_classes?.name||classes.find(c=>c.id===x.class_id)?.name||'Unassigned';classCounts.set(name,(classCounts.get(name)||0)+1)}
  renderRecordsBarChart('dashboardEnrolmentChart',[...classCounts].map(([label,value])=>({label,value})));
  renderLearnerAdmissionTrend('dashboardLearnerTrendChart',visibleStudents);
@@ -2110,6 +2151,7 @@ function applyRoleNavigation(){
  $('classForm').classList.toggle('hidden',role!=='Admin');
  // A class teacher sees a class workspace, never the school-wide administrator snapshot.
  document.querySelectorAll('#dashboard .dashboard-summary-only,#dashboard .dashboard-intro,#dashboard #academicControlCard,#dashboard .module-grid,#dashboard #dashboardIncomeForecastPanel').forEach(node=>node.classList.toggle('hidden',role!=='Admin'));
+ document.querySelectorAll('#dashboardClassBoardsPanel,#dashboardQuickActionsPanel').forEach(node=>node.classList.toggle('hidden',role!=='Admin'));
  const teacherIntro=$('teacherPortalSummary');
  if(teacherIntro)teacherIntro.classList.toggle('hidden',role!=='Teacher');
  const income=$('dashboardIncomeForecastPanel');
@@ -2165,6 +2207,14 @@ $('teacherPortalSummary').addEventListener('change',e=>{
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 let studentRegisterClassFilter='all';
  $('studentRegisterClassCards').addEventListener('click',e=>{const card=e.target.closest('[data-register-class]');if(!card)return;studentRegisterClassFilter=card.dataset.registerClass;$('search').value='';render()});
+ $('dashboardClassBoards')?.addEventListener('click',e=>{
+  const card=e.target.closest('[data-dashboard-class]');if(!card)return;
+  const classId=card.dataset.dashboardClass;
+  tab('classes');
+  const select=$('classRegisterSelect'),open=$('openClassRegister');
+  if(select){select.value=classId;select.dispatchEvent(new Event('change',{bubbles:true}))}
+  if(open){open.dataset.classRoster=classId;open.click()}
+ });
  $('search').addEventListener('input',render);
 
 
@@ -5100,7 +5150,7 @@ $('passwordRecoveryForm').addEventListener('submit',async e=>{
  }catch(error){message('passwordRecoveryMsg','Password was not changed. '+(error?.message||'Please request a fresh recovery link and try again.'),true)}
  finally{button.disabled=false;button.textContent='Save new password'}
 });
-if(db)db.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'&&session){$('login').classList.add('hidden');$('app').classList.add('hidden');$('passwordRecoveryPanel').classList.remove('hidden');return}if(event==='SIGNED_OUT')$('passwordRecoveryPanel').classList.add('hidden');startSession(session).catch(err=>{if(session)message('appMsg','Your account signed in, but the school dashboard could not finish loading. '+(err?.message||''),true)})});
+if(db)db.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'&&session){$('login').classList.add('hidden');$('app').classList.add('hidden');$('passwordRecoveryPanel').classList.remove('hidden');return}if(event==='SIGNED_OUT')$('passwordRecoveryPanel').classList.add('hidden');startSession(session).catch(err=>{console.error('CORNHILL startup failure at '+(window.cornhillStartupStage||'unknown stage'),err);if(session)message('appMsg','Your account signed in, but the school dashboard could not finish loading. Stage: '+(window.cornhillStartupStage||'unknown')+'. '+(err?.message||''),true)})});
 const refreshAppButton=$('refreshApp');
 if(refreshAppButton)refreshAppButton.addEventListener('click',async()=>{
  const original=refreshAppButton.textContent;
