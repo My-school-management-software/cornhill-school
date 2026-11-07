@@ -5,7 +5,7 @@
   "description": "Secure school management for Cornhill Nursery and Primary School",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#f3f7f3",
   "theme_color": "#14532d",
   "orientation": "any",
@@ -16,5 +16,9 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "display_override": [
+    "fullscreen",
+    "standalone"
   ]
 }
