@@ -1896,7 +1896,7 @@ async function loadNotifications(){
  const {data,error}=await db.rpc('list_school_notifications');
  if(error){host.innerHTML='<div class="notice error">Could not load notifications: '+esc(error.message)+'</div>';if(badge)badge.classList.add('hidden');return}
  const rows=Array.isArray(data)?data:[];window.schoolNotifications=rows;
- const {data:reviewRows}=await db.rpc('list_school_bursary_review_ids');window.bursaryReviewStudentIds=new Set((reviewRows||[]).map(x=>x.student_id).filter(Boolean));
+ if(profile?.role==='Admin'){const {data:reviewRows}=await db.rpc('list_school_bursary_review_ids');window.bursaryReviewStudentIds=new Set((reviewRows||[]).map(x=>x.student_id).filter(Boolean));}else window.bursaryReviewStudentIds=new Set();
  if(badge){badge.textContent=String(rows.length);badge.classList.toggle('hidden',rows.length===0)}
  const summary=$('notificationSummary');
  if(summary){summary.textContent=rows.length?rows.length+' item'+(rows.length===1?'':'s')+' currently require attention.':'No active notifications. You are up to date.';summary.classList.remove('hidden')}
