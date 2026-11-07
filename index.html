@@ -1227,7 +1227,7 @@ async function approveNewPassword(password,messageId){
 if(!db){message('loginMsg','The secure sign-in service could not load. Check your internet connection, then refresh this page. If the problem continues, contact the school administrator.',true);$('signIn').disabled=true;$('signIn').textContent='Sign-in service unavailable'}
 function tab(name){if(window.cornhillOfflineReadOnly&&!['dashboard','students','classes'].includes(name))return;if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;if(profile?.role==='Teacher'&&!['dashboard','academics','communication','students','classes','learnerProfile'].includes(name))return;if(profile?.role!=='Admin'&&name==='midtermAdmissions')return;if(profile?.role==='Staff'&&!['dashboard','attendance','communication'].includes(name))return;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));['dashboard','modulePreview','students','register','classes','academics','finance','staffProfiles','attendance','inventory','reports','midtermAdmissions','communication','settings','learnerProfile'].forEach(x=>$(x).classList.toggle('hidden',x!==name));if(name==='settings'){setupAppearance();refreshGoogleDriveStatus();requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));}if(name==='communication'){loadStaffCommunication();loadDirectMessageDirectory();}if(name==='attendance')setupAttendance();if(name==='staffProfiles')loadStaffProfiles();if(name==='academics')loadAcademics();if(name==='finance')loadFinance();if(name==='inventory')loadInventory();if(name==='reports')loadSchoolReports();if(name==='midtermAdmissions')loadMidtermAdmissions()}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
-document.querySelectorAll('[data-settings-jump]').forEach(b=>b.addEventListener('click',()=>{const target=$(b.dataset.settingsJump);if(target){target.scrollIntoView({behavior:'smooth',block:'start'});}}));
+// Settings categories are opened by the dedicated workspace controller below.
 
 const commTemplatesKey='cornhill-communication-templates-v1';
 function commStatus(id,msg,error=false){const el=$(id);if(!el)return;el.textContent=msg;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
@@ -4682,7 +4682,7 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
  function closeWorkspace(){
    records.forEach(record=>record.nodes.forEach(n=>settings.insertBefore(n,record.restoreBefore)));
    settings.classList.remove('settings-submodule-open');
-   overview.querySelectorAll('[data-settings-jump]').forEach(b=>b.removeAttribute('aria-current'));
+   overview.querySelectorAll('[data-settings-jump]').forEach(b=>{b.removeAttribute('aria-current');b.disabled=false});
    view.hidden=true;
    settings.scrollIntoView({behavior:'auto',block:'start'});
  }
