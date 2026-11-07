@@ -493,38 +493,61 @@ body[data-density="compact"] #dashboard .module-card{min-height:105px;padding:11
  #dashboard .records-chart-grid>div{min-height:240px;padding:12px}
 }
 </style>
-<style id="cornhill-workspace-navigation-v2">
-/* Keep the identity header and school motto above the application navigation. */
+
+
+<style id="cornhill-login-and-layout-repair">
+/* Critical visibility rule: the authenticated workspace must never override .hidden. */
+#app.hidden{display:none!important}
+#login.hidden{display:none!important}
+#passwordRecoveryPanel.hidden{display:none!important}
+#app:not(.hidden){display:block}
 @media(min-width:701px){
- #app{display:grid!important;grid-template-columns:222px minmax(0,1fr);column-gap:24px;row-gap:0;align-items:start}
- #app>.cornhill-sidebar{grid-column:1;grid-row:1 / span 40;position:sticky!important;top:16px!important;left:auto!important;bottom:auto!important;width:100%!important;max-height:calc(100dvh - 32px)!important;height:max-content;overflow-y:auto!important;overflow-x:hidden!important;margin:0!important}
- #app>:not(.cornhill-sidebar){grid-column:2;min-width:0;margin-left:0!important;margin-right:0!important}
- #app>.grid:first-of-type{grid-template-columns:repeat(3,minmax(0,1fr))}
- #app>section:not(.tabs){margin-left:0!important}
- #app>.module-preview{margin-left:0!important}
+ .wrap:has(#app){width:calc(100% - 36px);max-width:1780px}
+ #app{width:100%;max-width:none}
+ #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type,#app>section:not(.tabs),#app>.module-preview{margin-left:260px}
+ #app .cornhill-sidebar{position:fixed;top:145px;bottom:16px;left:18px;width:222px;max-height:calc(100dvh - 161px);z-index:35}
+ #app>.grid:first-of-type{margin-right:0}
 }
 @media(min-width:701px) and (max-width:900px){
- #app{grid-template-columns:194px minmax(0,1fr);column-gap:18px}
+ .wrap:has(#app){width:calc(100% - 24px)}
+ #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type,#app>section:not(.tabs),#app>.module-preview{margin-left:222px}
+ #app .cornhill-sidebar{left:10px;width:194px;top:135px;bottom:12px}
 }
 @media(max-width:700px){
- #app{display:block!important}
- #app>.cornhill-sidebar{position:relative!important;top:auto!important;left:auto!important;bottom:auto!important;width:100%!important;max-height:none!important;height:auto!important;margin:12px 0 15px!important;grid-column:auto;grid-row:auto}
- #app>:not(.cornhill-sidebar){margin-left:0!important;grid-column:auto}
+ .wrap:has(#app){width:100%;max-width:none;padding-left:10px;padding-right:10px}
+ #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type,#app>section:not(.tabs),#app>.module-preview{margin-left:0}
+ #app .cornhill-sidebar{position:relative;top:auto;bottom:auto;left:auto;width:100%;max-height:none}
 }
-#settings .settings-overview{display:block}
-#settings .settings-submodule-view{display:none}
-#settings.settings-submodule-open .settings-overview{display:none}
-#settings.settings-submodule-open .settings-submodule-view{display:block}
-.settings-submodule-view{min-width:0}
-.settings-submodule-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:14px 16px;border:1px solid var(--cornhill-line);border-radius:15px;background:linear-gradient(110deg,color-mix(in srgb,var(--cornhill-accent) 9%,var(--cornhill-panel)),var(--cornhill-panel))}
-.settings-submodule-head button{flex:0 0 auto}
-.settings-submodule-title{min-width:0;flex:1}
-.settings-submodule-title small{display:block;color:var(--cornhill-muted);font-size:10px;font-weight:900;letter-spacing:.12em}
-.settings-submodule-title strong{display:block;margin-top:3px;font-size:19px;color:var(--cornhill-ink)}
-.settings-submodule-content{min-width:0}
-.settings-submodule-content>.settings-category-heading:first-child{margin-top:0;padding-top:0;border-top:0}
-.settings-launcher button{min-height:112px}
-.settings-launcher button:focus-visible,.settings-submodule-head button:focus-visible{outline:3px solid color-mix(in srgb,var(--cornhill-accent) 45%,white);outline-offset:3px}
+/* One login surface, with class choices and administrator access inside it. */
+#login.login-design-surface{
+ width:min(100%,980px);max-width:980px;margin:clamp(22px,4vh,48px) auto 36px;
+ padding:clamp(22px,4vw,42px);border:1px solid #d7e5da;border-radius:26px;
+ background:radial-gradient(ellipse at 8% 0%,#d9f3e2 0,transparent 38%),radial-gradient(ellipse at 100% 100%,#e2edff 0,transparent 34%),linear-gradient(145deg,#fff 0%,#f8fbf9 100%);
+ box-shadow:0 22px 60px rgba(20,55,32,.12);overflow:hidden
+}
+#login.login-design-surface:before{content:none!important}
+#login>h2{font-size:clamp(25px,3vw,34px);line-height:1.15;letter-spacing:-.035em;color:#173e27;margin:0 0 8px}
+#login>h2:before{content:"";display:block;width:66px;height:66px;margin:0 0 18px;background:url('/assets/cornhill-school-crest.jpg') center/contain no-repeat;filter:drop-shadow(0 5px 8px #14532d20)}
+#login>p.muted{max-width:660px;font-size:14px;line-height:1.65;margin:0 0 22px;color:#617267}
+#classLoginDirectory.login-class-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:18px 0 22px}
+#classLoginDirectory .login-class-tile{position:relative;min-height:104px;padding:17px 16px;border:1px solid #d9e7dd;border-radius:17px;background:linear-gradient(145deg,#fff,#f4faf5);box-shadow:0 5px 16px #153d2010;transition:transform .18s,border-color .18s,box-shadow .18s}
+#classLoginDirectory .login-class-tile:hover{transform:translateY(-2px);border-color:#72a982;box-shadow:0 10px 24px #153d2018}
+#classLoginDirectory .login-class-tile strong{font-size:17px;color:#174b2c}
+#classLoginDirectory .login-class-tile span{font-size:12px;line-height:1.5;color:#66786c}
+#selectedTeacherLogin{padding:20px!important;border:1px solid #d7e6db!important;border-radius:18px!important;background:#fff!important;box-shadow:0 8px 24px #153d2010}
+#selectedTeacherLogin input,#adminLoginPanel input{min-height:48px;border-radius:11px;border-color:#d4e0d7;background:#fff}
+#selectedTeacherLogin #signIn,#adminLoginPanel #adminSignIn{min-height:48px;border-radius:11px;background:linear-gradient(105deg,#14532d,#21834b);box-shadow:0 6px 14px #14532d25}
+#login>div[style*="border-top"]{margin-top:24px!important;padding-top:20px!important;border-top:1px solid #e2ebe4!important}
+#adminLoginOpen{min-height:48px;border:1px solid #d6e5da;background:#edf6ef;color:#174b2c;border-radius:12px}
+#adminLoginPanel{padding:18px;margin-top:12px;border:1px solid #e0e9e2;border-radius:16px;background:#fff}
+#login .notice{border-radius:12px}
+@media(max-width:700px){
+ #login.login-design-surface{width:100%;margin:16px auto 26px;padding:22px 16px;border-radius:20px}
+ #classLoginDirectory.login-class-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ #classLoginDirectory .login-class-tile{min-height:92px;padding:13px}
+ #login>h2:before{width:54px;height:54px;margin-bottom:13px}
+}
+@media(max-width:380px){#classLoginDirectory.login-class-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -4649,60 +4672,5 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
 })();
 </script>
 
-<script id="cornhill-settings-workspaces-v2">
-(function(){
- const app=document.getElementById('app'),settings=document.getElementById('settings');
- if(!app||!settings)return;
- const nav=settings.ownerDocument.querySelector('#app>.cornhill-sidebar');
- if(nav&&nav!==app.firstElementChild)app.insertBefore(nav,app.firstChild);
- const ids=['settingsBackup','settingsAppearance','settingsSecurity','settingsSchool','settingsTeacherAccess','settingsNotifications','settingsAbout','settingsPrivacy','settingsHardware','settingsHelp'];
- const headings=ids.map(id=>document.getElementById(id)).filter(Boolean);
- if(!headings.length)return;
- const overview=document.createElement('div');overview.className='settings-overview';
- const view=document.createElement('div');view.className='settings-submodule-view';view.setAttribute('aria-live','polite');
- const firstHeading=headings[0];
- const introNodes=[];let node=settings.firstElementChild;
- while(node&&node!==firstHeading){const next=node.nextElementSibling;introNodes.push(node);node=next}
- introNodes.forEach(n=>overview.appendChild(n));
- settings.insertBefore(overview,firstHeading);
- const records=headings.map((heading,index)=>{
-   const nodes=[];let current=heading;
-   const stop=headings[index+1]||null;
-   while(current&&current!==stop){const next=current.nextElementSibling;nodes.push(current);current=next}
-   return {heading,nodes,index,title:heading.textContent.replace(/^\s*\d+\.?\s*/, '').trim(),restoreBefore:stop||null};
- });
- const head=document.createElement('div');head.className='settings-submodule-head';
- const back=document.createElement('button');back.type='button';back.className='tab';back.textContent='← All settings';
- back.addEventListener('click',()=>closeWorkspace());
- const title=document.createElement('div');title.className='settings-submodule-title';
- const eyebrow=document.createElement('small');eyebrow.textContent='CORNHILL SETTINGS · SECTION '+String(1).padStart(2,'0');
- const name=document.createElement('strong');title.append(eyebrow,name);head.append(back,title);
- const content=document.createElement('div');content.className='settings-submodule-content';
- view.append(head,content);settings.appendChild(view);
- function closeWorkspace(){
-   records.forEach(record=>record.nodes.forEach(n=>settings.insertBefore(n,record.restoreBefore)));
-   settings.classList.remove('settings-submodule-open');
-   overview.querySelectorAll('[data-settings-jump]').forEach(b=>{b.removeAttribute('aria-current');b.disabled=false});
-   view.hidden=true;
-   settings.scrollIntoView({behavior:'auto',block:'start'});
- }
- function openWorkspace(record,button){
-   if(settings.classList.contains('settings-submodule-open'))closeWorkspace();
-   record.nodes.forEach(n=>content.appendChild(n));
-   name.textContent=record.title;
-   eyebrow.textContent='CORNHILL SETTINGS · SECTION '+String(record.index+1).padStart(2,'0');
-   settings.classList.add('settings-submodule-open');view.hidden=false;
-   overview.querySelectorAll('[data-settings-jump]').forEach(b=>{b.removeAttribute('aria-current');b.disabled=false});
-   if(button){button.setAttribute('aria-current','page');button.disabled=true}
-   settings.scrollIntoView({behavior:'auto',block:'start'});
-   back.focus({preventScroll:true});
- }
- overview.querySelectorAll('[data-settings-jump]').forEach(button=>{
-   button.addEventListener('click',()=>{
-     const record=records.find(r=>r.heading.id===button.dataset.settingsJump);
-     if(record)openWorkspace(record,button);
-   });
- });
-})();
-</script>
+
 </body></html>
