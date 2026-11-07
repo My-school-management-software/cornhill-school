@@ -1377,6 +1377,12 @@ main.wrap{
 <section id="communication" class="panel hidden">
 <h2>Communications Centre</h2>
 <p class="muted">One workspace for staff collaboration, parent and guardian notifications, WhatsApp and SMS preferences, and delivery history.</p>
+<section id="parentSchoolInboxPanel" class="panel hidden" style="margin:16px 0">
+ <div class="row"><div><div class="dashboard-eyebrow">PRIVATE PARENT COMMUNICATION</div><h3 style="margin:4px 0">Parent & Guardian Messages Inbox</h3><p class="muted">Read parent text and voice messages, reply securely, and track each conversation. Staff only see messages assigned to their account; administrators can oversee the school inbox.</p></div><button type="button" class="primary" id="refreshParentSchoolInbox">Refresh inbox</button></div>
+ <div id="parentSchoolInboxStatus" class="notice hidden" aria-live="polite"></div>
+ <label for="parentSchoolInboxFilter">Filter messages</label><select id="parentSchoolInboxFilter"><option value="all">All messages</option><option value="open">Open</option><option value="in_progress">In progress</option><option value="answered">Answered</option><option value="closed">Closed</option></select>
+ <div id="parentSchoolInboxList"><p class="muted">Select Refresh inbox to load messages.</p></div>
+</section>
 <div class="panel communication-parent-panel" style="margin:16px 0"><div class="dashboard-eyebrow">PARENTS & GUARDIANS</div><h3>Parent notifications and contact channels</h3><p class="muted">Manage payment notices, school announcements, parent SMS and WhatsApp preferences in one place. WhatsApp numbers are captured optionally during learner admission; consent is recorded separately.</p>
 <div class="panel communication-parent-panel" id="parentContactDirectory" style="margin:12px 0">
  <div class="row"><div><div class="dashboard-eyebrow">PRIVATE ADMIN REGISTER</div><h3>Parent & Guardian Contact Register</h3><p class="muted">On-screen directory only. Check the learner, guardian, active phone and message consent. This register has no print or spreadsheet-export action.</p></div><button type="button" class="primary" id="refreshParentContacts">Refresh directory</button></div>
@@ -5234,10 +5240,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   const nav=document.createElement('nav');nav.className='wa-nav';nav.setAttribute('aria-label','Communication sections');
   const views=document.createElement('div');views.className='wa-views';
   const makeView=(name,label)=>{const v=document.createElement('section');v.className='wa-view'+(name==='chats'?' active':'');v.dataset.view=name;v.setAttribute('aria-label',label);views.appendChild(v);return v};
-  const chats=makeView('chats','Private staff chats'),updates=makeView('updates','Staff updates'),callView=makeView('calls','Voice and video calls'),tools=makeView('tools','School communication tools');
-  const buttons=[['chats','Chats','▣'],['updates','Updates','◷'],['calls','Calls','☎'],['tools','School tools','⚙']];
-  buttons.forEach(([id,label,ico],i)=>{const b=document.createElement('button');b.type='button';b.dataset.waTarget=id;b.className=i===0?'active':'';b.innerHTML='<span>'+ico+'</span> '+label;b.addEventListener('click',()=>{nav.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));views.querySelectorAll('.wa-view').forEach(x=>x.classList.toggle('active',x.dataset.view===id));if(id!=='chats')chat.querySelector('.direct-message-grid')?.classList.remove('wa-thread-open')});nav.appendChild(b)});
-  const identity=document.getElementById('waCurrentIdentity');
+  const chats=makeView('chats','Private staff chats'),updates=makeView('updates','Staff updates'),callView=makeView('calls','Voice and video calls'),tools=makeView('tools','School communication tools') ,parentInbox=makeView('parentInbox','Parent messages inbox');
+  const buttons=[['chats','Chats','▣'],['updates','Updates','◷'],['calls','Calls','☎'],['tools','School tools','⚙'],['parentInbox','Parent Inbox','✉']];
+  buttons.forEach(([id,label,ico],i)=>{const b=document.createElement('button');b.type='button';b.dataset.waTarget=id;b.className=i===0?'active':'';b.innerHTML='<span>'+ico+'</span> '+label;b.addEventListener('click',()=>{nav.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));views.querySelectorAll('.wa-view').forEach(x=>x.classList.toggle('active',x.dataset.view===id));if(id==='parentInbox')window.loadParentSchoolInbox?.();if(id!=='chats')chat.querySelector('.direct-message-grid')?.classList.remove('wa-thread-open')});nav.appendChild(b)});
+  const inboxPanel=document.getElementById('parentSchoolInboxPanel');if(inboxPanel)parentInbox.append(inboxPanel);const identity=document.getElementById('waCurrentIdentity');
   if(title){title.remove()}if(subtitle?.tagName==='P')subtitle.remove();
   // Put the existing private chat and call controls into dedicated WhatsApp-like views.
   chats.appendChild(chat);callView.appendChild(calls);
@@ -5262,4 +5268,53 @@ document.addEventListener('DOMContentLoaded',()=>{
 (()=>{const sync=()=>{const login=document.getElementById('login');document.body.classList.toggle('cornhill-signed-out',!!login&&!login.classList.contains('hidden'));};const login=document.getElementById('login');if(login){new MutationObserver(sync).observe(login,{attributes:true,attributeFilter:['class']});}sync();})();
 </script>
 
+<script id="cornhill-parent-school-inbox">
+(()=>{
+ const apiUrl=SUPABASE_URL+'/functions/v1/parent-portal-api';
+ const byId=id=>document.getElementById(id);
+ const escInbox=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const inboxNotice=(text,isError=false)=>{const node=byId('parentSchoolInboxStatus');if(!node)return;node.textContent=text;node.className='notice'+(isError?' error':'');node.classList.remove('hidden')};
+ async function callInboxApi(action,payload={}){
+  const {data,error}=await db.auth.getSession();const token=data?.session?.access_token;
+  if(error||!token)throw new Error('Your staff session has expired. Sign in again.');
+  const response=await fetch(apiUrl,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token},body:JSON.stringify({action,...payload})});
+  const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||'Parent inbox request failed.');return result;
+ }
+ let inboxRows=[];
+ function renderInbox(){
+  const filter=byId('parentSchoolInboxFilter')?.value||'all',rows=inboxRows.filter(m=>filter==='all'||m.status===filter),host=byId('parentSchoolInboxList');if(!host)return;
+  if(!rows.length){host.innerHTML='<div class="muted" style="padding:18px;text-align:center">No parent messages match this filter.</div>';return}
+  host.innerHTML=rows.map(m=>{
+   const replies=(m.replies||[]).map(r=>'<div class="card" style="margin:8px 0;padding:10px;background:var(--panel)"><strong>'+escInbox(r.author_name||'School staff')+'</strong><p style="white-space:pre-wrap;margin:6px 0">'+escInbox(r.body)+'</p><small class="muted">'+escInbox(new Date(r.created_at).toLocaleString('en-UG'))+'</small></div>').join('');
+   return '<article class="card" style="margin:12px 0;padding:14px"><div class="row"><strong>'+escInbox(m.learner_name)+' · '+escInbox(m.pupil_code)+'</strong><span class="badge">'+escInbox(m.status.replace('_',' '))+'</span></div><p class="muted">'+escInbox(m.class_name)+' · '+escInbox(m.guardian_name)+(m.guardian_relationship?' ('+escInbox(m.guardian_relationship)+')':'')+' · '+escInbox(new Date(m.created_at).toLocaleString('en-UG'))+'</p><p><strong>'+escInbox(m.category)+(m.subject?' · '+escInbox(m.subject):'')+'</strong></p>'+(m.body?'<p style="white-space:pre-wrap">'+escInbox(m.body)+'</p>':'')+(m.audio_url?'<audio controls preload="none" style="width:100%" src="'+escInbox(m.audio_url)+'"></audio>':'')+'<div style="margin-top:12px"><strong>Conversation</strong>'+(replies||'<p class="muted">No school reply yet.</p>')+'</div><form data-parent-inbox-reply="'+escInbox(m.id)+'" style="margin-top:12px"><label>Reply to guardian</label><textarea name="body" rows="3" maxlength="4000" required placeholder="Write a clear school response…"></textarea><div class="row"><button type="submit" class="primary">Send reply</button><select data-parent-inbox-status="'+escInbox(m.id)+'" aria-label="Update message status" style="max-width:180px"><option value="open" '+(m.status==='open'?'selected':'')+'>Open</option><option value="in_progress" '+(m.status==='in_progress'?'selected':'')+'>In progress</option><option value="answered" '+(m.status==='answered'?'selected':'')+'>Answered</option><option value="closed" '+(m.status==='closed'?'selected':'')+'>Closed</option></select></div></form></article>';
+  }).join('');
+ }
+ async function loadParentSchoolInbox(){
+  const panel=byId('parentSchoolInboxPanel');if(!panel)return;
+  if(demoMode||!currentUserId||!['Admin','Teacher','Staff'].includes(profile?.role||'')){panel.classList.add('hidden');return}
+  panel.classList.remove('hidden');const button=byId('refreshParentSchoolInbox');if(button)button.disabled=true;
+  try{const data=await callInboxApi('staff-inbox');inboxRows=data.messages||[];renderInbox();inboxNotice('Loaded '+inboxRows.length+' parent message'+(inboxRows.length===1?'':'s')+'.')}
+  catch(error){inboxNotice(error.message||'Parent inbox could not be loaded.',true)}
+  finally{if(button)button.disabled=false}
+ }
+ window.loadParentSchoolInbox=loadParentSchoolInbox;
+ byId('refreshParentSchoolInbox')?.addEventListener('click',loadParentSchoolInbox);
+ byId('parentSchoolInboxFilter')?.addEventListener('change',renderInbox);
+ byId('parentSchoolInboxList')?.addEventListener('submit',async event=>{
+  const form=event.target.closest('form[data-parent-inbox-reply]');if(!form)return;event.preventDefault();
+  const messageId=form.dataset.parentInboxReply,body=form.elements.body.value.trim();if(!body)return;
+  const submit=form.querySelector('button[type="submit"]');submit.disabled=true;
+  try{await callInboxApi('staff-reply',{message_id:messageId,body});inboxNotice('Reply saved. The guardian will see it in their Parent Portal message history.');await loadParentSchoolInbox()}
+  catch(error){inboxNotice(error.message||'Reply could not be sent.',true)}
+  finally{submit.disabled=false}
+ });
+ byId('parentSchoolInboxList')?.addEventListener('change',async event=>{
+  const select=event.target.closest('select[data-parent-inbox-status]');if(!select)return;
+  const messageId=select.dataset.parentInboxStatus;select.disabled=true;
+  try{await callInboxApi('staff-status',{message_id:messageId,status:select.value});inboxNotice('Message status updated.');await loadParentSchoolInbox()}
+  catch(error){inboxNotice(error.message||'Status could not be updated.',true)}
+  finally{select.disabled=false}
+ });
+})();
+</script>
 </body></html>
