@@ -492,7 +492,41 @@ body[data-density="compact"] #dashboard .module-card{min-height:105px;padding:11
  #dashboard .module-grid>.module-card{min-height:148px!important;padding:15px!important}
  #dashboard .records-chart-grid>div{min-height:240px;padding:12px}
 }
-</style></head>
+</style>
+<style id="cornhill-workspace-navigation-v2">
+/* Keep the identity header and school motto above the application navigation. */
+@media(min-width:701px){
+ #app{display:grid!important;grid-template-columns:222px minmax(0,1fr);column-gap:24px;row-gap:0;align-items:start}
+ #app>.cornhill-sidebar{grid-column:1;grid-row:1 / span 40;position:sticky!important;top:16px!important;left:auto!important;bottom:auto!important;width:100%!important;max-height:calc(100dvh - 32px)!important;height:max-content;overflow-y:auto!important;overflow-x:hidden!important;margin:0!important}
+ #app>:not(.cornhill-sidebar){grid-column:2;min-width:0;margin-left:0!important;margin-right:0!important}
+ #app>.grid:first-of-type{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #app>section:not(.tabs){margin-left:0!important}
+ #app>.module-preview{margin-left:0!important}
+}
+@media(min-width:701px) and (max-width:900px){
+ #app{grid-template-columns:194px minmax(0,1fr);column-gap:18px}
+}
+@media(max-width:700px){
+ #app{display:block!important}
+ #app>.cornhill-sidebar{position:relative!important;top:auto!important;left:auto!important;bottom:auto!important;width:100%!important;max-height:none!important;height:auto!important;margin:12px 0 15px!important;grid-column:auto;grid-row:auto}
+ #app>:not(.cornhill-sidebar){margin-left:0!important;grid-column:auto}
+}
+#settings .settings-overview{display:block}
+#settings .settings-submodule-view{display:none}
+#settings.settings-submodule-open .settings-overview{display:none}
+#settings.settings-submodule-open .settings-submodule-view{display:block}
+.settings-submodule-view{min-width:0}
+.settings-submodule-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:14px 16px;border:1px solid var(--cornhill-line);border-radius:15px;background:linear-gradient(110deg,color-mix(in srgb,var(--cornhill-accent) 9%,var(--cornhill-panel)),var(--cornhill-panel))}
+.settings-submodule-head button{flex:0 0 auto}
+.settings-submodule-title{min-width:0;flex:1}
+.settings-submodule-title small{display:block;color:var(--cornhill-muted);font-size:10px;font-weight:900;letter-spacing:.12em}
+.settings-submodule-title strong{display:block;margin-top:3px;font-size:19px;color:var(--cornhill-ink)}
+.settings-submodule-content{min-width:0}
+.settings-submodule-content>.settings-category-heading:first-child{margin-top:0;padding-top:0;border-top:0}
+.settings-launcher button{min-height:112px}
+.settings-launcher button:focus-visible,.settings-submodule-head button:focus-visible{outline:3px solid color-mix(in srgb,var(--cornhill-accent) 45%,white);outline-offset:3px}
+</style>
+</head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
 <header class="top"><div><div class="brand" style="display:flex;align-items:center;gap:12px"><img src="/assets/cornhill-school-crest.jpg" alt="Cornhill Nursery and Primary School crest" style="width:48px;height:48px;object-fit:contain;background:#fff;border-radius:50%;padding:2px;flex:0 0 auto"><span>CORNHILL NURSERY AND PRIMARY SCHOOL</span></div><div class="sub">School Management System · Uganda</div>
@@ -4611,6 +4645,63 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
   $('parentContactSearch')?.addEventListener('input',filterParentContacts);
   $('saveParentContact')?.addEventListener('click',saveParentContact);
   $('cancelParentContactEdit')?.addEventListener('click',()=>{$('parentContactEditPanel').classList.add('hidden');selectedParentContact=null});
+ });
+})();
+</script>
+
+<script id="cornhill-settings-workspaces-v2">
+(function(){
+ const app=document.getElementById('app'),settings=document.getElementById('settings');
+ if(!app||!settings)return;
+ const nav=settings.ownerDocument.querySelector('#app>.cornhill-sidebar');
+ if(nav&&nav!==app.firstElementChild)app.insertBefore(nav,app.firstChild);
+ const ids=['settingsBackup','settingsAppearance','settingsSecurity','settingsSchool','settingsTeacherAccess','settingsNotifications','settingsAbout','settingsPrivacy','settingsHardware','settingsHelp'];
+ const headings=ids.map(id=>document.getElementById(id)).filter(Boolean);
+ if(!headings.length)return;
+ const overview=document.createElement('div');overview.className='settings-overview';
+ const view=document.createElement('div');view.className='settings-submodule-view';view.setAttribute('aria-live','polite');
+ const firstHeading=headings[0];
+ const introNodes=[];let node=settings.firstElementChild;
+ while(node&&node!==firstHeading){const next=node.nextElementSibling;introNodes.push(node);node=next}
+ introNodes.forEach(n=>overview.appendChild(n));
+ settings.insertBefore(overview,firstHeading);
+ const records=headings.map((heading,index)=>{
+   const nodes=[];let current=heading;
+   const stop=headings[index+1]||null;
+   while(current&&current!==stop){const next=current.nextElementSibling;nodes.push(current);current=next}
+   return {heading,nodes,index,title:heading.textContent.replace(/^\s*\d+\.?\s*/, '').trim(),restoreBefore:stop||null};
+ });
+ const head=document.createElement('div');head.className='settings-submodule-head';
+ const back=document.createElement('button');back.type='button';back.className='tab';back.textContent='← All settings';
+ back.addEventListener('click',()=>closeWorkspace());
+ const title=document.createElement('div');title.className='settings-submodule-title';
+ const eyebrow=document.createElement('small');eyebrow.textContent='CORNHILL SETTINGS · SECTION '+String(1).padStart(2,'0');
+ const name=document.createElement('strong');title.append(eyebrow,name);head.append(back,title);
+ const content=document.createElement('div');content.className='settings-submodule-content';
+ view.append(head,content);settings.appendChild(view);
+ function closeWorkspace(){
+   records.forEach(record=>record.nodes.forEach(n=>settings.insertBefore(n,record.restoreBefore)));
+   settings.classList.remove('settings-submodule-open');
+   overview.querySelectorAll('[data-settings-jump]').forEach(b=>b.removeAttribute('aria-current'));
+   view.hidden=true;
+   settings.scrollIntoView({behavior:'auto',block:'start'});
+ }
+ function openWorkspace(record,button){
+   if(settings.classList.contains('settings-submodule-open'))closeWorkspace();
+   record.nodes.forEach(n=>content.appendChild(n));
+   name.textContent=record.title;
+   eyebrow.textContent='CORNHILL SETTINGS · SECTION '+String(record.index+1).padStart(2,'0');
+   settings.classList.add('settings-submodule-open');view.hidden=false;
+   overview.querySelectorAll('[data-settings-jump]').forEach(b=>{b.removeAttribute('aria-current');b.disabled=false});
+   if(button){button.setAttribute('aria-current','page');button.disabled=true}
+   settings.scrollIntoView({behavior:'auto',block:'start'});
+   back.focus({preventScroll:true});
+ }
+ overview.querySelectorAll('[data-settings-jump]').forEach(button=>{
+   button.addEventListener('click',()=>{
+     const record=records.find(r=>r.heading.id===button.dataset.settingsJump);
+     if(record)openWorkspace(record,button);
+   });
  });
 })();
 </script>
