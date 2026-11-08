@@ -4928,7 +4928,7 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
  clearMessage('loginMsg');if(!db){message('loginMsg','The sign-in service is unavailable. Check your internet connection and refresh.',true);return}
  if(!password){message('loginMsg',mode==='Teacher'?'Enter the private class teacher code.':'Enter your email address and password.',true);return}
  if(mode==='Teacher'&&!selectedClass){message('loginMsg','Select your class first.',true);return}
- button.disabled=true;button.textContent='Verifying account…';
+ button.disabled=true;button.textContent='Verifying account…';window.cornhillAuthStartupHold=true;
  try{
   const {data,error}=await db.auth.signInWithPassword({email,password});if(error){message('loginMsg',error.message,true);return}
   if(!data.session){message('loginMsg','Sign-in was not completed. Please try again.',true);return}
@@ -4946,9 +4946,10 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
    if(ids.length!==1||allAssignedClassIds.length!==1){await db.auth.signOut();message('loginMsg','This code is not authorised for '+selectedClass+'. Check the class selected or contact the administrator.',true);return}
    sessionStorage.setItem('cornhill_teacher_class_id',ids[0]);sessionStorage.setItem('cornhill_login_mode','Teacher');window.teacherClassId=ids[0];
   }else{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.setItem('cornhill_login_mode','Admin')}
-  // Supabase SIGNED_IN event loads this account once; avoid a second competing startup.
+  // Hold the automatic SIGNED_IN callback until the selected teacher class has been verified and stored.
+  window.cornhillLastAuthSessionId=userId;await startSession(data.session);
  }catch(err){message('loginMsg','Could not complete sign-in. Check your connection and try again. '+(err?.message||''),true)}
- finally{button.disabled=false;button.textContent=mode==='Admin'?'Administrator sign in':'Sign in to this class'}
+ finally{window.cornhillAuthStartupHold=false;button.disabled=false;button.textContent=mode==='Admin'?'Administrator sign in':'Sign in to this class'}
 }
 $('signIn').addEventListener('click',()=>authenticateAccount('teacher.'+selectedLoginClass.toLowerCase()+'@cornhill.school',$('teacherClassCode').value.trim().toLowerCase(),'Teacher',selectedLoginClass,$('signIn')));
 $('adminSignIn').addEventListener('click',()=>authenticateAccount($('adminEmail').value.trim(),$('adminPassword').value,'Admin','',$('adminSignIn')));
@@ -5505,6 +5506,7 @@ if(db)db.auth.onAuthStateChange((event,session)=>{
  if(event==='PASSWORD_RECOVERY'&&session){$('login').classList.add('hidden');$('app').classList.add('hidden');$('passwordRecoveryPanel').classList.remove('hidden');return}
  if(event==='SIGNED_OUT')$('passwordRecoveryPanel').classList.add('hidden');
  if(!['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event))return;
+ if(event==='SIGNED_IN'&&window.cornhillAuthStartupHold)return;
  const sessionId=session?.user?.id||null;
  if(event!=='SIGNED_OUT'&&sessionId===window.cornhillLastAuthSessionId)return;
  window.cornhillLastAuthSessionId=sessionId;
