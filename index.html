@@ -3087,13 +3087,20 @@ async function loadAcademics(){
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  const err=[y,t,s,a,staff,teacherDirectory,cscores,assignments,classTeacherAssignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
  if(profile?.role!=='Teacher')window.teacherClassIds=null;
- const scopedAssessments=profile?.role==='Teacher'?(a.data||[]).filter(x=>x.class_id===sessionStorage.getItem('cornhill_teacher_class_id')):(a.data||[]);academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:scopedAssessments,classSubjects:assignments.data||[]};
+ const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');
+ const teacherSubjectScope=new Set((assignments.data||[]).filter(x=>x.class_id===teacherClassId).map(x=>x.subject_id));
+ const scopedAssessments=profile?.role==='Teacher'?(a.data||[]).filter(x=>x.class_id===teacherClassId&&teacherSubjectScope.has(x.subject_id)):(a.data||[]);
+ academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:scopedAssessments,classSubjects:assignments.data||[]};
  $('unebGradeSubject').innerHTML=academic.subjects.filter(x=>['english','mathematics','science','social studies'].includes(String(x.name).toLowerCase())).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  await loadUnebSubjectGradeBands();
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
  $('academicYearSelect').innerHTML=opts(academic.years,x=>x.name);
  $('academicClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
- const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');$('assessmentClassSelect').innerHTML=profile?.role==='Teacher'?opts(classes.filter(x=>x.id===teacherClassId),x=>x.name+(x.stream?' - '+x.stream:'')):opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));$('assessmentClassField').classList.toggle('hidden',profile?.role==='Teacher');if(profile?.role==='Teacher')$('assessmentClassSelect').value=teacherClassId||'';const initialAssessmentClass=String(classes.find(x=>x.id===$('assessmentClassSelect').value)?.name||'').toUpperCase(),initialAssessmentSets=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(initialAssessmentClass),initialAssessmentPeriod=$('#assessmentForm select[name="period"]');if(initialAssessmentPeriod)initialAssessmentPeriod.innerHTML=(initialAssessmentSets?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End']).map((p,i)=>'<option value="'+p+'">'+p+(initialAssessmentSets?'':' ('+(i+1)+')')+'</option>').join('');renderAssessmentPeriodChoices($('assessmentClassSelect').value);renderAssessmentSubjectChoices($('assessmentClassSelect').value);renderUnebSubjectsForClass($('assessmentClassSelect').value);
+ const priorAssessmentClass=$('assessmentClassSelect').value,assessmentTeacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');
+ $('assessmentClassSelect').innerHTML=profile?.role==='Teacher'?opts(classes.filter(x=>x.id===assessmentTeacherClassId),x=>x.name+(x.stream?' - '+x.stream:'')):opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
+ $('assessmentClassField').classList.toggle('hidden',profile?.role==='Teacher');
+ if(profile?.role==='Teacher')$('assessmentClassSelect').value=assessmentTeacherClassId||'';
+ else if(priorAssessmentClass&&classes.some(x=>x.id===priorAssessmentClass))$('assessmentClassSelect').value=priorAssessmentClass;renderAssessmentPeriodChoices($('assessmentClassSelect').value);renderAssessmentSubjectChoices($('assessmentClassSelect').value);renderUnebSubjectsForClass($('assessmentClassSelect').value);
  $('academicSubjectSelect').innerHTML=opts(academic.subjects,x=>x.name);
  $('academicTeacherSelect').innerHTML='<option value="">Not assigned</option>'+opts((teacherDirectory.data||[]).filter(x=>x.employment_status==='Active'),x=>x.full_name);
  const availableTeacherAccounts=(staff.data||[]).filter(p=>!(teacherDirectory.data||[]).some(t=>t.linked_user_id===p.id));
@@ -3335,9 +3342,11 @@ $('downloadBlankReportTemplates')?.addEventListener('click',downloadBlankClassRe
 async function getTermScores(){
  const termId=$('reportTermSelect').value,classId=$('reportClassSelect').value;
  if(!termId||!classId){message('academicMsg','Choose both a term and a class to view results.',true);return null}
- const {data,error}=await db.from('assessments').select('id,title,max_score,subject_id,subjects(name)').eq('term_id',termId).eq('class_id',classId);
+ const {data:allRows,error}=await db.from('assessments').select('id,title,max_score,subject_id,subjects(name)').eq('term_id',termId).eq('class_id',classId);
  if(error){message('academicMsg','Could not load term assessments: '+error.message,true);return null}
- const ids=(data||[]).map(x=>x.id);
+ const classSubjectIds=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
+ const data=(allRows||[]).filter(x=>classSubjectIds.has(x.subject_id));
+ const ids=data.map(x=>x.id);
  if(!ids.length)return {assessments:[],scores:[]};
  let scores=[],offset=0;
  while(true){
