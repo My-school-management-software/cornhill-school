@@ -11,7 +11,7 @@ A separate mobile-friendly capture portal for bank slips, expense receipts, staf
 - Requests expire after ten minutes. The database checks expiry and the assigned active device when the phone submits.
 - The phone can capture or select JPEG, PNG, WebP and PDF files, with up to eight files per request and a 15 MB per-file limit.
 - Evidence is stored in a private Supabase Storage bucket, never in a public bucket. Administrators receive short-lived signed links for review.
-- Reviews are separately audited as Approved, Rejected or Needs clearer photo. A clearer-photo decision reopens the same request for a further ten-minute capture window.
+- Reviews are separately audited as Approved, Rejected or Needs clearer photo. For a generic document request, a clearer-photo decision reopens the request for another ten minutes. For a bank transaction, the portal calls the bank's audited evidence-reissue RPC so the bank transaction returns to Awaiting evidence and a new request is created against the same transaction.
 - Device activity is updated through a narrowly scoped database function.
 - The service worker caches the public app shell only; all authentication, requests, records and uploads remain online-only.
 
@@ -28,9 +28,14 @@ Realtime updates and a 25-second foreground refresh are used while the portal is
 ## Important deployment status
 The database foundation and its policy hardening have been applied to the connected CORNHILL Supabase project. The web application files are committed on the feature branch, but this does not mean the latest Vercel preview is live. The Vercel deployment quota previously blocked a new preview. Do not use an old preview URL to test this release until a fresh deployment is confirmed.
 
-## Next integration work
-1. Build the bank account and daily deposit register in UGX.
-2. Link each deposit and withdrawal record to an evidence request by its record ID.
-3. Add expense approval limits, withdrawal approvals and bank-balance reconciliation.
-4. Add approved cross-module attachment buttons for staff profiles, learner documents and school expenses.
-5. Add true background web-push delivery only after the school approves the notification subscription and key-management setup.
+## Banking connection
+
+The banking workspace is available at `/banking.html`. Deposit and withdrawal requests store `context_type='bank_transaction'` and the exact bank transaction ID in the evidence request. The administrator reviews the related photos in this portal; the database trigger updates the linked bank transaction to Verified or Evidence rejected. A Needs clearer photo action uses the bank's audited reissue function, preserving the bank record and event history.
+
+The bank ledger stores only the last four account digits, not full bank credentials. Its verified balance is calculated from the opening balance plus verified deposits minus verified withdrawals. Pending or rejected items are excluded.
+
+## Remaining integration work
+1. Add phone-evidence attachment actions to school expense records, staff IDs, learner documents and other approved record forms.
+2. Add configurable small-expense limits and approval rules for the Deputy Bursar.
+3. Add a daily cash-to-bank reconciliation view and a printable deposit summary.
+4. Add true background web-push delivery only after the school approves the notification subscription and key-management setup.
