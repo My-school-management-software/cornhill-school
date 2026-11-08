@@ -3673,6 +3673,7 @@ function matchImportAssessment(header,ctx,period){
  return suggestions[0]?.distance<=1?{suggested:suggestions[0]}:{};
 }
 let teacherExcelImportPlan=null;
+let teacherExcelHeadingMappings=Object.create(null);
 function importSheetClassMatch(sheetName,className){
  const sheet=normaliseImportText(sheetName),cls=normaliseImportText(className);
  let aliases=[];
@@ -3766,17 +3767,19 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     if(!period){issues.push(info.name+' · '+header+': this period does not apply to '+clsName+'.');codeReview.push({header,period:'—',status:'Wrong class period',detail:'Remove this column or correct its period.'});return}
     if(suffix&&phase.explicit&&suffix!==phase.period){
      const detail='Heading indicates '+period+' but the code ends in '+suffix+'. Correct the subject code or period heading.';
-     issues.push(info.name+' · '+header+': '+detail);codeReview.push({header,period,status:'Period/code mismatch',detail});return;
+     issues.push(info.name+' · '+header+': '+detail);codeReview.push({header,sheetName:info.name,period,status:'Period/code mismatch',detail});return;
     }
-    const match=matchImportAssessment(header,ctx,period);
+    const mappedId=teacherExcelHeadingMappings[info.name+'|'+header];
+    const mappedAssessment=mappedId?ctx.assessments.find(a=>a.id===mappedId&&excelAssessmentPeriod(a)===period):null;
+    const match=mappedAssessment?{assessment:mappedAssessment}:matchImportAssessment(header,ctx,period);
     if(match.assessment){
-     if(markColumns.some(x=>x.assessment.id===match.assessment.id)){issues.push(info.name+' · '+header+': duplicate subject/period column.');codeReview.push({header,period,status:'Duplicate',detail:'This subject and period already appeared in another worksheet.'});}
-     else{const column={index,header,assessment:match.assessment,period,sheetName:info.name};markColumns.push(column);columns.push(column);codeReview.push({header,period,status:'Matched',detail:(match.assessment.subjects?.name||'Subject')+' · '+period+(info.hidden?' · hidden worksheet':'')})}
+     if(markColumns.some(x=>x.assessment.id===match.assessment.id)){issues.push(info.name+' · '+header+': duplicate subject/period column.');codeReview.push({header,sheetName:info.name,period,status:'Duplicate',detail:'This subject and period already appeared in another worksheet.'});}
+     else{const column={index,header,assessment:match.assessment,period,sheetName:info.name};markColumns.push(column);columns.push(column);codeReview.push({header,sheetName:info.name,period,status:'Matched',detail:(match.assessment.subjects?.name||'Subject')+' · '+period+(info.hidden?' · hidden worksheet':'')})}
     }else if(match.suggested){
      const detail='Possible correction: '+match.suggested.code+' ('+(match.suggested.assessment.subjects?.name||'subject')+').';
-     issues.push(info.name+' · '+header+': '+detail);codeReview.push({header,period,status:'Possible typo',detail});
+     issues.push(info.name+' · '+header+': '+detail);codeReview.push({header,sheetName:info.name,period,status:'Possible typo',detail});
     }else{
-     issues.push(info.name+' · '+header+': no matching '+clsName+' subject exists for '+period+'.');codeReview.push({header,period,status:'Unrecognised',detail:'This subject is not assigned to this class, or its code is incorrect.'});
+     issues.push(info.name+' · '+header+': no matching '+clsName+' subject exists for '+period+'.');codeReview.push({header,sheetName:info.name,period,status:'Unrecognised',detail:'This subject is not assigned to this class, or its code is incorrect.'});
     }
    });
    for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
@@ -3816,7 +3819,13 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   teacherExcelImportPlan={payload:filtered,all:plan,display,workbook:file.name,ctxKey:classId+'|'+termId,blockingIssues:issues};
   $('teacherMarksImportRows').innerHTML=display.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.match)+'</td><td>'+x.count+'</td><td>'+esc(x.result)+'</td></tr>').join('');
   const review=$('teacherMarksCodeReview');
-  if(review)review.innerHTML='<strong>Workbook check · '+sheetInfos.length+' worksheet(s), including hidden sheets</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Check</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div>'+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the workbook and preview again. No marks have been imported.</p></div>':'<div class="notice">All detected subjects, periods and learner identifiers match this class.</div>');
+  if(review){
+   const needsMapping=codeReview.filter(x=>['Unrecognised','Possible typo'].includes(x.status)&&x.period!=='—');
+   const mappingRows=needsMapping.map(x=>{const key=x.sheetName+'|'+x.header,opts=ctx.assessments.filter(a=>excelAssessmentPeriod(a)===x.period).map(a=>'<option value="'+esc(a.id)+'" '+(teacherExcelHeadingMappings[key]===a.id?'selected':'')+'>'+esc(a.subjects?.name||a.title||'Subject')+'</option>').join('');return '<label style="display:block;margin:8px 0;padding:10px;border:1px solid var(--cornhill-line);border-radius:8px"><b>'+esc(x.sheetName+' · '+x.header)+'</b> <span class="muted">('+esc(x.period)+')</span><select data-import-heading-map="'+esc(key)+'"><option value="">Choose what this heading means…</option>'+opts+'</select></label>'}).join('');
+   review.innerHTML='<strong>Workbook check · '+sheetInfos.length+' worksheet(s), including hidden sheets</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Check</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div>'+(mappingRows?'<div class="notice"><b>Tell CORNHILL what these headings mean</b><p>Select the correct subject for each unfamiliar heading. Leave irrelevant columns unmapped.</p>'+mappingRows+'<button type="button" id="applyTeacherHeadingMappings" class="primary">Apply choices and check workbook again</button></div>':'')+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the workbook or map unfamiliar headings above. No marks have been imported.</p></div>':'<div class="notice">All detected subjects, periods and learner identifiers match this class.</div>');
+   review.querySelectorAll('[data-import-heading-map]').forEach(select=>select.addEventListener('change',()=>{const key=select.dataset.importHeadingMap;if(select.value)teacherExcelHeadingMappings[key]=select.value;else delete teacherExcelHeadingMappings[key]}));
+   review.querySelector('#applyTeacherHeadingMappings')?.addEventListener('click',()=>{const missing=[...review.querySelectorAll('[data-import-heading-map]')].filter(x=>!x.value);if(missing.length){message('teacherMarksImportMsg','Choose a subject for each unfamiliar heading you want to import. Remove unrelated columns from the workbook or leave them unmapped.',true);return}$('previewTeacherMarksImport').click()});
+  }
   message('teacherMarksImportMsg','Preview: '+display.length+' learner row(s), '+markColumns.length+' subject/period column(s), '+plan.length+' marks from '+sheetInfos.length+' worksheet(s). '+(issues.length?'Import paused until '+issues.length+' issue(s) are corrected.':filtered.length+' marks ready for confirmation.')+' Hidden sheets and columns were included.');
   confirm.disabled=!filtered.length||issues.length>0;
  }catch(err){
