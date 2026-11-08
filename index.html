@@ -143,8 +143,7 @@ body[data-theme] th{background:color-mix(in srgb,var(--cornhill-accent) 10%,var(
 /* Enforce independent workspaces even if an older layout rule tries to display dashboard content. */
 #app[data-active-workspace]:not([data-active-workspace="dashboard"]) #dashboard{display:none!important}
 #app[data-active-workspace="dashboard"] #dashboard{display:block}
-/* CORNHILL focused dashboard: only the three requested school summary cards remain visible. */
-#dashboard > :not(.dashboard-summary-only){display:none!important}
+/* Keep the full dashboard workspace available; summary cards are only its opening section. */
 #dashboard.dashboard-summary-only{padding:0!important}
 #dashboard .dashboard-summary-only{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0!important}
 #dashboard .dashboard-summary-only .stat{min-width:0;min-height:118px;padding:20px 22px;border-radius:16px;display:flex;flex-direction:column;justify-content:center}
