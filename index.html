@@ -1922,7 +1922,7 @@ async function restoreOfflineSchoolSnapshot(owner){
   currentUserId=owner;profile=snap.profile;students=snap.students||[];classes=snap.classes||[];
   $('welcome').textContent=profile.full_name?('Welcome, '+profile.full_name):'School dashboard';
   $('role').textContent=profile.role;
-  setOfflineReadOnly(true);render();applyRoleNavigation();
+  setOfflineReadOnly(true);render();applyRoleNavigation();tab('dashboard');
   const saved=new Date(snap.savedAt).toLocaleString('en-UG');
   message('appMsg','OFFLINE VIEW ONLY · Class list snapshot from '+saved+'. Class totals and searches are calculated on this device. Guardian contacts, bursary details, finance and live updates are not available. Changes are disabled until internet returns.',false);
   return true;
@@ -2081,6 +2081,7 @@ function populateLearnerClassSelectors(){
  }
 }
 async function refresh(){
+ const refreshOwner=currentUserId,refreshGeneration=window.cornhillSessionGeneration||0;
  window.cornhillStartupStage='starting school data refresh';
  clearMessage('appMsg');
  if(!db)throw new Error('The secure school database is not connected. Refresh the page when internet access is available.');
@@ -2117,6 +2118,7 @@ async function refresh(){
   profile?.role==='Admin'?classQuery:profile?.role==='Teacher'&&allowedClassIds?.length?classQuery.in('id',allowedClassIds):Promise.resolve({data:[],error:null}),
   codeAliasQuery
  ]);
+ if(refreshOwner!==currentUserId||refreshGeneration!==(window.cornhillSessionGeneration||0))return;
  const failed=[studentResult,classResult,aliasResult].find(result=>result?.error);
  if(failed){
   if(await restoreOfflineSchoolSnapshot(currentUserId))return;
@@ -3293,7 +3295,8 @@ async function getTermScores(){
 }
 async function reportSubjectDisplayName(value){return String(value||'').replace(/\\s*[\\[(]?[A-Z]{1,5}\\d{1,2}[\\])]?[\\s]*$/i,'').trim()||String(value||'Subject')}
 function renderReportCard(options={}){
- const data=options.data||await getTermScores();if(!data)return;
+ const reportOwner=currentUserId,reportGeneration=window.cornhillSessionGeneration||0;
+ const data=options.data||await getTermScores();if(!data||reportOwner!==currentUserId||reportGeneration!==(window.cornhillSessionGeneration||0))return;
  const studentId=options.studentId||$('reportStudentSelect').value;if(!studentId){message('academicMsg','Choose a learner for the individual report card.',true);return}
  const learner=students.find(x=>x.id===studentId);if(!learner)return;
  const selectedClassId=$('reportClassSelect').value;
@@ -3315,6 +3318,7 @@ function renderReportCard(options={}){
  const divisions={};if(isP47)periods.forEach(p=>{divisions[p]=unebPrimaryDivision(gradesFor(p))});
  const termId=$('reportTermSelect').value;let publication={data:null,error:null};
  if(profile?.role==='Admin')publication=await db.from('report_card_publications').select('id,approved_at,approved_by').eq('term_id',termId).eq('class_id',selectedClassId).eq('student_id',studentId).maybeSingle();
+ if(reportOwner!==currentUserId||reportGeneration!==(window.cornhillSessionGeneration||0))return;
  if(publication.error){message('academicMsg','Could not check report approval: '+publication.error.message,true);return}
  const approved=!!publication.data,approvalLine=approved?'<p class="muted">Approved on '+esc(new Date(publication.data.approved_at).toLocaleString())+'</p>':'<p class="muted">Draft — pending administrator approval</p>';
  const approveButton=!options.batch&&profile?.role==='Admin'&&!approved&&Object.values(phaseTotals).some(p=>Number(p.max||0)>0)?'<button class="primary" type="button" id="approveReportButton">Approve official report</button>':'';
@@ -3569,7 +3573,7 @@ async function loadExcelMarksGrid(){
  const photoLearners=list.filter(x=>x.photo_path);
  if(photoLearners.length){const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)})}
  recalculateExcelMarkSheet();
- message('excelMarksMsg',list.length+' learners loaded. '+assessments.length+' assessment columns shown'+(phaseFilter==='All'?' across all three periods': ' for '+phaseFilter)+'. Enter marks and save; totals, aggregate and division recalculate automatically for P4–P7; positions are shown for Nursery through P5; P6 and P7 use aggregate and division.');
+ message('excelMarksMsg',list.length+' learners loaded. '+assessments.length+' assessment columns shown'+(phaseFilter==='All'?' across all configured periods': ' for '+phaseFilter)+'. Enter marks and save; totals, aggregate and division recalculate automatically for P4–P7; positions are shown for Nursery through P5; P6 and P7 use aggregate and division.');
  await showOfflineAssessmentDraftCount();
 }
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
@@ -3612,7 +3616,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
    const h=normaliseImportText(header);if(index<6||!h||index===nameIndex||index===codeIndex||index===linIndex)return;
    const summary=h.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
    if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
-   if(/^(SN|PHOTO|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN)/.test(h)||/COMMENT/.test(h)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(h))return;
+   if(String(header||'').trim().startsWith('=')||/^(SN|PHOTO|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN)/.test(h)||/COMMENT|COMM/.test(h)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(h))return;
    const suffixMatch=h.match(/(\\d)$/),suffix=suffixMatch?Number(suffixMatch[1]):null,period=importPeriodLabel(activePeriod,clsName),match=matchImportAssessment(header,ctx,period);
    if(suffix&&suffix!==activePeriod){issues.push(header+' is in '+period+' but ends in '+suffix+'. Expected '+activePeriod+'. Correct the number in Excel.');codeReview.push({header,period,status:'Number changed',detail:'Expected ending number '+activePeriod+'. Correct this heading.'})}
    if(match.assessment){if(markColumns.some(x=>x.assessment.id===match.assessment.id)){issues.push('Duplicate column '+header+' maps to '+match.assessment.subjects?.name+' · '+period+'.');codeReview.push({header,period,status:'Duplicate',detail:'Subject/period repeated.'})}else{markColumns.push({index,header,assessment:match.assessment,period});codeReview.push({header,period,status:'Matched',detail:(match.assessment.subjects?.name||'Subject')+' · '+period})}}
