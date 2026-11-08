@@ -74,10 +74,7 @@ footer{padding:30px 0;background:#102d1e;color:#d8e6dc}footer .row{justify-conte
 </main>
 <footer><div class="wrap row"><div><strong>CORNHILL NURSERY AND PRIMARY SCHOOL</strong><p style="font-size:12px;color:#c6d9cc">Uganda · WE SHARE ONE DREAM</p></div><div class="row"><a href="/admissions.html">Admissions</a><a href="/parents.html">Parent Portal</a><a href="/">Staff sign-in</a></div></div></footer>
 <script>
-let schoolInstallPrompt=null;
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();schoolInstallPrompt=event;document.getElementById('installSchoolWebsite')?.classList.remove('hidden')});
-document.getElementById('installSchoolWebsite')?.addEventListener('click',async()=>{if(!schoolInstallPrompt)return;schoolInstallPrompt.prompt();await schoolInstallPrompt.userChoice;schoolInstallPrompt=null;document.getElementById('installSchoolWebsite')?.classList.add('hidden')});
-window.addEventListener('appinstalled',()=>document.getElementById('installSchoolWebsite')?.classList.add('hidden'));
+
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
 </body></html>
