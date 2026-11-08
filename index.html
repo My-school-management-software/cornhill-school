@@ -1142,7 +1142,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
   <span class="muted">Use the checkboxes in the first column. “Select all” applies to the learners currently shown by the class filter and search.</span>
  </div>
  <div id="bulkPromotionMessage" class="notice" role="status" aria-live="polite">Choose active learners using the first-column checkboxes.</div>
-</div><div class="table-wrap"><table><thead><tr><th class="bulk-promotion-select-column" style="width:48px"><input id="selectAllFilteredPromotion" type="checkbox" aria-label="Select all active learners currently shown"></th><th class="learner-row-actions">Actions</th><th>School learner code</th><th>LIN (Ministry)</th><th>P7 index no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Day / Boarding</th><th>Bursary (Admin only)</th><th>Guardian / Phone (Admin only)</th><th>Status</th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="noStudents" class="empty hidden">No learners match this class and search. Try another class or clear the search.</div></section>
+</div><div class="table-wrap"><table><thead><tr><th class="bulk-promotion-select-column" style="width:48px"><input id="selectAllFilteredPromotion" type="checkbox" aria-label="Select all active learners currently shown"></th><th>School learner code</th><th>LIN (Ministry)</th><th>P7 index no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Day / Boarding</th><th>Bursary (Admin only)</th><th>Guardian / Phone (Admin only)</th><th>Status</th><th class="learner-row-actions">Actions</th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="noStudents" class="empty hidden">No learners match this class and search. Try another class or clear the search.</div></section>
 <section id="achievedLearners" class="panel hidden">
  <div class="row"><div><h2>Achieved Learners</h2><p class="muted">Learners achieved within the last 60 days. They are excluded from active registers and notifications.</p></div><span class="badge">Administrator only</span></div>
  <div class="table-wrap"><table><thead><tr><th>Pupil code</th><th>Learner</th><th>Class</th><th>Achieved on</th><th>Time remaining</th><th>Action</th></tr></thead><tbody id="achievedLearnersRows" class="archivedLearnersRows"></tbody></table></div>
@@ -5756,7 +5756,13 @@ $('runBulkPromotion')?.addEventListener('click',async()=>{
  if(chosen.length!==ids.length||chosen.some(x=>x.status!=='Active'||!x.class_id)){showError('One or more selected learners are no longer eligible. Refresh the register and select them again.');return}
  if(!destination){showError('Choose a valid destination class.');return}
  if(chosen.some(x=>x.class_id===destinationId)){showError('The destination is already the current class for one or more selected learners. Remove those learners or choose another destination.');return}
- if(!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)||Number.isNaN(Date.parse(effectiveDate))){showError('Choose a valid effective date.');return}
+ const dateParts=effectiveDate.split('-').map(Number);
+ const dateCheck=new Date(Date.UTC(dateParts[0],dateParts[1]-1,dateParts[2]));
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)||dateParts.length!==3||
+    dateCheck.getUTCFullYear()!==dateParts[0]||dateCheck.getUTCMonth()!==dateParts[1]-1||
+    dateCheck.getUTCDate()!==dateParts[2]){
+  showError('Choose a valid calendar date for the promotion.');return
+ }
  const sourceNames=[...new Set(chosen.map(x=>{const c=classes.find(y=>y.id===x.class_id);return c?(c.name+(c.stream?' · '+c.stream:'')):'Unassigned'}))];
  const sample=chosen.slice(0,12).map(x=>[x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' ')).join(', ');
  const more=chosen.length>12?' and '+(chosen.length-12)+' more':'';
