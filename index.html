@@ -4506,6 +4506,7 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
   const subjectValues=Object.fromEntries(core.map(s=>[s.key,[]]));
   const genderValues={M:[],F:[]};
   const divisions={I:0,II:0,III:0,IV:0,U:0,X:0,Incomplete:0};
+  const workbookDivisions={I:0,II:0,III:0,IV:0,U:0};
   let completeLearners=0,learnerSubjectGrades=0,gatewayDowngrades=0,englishMathP78=0,englishMathF9=0;
   for(const learner of ctx.students){
    const gradeRows=[],learnerPercentages=[];
@@ -4536,6 +4537,8 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
    const divisionResult=unebPrimaryDivision(gradeRows);
    if(!divisionResult.ready){divisions.Incomplete++;continue}
    divisions[divisionResult.division]=(divisions[divisionResult.division]||0)+1;
+   const workbookDivision=divisionResult.aggregate>=34?'U':divisionResult.aggregate>=29?'IV':divisionResult.aggregate>=25?'III':divisionResult.aggregate>=13?'II':'I';
+   workbookDivisions[workbookDivision]=(workbookDivisions[workbookDivision]||0)+1;
    completeLearners++;
    if(divisionResult.downgraded)gatewayDowngrades++;
    if(divisionResult.downgraded&&divisionResult.gatewayRule==='P7/P8')englishMathP78++;
@@ -4556,6 +4559,7 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
    const count=divisions[code]||0,label=code==='Incomplete'?'Incomplete marks':code==='X'?'X (Absent)':code==='U'?'U (Ungraded)':code;
    return '<tr><td><strong>'+label+'</strong></td><td class="kpi">'+count+'</td><td>'+(ctx.students.length?(count/ctx.students.length*100).toFixed(1)+'%':'—')+'</td></tr>';
   }).join('');
+  const workbookDivisionRows=['I','II','III','IV','U'].map(code=>'<tr><td><strong>'+code+'</strong></td><td class="kpi">'+(workbookDivisions[code]||0)+'</td><td>'+(ctx.students.length?((workbookDivisions[code]||0)/ctx.students.length*100).toFixed(1)+'%':'—')+'</td></tr>').join('');
   const subjectRows=subjectStats.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.count+' / '+ctx.students.length+'</td><td><strong>'+(x.average===null?'—':x.average.toFixed(1)+'%')+'</strong></td></tr>').join('');
   const genderRows=['M','F'].map(code=>{
    const values=genderValues[code],label=code==='M'?'Boys':'Girls';
@@ -4573,10 +4577,11 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
    '</div>'+
    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px">'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">DIVISION ANALYSIS</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Division</th><th>Count</th><th>%</th></tr></thead><tbody>'+divisionRows+'</tbody></table></div></div>'+
+    '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">ORIGINAL EXCEL DIVISION ANALYSIS</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Division</th><th>Count</th><th>%</th></tr></thead><tbody>'+workbookDivisionRows+'</tbody></table></div><p class="muted" style="margin:8px 0 0">Workbook aggregate formula: I 4–12, II 13–24, III 25–28, IV 29–33, U 34–36.</p></div>'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY SUBJECT</h5><div class="table-wrap"><table style="min-width:205px"><thead><tr><th>Subject</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+subjectRows+'</tbody></table></div><p class="muted" style="margin:8px 0 0">Most performed: <strong>'+(best?esc(best.name)+' · '+best.average.toFixed(1)+'%':'—')+'</strong><br>Worst performed: <strong>'+(worst?esc(worst.name)+' · '+worst.average.toFixed(1)+'%':'—')+'</strong></p></div>'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY GENDER</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Group</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+genderRows+'</tbody></table></div></div>'+
    '</div>'+
-   '<p class="muted" style="margin:9px 0 0">Workbook subject grade cutoffs: D1 ≥89, D2 ≥79, C3 ≥74, C4 ≥69, C5 ≥59, C6 ≥49, P7 ≥44, P8 ≥39; F9 below 39. The Excel division formula uses aggregate grade points: I 4–12, II 13–24, III 25–28, IV 29–33, U 34–36. CORNHILL gateway-adjusted division is shown separately: P7/P8 in either English or Mathematics caps Division I at Division II; F9 in either prevents Division I and II. These workbook division bands are not silently replaced by the gateway summary ranges. Gateway downgrades in this period: '+gatewayDowngrades+' ('+englishMathP78+' due to P7/P8; '+englishMathF9+' due to F9). Blank marks and X entries are not treated as scores.</p>'+
+   '<p class="muted" style="margin:9px 0 0">Workbook subject grade cutoffs: D1 ≥89, D2 ≥79, C3 ≥74, C4 ≥69, C5 ≥59, C6 ≥49, P7 ≥44, P8 ≥39; F9 below 39. The workbook division table above uses the original Excel aggregate formula. The division table beside it applies the English/Mathematics gateway caps:  P7/P8 in either English or Mathematics caps Division I at Division II; F9 in either prevents Division I and II. These workbook division bands are not silently replaced by the gateway summary ranges. Gateway downgrades in this period: '+gatewayDowngrades+' ('+englishMathP78+' due to P7/P8; '+englishMathF9+' due to F9). Blank marks and X entries are not treated as scores.</p>'+
   '</article>';
  }).join('');
  host.innerHTML=blocks;
