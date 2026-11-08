@@ -3167,6 +3167,19 @@ async function loadAcademics(){
  $('academicScoreRows').innerHTML=profile?.role==='Admin'?window.cornhillTeacherMarksRegister.map(x=>'<tr><td>'+esc(x.assessments?.school_classes?.name||'—')+'</td><td>'+esc(x.assessments?.academic_terms?.name||'—')+'</td><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.middle_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.subjects?.name||'—')+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>'+esc(window.cornhillStaffNames[x.entered_by]||'Teacher account')+'</td><td>'+esc(x.updated_at?new Date(x.updated_at).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No teacher marks have been saved yet.</td></tr>':'<tr><td colspan="10">Administrator register only.</td></tr>';
  updateScoreLearners();
  populateReportFilters();
+ // Rebuild the teacher register only after the assigned class, subjects, terms and assessments
+ // have all been loaded. Select the active term automatically and open the class sheet.
+ setupExcelMarksFilters();
+ if(profile?.role==='Teacher'){
+  const assignedId=sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||'';
+  const termSelect=$('excelMarksTerm');
+  const preferredTerm=academic.terms.find(x=>x.is_current&&!x.is_closed)||academic.terms.find(x=>!x.is_closed)||academic.terms[0];
+  if(termSelect&&preferredTerm&&!termSelect.value)termSelect.value=preferredTerm.id;
+  if(assignedId)$('excelMarksClass').value=assignedId;
+  $('excelMarksPhase').value='All';
+  if(assignedId&&termSelect?.value)await loadExcelMarksGrid();
+  else message('excelMarksMsg','Your class workspace is not ready: '+(!assignedId?'no assigned class was verified. ':'')+(!termSelect?.value?'no academic term is available.':''),true);
+ }
  // Notify late-mounted teacher workspaces that class, term and assessment data is ready.
  window.dispatchEvent(new Event('cornhill-academics-loaded'));
 }
@@ -3683,10 +3696,12 @@ async function loadExcelMarksGrid(){
  // Invalidate any previous class/term sheet before attempting a new load.
  window.cornhillExcelMarksContext=null;
  $('exportExcelMarks').disabled=true;
- if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
+ if(!termId||!classId){message('excelMarksMsg',!classId?'Your assigned class is missing. Sign out and sign in again; if it continues, ask the administrator to verify the class assignment.':'Choose an academic term before loading marks.',true);return}
  const cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
+ if(!cls){message('excelMarksMsg','The assigned class could not be found in the loaded school records. Refresh the page and sign in again.',true);return}
  if(profile?.role==='Teacher'&&classId!==sessionStorage.getItem('cornhill_teacher_class_id')){message('excelMarksMsg','Access blocked: this class is not assigned to your account.',true);return}
  const classSubjectIds=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
+ if(!classSubjectIds.size){message('excelMarksMsg','No subjects are linked to '+cls.name+' in the teacher workspace. Ask the administrator to check the class-subject setup.',true);return}
  const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&classSubjectIds.has(x.subject_id));
  const setBasedClass=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phaseOrder=setBasedClass?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'];
  const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>phaseOrder.indexOf(excelAssessmentPeriod(a))-phaseOrder.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b));
