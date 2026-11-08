@@ -11,9 +11,10 @@ A separate mobile-friendly capture portal for bank slips, expense receipts, staf
 - Requests expire after ten minutes. The database checks expiry and the assigned active device when the phone submits.
 - The phone can capture or select JPEG, PNG, WebP and PDF files, with up to eight files per request and a 15 MB per-file limit.
 - Evidence is stored in a private Supabase Storage bucket, never in a public bucket. Administrators receive short-lived signed links for review.
-- Reviews are separately audited as Approved, Rejected or Needs clearer photo. For a generic document request, a clearer-photo decision reopens the request for another ten minutes. For a bank transaction, the portal calls the bank's audited evidence-reissue RPC so the bank transaction returns to Awaiting evidence and a new request is created against the same transaction.
+- Reviews are separately audited as Approved, Rejected or Needs clearer photo. A clearer-photo decision creates a separate ten-minute replacement request, preserving the original submission and review in the audit history. Bank transactions and expense requests use their own guarded evidence-reissue RPCs so the linked financial record returns to Awaiting evidence before the replacement request is created. Other document types also receive a new request; the original reviewed request is not reopened.
 - Device activity is updated through a narrowly scoped database function.
-- The service worker caches the public app shell only; all authentication, requests, records and uploads remain online-only.
+- The phone portal is installable as its own app from a separate web manifest. Banking is a separate installable app with its own manifest and isolated offline shell route.
+- The service worker caches only public app shells and public libraries; all authentication, requests, records and uploads remain online-only.
 
 ## Notification behaviour
 Realtime updates and a 25-second foreground refresh are used while the portal is open. Browser notifications require the staff member to tap **Enable notifications** and grant permission. This release does not claim reliable background push after the browser or app has been closed; background delivery needs a separate web-push sender and device subscription management.
