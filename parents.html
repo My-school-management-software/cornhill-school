@@ -13,18 +13,18 @@
 <main class="wrap">
 <section class="card" id="loginCard">
 <h1>Parent & Guardian Sign In</h1>
-<p class="muted">Enter the learner's pupil code, registered guardian phone number and private 8-digit Guardian PIN.</p>
+<p class="muted">Enter all three details: the learner’s pupil code, the guardian phone number registered with CORNHILL, and the private 8-digit Guardian PIN issued by the school.</p><div class="notice" role="note"><strong>Important:</strong> The pupil code and phone number are not enough by themselves. A guardian PIN must first be issued by the school administrator for that learner and guardian contact. If you have never received an 8-digit PIN, contact the school office before trying to sign in.</div>
 <div class="notice" id="pupilCodeChangeInfo" role="note">If the school corrects a learner’s gender or year of birth, the pupil code may be updated. You can still verify with a previously issued code. After verification, the current code will be shown; please use it for future sign-ins.</div>
 <label for="pupilCodeBeforeVerify">Learner pupil code</label><input id="pupilCodeBeforeVerify" autocomplete="off" placeholder="Enter pupil code">
-<label for="phone">Registered guardian phone number</label><input id="phone" type="tel" autocomplete="tel" placeholder="+2567XXXXXXXX">
+<label for="phone">Registered guardian phone number</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+2567XXXXXXXX or 07XXXXXXXX">
 <label for="guardianPin">Guardian PIN</label><input id="guardianPin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="8-digit PIN">
 <button id="signInGuardian">View learner information</button>
 <button class="secondary" id="futureOtp" type="button" aria-disabled="true" style="margin-top:8px;background:#eef1ee;color:#667568">SMS OTP · Coming later</button>
 <div id="loginMessage" class="notice hidden" role="status"></div>
 <button class="secondary" id="showPinReset" type="button">Forgot PIN?</button>
-<div id="pinResetPanel" class="hidden"><h2>Reset Guardian PIN</h2>
+<div id="pinResetPanel" class="hidden"><h2>Reset Guardian PIN</h2><p class="muted">The recovery code is a separate one-time code issued by the school together with the guardian PIN. It is not the pupil code or phone number. If you were never given a recovery code, ask the school administrator to issue/reset your guardian credentials.</p>
 <label for="resetPupilCode">Learner pupil code</label><input id="resetPupilCode">
-<label for="resetPhone">Registered guardian phone number</label><input id="resetPhone" type="tel" placeholder="+2567XXXXXXXX">
+<label for="resetPhone">Registered guardian phone number</label><input id="resetPhone" type="tel" inputmode="tel" placeholder="+2567XXXXXXXX or 07XXXXXXXX">
 <label for="recoveryCode">Guardian recovery code</label><input id="recoveryCode">
 <label for="resetNewPin">New 8-digit PIN</label><input id="resetNewPin" type="password" inputmode="numeric" maxlength="8">
 <label for="resetConfirmPin">Confirm new PIN</label><input id="resetConfirmPin" type="password" inputmode="numeric" maxlength="8">
