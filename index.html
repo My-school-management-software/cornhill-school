@@ -2137,11 +2137,12 @@ function populateLearnerClassSelectors(){
 }
 async function refresh(){
  const refreshOwner=currentUserId,refreshGeneration=window.cornhillSessionGeneration||0;
+ const refreshIsCurrent=()=>refreshOwner===currentUserId&&refreshGeneration===(window.cornhillSessionGeneration||0);
  window.cornhillStartupStage='starting school data refresh';
  clearMessage('appMsg');
  if(!db)throw new Error('The secure school database is not connected. Refresh the page when internet access is available.');
  if(!navigator.onLine){
-  if(await restoreOfflineSchoolSnapshot(currentUserId))return;
+  const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;
   message('appMsg','You are offline and this device has no valid class-list snapshot for this signed-in account. Reconnect to load the permitted records.',true);return;
  }
  let allowedClassIds=null;
@@ -2151,7 +2152,7 @@ async function refresh(){
   let selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||null;
   if(!selectedClassId){
    window.cornhillStartupStage='recovering assigned teacher class';
-   const recovery=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);
+   const recovery=await db.from('class_teacher_access').select('class_id').eq('user_id',refreshOwner);if(!refreshIsCurrent())return;
    if(recovery?.error){message('appMsg','Could not recover your assigned class: '+recovery.error.message+'. Contact the administrator if this continues.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
    const recoveredIds=[...new Set((recovery?.data||[]).map(x=>x.class_id).filter(Boolean))];
    if(recoveredIds.length!==1){message('appMsg','This teacher account must have exactly one assigned class before opening the class workspace. Please ask the administrator to check the teacher assignment.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
@@ -2161,8 +2162,8 @@ async function refresh(){
    window.teacherClassId=selectedClassId;
   }
   window.cornhillStartupStage='checking teacher class access';
-  const access=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);
-  if(access?.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not verify your class access: '+access.error.message,true);return}
+  const access=await db.from('class_teacher_access').select('class_id').eq('user_id',refreshOwner);if(!refreshIsCurrent())return;
+  if(access?.error){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not verify your class access: '+access.error.message,true);return}
   const assignedClassIds=[...new Set((access?.data||[]).map(x=>x.class_id).filter(Boolean))];
   if(assignedClassIds.length!==1||assignedClassIds[0]!==selectedClassId){
    await db.auth.signOut();sessionStorage.removeItem('cornhill_teacher_class_id');
@@ -2170,8 +2171,8 @@ async function refresh(){
    await startSession(null);return;
   }
   window.cornhillStartupStage='loading assigned teacher subjects';
-  const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('class_id',selectedClassId);
-  if(a?.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not load your class subjects: '+a.error.message,true);return}
+  const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('class_id',selectedClassId);if(!refreshIsCurrent())return;
+  if(a?.error){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not load your class subjects: '+a.error.message,true);return}
   window.teacherAssignments=a?.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];
   window.teacherClassIds=allowedClassIds;window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id).filter(Boolean))];
  }else{window.teacherAssignments=[];window.teacherClassIds=null;window.teacherSubjectIds=null}
@@ -2200,20 +2201,20 @@ async function refresh(){
  // the Excel fallback usable even if a separate dashboard widget has a rendering issue.
  populateLearnerClassSelectors();
  setOfflineReadOnly(false);
- await saveOfflineSchoolSnapshot();
+ if(!refreshIsCurrent())return;await saveOfflineSchoolSnapshot();if(!refreshIsCurrent())return;
  window.cornhillStartupStage='drawing dashboard and class boards';
  render();
  applyRoleNavigation();
  window.cornhillStartupStage='loading staff attendance notice';
- await loadStaffAttendanceNotice();
+ await loadStaffAttendanceNotice();if(!refreshIsCurrent())return;
  window.cornhillStartupStage='loading school notifications';
- await loadNotifications();
+ await loadNotifications();if(!refreshIsCurrent())return;
  if(profile?.role==='Admin'){
   loadStaffProfiles();loadClassTeacherNamesAdmin();
   window.cornhillStartupStage='loading dashboard income forecast';
-  await loadDashboardIncomeForecast();
+  await loadDashboardIncomeForecast();if(!refreshIsCurrent())return;
  }
- if(profile?.role==='Teacher')renderTeacherPortal();
+ if(!refreshIsCurrent())return;if(profile?.role==='Teacher')renderTeacherPortal();
  window.cornhillStartupStage='dashboard ready';
 }
 function render(){ const visibleStudents=students.filter(s=>s.status!=='Archived'); $('totalStudents').textContent=visibleStudents.length;$('activeStudents').textContent=students.filter(s=>s.status==='Active').length;$('totalClasses').textContent=classes.length;
