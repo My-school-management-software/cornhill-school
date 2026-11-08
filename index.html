@@ -4558,8 +4558,14 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     }
     const match=mappedAssessment?{assessment:mappedAssessment}:matchImportAssessment(header,ctx,period);
     if(match.assessment){
+     const destinationName=match.assessment.subjects?.name||'Subject',directName=normaliseImportText(destinationName)===token||excelSubjectKey(destinationName)===excelSubjectKey(token);
+     if(!mappedId&&!directName){
+      const detail='This workbook code currently suggests '+destinationName+'. Confirm the correct assigned subject and period before importing.';
+      issues.push(info.name+' · '+header+': subject-code mapping needs confirmation.');
+      codeReview.push({header,sheetName:info.name,period,status:'Code needs confirmation',detail});
+     }else codeReview.push({header,sheetName:info.name,period,status:'Matched',detail:destinationName+' · '+period+(info.hidden?' · hidden worksheet':'')});
      if(markColumns.some(x=>x.assessment.id===match.assessment.id)){issues.push(info.name+' · '+header+': duplicate subject/period column.');codeReview.push({header,sheetName:info.name,period,status:'Duplicate',detail:'This subject and period already appeared in another worksheet.'});}
-     else{const column={index,header,assessment:match.assessment,period,sheetName:info.name};markColumns.push(column);columns.push(column);codeReview.push({header,sheetName:info.name,period,status:'Matched',detail:(match.assessment.subjects?.name||'Subject')+' · '+period+(info.hidden?' · hidden worksheet':'')})}
+     else{const column={index,header,assessment:match.assessment,period,sheetName:info.name};markColumns.push(column);columns.push(column);}
     }else if(match.suggested){
      const detail='Possible correction: '+match.suggested.code+' ('+(match.suggested.assessment.subjects?.name||'subject')+').';
      issues.push(info.name+' · '+header+': '+detail);codeReview.push({header,sheetName:info.name,period,status:'Possible typo',detail});
@@ -4609,7 +4615,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   $('teacherMarksImportRows').innerHTML=display.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.match)+'</td><td>'+x.count+'</td><td>'+esc(x.result)+'</td></tr>').join('');
   const review=$('teacherMarksCodeReview');
   if(review){
-   const needsMapping=codeReview.filter(x=>['Unrecognised','Possible typo','Period/code mismatch','Wrong class period'].includes(x.status));
+   const needsMapping=codeReview.filter(x=>['Unrecognised','Possible typo','Period/code mismatch','Wrong class period','Code needs confirmation'].includes(x.status));
    const sampleFor=x=>{const source=sheetInfos.find(info=>info.name===x.sheetName);if(!source)return '—';const headers=source.matrix[source.headerRow]||[],colIndex=headers.findIndex(v=>String(v??'').trim()===x.header);if(colIndex<0)return '—';const values=source.matrix.slice(source.headerRow+1).map((row,index)=>({row:index+source.headerRow+2,value:row[colIndex]})).filter(item=>item.value!==null&&item.value!==undefined&&String(item.value).trim()!==''&&!String(item.value).trim().startsWith('=')).slice(0,8);return values.length?values.map(item=>'Row '+item.row+': '+String(item.value).trim()).join(' · '):'No sample values in this column';};
    const mappingRows=needsMapping.map(x=>{const key=teacherExcelMappingKey(file,classId,termId,x.sheetName,x.header),periodOrder=assessmentPeriodsForClassName(clsName),opts=ctx.assessments.slice().sort((a,b)=>periodOrder.indexOf(excelAssessmentPeriod(a))-periodOrder.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b)).map(a=>'<option value="'+esc(a.id)+'" '+(teacherExcelHeadingMappings[key]===a.id?'selected':'')+'>'+esc((a.subjects?.name||a.title||'Subject')+' · '+excelAssessmentPeriod(a))+'</option>').join('');return '<label style="display:block;margin:8px 0;padding:10px;border:1px solid var(--cornhill-line);border-radius:8px"><b>'+esc(x.sheetName+' · '+x.header)+'</b> <span class="muted">(detected: '+esc(x.period)+')</span><div class="muted" style="margin:4px 0 8px">Example contents: <b>'+esc(sampleFor(x))+'</b></div><select data-import-heading-map="'+esc(key)+'"><option value="">Choose destination subject AND period…</option><option value="__IGNORE__" '+(teacherExcelHeadingMappings[key]==='__IGNORE__'?'selected':'')+'>Ignore this column — not a mark</option>'+opts+'</select></label>'}).join('');
    const workbookGrid=sheetInfos.map(info=>{
