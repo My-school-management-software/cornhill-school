@@ -5761,7 +5761,7 @@ $('runBulkPromotion')?.addEventListener('click',async()=>{
  const sample=chosen.slice(0,12).map(x=>[x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' ')).join(', ');
  const more=chosen.length>12?' and '+(chosen.length-12)+' more':'';
  const targetName=destination.name+(destination.stream?' · '+destination.stream:'');
- if(!confirm('Confirm this BULK class promotion?\n\nLearners selected: '+chosen.length+'\\nFrom class(es): '+sourceNames.join(', ')+'\\nTo: '+targetName+'\\nEffective date: '+effectiveDate+'\\nReason: '+(notes||'Bulk class promotion')+'\\n\\nLearners: '+sample+more+'\\n\\nThe system will save one class-history record per learner and update their active enrolment class. Existing fees, receipts, marks, LINs and pupil codes will remain unchanged. All learners are processed together; a validation failure stops the whole batch.'))return;
+ if(!confirm('Confirm this BULK class promotion?\n\nLearners selected: '+chosen.length+'\nFrom class(es): '+sourceNames.join(', ')+'\nTo: '+targetName+'\nEffective date: '+effectiveDate+'\nReason: '+(notes||'Bulk class promotion')+'\n\nLearners: '+sample+more+'\n\nThe system will save one class-history record per learner and update their active enrolment class. Existing fees, receipts, marks, LINs and pupil codes will remain unchanged. All learners are processed together; a validation failure stops the whole batch.'))return;
  button.disabled=true;button.textContent='Promoting learners…';status.className='notice';status.textContent='Saving '+chosen.length+' learner promotion(s) together…';
  try{
   const {data,error}=await db.rpc('promote_learners_bulk',{p_student_ids:ids,p_new_class_id:destinationId,p_effective_date:effectiveDate,p_notes:notes||null});
