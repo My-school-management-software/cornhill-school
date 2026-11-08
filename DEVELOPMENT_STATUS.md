@@ -3,6 +3,11 @@
 **Working branch for this batch:** `fix/assessment-selection-save-preview-20261108`  
 **Release boundary:** this work is committed to the development branch. It has not yet been published to the stable website or verified in a live browser/device session.
 
+### Vercel preview gate
+- The latest READY preview currently found is https://cornhill-school-r2xm9p64f-cypher-projects1.vercel.app/ for commit `06a0a2d8fe39b8a360dc9ce342545524b340556c`. It is not the latest appearance/marks-entry build.
+- A preview build was requested for the latest reviewed commit `18b71bafe16ee4e24cecdabc15668ddc51d8063f`, but Vercel returned HTTP 402 `api-deployments-free-per-day` with a 24-hour retry window. No paid upgrade was made. No CLI deployment route is installed in the available workspace.
+- Do not describe the earlier READY preview as containing the new themes or single class-wide marks register. Wait until Vercel's free preview allowance resets before creating the next preview.
+
 ## Latest grouped work
 - Expanded the shared appearance system to **18 colour themes**, **24 font choices**, **14 dashboard layouts** and the existing four navigation layouts. Theme variables and dashboard styling apply to the shared application shell, including both administrator and teacher workspaces.
 - Added modern coordinated palettes (Aurora, Cobalt, Coral, Rose, Arctic and Indigo) and dashboard designs (Command centre, Soft glass, Editorial and Focus workspace).
