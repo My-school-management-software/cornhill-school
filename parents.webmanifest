@@ -1,0 +1,19 @@
+{
+  "id": "/parents.html",
+  "name": "CORNHILL Parent and Guardian Portal",
+  "short_name": "CORNHILL Parent",
+  "description": "Private learner results and guardian information portal",
+  "start_url": "/parents.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f2f7f3",
+  "theme_color": "#14532d",
+  "icons": [
+    {
+      "src": "/assets/cornhill-school-badge.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
