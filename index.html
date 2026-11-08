@@ -3724,7 +3724,7 @@ async function loadExcelMarksGrid(){
 }
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function isImportLearnerNameHeading(value){return ['NAME','PUPILNAME','PUPILSNAMES','PUPILFULLNAME','PUPILSFULLNAME','STUDENTNAME','STUDENTSNAME','STUDENTFULLNAME','LEARNERNAME','LEARNERSNAME','LEARNERFULLNAME','LEARNERSFULLNAME','FULLNAME','NAMEOFPUPIL','NAMEOFLEARNER'].includes(normaliseImportText(value))}
-function isImportLearnerCodeHeading(value){return /^(ID\d*|IDNUMBER|PUPILNO|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERNO|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGNO|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
+function isImportLearnerCodeHeading(value){return /^(IDNUMBER|PUPILNO|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERNO|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGNO|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
 function isImportLinHeading(value){return /^(LIN|LINS|LINNO|LINNUMBER|LEARNERIDENTIFICATIONNUMBER|LEARNERSIDENTIFICATIONNUMBERLIN)$/.test(normaliseImportText(value))}
 function importSubjectAliases(token,group){
  const nursery=group==='Nursery',lower=group==='P1-P3';
@@ -3854,7 +3854,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     const token=normal[index];if(!token||index===nameIndex||index===codeIndex||index===linIndex)return;
     const summary=token.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
     if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
-    if(/^(SN|PHOTO|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN|MAX|OUTOF|PERCENT|PERCENTAGE)$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
+    if(/^(SN|PHOTO|SEX|GENDER|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN\d*|MAX|OUTOF|PERCENT|PERCENTAGE)$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
     const phase=importColumnPeriod(info.matrix,info.headerRow,index,header,activePeriod,info.name),period=importPeriodLabel(phase.period,clsName),suffix=phase.codePeriod;
     if(!period){issues.push(info.name+' · '+header+': this period does not apply to '+clsName+'.');codeReview.push({header,period:'—',status:'Wrong class period',detail:'Remove this column or correct its period.'});return}
     if(suffix&&phase.explicit&&suffix!==phase.period){
@@ -3876,7 +3876,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     }
    });
    for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
-    const row=rows[rowIndex],rawName=row[nameIndex];if(!rawName||!String(rawName).trim())continue;
+    const row=rows[rowIndex],rawName=row[nameIndex],cleanRowName=String(rawName??'').trim();if(!cleanRowName||/^(TOTAL(?:\s+CLASS\s+ENROL?L?MENT)?|BOYS|GIRLS|CLASS\s+TEACHER|HEADTEACHER|SIGNATURE)$/i.test(cleanRowName))continue;
     const code=codeIndex>=0?normaliseImportText(row[codeIndex]):'',lin=linIndex>=0?normaliseImportText(row[linIndex]):'',name=normaliseImportText(rawName);
     const cm=code?(byCode.get(code)||[]):[],lm=lin?(byLin.get(lin)||[]):[],nm=byName.get(name)||[];
     let learner=null,issue='';
