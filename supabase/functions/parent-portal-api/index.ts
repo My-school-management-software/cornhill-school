@@ -4,10 +4,14 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const PROD_ORIGIN = "https://cornhill-school-cypher-projects1.vercel.app";
+const PROD_ORIGINS = new Set([
+  PROD_ORIGIN,
+  "https://cornhill-school-swart.vercel.app"
+]);
 
 function cors(req: Request) {
   const origin = req.headers.get("origin") || "";
-  const allowed = origin === PROD_ORIGIN || /^https:\/\/cornhill-school-[a-z0-9-]+-cypher-projects1\.vercel\.app$/.test(origin);
+  const allowed = PROD_ORIGINS.has(origin) || /^https:\/\/cornhill-school-[a-z0-9-]+-cypher-projects1\.vercel\.app$/.test(origin);
   return { allowed, headers: {
     "Access-Control-Allow-Origin": allowed ? origin : "null",
     "Vary": "Origin",
