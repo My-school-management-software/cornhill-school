@@ -1,6 +1,6 @@
 /* CORNHILL offline application shell and safe static-asset cache.
    Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v51';
+const CACHE_NAME = 'cornhill-shell-v52';
 const SHELL = [
   '/',
   '/index.html',
@@ -12,6 +12,10 @@ const SHELL = [
   '/manifest.webmanifest',
   '/service-worker.js',
   '/assets/cornhill-school-badge.png',
+  '/assets/cornhill-design-system.css',
+  '/school-services.html',
+  '/school.html',
+  '/admissions.html',
   '/assets/cornhill-design-system.css'
 ];
 const STATIC_CDN = [
@@ -19,7 +23,7 @@ const STATIC_CDN = [
   'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v51';
+const STATIC_CACHE = 'cornhill-static-v52';
 const STATIC_HOSTS = new Set(['cdn.jsdelivr.net']);
 
 self.addEventListener('install', event => {
@@ -82,7 +86,10 @@ self.addEventListener('fetch', event => {
       url.pathname === '/parents';
     const isEvidencePortal = url.pathname === '/evidence.html' || url.pathname === '/evidence';
     const isBankingPortal = url.pathname === '/banking.html' || url.pathname === '/banking';
-    const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : isBankingPortal ? '/banking.html' : '/index.html';
+    const isServicesPortal = url.pathname === '/school-services.html';
+    const isPublicSchoolSite = url.pathname === '/school.html';
+    const isAdmissionsPortal = url.pathname === '/admissions.html';
+    const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : isBankingPortal ? '/banking.html' : isServicesPortal ? '/school-services.html' : isPublicSchoolSite ? '/school.html' : isAdmissionsPortal ? '/admissions.html' : '/index.html';
     event.respondWith((async () => {
       try {
         const response = await fetch(request);
