@@ -75,7 +75,7 @@ async function addRecordsEnhancement(response){
   const html=await response.clone().text();
   const src='/assets/cornhill-document-pdf-ocr.js';
   if(html.includes(src)||!html.toLowerCase().includes('</body>'))return response;
-  const enhanced=html.replace(/<\\/body>/i,'<script src="'+src+'"></script></body>');
+  const enhanced=html.replace(/<\/body>/i,'<script src="'+src+'"></script></body>');
   const headers=new Headers(response.headers);
   headers.delete('content-length');
   headers.delete('content-encoding');
