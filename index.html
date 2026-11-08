@@ -1862,6 +1862,24 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 </div>
 <div class="panel" style="margin-top:14px"><h3>Class enrolment comparison</h3><div class="table-wrap"><table><thead><tr><th>Class</th><th>Active learners</th><th>Female</th><th>Male</th></tr></thead><tbody id="reportClassRows"><tr><td colspan="4">Refresh records to view.</td></tr></tbody></table></div></div>
 <div class="panel" style="margin-top:14px"><h3>Subject performance records</h3><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments recorded</th><th>Average score</th></tr></thead><tbody id="recordsSubjectRows"><tr><td colspan="3">Refresh records to view.</td></tr></tbody></table></div></div>
+<section class="panel" id="recordsVault" style="margin-top:18px">
+ <div class="row" style="align-items:flex-start"><div><span class="dashboard-eyebrow">DOCUMENT INTELLIGENCE & RETENTION</span><h3>School Document & Evidence Register</h3><p class="muted">A searchable index of the private files already stored by Evidence Capture. Use OCR to extract searchable text from image documents, review suggested identifiers and dates, record expiry information, and keep the original evidence file unchanged.</p></div><button type="button" class="primary" id="refreshDocumentRegister">Refresh document register</button></div>
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0">
+  <div class="stat"><small>Indexed files</small><div class="num" id="recordIndexTotal">—</div></div>
+  <div class="stat"><small>OCR pending</small><div class="num" id="recordIndexOcrPending">—</div></div>
+  <div class="stat"><small>Due within 30 days</small><div class="num" id="recordIndexDue">—</div></div>
+  <div class="stat"><small>Expired</small><div class="num" id="recordIndexExpired">—</div></div>
+ </div>
+ <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
+  <div style="flex:2;min-width:180px"><label for="recordIndexSearch">Search records and OCR text</label><input id="recordIndexSearch" type="search" placeholder="Document title, number, name or extracted text…"></div>
+  <div style="flex:1;min-width:140px"><label for="recordIndexType">Document type</label><select id="recordIndexType"><option value="all">All types</option><option>Birth certificate</option><option>Previous report</option><option>Transfer letter</option><option>Staff application letter</option><option>Staff national ID</option><option>Staff academic certificates</option><option>Staff appointment letter</option><option>Bank deposit slip</option><option>Expense receipt</option><option>Other</option></select></div>
+  <div style="flex:1;min-width:135px"><label for="recordIndexExpiry">Expiry</label><select id="recordIndexExpiry"><option value="all">All expiry states</option><option value="expired">Expired</option><option value="due">Due within 30 days</option><option value="valid">More than 30 days</option><option value="none">No expiry date entered</option></select></div>
+  <button type="button" id="exportDocumentRegister">Export index CSV</button>
+ </div>
+ <p class="muted" id="recordIndexStatus" role="status">Open this section to load the document register.</p>
+ <div class="table-wrap"><table><thead><tr><th>Document / linked school record</th><th>Type</th><th>Document number / issuer</th><th>Issued</th><th>Expires</th><th>OCR</th><th>Verification</th><th>File</th><th>Actions</th></tr></thead><tbody id="recordIndexRows"><tr><td colspan="9">Refresh the document register to load indexed files.</td></tr></tbody></table></div>
+ <p class="muted">Expiry alerts are generated when an administrator refreshes this register. A daily scheduled reminder still requires an approved server scheduler; the current browser-only refresh does not run while the application is closed. OCR results are suggestions and must be checked against the original document before verification.</p>
+</section>
 <p class="muted">Reports use records that actually exist in the system. Empty charts mean that the relevant module has not yet accumulated records; the system will not invent historical figures.</p>
 
 </section>
@@ -2093,7 +2111,7 @@ function tab(name){
  if(name==='academics')loadAcademics();
  if(name==='finance')loadFinance();
  if(name==='inventory')loadInventory();
- if(name==='reports')loadSchoolReports();
+ if(name==='reports'){loadSchoolReports();loadSchoolDocumentRegister();}
  if(name==='midtermAdmissions')loadMidtermAdmissions();
   if(name==='appCentre')loadAppCentre();
 }
@@ -6044,6 +6062,7 @@ async function loadSchoolReports(){
   renderRecordsBarChart('recordsSalaryChangeChart',[...salaryChangeAgg].map(([label,x])=>({label,value:x.n?x.sum/x.n:0})),'ugx');
   window.cornhillReportLearners=learners;window.cornhillRecordsCache={learners,classes:classResult.data||[],assessments,scores,subjects,terms,payments,payroll,salaryAgreements:salaryAgreementResult.data||[],classHistory:historyResult.data||[]};
   message('reportsMsg','Records refreshed. Charts use saved school records only; no missing historical values have been estimated.');
+  await loadSchoolDocumentRegister();
  }catch(error){message('reportsMsg','Could not prepare school records: '+(error.message||'Unknown error'),true)}
  finally{$('refreshSchoolReports').disabled=false}
 }
