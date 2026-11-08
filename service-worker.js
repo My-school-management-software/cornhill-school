@@ -6,6 +6,7 @@ const SHELL = [
   '/index.html',
   '/parents.html',
   '/evidence.html',
+  '/banking.html',
   '/evidence.webmanifest',
   '/manifest.webmanifest',
   '/service-worker.js',
@@ -78,15 +79,16 @@ self.addEventListener('fetch', event => {
       url.pathname === '/parents.html' ||
       url.pathname === '/parents';
     const isEvidencePortal = url.pathname === '/evidence.html' || url.pathname === '/evidence';
-    const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : '/index.html';
+    const isBankingPortal = url.pathname === '/banking.html' || url.pathname === '/banking';
+    const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : isBankingPortal ? '/banking.html' : '/index.html';
     event.respondWith((async () => {
       try {
         const response = await fetch(request);
         if (response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          // Keep guardian, phone evidence, and school-admin shells separate.
+          // Keep guardian, phone evidence, banking, and school-admin shells separate.
           await cache.put(routeCacheKey, response.clone());
-          if (!isParentPortal && !isEvidencePortal) await cache.put('/', response.clone());
+          if (!isParentPortal && !isEvidencePortal && !isBankingPortal) await cache.put('/', response.clone());
         }
         return response;
       } catch {
@@ -99,6 +101,11 @@ self.addEventListener('fetch', event => {
         }
         if (isEvidencePortal) {
           return new Response('CORNHILL Evidence Capture is offline. Reconnect to receive requests, verify authorisation, and upload documents.', {
+            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
+        }
+        if (isBankingPortal) {
+          return new Response('CORNHILL Banking is offline. Reconnect before recording deposits, requesting withdrawals, or checking verified balances.', {
             status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
           });
         }
