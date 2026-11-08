@@ -37,6 +37,44 @@
 <div id="deviceWrap" class="full"><label>Phone that will photograph the bank slip *</label><select id="captureDevice" name="device_id" required><option value="">Loading authorised phones…</option></select><small class="muted">The request is sent to the staff member assigned to this phone. The phone must be active and online to receive an immediate notification.</small></div>
 <div class="full"><button class="primary" id="saveTransaction" type="submit">Record deposit & request bank-slip photo</button></div>
 </form><div id="transactionMsg" class="notice hidden" role="status"></div></section>
+<section class="panel" id="expenseRequestPanel">
+<h2 class="section-head">Submit a small school expense for approval</h2>
+<p class="muted">The Deputy Bursar can submit expenses within limits set by an administrator. This is a request, not a posted expense. Do not pay the supplier until the request is approved. After payment, the authorised phone must photograph the receipt or invoice.</p>
+<div id="expenseLimitNotice" class="notice">Loading your expense limit…</div>
+<form id="expenseRequestForm">
+<div><label>Expense date *</label><input id="expenseRequestDate" name="expense_date" type="date" required></div>
+<div><label>Expense category *</label><select id="expenseCategory" name="category_id" required><option value="">Loading categories…</option></select></div>
+<div><label>Amount (UGX) *</label><input name="amount_ugx" type="number" min="1" step="1" inputmode="numeric" required placeholder="Enter amount"></div>
+<div><label>Payee / supplier</label><input name="payee_name" maxlength="160" placeholder="Person or supplier"></div>
+<div class="full"><label>Description / purpose *</label><textarea name="description" rows="2" minlength="3" maxlength="500" required placeholder="Explain what the school needs to pay for"></textarea></div>
+<div><label>Payment method *</label><select name="payment_method"><option>Cash</option><option>Bank transfer</option><option>Mobile Money</option><option>Cheque</option><option>Other</option></select></div>
+<div><label>Payment reference</label><input name="payment_reference" maxlength="120" placeholder="Optional bank / mobile reference"></div>
+<div class="full"><label>Receipt or invoice number (if already known)</label><input name="receipt_reference" maxlength="120" placeholder="Optional reference"></div>
+<div class="full"><button class="primary" id="submitExpenseRequest" type="submit">Submit expense for approval</button></div>
+</form><div id="expenseRequestMsg" class="notice hidden" role="status"></div>
+</section>
+<section id="financeLimitPanel" class="panel hidden">
+<h2 class="section-head">Administrator · Bursar expense limits</h2>
+<p class="muted">Enable an expense-request allowance for the Deputy Bursar or Bursar. Both limits are enforced by the database. Zero or disabled means no expense requests are accepted for that account.</p>
+<form id="operatorLimitForm">
+<div><label>Bursar account *</label><select id="limitStaff" name="user_id" required><option value="">Choose active bursar</option></select></div>
+<div><label>Maximum per expense (UGX) *</label><input id="limitSingle" name="max_single_expense_ugx" type="number" min="0" step="1" value="0" required></div>
+<div><label>Maximum per day (UGX) *</label><input id="limitDaily" name="daily_limit_ugx" type="number" min="0" step="1" value="0" required></div>
+<div><label><input id="limitEnabled" type="checkbox" style="width:auto;margin-right:7px">Enable expense requests</label></div>
+<div class="full"><button class="primary" type="submit">Save spending limits</button></div>
+</form><div id="limitMsg" class="notice hidden"></div>
+<div class="table-wrap"><table><thead><tr><th>Staff account</th><th>Maximum per expense</th><th>Daily maximum</th><th>Status</th></tr></thead><tbody id="limitRows"><tr><td colspan="4">Loading limits…</td></tr></tbody></table></div>
+</section>
+<section id="expenseApprovalPanel" class="panel hidden">
+<h2 class="section-head">Administrator · Expense requests awaiting approval</h2>
+<p class="muted">Approve before spending. Approval sends a ten-minute receipt-photo request to the chosen authorised phone. The expense enters the official expenditure ledger only after its evidence is approved.</p>
+<div id="expenseApprovalQueue"><p class="muted">No expense requests are awaiting approval.</p></div>
+</section>
+<section class="panel">
+<h2 class="section-head">Expense request register</h2>
+<p class="muted">Track requests through approval, receipt capture and verification. Verified requests are posted automatically to the existing School Expenses ledger.</p>
+<div class="table-wrap"><table><thead><tr><th>Date / request</th><th>Category / purpose</th><th>Amount (UGX)</th><th>Status</th><th>Action</th></tr></thead><tbody id="expenseRequestRows"><tr><td colspan="5">Loading requests…</td></tr></tbody></table></div>
+</section>
 <section id="approvalPanel" class="panel hidden"><h2 class="section-head">Withdrawals awaiting administrator approval</h2><p class="muted">Review the amount, account, purpose and person who requested it. Choose the authorised phone that will submit withdrawal and expense evidence.</p><div id="withdrawalQueue"><p class="muted">No withdrawal requests.</p></div></section>
 <section class="panel"><div class="row"><div><h2 class="section-head">Bank transaction register</h2><p class="muted">A permanent record of deposits, withdrawal requests, approvals and verification outcomes.</p></div><a class="link" href="/evidence.html">Open Evidence Capture</a></div>
 <div class="table-wrap"><table><thead><tr><th>Date / reference</th><th>Account</th><th>Type</th><th>Amount (UGX)</th><th>Description / recipient</th><th>Entered by</th><th>Status</th><th>Action</th></tr></thead><tbody id="transactionRows"><tr><td colspan="8">Loading transactions…</td></tr></tbody></table></div>
