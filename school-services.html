@@ -267,7 +267,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
     </div>
     <div id="assetRegisterPanel" class="hidden">
       <h3>School asset register</h3>
-      <div class="table-wrap"><table><thead><tr><th>Asset code</th><th>Asset</th><th>Category</th><th>Location</th><th>Condition</th><th>Status</th><th>Purchase cost</th></tr></thead><tbody id="assetRows"><tr><td colspan="7">Loading assets…</td></tr></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Asset code</th><th>Asset</th><th>Category</th><th>Location</th><th>Condition</th><th>Status</th><th>Purchase cost</th><th>Manager update</th></tr></thead><tbody id="assetRows"><tr><td colspan="7">Loading assets…</td></tr></tbody></table></div>
     </div>
     <h3 style="margin-top:18px">Maintenance reports</h3>
     <div class="table-wrap"><table><thead><tr><th>Date / issue</th><th>Asset</th><th>Reported by</th><th>Urgency</th><th>Description</th><th>Status / manager action</th></tr></thead><tbody id="maintenanceRows"><tr><td colspan="6">Loading maintenance reports…</td></tr></tbody></table></div>
@@ -570,10 +570,26 @@ $('visitorRows').addEventListener('click',async e=>{
 });
 async function loadAssets(){
  if(!isAssetViewer())return;
- const {data,error}=await db.from('school_assets').select('id,asset_code,asset_name,category,serial_number,location,condition,status,purchase_cost_ugx,purchase_date').order('asset_code').limit(500);
- if(error){$('assetRows').innerHTML='<tr><td colspan="7">Asset register unavailable: '+esc(error.message)+'</td></tr>';return}
- const rows=data||[];$('assetRows').innerHTML=rows.map(x=>'<tr><td><strong>'+esc(x.asset_code)+'</strong></td><td>'+esc(x.asset_name)+'<br><small>'+esc(x.serial_number||'')+'</small></td><td>'+esc(x.category)+'</td><td>'+esc(x.location||'')+'</td><td>'+esc(x.condition)+'</td><td><span class="badge">'+esc(x.status)+'</span></td><td>'+money(x.purchase_cost_ugx)+'</td></tr>').join('')||'<tr><td colspan="7" class="empty">No school assets registered yet.</td></tr>';
+ const {data,error}=await db.from('school_assets').select('id,asset_code,asset_name,category,serial_number,location,condition,status,purchase_cost_ugx,purchase_date,notes').order('asset_code').limit(500);
+ if(error){$('assetRows').innerHTML='<tr><td colspan="8">Asset register unavailable: '+esc(error.message)+'</td></tr>';return}
+ const rows=data||[];$('assetRows').innerHTML=rows.map(x=>{
+  const action=isAssetCustodian()
+   ?'<label class="muted">Location</label><input data-asset-location="'+esc(x.id)+'" maxlength="120" value="'+esc(x.location||'')+'"><label class="muted">Condition</label><select data-asset-condition="'+esc(x.id)+'">'+['New','Good','Fair','Poor','Damaged'].map(v=>'<option '+(x.condition===v?'selected':'')+'>'+v+'</option>').join('')+'</select><label class="muted">Status</label><select data-asset-status="'+esc(x.id)+'">'+['In Use','In Storage','Under Repair','Retired'].map(v=>'<option '+(x.status===v?'selected':'')+'>'+v+'</option>').join('')+'</select><label class="muted">Asset note</label><input data-asset-notes="'+esc(x.id)+'" maxlength="1000" value="'+esc(x.notes||'')+'"><button type="button" data-asset-save="'+esc(x.id)+'">Save update</button>'
+   :'<span class="muted">Read-only</span>';
+  return '<tr><td><strong>'+esc(x.asset_code)+'</strong></td><td>'+esc(x.asset_name)+'<br><small>'+esc(x.serial_number||'')+'</small></td><td>'+esc(x.category)+'</td><td>'+esc(x.location||'')+'</td><td>'+esc(x.condition)+'</td><td><span class="badge">'+esc(x.status)+'</span></td><td>'+money(x.purchase_cost_ugx)+'</td><td>'+action+'</td></tr>';
+ }).join('')||'<tr><td colspan="8" class="empty">No school assets registered yet.</td></tr>';
 }
+$('assetRows').addEventListener('click',async e=>{
+ const id=e.target.closest('[data-asset-save]')?.dataset.assetSave;if(!id)return;
+ try{
+  if(!isAssetCustodian())throw new Error('Only the administrator or an authorised store manager can update asset records.');
+  const get=attr=>$('assetRows').querySelector('['+attr+'="'+CSS.escape(id)+'"]');
+  const location=get('data-asset-location').value.trim(),condition=get('data-asset-condition').value,status=get('data-asset-status').value,notes=get('data-asset-notes').value.trim();
+  if(location.length>120||notes.length>1000)throw new Error('One of the asset fields exceeds its allowed length.');
+  const {error}=await db.from('school_assets').update({location,condition,status,notes,updated_by:user.id,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error)throw error;inlineMsg('assetMsg','Asset details updated.','success');await loadAssets();
+ }catch(err){inlineMsg('assetMsg','Asset update failed: '+err.message,'error')}
+});
 $('assetForm').addEventListener('submit',async e=>{
  e.preventDefault();
  try{
