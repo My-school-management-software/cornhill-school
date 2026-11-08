@@ -3374,8 +3374,11 @@ $('refreshStaffDashboard')?.addEventListener('click',()=>loadStaffProfiles());
   try{
    const auth=await db.auth.getUser(),user=auth.data?.user;if(auth.error||!user||user.id!==currentUserId)throw new Error('Your administrator session is unavailable. Sign in again.');
    const payload={full_name:String(values.full_name||'').trim(),phone:String(values.phone||'').trim()||null,gender:String(values.gender||'')||null,staff_category:String(values.staff_category||''),job_title:String(values.job_title||'').trim(),department:String(values.department||'').trim()||null,responsibilities:String(values.responsibilities||'').trim()||null,employment_start_date:values.employment_start_date||null,reporting_date:values.reporting_date||null,employment_status:values.employment_status||'Active',created_by:user.id};
-   const {error}=await db.from('school_staff_directory').insert(payload);if(error)throw error;
-   e.target.reset();message('staffProfileMsg','Employee record saved in the school staff directory. No login account was created.');await loadStaffProfiles();
+   const {data:savedStaff,error}=await db.from('school_staff_directory').insert(payload).select('id,full_name').single();if(error)throw error;
+   e.target.reset();
+   const evidenceUrl='/evidence.html?contextType=staff_profile&recordId='+encodeURIComponent(savedStaff.id)+'&contextLabel='+encodeURIComponent(savedStaff.full_name)+'&purpose='+encodeURIComponent('Staff ID');
+   const evidenceLink=document.createElement('a');evidenceLink.href=evidenceUrl;evidenceLink.textContent='Open Evidence Capture for '+savedStaff.full_name;evidenceLink.target='_blank';evidenceLink.rel='noopener';evidenceLink.style.cssText='display:inline-block;margin:6px 0;padding:9px 12px;border-radius:8px;background:#e8f4eb;color:#14532d;font-weight:700';
+   const msg=$('staffProfileMsg');message('staffProfileMsg','Employee record saved in the central staff directory. No login account was created. Attach application letter, national ID and other documents using Evidence Capture.');msg.appendChild(document.createElement('br'));msg.appendChild(evidenceLink);await loadStaffProfiles();
   }catch(err){message('staffProfileMsg','Could not save employee record: '+(err?.message||'Please try again.'),true)}
   finally{button.disabled=false;button.textContent='Save employee record'}
  });
