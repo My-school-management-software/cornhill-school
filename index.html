@@ -3663,10 +3663,10 @@ async function loadAdminAcademicInsights(){
  try{
   const {data:assessments,error:assessmentError}=await db.from('assessments').select('id,class_id,subject_id,max_score,school_classes(name),subjects(name)').eq('term_id',termId);if(assessmentError)throw assessmentError;
   const list=assessments||[],ids=list.map(x=>x.id);let scores=[];
-  if(ids.length){const result=await db.from('assessment_scores').select('assessment_id,student_id,score').in('assessment_id',ids);if(result.error)throw result.error;scores=result.data||[]}
+  if(ids.length){const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);if(result.error)throw result.error;scores=result.data||[]}
   const cm=new Map(),sm=new Map(),am=new Map(list.map(a=>[a.id,a]));
   list.forEach(a=>{const c=cm.get(a.class_id)||{name:a.school_classes?.name||'Class',assessments:0,learners:new Set(),sum:0,max:0,marks:[]};c.assessments++;cm.set(a.class_id,c);const q=sm.get(a.subject_id)||{name:a.subjects?.name||'Subject',learners:new Set(),sum:0,max:0};sm.set(a.subject_id,q)});
-  scores.forEach(m=>{const a=am.get(m.assessment_id);if(!a||m.score==null)return;const n=Number(m.score),max=Number(a.max_score||0);if(!Number.isFinite(n)||max<=0)return;const c=cm.get(a.class_id),q=sm.get(a.subject_id);if(c){c.sum+=n;c.max+=max;c.learners.add(m.student_id);c.marks.push(n/max*100)}if(q){q.sum+=n;q.max+=max;q.learners.add(m.student_id)}});
+  scores.forEach(m=>{const a=am.get(m.assessment_id);if(!a||m.score==null||isAbsentMark(m))return;const n=Number(m.score),max=Number(a.max_score||0);if(!Number.isFinite(n)||max<=0)return;const c=cm.get(a.class_id),q=sm.get(a.subject_id);if(c){c.sum+=n;c.max+=max;c.learners.add(m.student_id);c.marks.push(n/max*100)}if(q){q.sum+=n;q.max+=max;q.learners.add(m.student_id)}});
   const cr=[...cm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:0})).sort((a,b)=>a.name.localeCompare(b.name)),sr=[...sm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:0})).sort((a,b)=>a.average-b.average);
   const learnerCount=new Set(scores.map(x=>x.student_id)).size,recordedClasses=cr.filter(x=>x.learners.size).length,den=cr.reduce((n,x)=>n+x.max,0),schoolAvg=den?cr.reduce((n,x)=>n+x.sum,0)/den*100:0;
   const tile=(label,value)=>'<div class="panel" style="padding:12px"><div class="muted">'+label+'</div><strong style="font-size:1.4rem">'+value+'</strong></div>';
