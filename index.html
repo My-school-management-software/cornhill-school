@@ -4345,6 +4345,13 @@ function importSheetClassMatch(sheetName,className){
  const known=['BABY','MIDDLE','TOP','P1','P2','P3','P4','P5','P6','P7','PRIMARY1','PRIMARY2','PRIMARY3','PRIMARY4','PRIMARY5','PRIMARY6','PRIMARY7','PRIMARYONE','PRIMARYTWO','PRIMARYTHREE','PRIMARYFOUR','PRIMARYFIVE','PRIMARYSIX','PRIMARYSEVEN'];
  return !known.some(x=>sheet.startsWith(x));
 }
+function importWorkbookTermNumber(raw){
+ const value=normaliseImportText(raw);
+ if(/(?:FIRST|1ST)TERM|TERM(?:ONE|1)/.test(value))return 1;
+ if(/(?:SECOND|2ND)TERM|TERM(?:TWO|2)/.test(value))return 2;
+ if(/(?:THIRD|3RD)TERM|TERM(?:THREE|3)/.test(value))return 3;
+ return null;
+}
 function importPhaseNumber(raw){
  const n=normaliseImportText(raw);
  if(/SETIV|SET4|FOURTH/.test(n))return 4;
@@ -4446,6 +4453,17 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
    if(name){const a=byName.get(name)||[];a.push(learner);byName.set(name,a)}
   }
   const markColumns=[],codeReview=[],issues=[],displayMap=new Map(),plan=[],seenRows=new Set(),seenMarks=new Set();
+  // The assessment phase (Beginning/Midterm/End) is not the academic school term.
+  // Refuse a mismatched workbook rather than silently writing historical marks into
+  // whichever term happens to be selected in the teacher workspace.
+  const sourceTermNumbers=[...new Set(sheetInfos.map(info=>importWorkbookTermNumber(info.name)).filter(Boolean))];
+  const selectedAcademicTerm=academic.terms.find(t=>t.id===termId);
+  const destinationTermNumber=importWorkbookTermNumber(selectedAcademicTerm?.name||'');
+  if(sourceTermNumbers.length>1){
+   issues.push('This workbook contains worksheets labelled for different academic terms. Separate the terms into different workbooks before importing.');
+  }else if(sourceTermNumbers.length===1&&destinationTermNumber&&sourceTermNumbers[0]!==destinationTermNumber){
+   issues.push('Academic term mismatch: this workbook is labelled Term '+sourceTermNumbers[0]+' but the selected destination is '+(selectedAcademicTerm?.name||('Term '+destinationTermNumber))+'. No marks can be imported into the wrong term. Ask the administrator to make the correct academic term available, then select it and preview again.');
+  }
   for(const info of sheetInfos){
    const headers=info.matrix[info.headerRow].map(v=>String(v??'').trim()),rows=info.matrix.slice(info.headerRow+1),normal=headers.map(normaliseImportText);
    const nameIndex=normal.findIndex(isImportLearnerNameHeading);
