@@ -2998,6 +2998,7 @@ async function loadAllTeacherMarksRegister(){
  return {data:rows,error:null};
 }
 async function loadAcademics(){
+ const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;
  if(profile?.role==='Admin')await loadAcademicControl();
  $('prepareExcelAssessments').classList.toggle('hidden',profile?.role!=='Admin');
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
@@ -3012,6 +3013,7 @@ async function loadAcademics(){
  $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
+ if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic administration · marks read-only':'Assigned teacher · assessment and mark entry';
  const [y,t,s,a,staff,teacherDirectory,cscores,assignments,classTeacherAssignments]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
@@ -3024,6 +3026,7 @@ async function loadAcademics(){
   profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,teacher_directory_id,school_classes(name),subjects(name),academic_teacher_directory(full_name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')),
   profile?.role==='Admin'?db.from('class_teacher_directory_assignments').select('class_id,teacher_directory_id,updated_at,academic_teacher_directory(full_name,employment_status,linked_user_id)'):Promise.resolve({data:[],error:null})
  ]);
+ if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  const err=[y,t,s,a,staff,teacherDirectory,cscores,assignments,classTeacherAssignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
  if(profile?.role!=='Teacher')window.teacherClassIds=null;
  const scopedAssessments=profile?.role==='Teacher'?(a.data||[]).filter(x=>x.class_id===sessionStorage.getItem('cornhill_teacher_class_id')):(a.data||[]);academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:scopedAssessments,classSubjects:assignments.data||[]};
@@ -3525,6 +3528,7 @@ function recalculateExcelMarkSheet(){
  ctx.phases=results;
 }
 async function loadExcelMarksGrid(){
+ const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;
  const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value;
  const head=$('excelMarksHead'),body=$('excelMarksBody'),phaseFilter=$('excelMarksPhase').value||'All';
  // Invalidate any previous class/term sheet before attempting a new load.
@@ -3532,6 +3536,7 @@ async function loadExcelMarksGrid(){
  $('exportExcelMarks').disabled=true;
  if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
  const cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
+ if(profile?.role==='Teacher'&&classId!==sessionStorage.getItem('cornhill_teacher_class_id')){message('excelMarksMsg','Access blocked: this class is not assigned to your account.',true);return}
  const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId);
  const setBasedClass=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phaseOrder=setBasedClass?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'];
  const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>phaseOrder.indexOf(excelAssessmentPeriod(a))-phaseOrder.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b));
@@ -3543,6 +3548,7 @@ async function loadExcelMarksGrid(){
  const ids=assessments.map(x=>x.id);
  const showPosition=!setBasedClass;
  const {data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);
+ if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
  const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x]));
  window.cornhillExcelMarksContext={termId,classId,phase:phaseFilter,assessments,students:list,savedMarks:saved};
@@ -3645,8 +3651,9 @@ $('confirmTeacherMarksImport').addEventListener('click',async()=>{
  if(!['Teacher','Admin'].includes(profile?.role)||demoMode||!plan||plan.blockingIssues?.length||!ctx||plan.ctxKey!==ctx.classId+'|'+ctx.termId)return;
  button.disabled=true;button.textContent='Importing…';
  try{
+  const importTermId=ctx.termId,importClassId=ctx.classId;
   const auth=await db.auth.getUser(),user=auth.data?.user;
-  if(auth.error||!user||user.id!==currentUserId)throw new Error('Your teacher sign-in session is unavailable. Sign in again.');
+  if(auth.error||!user||user.id!==currentUserId)throw new Error('Your sign-in session is unavailable. Sign in again.');
   const payload=plan.payload.map(({source_name,source_header,...x})=>({...x,entered_by:user.id}));
   const replace=$('replaceExistingImportedMarks').checked;
   let inserted=0,skipped=0,failed=0;
@@ -3663,7 +3670,7 @@ $('confirmTeacherMarksImport').addEventListener('click',async()=>{
    ctx.savedMarks.set(key,{...row});inserted++;
   }
   message('teacherMarksImportMsg','Import finished: '+inserted+' mark(s) saved; '+skipped+' existing mark(s) protected; '+failed+' failed or blocked by teacher class/subject permissions. Check the mark sheet and grading before continuing.');
-  teacherExcelImportPlan=null;button.disabled=true;await loadAcademics();await loadExcelMarksGrid();
+  teacherExcelImportPlan=null;button.disabled=true;await loadAcademics();$('excelMarksTerm').value=importTermId;$('excelMarksClass').value=importClassId;await loadExcelMarksGrid();
  }catch(err){message('teacherMarksImportMsg','Import stopped: '+(err?.message||String(err)),true);button.disabled=false}
  finally{button.textContent='Import matched marks'}
 });
