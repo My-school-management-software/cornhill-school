@@ -164,6 +164,7 @@ async function loadNotifications(options={}){
 }
 async function markRead(id){const {error}=await db.rpc('mark_school_notification_read',{p_notification_id:id});if(error)throw error}
 async function archive(id,reason){const {error}=await db.rpc('archive_school_notification',{p_notification_id:id,p_reason:reason});if(error)throw error}
+async function restore(id){const {error}=await db.rpc('restore_school_notification',{p_notification_id:id});if(error)throw error}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',async()=>{view=b.dataset.view;isFirstLoad=true;await loadNotifications()}));
 $('search').addEventListener('input',render);$('severity').addEventListener('change',render);$('category').addEventListener('change',()=>{$('category').dataset.selected=$('category').value;render()});
 $('clearFilters').addEventListener('click',()=>{$('search').value='';$('severity').value='';$('category').value='';$('category').dataset.selected='';render()});
@@ -178,7 +179,7 @@ $('notificationsList').addEventListener('click',async e=>{
  try{
   if(read){await markRead(read.dataset.read);toast('Notification marked as read.');await loadNotifications({quiet:true});return}
   if(arch){await archive(arch.dataset.archive,'Archived from Notification Centre');toast('Archived for your account.');await loadNotifications({quiet:true});return}
-  if(restore){await archive(restore.dataset.unarchive,'Restored to inbox');toast('Notification restored.');await loadNotifications({quiet:true});return}
+  if(restore){await restore(restore.dataset.unarchive);toast('Notification restored to your inbox.');await loadNotifications({quiet:true});return}
   if(open){
    const r=rows.find(x=>x.id===open.dataset.open);if(!r)return;
    if(!r.read_at)await markRead(r.id);
