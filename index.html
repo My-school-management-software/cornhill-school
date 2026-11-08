@@ -2160,7 +2160,7 @@ async function loadOnlineAdmissionEnquiryFromUrl(){
  window.pendingSchoolAdmissionEnquiry={id:enquiry.id};
  const note=$('admissionEnquiryPrefillNote');
  $('admissionEnquiryPrefillReference').textContent='Application reference: '+enquiry.id.slice(0,8).toUpperCase()+' · Status: Approved for admission';
- $('admissionEnquiryPrefillSummary').textContent='Parent enquiry received for '+enquiry.learner_name+' · requested class '+enquiry.class_applied+'. '+(classMatch?'The matching class has been preselected.':'No exact class match was found; choose the correct class manually. ')+'The name has been split into suggested name fields only. Verify them against the original documents. The learner's gender, verified birth year/date and official LIN were not supplied online and must be completed here.';
+ $('admissionEnquiryPrefillSummary').textContent='Parent enquiry received for '+enquiry.learner_name+' · requested class '+enquiry.class_applied+'. '+(classMatch?'The matching class has been preselected.':'No exact class match was found; choose the correct class manually. ')+'The name has been split into suggested name fields only. Verify them against the original documents. The learner’s gender, verified birth year/date and official LIN were not supplied online and must be completed here.';
  note.classList.remove('hidden');
  tab('register');
  if(typeof scheduleAdmissionMatchSearch==='function')scheduleAdmissionMatchSearch();
