@@ -3652,62 +3652,157 @@ function matchImportAssessment(header,ctx,period){
  return suggestions[0]?.distance<=1?{suggested:suggestions[0]}:{};
 }
 let teacherExcelImportPlan=null;
-$('previewTeacherMarksImport').addEventListener('click',async()=>{
- const file=$('teacherMarksWorkbook').files?.[0],confirm=$('confirmTeacherMarksImport');confirm.disabled=true;teacherExcelImportPlan=null;
- if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using your assigned class-teacher account to import marks. Administrator accounts can review marks but cannot post them.',true);return}
- if(profile?.role==='Teacher'&&!sessionStorage.getItem('cornhill_teacher_class_id')){message('teacherMarksImportMsg','Your assigned class could not be verified. Sign out and sign in again.',true);return}
- if(!file){message('teacherMarksImportMsg','Choose your Excel workbook first.',true);return}
- if(!window.XLSX){message('teacherMarksImportMsg','The Excel reader is unavailable. Reconnect and reload the page before importing.',true);return}
- const termId=$('excelMarksTerm').value,classId=profile?.role==='Teacher'?(sessionStorage.getItem('cornhill_teacher_class_id')||''):$('excelMarksClass').value;
- if(profile?.role==='Teacher')$('excelMarksClass').value=classId;
- if(!termId||!classId){message('teacherMarksImportMsg','Choose the academic term first.',true);return}
- if(profile?.role==='Teacher'&&classId!==sessionStorage.getItem('cornhill_teacher_class_id')){message('teacherMarksImportMsg','Access blocked: this class is not assigned to your account.',true);return}
- let ctx=window.cornhillExcelMarksContext;if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Loading the selected class and term…');await loadExcelMarksGrid();ctx=window.cornhillExcelMarksContext}
- if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Could not load the selected class sheet.',true);return}
- try{
-  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false});let chosen=null,headerRow=-1;
-  for(const sheetName of wb.SheetNames){const matrix=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:null,raw:true});const h=matrix.findIndex(row=>row.some(v=>/^(NAME|PUPIL.?S.?NAMES)$/i.test(String(v||'').trim())));if(h>=0){chosen={name:sheetName,matrix};headerRow=h;break}}
-  if(!chosen)throw new Error('Could not find a worksheet with a NAME or PUPIL’S NAMES heading.');
-  const headers=chosen.matrix[headerRow].map(v=>String(v??'').trim()),rows=chosen.matrix.slice(headerRow+1),nameIndex=headers.findIndex(v=>/^(NAME|PUPIL.?S.?NAMES)$/i.test(v)),codeIndex=headers.findIndex(v=>/^ID\\d*$/i.test(normaliseImportText(v))),linIndex=headers.findIndex(v=>/^LINS?$/i.test(normaliseImportText(v)));
-  const cls=classes.find(c=>c.id===classId),clsName=cls?.name||'',setBased=/P\\.?\\s*[67]|PRIMARY\\s*[67]/i.test(clsName);let activePeriod=1;
-  const markColumns=[],codeReview=[],issues=[];
-  headers.forEach((header,index)=>{
-   const h=normaliseImportText(header);if(index<6||!h||index===nameIndex||index===codeIndex||index===linIndex)return;
-   const summary=h.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
-   if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
-   if(String(header||'').trim().startsWith('=')||/^(SN|PHOTO|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN)/.test(h)||/COMMENT|COMM/.test(h)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(h))return;
-   const suffixMatch=h.match(/(\\d)$/),suffix=suffixMatch?Number(suffixMatch[1]):null,period=importPeriodLabel(activePeriod,clsName),match=matchImportAssessment(header,ctx,period);
-   if(suffix&&suffix!==activePeriod){issues.push(header+' is in '+period+' but ends in '+suffix+'. Expected '+activePeriod+'. Correct the number in Excel.');codeReview.push({header,period,status:'Number changed',detail:'Expected ending number '+activePeriod+'. Correct this heading.'})}
-   if(match.assessment){if(markColumns.some(x=>x.assessment.id===match.assessment.id)){issues.push('Duplicate column '+header+' maps to '+match.assessment.subjects?.name+' · '+period+'.');codeReview.push({header,period,status:'Duplicate',detail:'Subject/period repeated.'})}else{markColumns.push({index,header,assessment:match.assessment,period});codeReview.push({header,period,status:'Matched',detail:(match.assessment.subjects?.name||'Subject')+' · '+period})}}
-   else if(match.suggested){issues.push('Unclear code '+header+'. Possible correction: '+match.suggested.code+' ('+(match.suggested.assessment.subjects?.name||'subject')+').');codeReview.push({header,period,status:'Possible typo',detail:'Did you mean '+match.suggested.code+'? Correct Excel then preview again.'})}
-   else{issues.push('Unrecognised subject code '+header+' in '+period+'.');codeReview.push({header,period,status:'Unrecognised',detail:'No matching subject. Correct or remove this column.'})}
-  });
-  if(!markColumns.length)throw new Error('No subject columns matched this class and term.');
-  const byCode=new Map(),byLin=new Map(),byName=new Map();
-  for(const learner of ctx.students){const code=normaliseImportText(learner.admission_number),lin=normaliseImportText(learner.lin),name=normaliseImportText([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '));if(code){const v=byCode.get(code)||[];v.push(learner);byCode.set(code,v)}if(lin){const v=byLin.get(lin)||[];v.push(learner);byLin.set(lin,v)}if(name){const v=byName.get(name)||[];v.push(learner);byName.set(name,v)}}
-  const plan=[],display=[],seen=new Set();
-  for(const row of rows){const rawName=row[nameIndex];if(!rawName||!String(rawName).trim())continue;
-   const code=codeIndex>=0?normaliseImportText(row[codeIndex]):'',lin=linIndex>=0?normaliseImportText(row[linIndex]):'',name=normaliseImportText(rawName),cm=code?(byCode.get(code)||[]):[],lm=lin?(byLin.get(lin)||[]):[],nm=byName.get(name)||[];
-   let learner=null,issue='';
-   if(cm.length>1||lm.length>1)issue='Duplicate pupil code or LIN in school records';
-   else if(cm.length&&lm.length&&cm[0].id!==lm[0].id)issue='Pupil code and LIN identify different learners';
-   else if(lm.length)learner=lm[0];else if(cm.length)learner=cm[0];else if(nm.length===1)learner=nm[0];else if(nm.length>1)issue='Ambiguous learner name';
-   if(learner&&nm.length===1&&nm[0].id!==learner.id)issue='Learner name does not match the supplied code/LIN';
-   if(learner&&seen.has(learner.id))issue='Duplicate learner row in workbook';
-   if(issue)issues.push(String(rawName).trim()+': '+issue+'. Correct identifiers before importing.');
-   if(learner)seen.add(learner.id);
-   let count=0;if(learner&&!issue){for(const col of markColumns){const cell=row[col.index];if(cell===null||cell===undefined||String(cell).trim()===''||typeof cell==='string'&&cell.startsWith('='))continue;const absent=String(cell).trim().toUpperCase()==='X',score=absent?0:Number(cell);if(!absent&&(!Number.isFinite(score)||score<0||score>Number(col.assessment.max_score))){issues.push(rawName+' · '+col.header+': '+cell+' is invalid; maximum is '+col.assessment.max_score+'.');continue}if(absent&&!allowsAbsentMarkForClass(classId)){issues.push(rawName+' · '+col.header+': X is not allowed for this class.');continue}plan.push({assessment_id:col.assessment.id,student_id:learner.id,score,teacher_comment:absent?ABSENT_MARKER:null,entered_by:currentUserId,source_name:String(rawName).trim(),source_header:col.header});count++}}
-   if(!learner)issues.push(String(rawName).trim()+': no learner matched. Check pupil code, LIN or name.');
-   display.push({name:String(rawName).trim(),match:learner?([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')):(issue||'No learner match'),count,result:issue?'Needs correction':learner?(count?'Ready':'No valid marks'):'Skipped'});
+function importSheetClassMatch(sheetName,className){
+ const sheet=normaliseImportText(sheetName),cls=normaliseImportText(className);
+ let aliases=[];
+ if(cls.includes('BABY'))aliases=['BABY','BABYCLASS'];
+ else if(cls.includes('MIDDLE'))aliases=['MIDDLE','MIDDLECLASS'];
+ else if(cls.includes('TOP'))aliases=['TOP','TOPCLASS'];
+ else{
+  const n=cls.match(/P([1-7])|PRIMARY(ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|[1-7])/);
+  const digit=n?(n[1]||({'ONE':'1','TWO':'2','THREE':'3','FOUR':'4','FIVE':'5','SIX':'6','SEVEN':'7'}[n[2]]||n[2])):'';
+  if(digit)aliases=['P'+digit,'PRIMARY'+digit,'PRIMARY'+['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN'][Number(digit)]];
+ }
+ if(aliases.some(x=>x&&sheet.includes(x)))return true;
+ const known=['BABY','MIDDLE','TOP','P1','P2','P3','P4','P5','P6','P7','PRIMARY1','PRIMARY2','PRIMARY3','PRIMARY4','PRIMARY5','PRIMARY6','PRIMARY7','PRIMARYONE','PRIMARYTWO','PRIMARYTHREE','PRIMARYFOUR','PRIMARYFIVE','PRIMARYSIX','PRIMARYSEVEN'];
+ return !known.some(x=>sheet.startsWith(x));
+}
+function importPhaseNumber(raw){
+ const n=normaliseImportText(raw);
+ if(/SETIV|SET4|FOURTH/.test(n))return 4;
+ if(/SETIII|SET3|THIRD/.test(n))return 3;
+ if(/SETII|SET2|SECOND/.test(n))return 2;
+ if(/SETI|SET1|FIRST/.test(n))return 1;
+ if(/BOT|BEGINNING|STARTOFTERM/.test(n))return 1;
+ if(/MIDTERM|MID/.test(n))return 2;
+ if(/EOT|ENDOFTERM|ENDTERM/.test(n))return 3;
+ return null;
+}
+function importColumnPeriod(matrix,headerRow,col,header,activePeriod,sheetName){
+ let grouped=null;
+ for(let r=Math.max(0,headerRow-3);r<headerRow;r++){
+  let carried=null;
+  for(let c=0;c<=col;c++){
+   const value=matrix[r]?.[c];
+   if(value!==null&&value!==undefined&&String(value).trim()){
+    const detected=importPhaseNumber(value);
+    if(detected!==null)carried=detected;
+   }
   }
-  if(!plan.length)throw new Error('No valid marks were matched. Correct the workbook and preview again.');
-  const existing=new Set([...ctx.savedMarks.keys()]),replace=$('replaceExistingImportedMarks').checked,filtered=plan.filter(x=>replace||!existing.has(x.assessment_id+'|'+x.student_id));
+  if(carried!==null)grouped=carried;
+ }
+ const sheetPhase=importPhaseNumber(sheetName),suffix=normaliseImportText(header).match(/([1-4])$/),codePeriod=suffix?Number(suffix[1]):null;
+ const explicit=grouped??sheetPhase;
+ return {period:explicit??codePeriod??activePeriod,explicit:explicit!==null&&explicit!==undefined,codePeriod};
+}
+$('previewTeacherMarksImport').addEventListener('click',async()=>{
+ const file=$('teacherMarksWorkbook').files?.[0],confirm=$('confirmTeacherMarksImport');
+ confirm.disabled=true;teacherExcelImportPlan=null;
+ if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using your assigned class-teacher account to import marks.',true);return}
+ const classId=sessionStorage.getItem('cornhill_teacher_class_id'),termId=$('excelMarksTerm').value;
+ $('excelMarksClass').value=classId||'';
+ if(!classId){message('teacherMarksImportMsg','Your assigned class could not be verified. Sign out and sign in again.',true);return}
+ if(!file){message('teacherMarksImportMsg','Choose your Excel workbook first.',true);return}
+ if(!window.XLSX){message('teacherMarksImportMsg','The Excel reader is unavailable. Refresh the app while online and try again.',true);return}
+ if(!termId){message('teacherMarksImportMsg','Choose the term first.',true);return}
+ let ctx=window.cornhillExcelMarksContext;
+ if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Loading your class marks sheet…');await loadExcelMarksGrid();ctx=window.cornhillExcelMarksContext}
+ if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Could not load your class sheet.',true);return}
+ try{
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false});
+  const cls=classes.find(c=>c.id===classId),clsName=cls?.name||'',setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(clsName);
+  const metadata=wb.Workbook?.Sheets||[],sheetInfos=[];
+  for(const sheetName of wb.SheetNames||[]){
+   if(!importSheetClassMatch(sheetName,clsName))continue;
+   const sheet=wb.Sheets[sheetName];if(!sheet)continue;
+   const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null,raw:true,blankrows:false,skipHidden:false});
+   const headerRow=matrix.findIndex(row=>row.some(v=>/^(NAME|PUPIL.?S.?NAMES?|LEARNER.?NAME|FULL.?NAME)$/i.test(String(v??'').trim())));
+   if(headerRow<0)continue;
+   sheetInfos.push({name:sheetName,matrix,headerRow,hidden:!!metadata.find(x=>x.name===sheetName)?.Hidden});
+  }
+  if(!sheetInfos.length)throw new Error('No worksheet for '+clsName+' contains a learner-name heading. Hidden worksheets were also checked.');
+  const byCode=new Map(),byLin=new Map(),byName=new Map();
+  for(const learner of ctx.students){
+   const code=normaliseImportText(learner.admission_number),lin=normaliseImportText(learner.lin),name=normaliseImportText([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '));
+   if(code){const a=byCode.get(code)||[];a.push(learner);byCode.set(code,a)}
+   if(lin){const a=byLin.get(lin)||[];a.push(learner);byLin.set(lin,a)}
+   if(name){const a=byName.get(name)||[];a.push(learner);byName.set(name,a)}
+  }
+  const markColumns=[],codeReview=[],issues=[],displayMap=new Map(),plan=[],seenRows=new Set(),seenMarks=new Set();
+  for(const info of sheetInfos){
+   const headers=info.matrix[info.headerRow].map(v=>String(v??'').trim()),rows=info.matrix.slice(info.headerRow+1),normal=headers.map(normaliseImportText);
+   const nameIndex=normal.findIndex(v=>/^(NAME|PUPILSNAMES?|PUPILNAME|LEARNERNAME|FULLNAME)$/.test(v));
+   const codeIndex=normal.findIndex(v=>/^(ID\d*|PUPILCODE|ADMISSIONNUMBER|ADMISSIONCODE)$/.test(v));
+   const linIndex=normal.findIndex(v=>/^LINS?$/.test(v));
+   if(nameIndex<0){issues.push(info.name+': learner-name heading was not recognised.');continue}
+   let activePeriod=1;const columns=[];
+   headers.forEach((header,index)=>{
+    const token=normal[index];if(!token||index===nameIndex||index===codeIndex||index===linIndex)return;
+    const summary=token.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
+    if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
+    if(/^(SN|PHOTO|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN|MAX|OUTOF|PERCENT|PERCENTAGE)$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
+    const phase=importColumnPeriod(info.matrix,info.headerRow,index,header,activePeriod,info.name),period=importPeriodLabel(phase.period,clsName),suffix=phase.codePeriod;
+    if(!period){issues.push(info.name+' · '+header+': this period does not apply to '+clsName+'.');codeReview.push({header,period:'—',status:'Wrong class period',detail:'Remove this column or correct its period.'});return}
+    if(suffix&&phase.explicit&&suffix!==phase.period){
+     const detail='Heading indicates '+period+' but the code ends in '+suffix+'. Correct the subject code or period heading.';
+     issues.push(info.name+' · '+header+': '+detail);codeReview.push({header,period,status:'Period/code mismatch',detail});return;
+    }
+    const match=matchImportAssessment(header,ctx,period);
+    if(match.assessment){
+     if(markColumns.some(x=>x.assessment.id===match.assessment.id)){issues.push(info.name+' · '+header+': duplicate subject/period column.');codeReview.push({header,period,status:'Duplicate',detail:'This subject and period already appeared in another worksheet.'});}
+     else{const column={index,header,assessment:match.assessment,period,sheetName:info.name};markColumns.push(column);columns.push(column);codeReview.push({header,period,status:'Matched',detail:(match.assessment.subjects?.name||'Subject')+' · '+period+(info.hidden?' · hidden worksheet':'')})}
+    }else if(match.suggested){
+     const detail='Possible correction: '+match.suggested.code+' ('+(match.suggested.assessment.subjects?.name||'subject')+').';
+     issues.push(info.name+' · '+header+': '+detail);codeReview.push({header,period,status:'Possible typo',detail});
+    }else{
+     issues.push(info.name+' · '+header+': no matching '+clsName+' subject exists for '+period+'.');codeReview.push({header,period,status:'Unrecognised',detail:'This subject is not assigned to this class, or its code is incorrect.'});
+    }
+   });
+   for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
+    const row=rows[rowIndex],rawName=row[nameIndex];if(!rawName||!String(rawName).trim())continue;
+    const code=codeIndex>=0?normaliseImportText(row[codeIndex]):'',lin=linIndex>=0?normaliseImportText(row[linIndex]):'',name=normaliseImportText(rawName);
+    const cm=code?(byCode.get(code)||[]):[],lm=lin?(byLin.get(lin)||[]):[],nm=byName.get(name)||[];
+    let learner=null,issue='';
+    if(cm.length>1||lm.length>1)issue='Duplicate pupil code or LIN in school records';
+    else if(cm.length&&lm.length&&cm[0].id!==lm[0].id)issue='Pupil code and LIN identify different learners';
+    else if(lm.length)learner=lm[0];else if(cm.length)learner=cm[0];else if(nm.length===1)learner=nm[0];else if(nm.length>1)issue='Ambiguous learner name';
+    if(learner&&nm.length===1&&nm[0].id!==learner.id)issue='Learner name does not match the supplied code/LIN';
+    const rowKey=info.name+'|'+(learner?.id||name);
+    if(learner&&seenRows.has(rowKey))issue='Duplicate learner row on this worksheet';
+    if(learner)seenRows.add(rowKey);
+    let count=0;
+    if(learner&&!issue){
+     for(const col of columns){
+      const cell=row[col.index];if(cell===null||cell===undefined||String(cell).trim()===''||typeof cell==='string'&&cell.startsWith('='))continue;
+      const absent=String(cell).trim().toUpperCase()==='X',score=absent?0:Number(cell);
+      if(!absent&&(!Number.isFinite(score)||score<0||score>Number(col.assessment.max_score))){issues.push(info.name+' · '+rawName+' · '+col.header+': '+cell+' is invalid; maximum is '+col.assessment.max_score+'.');continue}
+      if(absent&&!allowsAbsentMarkForClass(classId)){issues.push(info.name+' · '+rawName+' · '+col.header+': X is not allowed for this class.');continue}
+      const markKey=col.assessment.id+'|'+learner.id;
+      if(seenMarks.has(markKey)){issues.push(info.name+' · '+rawName+' · '+col.header+': this learner/subject/period is repeated across worksheets.');continue}
+      seenMarks.add(markKey);
+      plan.push({assessment_id:col.assessment.id,student_id:learner.id,score,teacher_comment:absent?ABSENT_MARKER:null,entered_by:currentUserId,source_name:String(rawName).trim(),source_header:col.header,source_sheet:info.name});count++;
+     }
+    }
+    if(!learner)issues.push(info.name+' · '+String(rawName).trim()+': no learner matched. Check pupil code, LIN or name.');
+    else if(issue)issues.push(info.name+' · '+String(rawName).trim()+': '+issue+'. Correct the learner row before importing.');
+    const displayKey=learner?.id||rowKey,prior=displayMap.get(displayKey)||{name:String(rawName).trim(),match:learner?([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')):(issue||'No learner match'),count:0,result:'Ready'};
+    prior.count+=count;prior.result=issue?'Needs correction':prior.count?'Ready':'No valid marks';displayMap.set(displayKey,prior);
+   }
+  }
+  if(!markColumns.length)throw new Error('No subject columns matched '+clsName+'. Check subject codes and periods.');
+  if(!plan.length)throw new Error('No valid marks were found in the visible or hidden worksheets.');
+  const display=[...displayMap.values()],existing=new Set([...ctx.savedMarks.keys()]),replaceExisting=$('replaceExistingImportedMarks').checked,filtered=plan.filter(x=>replaceExisting||!existing.has(x.assessment_id+'|'+x.student_id));
   teacherExcelImportPlan={payload:filtered,all:plan,display,workbook:file.name,ctxKey:classId+'|'+termId,blockingIssues:issues};
   $('teacherMarksImportRows').innerHTML=display.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.match)+'</td><td>'+x.count+'</td><td>'+esc(x.result)+'</td></tr>').join('');
-  const review=$('teacherMarksCodeReview');if(review)review.innerHTML='<strong>Subject-code and period check</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Detection</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div>'+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,25).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the subject headings, numbers or learner identifiers in Excel, save, then preview again. No marks have been imported.</p></div>':'<div class="notice">All detected codes, periods and learner identifiers are consistent.</div>');
-  message('teacherMarksImportMsg','Preview: '+display.length+' learner rows · '+markColumns.length+' subject columns · '+plan.length+' valid marks. '+(issues.length?'Import paused until '+issues.length+' issue(s) are corrected.':filtered.length+' marks ready for confirmation.')+' Worksheet: '+chosen.name+'.');
+  const review=$('teacherMarksCodeReview');
+  if(review)review.innerHTML='<strong>Workbook check · '+sheetInfos.length+' worksheet(s), including hidden sheets</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Check</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div>'+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the workbook and preview again. No marks have been imported.</p></div>':'<div class="notice">All detected subjects, periods and learner identifiers match this class.</div>');
+  message('teacherMarksImportMsg','Preview: '+display.length+' learner row(s), '+markColumns.length+' subject/period column(s), '+plan.length+' marks from '+sheetInfos.length+' worksheet(s). '+(issues.length?'Import paused until '+issues.length+' issue(s) are corrected.':filtered.length+' marks ready for confirmation.')+' Hidden sheets and columns were included.');
   confirm.disabled=!filtered.length||issues.length>0;
- }catch(err){message('teacherMarksImportMsg','Import preview failed: '+(err?.message||String(err)),true);$('teacherMarksImportRows').innerHTML='<tr><td colspan="4">No import preview is available.</td></tr>';const review=$('teacherMarksCodeReview');if(review)review.innerHTML=''}
+ }catch(err){
+  message('teacherMarksImportMsg','Import preview failed: '+(err?.message||String(err)),true);
+  $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">No import preview is available.</td></tr>';
+  const review=$('teacherMarksCodeReview');if(review)review.innerHTML='';
+ }
 });
 $('confirmTeacherMarksImport').addEventListener('click',async()=>{
  const plan=teacherExcelImportPlan,ctx=window.cornhillExcelMarksContext,button=$('confirmTeacherMarksImport');
