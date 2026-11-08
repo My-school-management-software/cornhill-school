@@ -18,7 +18,7 @@ where b.is_active = true
   and b.grade_code in ('D1','D2','C3','C4','C5','C6','P7','P8','F9')
   and b.subject_id in (
     select s.id from public.subjects s
-    where lower(regexp_replace(s.name,'[^a-z0-9]','','g')) in ('english','mathematics','science','socialstudies','sst')
+    where lower(s.name) in ('english','mathematics','science','social studies')
   );
 
 do $$
@@ -28,7 +28,7 @@ begin
   from public.uneb_subject_grade_bands b
   join public.subjects s on s.id=b.subject_id
   where b.is_active = true
-    and lower(regexp_replace(s.name,'[^a-z0-9]','','g')) in ('english','mathematics','science','socialstudies','sst')
+    and lower(s.name) in ('english','mathematics','science','social studies')
     and b.grade_code in ('D1','D2','C3','C4','C5','C6','P7','P8','F9');
   if n <> 36 then
     raise exception 'Expected 36 active core-subject grade bands after workbook alignment; found %.', n;
