@@ -2300,57 +2300,61 @@ async function refresh(){
  }
  let allowedClassIds=null;
  if(profile?.role==='Teacher'){
-  // Recover the active workspace from the authenticated teacher's database assignment
-  // when a browser/PWA session has lost its tab-scoped selection. Never guess a class.
+  window.cornhillStartupStage='loading your personal teaching assignments';
+  const {data:assignmentRows,error:assignmentError}=await db.rpc('teacher_list_my_assignments');
+  if(!refreshIsCurrent())return;
+  if(assignmentError){message('appMsg','Could not securely load your teaching assignments: '+assignmentError.message+'. Ask the administrator to verify your account.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
+  const assignments=Array.isArray(assignmentRows)?assignmentRows:[];
+  const assignedClassIds=[...new Set(assignments.map(x=>x.class_id).filter(Boolean))];
   let selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||null;
   try{selectedClassId=selectedClassId||localStorage.getItem('cornhill_teacher_class_id:'+refreshOwner)||null}catch(_){}
   if(!selectedClassId){
-   window.cornhillStartupStage='recovering assigned teaching classes';
-   const [classRecovery,subjectRecovery]=await Promise.all([
-    db.from('class_teacher_access').select('class_id').eq('user_id',refreshOwner),
-    db.from('class_subjects').select('class_id').eq('teacher_user_id',refreshOwner)
-   ]);if(!refreshIsCurrent())return;
-   const recoveryError=classRecovery.error||subjectRecovery.error;
-   if(recoveryError){message('appMsg','Could not recover your teaching assignments: '+recoveryError.message+'. Contact the administrator.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
-   const recoveredIds=[...new Set([...(classRecovery.data||[]),...(subjectRecovery.data||[])].map(x=>x.class_id).filter(Boolean))];
-   if(recoveredIds.length!==1){message('appMsg',recoveredIds.length?'This teaching account has several assigned classes. Sign in again and choose the class you are working on.':'No active class or subject assignment was found for this teaching account. Ask the administrator to assign your classes and subjects.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
-   selectedClassId=recoveredIds[0];
-   sessionStorage.setItem('cornhill_teacher_class_id',selectedClassId);
-   sessionStorage.setItem('cornhill_login_mode','Teacher');
-   try{localStorage.setItem('cornhill_teacher_class_id:'+refreshOwner,selectedClassId)}catch(_){}
-   window.teacherClassId=selectedClassId;
+   if(assignedClassIds.length!==1){
+    message('appMsg',assignedClassIds.length?'Your account has teaching assignments in several classes. Sign in again and choose the class workspace you want to open.':'No active class or subject assignment was found for this teaching account. Ask the administrator to assign your classes and subjects.',true);
+    window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return;
+   }
+   selectedClassId=assignedClassIds[0];
   }
-  window.cornhillStartupStage='checking teaching class and subject access';
-  const [access,subjectAccess]=await Promise.all([
-   db.from('class_teacher_access').select('class_id,school_classes(id,name,stream)').eq('user_id',refreshOwner),
-   db.from('class_subjects').select('class_id,subject_id,teacher_user_id,subjects(name),school_classes(id,name,stream)').eq('teacher_user_id',refreshOwner)
-  ]);if(!refreshIsCurrent())return;
-  const accessError=access.error||subjectAccess.error;
-  if(accessError){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not verify your teaching assignments: '+accessError.message,true);return}
-  const classTeacherIds=[...new Set((access.data||[]).map(x=>x.class_id).filter(Boolean))];
-  const subjectTeacherIds=[...new Set((subjectAccess.data||[]).map(x=>x.class_id).filter(Boolean))];
-  const assignedClassIds=[...new Set([...classTeacherIds,...subjectTeacherIds])];
-  const isAssigned=assignedClassIds.includes(selectedClassId);
-  const assignedClassRecord=(access.data||[]).find(x=>x.class_id===selectedClassId)?.school_classes||(subjectAccess.data||[]).find(x=>x.class_id===selectedClassId)?.school_classes;
-  window.cornhillTeacherAssignedClassRecord=assignedClassRecord?.id===selectedClassId?{id:assignedClassRecord.id,name:assignedClassRecord.name,stream:assignedClassRecord.stream||null}:null;
-  if(!isAssigned){
+  if(!assignedClassIds.includes(selectedClassId)){
    await db.auth.signOut({scope:'local'});sessionStorage.removeItem('cornhill_teacher_class_id');
-   message('loginMsg','Access blocked. This account is not assigned to the selected class or any subject in it. Contact the administrator.',true);
+   message('loginMsg','Access blocked. The selected class is not assigned to this teaching account.',true);
    await startSession(null);return;
   }
-  window.cornhillStartupStage='loading permitted teaching subjects';
-  const a=await db.from('class_subjects').select('class_id,subject_id,teacher_user_id,subjects(name)').eq('class_id',selectedClassId);if(!refreshIsCurrent())return;
-  if(a?.error){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not load your assigned subjects: '+a.error.message,true);return}
-  window.teacherAssignments=a?.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];
-  window.teacherClassIds=allowedClassIds;window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id).filter(Boolean))];
- }else{window.teacherAssignments=[];window.teacherClassIds=null;window.teacherSubjectIds=null}
+  const selectedAssignments=assignments.filter(x=>x.class_id===selectedClassId);
+  const fullClass=selectedAssignments.some(x=>x.is_full_class===true);
+  const assignedClassRecord=selectedAssignments[0];
+  if(!assignedClassRecord?.class_id||!assignedClassRecord?.class_name){
+   message('appMsg','Your assigned class could not be verified. Ask the administrator to check the assignment.',true);return;
+  }
+  sessionStorage.setItem('cornhill_teacher_class_id',selectedClassId);
+  sessionStorage.setItem('cornhill_login_mode','Teacher');
+  try{localStorage.setItem('cornhill_teacher_class_id:'+refreshOwner,selectedClassId)}catch(_){}
+  window.teacherClassId=selectedClassId;
+  window.cornhillTeacherAssignedClassRecord={id:selectedClassId,name:assignedClassRecord.class_name,stream:assignedClassRecord.stream||null};
+  window.cornhillTeacherFullClassAccess=fullClass;
+  window.cornhillTeacherFullClassIds=[...new Set(assignments.filter(x=>x.is_full_class===true).map(x=>x.class_id))];
+  window.teacherAssignments=selectedAssignments.filter(x=>x.subject_id);
+  window.teacherClassIds=[selectedClassId];
+  window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id).filter(Boolean))];
+  allowedClassIds=[selectedClassId];
+ }else{
+  window.teacherAssignments=[];window.teacherClassIds=null;window.teacherSubjectIds=null;
+  window.cornhillTeacherFullClassAccess=false;window.cornhillTeacherFullClassIds=[];
+ }
  const classQuery=db.from('school_classes').select('id,name,stream').order('name');
  const studentColumns='id,admission_number,lin,p7_index_number,first_name,middle_name,last_name,gender,birth_year,date_of_birth,admission_date,class_id,learner_type,status,previous_school,created_at,admission_complete,school_classes(name)';
- const studentQuery=profile?.role==='Admin'?db.rpc('admin_list_students'):db.from('students').select(studentColumns).order('created_at',{ascending:false});
+ const fullClassTeacher=profile?.role==='Teacher'&&window.cornhillTeacherFullClassAccess===true;
+ const studentQuery=profile?.role==='Admin'
+  ?db.rpc('admin_list_students')
+  :profile?.role==='Teacher'&&allowedClassIds?.length
+   ?(fullClassTeacher
+      ?db.from('students').select(studentColumns).in('class_id',allowedClassIds).order('created_at',{ascending:false})
+      :db.rpc('teacher_subject_learner_roster',{p_class_id:allowedClassIds[0]}))
+   :Promise.resolve({data:[],error:null});
  const codeAliasQuery=profile?.role==='Admin'?db.rpc('admin_list_learner_code_aliases'):Promise.resolve({data:[],error:null});
- window.cornhillStartupStage='loading learner, class and pupil-code records';
+ window.cornhillStartupStage='loading the learner register permitted for this account';
  const [studentResult,classResult,aliasResult]=await Promise.all([
-  profile?.role==='Admin'?studentQuery:profile?.role==='Teacher'&&allowedClassIds?.length?studentQuery.in('class_id',allowedClassIds):Promise.resolve({data:[],error:null}),
+  studentQuery,
   profile?.role==='Admin'?classQuery:profile?.role==='Teacher'&&allowedClassIds?.length?classQuery.in('id',allowedClassIds):Promise.resolve({data:[],error:null}),
   codeAliasQuery
  ]);
