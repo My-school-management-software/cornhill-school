@@ -392,7 +392,7 @@ begin
     v_severity:=case when new.status='Cancelled' then 'warning' else 'info' end;
     insert into public.school_notifications(category,severity,title,message,action_workspace,source_key,source_id,
       audience_role,action_payload,is_actionable)
-    values('asset_maintenance','Admin'::text::text,v_severity,'Maintenance status updated',v_message,'school',v_key,new.id,
+    values('asset_maintenance',v_severity,'Maintenance status updated',v_message,'school',v_key,new.id,
       'Admin',jsonb_build_object('url','/school-services.html#facilities','workspace','school','record_id',new.id),
       new.status not in ('Completed','Cancelled'))
     on conflict(source_key) do nothing;
