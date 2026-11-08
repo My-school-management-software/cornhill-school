@@ -43,6 +43,21 @@ This checklist is the release gate for the first real school use. Run it with th
 - [ ] P7 index number is shown and printed correctly.
 - [ ] A second teacher cannot overwrite marks outside their assigned class/subject.
 
+## C.1 Bulk assessment setup and original workbook import — blocking
+
+- [ ] Administrator previews the all-class assessment preparation summary for the selected term.
+- [ ] Preparation creates only missing subject/period assessments for Baby, Middle, Top and P1–P7; it must not duplicate existing assessments.
+- [ ] Repeating the preparation after a successful run creates zero additional assessment records.
+- [ ] The original Excel workbook for each class is recognised by its worksheet name and learner-name heading, including P6's "PUPIL'S NAMES".
+- [ ] Subject abbreviations map to the correct curriculum subject and period for that class.
+- [ ] Formula/summary columns (TT, PN, AGG, DIV, POTN), comments, boarding/bursary fields and grade legends are not imported as marks.
+- [ ] Learners match by permanent pupil code, LIN or unambiguous full name; conflicts and duplicate rows block import.
+- [ ] Preview displays every unmatched learner, unknown subject heading, period mismatch, duplicate and invalid score before saving.
+- [ ] A workbook with any blocking issue cannot be imported until corrected.
+- [ ] Importing one workbook does not overwrite existing marks unless the teacher explicitly enables replacement.
+- [ ] Teacher's main mark sheet shows all subjects for the assigned class and the applicable periods together; individual missed-paper entry remains available separately.
+- [ ] A teacher cannot prepare school-wide assessments, promote learners, or open administrator-only Work Plan.
+
 ## D. Report cards and printing
 
 - [ ] Individual report card matches the learner, class and selected term.
