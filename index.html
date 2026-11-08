@@ -3518,7 +3518,7 @@ async function renderReportCard(options={}){
  const gradeBand=pct=>pct>=85?'Excellent':pct>=70?'Very Good':pct>=50?'Good':'Fair';
  const remarksPeriod=isSetBased?'Set IV':'End';
  const commentChoices=selectedReportComments(studentId);
- const performancePeriod=['End','Midterm','Beginning'].find(p=>Number(phaseTotals[p]?.max||0)>0)||null;
+ const performancePeriod=(isSetBased?['Set IV','Set III','Set II','Set I']:['End','Midterm','Beginning']).find(p=>Number(phaseTotals[p]?.max||0)>0)||null;
  const performancePercent=performancePeriod?phaseTotals[performancePeriod].got/phaseTotals[performancePeriod].max*100:null;
  const endCellForSubject=cells=>{const c=cells.End;return Number(c?.max||0)>0?c:null;};
  const teacherComment=commentChoices.teacher||'';
