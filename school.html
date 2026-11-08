@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#14532d"><meta name="description" content="CORNHILL Nursery and Primary School — school information and admissions enquiries">
+<meta name="theme-color" content="#14532d"><meta name="description" content="CORNHILL Nursery and Primary School — school information and admissions enquiries"><link rel="manifest" href="/school.webmanifest"><link rel="apple-touch-icon" href="/assets/cornhill-school-badge.png">
 <link rel="icon" href="/assets/cornhill-school-badge.png" type="image/png">
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
 <title>CORNHILL Nursery and Primary School</title>
@@ -39,7 +39,7 @@ footer{padding:30px 0;background:#102d1e;color:#d8e6dc}footer .row{justify-conte
 <header><nav>
  <a class="brand" href="/" aria-label="CORNHILL public website"><img src="/assets/cornhill-school-badge.png" alt=""><span>CORNHILL<br><small style="font-size:10px;font-weight:650;color:#65766b">NURSERY AND PRIMARY SCHOOL</small></span></a>
  <div class="navlinks"><a href="#about">ABOUT</a><a href="#learning">LEARNING</a><a href="#classes">CLASSES</a><a href="#admissions">ADMISSIONS</a></div>
- <a class="cta" href="/admissions.html">Enquire / Apply</a>
+ <div class="actions"><button class="cta light hidden" id="installSchoolWebsite" type="button">Install website</button><a class="cta" href="/admissions.html">Enquire / Apply</a></div>
 </nav></header>
 <main>
 <section class="hero"><div class="wrap hero-grid">
@@ -73,4 +73,11 @@ footer{padding:30px 0;background:#102d1e;color:#d8e6dc}footer .row{justify-conte
 </div></section>
 </main>
 <footer><div class="wrap row"><div><strong>CORNHILL NURSERY AND PRIMARY SCHOOL</strong><p style="font-size:12px;color:#c6d9cc">Uganda · WE SHARE ONE DREAM</p></div><div class="row"><a href="/admissions.html">Admissions</a><a href="/parents.html">Parent Portal</a><a href="/">Staff sign-in</a></div></div></footer>
+<script>
+let schoolInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();schoolInstallPrompt=event;document.getElementById('installSchoolWebsite')?.classList.remove('hidden')});
+document.getElementById('installSchoolWebsite')?.addEventListener('click',async()=>{if(!schoolInstallPrompt)return;schoolInstallPrompt.prompt();await schoolInstallPrompt.userChoice;schoolInstallPrompt=null;document.getElementById('installSchoolWebsite')?.classList.add('hidden')});
+window.addEventListener('appinstalled',()=>document.getElementById('installSchoolWebsite')?.classList.add('hidden'));
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+</script>
 </body></html>
