@@ -157,8 +157,7 @@ if(window.CornhillOffline){
 $('admissionForm').addEventListener('submit',async e=>{
  e.preventDefault();const btn=$('submitBtn');
  if($('website').value.trim()){show('formMsg','Your enquiry could not be submitted. Please try again.','error');return}
- if(!navigator.onLine){show('formMsg','You are offline. Connect to the internet before sending the enquiry.','error');return}
- const phone=$('guardianPhone').value.trim();
+  const phone=$('guardianPhone').value.trim();
  if(phone.replace(/[^0-9+]/g,'').length<7){show('formMsg','Enter a valid contact phone number.','error');return}
  const email=$('guardianEmail').value.trim()||(parentUser?.email||'');
  if($('contactPreference').value==='Email'&&!email){show('formMsg','Enter an email address or choose phone / SMS contact.','error');return}
@@ -172,12 +171,34 @@ $('admissionForm').addEventListener('submit',async e=>{
  };
  btn.disabled=true;btn.textContent='Submitting…';
  try{
+  if(!navigator.onLine){
+   if(!window.CornhillOffline)throw new Error('Offline saving is not ready on this device. Reopen this page while connected.');
+   await window.CornhillOffline.enqueue('admission_enquiry',payload,parentUser?.id||null,payload.id);
+   sessionStorage.setItem('cornhill-admission-last-submit',String(Date.now()));
+   const ref=payload.id.slice(0,8).toUpperCase();e.target.reset();
+   if(parentUser)$('guardianEmail').value=parentUser.email||'';
+   show('formMsg','Internet is unavailable. Your enquiry is encrypted and saved on this device. It will be sent automatically when the connection returns. Reference: '+ref+'. It has not reached the school yet.','success');
+   return;
+  }
   const {error}=await db.from('school_admission_enquiries').insert(payload);if(error)throw error;
   sessionStorage.setItem('cornhill-admission-last-submit',String(Date.now()));
   const ref=payload.id.slice(0,8).toUpperCase();e.target.reset();
   if(parentUser){$('guardianEmail').value=parentUser.email||'';await loadMyApplications()}
   show('formMsg','Your admission enquiry has been received. Reference: '+ref+'. This is an enquiry, not a confirmed admission. '+(parentUser?'It is now linked to your parent account.':'Create/sign in to a parent account before your next enquiry to track it online.'),'success');
- }catch(err){show('formMsg','The enquiry was not submitted. Please check your connection and try again. '+(err.message||''),'error')}
+ }catch(err){
+  const networkFailure=!navigator.onLine||/failed to fetch|networkerror|load failed|internet_disconnected|fetch failed/i.test(String(err?.message||''));
+  if(networkFailure&&window.CornhillOffline){
+   try{
+    await window.CornhillOffline.enqueue('admission_enquiry',payload,parentUser?.id||null,payload.id);
+    sessionStorage.setItem('cornhill-admission-last-submit',String(Date.now()));
+    const ref=payload.id.slice(0,8).toUpperCase();e.target.reset();
+    if(parentUser)$('guardianEmail').value=parentUser.email||'';
+    show('formMsg','The connection dropped before confirmation. Your enquiry is encrypted and saved on this device for automatic retry. Reference: '+ref+'. It is not yet received by the school.','success');
+    return;
+   }catch(queueError){show('formMsg','The connection failed and this device could not store the enquiry safely. Keep this page open and try again. '+(queueError.message||''),'error');return}
+  }
+  show('formMsg','The enquiry was not submitted. Please check your details and try again. '+(err.message||''),'error')
+}
  finally{btn.disabled=false;btn.textContent='Send admission enquiry'}
 });
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
