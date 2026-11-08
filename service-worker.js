@@ -1,6 +1,6 @@
 /* CORNHILL offline application shell and safe static-asset cache.
    Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v50';
+const CACHE_NAME = 'cornhill-shell-v51';
 const SHELL = [
   '/',
   '/index.html',
@@ -11,14 +11,15 @@ const SHELL = [
   '/banking.webmanifest',
   '/manifest.webmanifest',
   '/service-worker.js',
-  '/assets/cornhill-school-badge.png'
+  '/assets/cornhill-school-badge.png',
+  '/assets/cornhill-design-system.css'
 ];
 const STATIC_CDN = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v50';
+const STATIC_CACHE = 'cornhill-static-v51';
 const STATIC_HOSTS = new Set(['cdn.jsdelivr.net']);
 
 self.addEventListener('install', event => {
