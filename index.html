@@ -2191,14 +2191,19 @@ async function archiveSchoolNotification(id){
  if(!stillOwner())return;
  if($('studentRows')&&profile?.role==='Admin')render();
 }
-$('notificationList')?.addEventListener('click',e=>{
+$('notificationList')?.addEventListener('click',async e=>{
  const archive=e.target.closest('[data-archive-notification]');
  if(archive){archiveSchoolNotification(archive.dataset.archiveNotification);return}
  const open=e.target.closest('[data-open-notification]');
  if(!open)return;
  const n=(window.schoolNotifications||[]).find(x=>x.id===open.dataset.openNotification);
  if(!n)return;
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
+ const stillOwner=()=>!!owner&&currentUserId===owner&&generation===(window.cornhillSessionGeneration||0)&&!!profile;
  if(n.category==='bursary_review'&&profile?.role!=='Admin'){message('appMsg','Only an administrator can review bursary approvals.',true);return}
+ try{await db.rpc('mark_school_notification_read',{p_notification_id:n.id})}catch(_){}
+ if(!stillOwner())return;
+ n.read_at=n.read_at||new Date().toISOString();
  if(n.student_id){
   const learner=students.find(x=>x.id===n.student_id);
   if(!learner){message('appMsg','The linked learner is not in this account’s permitted register. Refresh the learner records or ask an administrator to verify access.',true);return}
@@ -2210,9 +2215,35 @@ $('notificationList')?.addEventListener('click',e=>{
   if(target){target.click()}else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null;message('appMsg','The learner was found, but the register record could not be opened. Refresh the learner register and try Review again.',true)}
   return;
  }
+ const payload=n.action_payload&&typeof n.action_payload==='object'?n.action_payload:{};
+ const assessmentId=payload.assessment_id||payload.assessmentId||null;
+ if(assessmentId){
+  const assessment=(academic.assessments||[]).find(x=>x.id===assessmentId);
+  if(!assessment){message('appMsg','This academic review points to an assessment that is not loaded or is no longer available to this account. Refresh Academics or ask the administrator to verify the assignment.',true);return}
+  if(profile?.role==='Teacher'){
+   const allowedClasses=new Set(window.teacherClassIds||[]);
+   const hasSubject=(academic.classSubjects||[]).some(x=>x.class_id===assessment.class_id&&x.subject_id===assessment.subject_id&&(x.teacher_user_id===owner||allowedClasses.has(assessment.class_id)));
+   if(!allowedClasses.has(assessment.class_id)||!hasSubject){message('appMsg','This assessment is outside your assigned teaching access.',true);return}
+  }
+  tab('academics');
+  const selector=$('scoreAssessmentSelect');
+  if(selector){selector.value=assessmentId;selector.dispatchEvent(new Event('change',{bubbles:true}))}
+  setTimeout(()=>{
+   if(!stillOwner())return;
+   const learnerId=payload.student_id||n.student_id;
+   const target=learnerId?document.querySelector('[data-bulk-score="'+CSS.escape(String(learnerId))+'"]'):null;
+   if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus({preventScroll:true})}
+   else if($('bulkMarkRows'))$('bulkMarkRows').scrollIntoView({behavior:'smooth',block:'center'});
+  },450);
+  return;
+ }
  if(n.category==='attendance'&&n.source_id)window.pendingAttendanceNotificationSourceId=n.source_id;
- tab(n.action_workspace||'dashboard');
- if(n.category==='attendance'&&n.source_id)setTimeout(()=>{const target=[...document.querySelectorAll('[data-attendance-source-id]')].find(el=>el.dataset.attendanceSourceId===String(n.source_id));if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.setAttribute('tabindex','-1');target.focus({preventScroll:true})}},350);
+ const allowedWorkspaces=new Set(['dashboard','academics','students','staff','attendance','finance','communications','connect','media','settings','reports']);
+ const workspace=payload.workspace||n.action_workspace||'dashboard';
+ tab(allowedWorkspaces.has(workspace)?workspace:'dashboard');
+ const targetId=payload.target_id||payload.targetId;
+ if(typeof targetId==='string'&&/^[A-Za-z][A-Za-z0-9_:-]{0,79}$/.test(targetId))setTimeout(()=>{if(!stillOwner())return;const target=document.getElementById(targetId);if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus?.({preventScroll:true})}},350);
+ if(n.category==='attendance'&&n.source_id)setTimeout(()=>{if(!stillOwner())return;const target=[...document.querySelectorAll('[data-attendance-source-id]')].find(el=>el.dataset.attendanceSourceId===String(n.source_id));if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.setAttribute('tabindex','-1');target.focus({preventScroll:true})}},350);
 });
 $('notificationList')?.addEventListener('touchstart',e=>{
  const card=e.target.closest('[data-notification-card]');
@@ -3565,7 +3596,22 @@ function updateReportLearners(){
 }
 $('reportClassSelect').addEventListener('change',()=>{updateReportLearners();renderClassPerformance()});
 $('reportTermSelect').addEventListener('change',()=>{renderClassPerformance();$('reportCardPreview').innerHTML=''});
-$('buildReportCard').addEventListener('click',()=>renderReportCard({includePupilCode:$('reportIncludePupilCode').checked,includeParentLink:$('reportIncludeParentLink').checked,includeParentNote:$('reportIncludeParentNote').checked}));
+$('buildReportCard').addEventListener('click',async()=>{
+ const button=$('buildReportCard'),preview=$('reportCardPreview'),owner=currentUserId,generation=window.cornhillSessionGeneration||0;
+ if(button.dataset.busy==='1')return;
+ button.dataset.busy='1';button.disabled=true;button.textContent='Preparing preview…';
+ if(preview)preview.innerHTML='<div class="notice">Loading the selected learner, class curriculum and saved marks…</div>';
+ try{
+  await renderReportCard({includePupilCode:$('reportIncludePupilCode').checked,includeParentLink:$('reportIncludeParentLink').checked,includeParentNote:$('reportIncludeParentNote').checked});
+  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
+  if(preview&&!preview.innerHTML.trim())preview.innerHTML='<div class="notice error">The report card could not be prepared. Check the selected learner, class and term, then try again.</div>';
+ }catch(err){
+  if(owner===currentUserId&&generation===(window.cornhillSessionGeneration||0)){
+   if(preview)preview.innerHTML='<div class="notice error">Report-card preview failed: '+esc(err?.message||'Unknown error')+'. Your saved marks have not been changed.</div>';
+   message('academicMsg','Report-card preview failed: '+(err?.message||'Unknown error')+'. Saved marks were not changed.',true);
+  }
+ }finally{if(owner===currentUserId&&generation===(window.cornhillSessionGeneration||0)){button.disabled=false;button.textContent='Preview report card';delete button.dataset.busy}}
+});
 let generatedReportBatch={html:'',className:'',termName:'',count:0};
 $('buildClassReportCards').addEventListener('click',async()=>{
  if(profile?.role!=='Admin'||demoMode)return;
@@ -3944,8 +3990,12 @@ function updateAssessmentSelectionSummary(){
  const form=$('assessmentForm'),host=$('assessmentSelectionSummary');if(!form||!host)return;
  const subjects=[...form.querySelectorAll('input[name="assessment_subject_ids"]')],periods=[...form.querySelectorAll('input[name="assessment_periods"]')];
  const selectedSubjects=subjects.filter(x=>x.checked).length,selectedPeriods=periods.filter(x=>x.checked).length;
- host.textContent=selectedSubjects+' of '+subjects.length+' subjects selected · '+selectedPeriods+' of '+periods.length+' periods selected';
- host.classList.toggle('error',!!subjects.length&&!selectedSubjects||!!periods.length&&!selectedPeriods);
+ const ready=!!$('assessmentTermSelect')?.value&&!!$('assessmentClassSelect')?.value&&selectedSubjects>0&&selectedPeriods>0;
+ host.textContent=selectedSubjects+' of '+subjects.length+' subjects selected · '+selectedPeriods+' of '+periods.length+' periods selected'+(ready?' · Ready to prepare':' · Select at least one subject and one period');
+ host.classList.toggle('error',!ready);
+ host.classList.toggle('success',ready);
+ const save=form.querySelector('button[type="submit"],button:not([type])');
+ if(save){save.disabled=!ready;save.setAttribute('aria-disabled',String(!ready));save.title=ready?'Prepare the selected subject and period columns':'Choose a term, class, at least one subject and at least one period first'}
 }
 
 function excelSubjectLabel(assessment,index,clsArg){
