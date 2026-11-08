@@ -464,7 +464,7 @@ returns trigger language plpgsql security definer set search_path=''
 as $function$
 declare v_student_name text; v_class_name text; v_term_label text;
 begin
-  select concat_ws(' ',s.first_name,s.middle_name,s.last_name),c.name,t.term_name
+  select concat_ws(' ',s.first_name,s.middle_name,s.last_name),c.name,t.name
     into v_student_name,v_class_name,v_term_label
   from public.students s
   left join public.school_classes c on c.id=new.class_id
