@@ -1,6 +1,6 @@
 /* CORNHILL offline application shell and safe static-asset cache.
    Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v54';
+const CACHE_NAME = 'cornhill-shell-v55';
 const SHELL = [
   '/',
   '/index.html',
@@ -24,7 +24,7 @@ const STATIC_CDN = [
   'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v54';
+const STATIC_CACHE = 'cornhill-static-v55';
 const STATIC_HOSTS = new Set(['cdn.jsdelivr.net']);
 
 self.addEventListener('install', event => {
@@ -90,7 +90,8 @@ self.addEventListener('fetch', event => {
     const isServicesPortal = url.pathname === '/school-services.html';
     const isPublicSchoolSite = url.pathname === '/school.html';
     const isAdmissionsPortal = url.pathname === '/admissions.html';
-    const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : isBankingPortal ? '/banking.html' : isServicesPortal ? '/school-services.html' : isPublicSchoolSite ? '/school.html' : isAdmissionsPortal ? '/admissions.html' : '/index.html';
+    const isCommunicationsPortal = url.pathname === '/school-communications.html';
+    const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : isBankingPortal ? '/banking.html' : isServicesPortal ? '/school-services.html' : isPublicSchoolSite ? '/school.html' : isAdmissionsPortal ? '/admissions.html' : isCommunicationsPortal ? '/school-communications.html' : '/index.html';
     event.respondWith((async () => {
       try {
         const response = await fetch(request);
@@ -98,7 +99,7 @@ self.addEventListener('fetch', event => {
           const cache = await caches.open(CACHE_NAME);
           // Keep guardian, phone evidence, banking, and school-admin shells separate.
           await cache.put(routeCacheKey, response.clone());
-          if (!isParentPortal && !isEvidencePortal && !isBankingPortal) await cache.put('/', response.clone());
+          if (!isParentPortal && !isEvidencePortal && !isBankingPortal && !isCommunicationsPortal) await cache.put('/', response.clone());
         }
         return response;
       } catch {
@@ -116,6 +117,11 @@ self.addEventListener('fetch', event => {
         }
         if (isBankingPortal) {
           return new Response('CORNHILL Banking is offline. Reconnect before recording deposits, requesting withdrawals, or checking verified balances.', {
+            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
+        }
+        if (isCommunicationsPortal) {
+          return new Response('CORNHILL Staff Communications is offline. Reconnect to authenticate staff and refresh notices and events.', {
             status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
           });
         }
