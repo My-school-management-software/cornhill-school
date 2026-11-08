@@ -1,20 +1,49 @@
-const CACHE_NAME = 'cornhill-shell-v33';
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/assets/cornhill-icon.svg', '/assets/cornhill-school-crest.jpg'];
+/* CORNHILL offline application shell and safe static-asset cache.
+   Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
+const CACHE_NAME = 'cornhill-shell-v34';
+const SHELL = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/service-worker.js',
+  '/assets/cornhill-school-badge.png'
+];
+const STATIC_CDN = [
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+];
+const STATIC_CACHE = 'cornhill-static-v34';
+const STATIC_HOSTS = new Set(['cdn.jsdelivr.net']);
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const shell = await caches.open(CACHE_NAME);
+    await shell.addAll(SHELL);
+    const assets = await caches.open(STATIC_CACHE);
+    await Promise.all(STATIC_CDN.map(async url => {
+      try {
+        const request = new Request(url, { mode: 'no-cors', credentials: 'omit' });
+        const response = await fetch(request);
+        if (response.ok || response.type === 'opaque') await assets.put(request, response);
+      } catch (error) {
+        // A failed optional CDN precache must not prevent the school shell installing.
+        console.warn('Optional offline library was not cached:', url, error);
+      }
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter(key => key.startsWith('cornhill-shell-') || key.startsWith('cornhill-static-'))
+      .filter(key => key !== CACHE_NAME && key !== STATIC_CACHE)
+      .map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', event => {
@@ -22,8 +51,24 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  // Never cache authentication, database, storage, Edge Function or other cross-origin traffic.
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin) {
+    // Cache only known public JavaScript libraries. All Supabase/auth/API traffic
+    // and all other cross-origin requests remain network-only.
+    if (!STATIC_HOSTS.has(url.hostname) || !/\.(?:js|mjs)(?:$|\?)/i.test(url.href)) return;
+    event.respondWith((async () => {
+      const cache = await caches.open(STATIC_CACHE);
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      try {
+        const response = await fetch(request);
+        if (response.ok || response.type === 'opaque') await cache.put(request, response.clone());
+        return response;
+      } catch {
+        return Response.error();
+      }
+    })());
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
@@ -31,24 +76,38 @@ self.addEventListener('fetch', event => {
         const response = await fetch(request);
         if (response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          await Promise.all([
-            cache.put('/index.html', response.clone()),
-            cache.put('/', response.clone())
-          ]);
+          await cache.put('/index.html', response.clone());
+          await cache.put('/', response.clone());
         }
         return response;
       } catch {
         return (await caches.match('/index.html')) ||
           (await caches.match('/')) ||
-          Response.error();
+          new Response('CORNHILL is offline and its saved app shell is unavailable on this device. Reconnect once to load the application.', {
+            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
       }
     })());
     return;
   }
 
-  if (SHELL.includes(url.pathname)) {
-    event.respondWith(
-      caches.match(request).then(cached => cached || fetch(request))
-    );
+  // Same-origin app assets: cache-first so installed clients can start without internet.
+  if (SHELL.includes(url.pathname) || url.pathname.startsWith('/assets/')) {
+    event.respondWith((async () => {
+      const cached = await caches.match(request);
+      if (cached) {
+        fetch(request).then(async response => {
+          if (response.ok) (await caches.open(CACHE_NAME)).put(request, response);
+        }).catch(() => {});
+        return cached;
+      }
+      try {
+        const response = await fetch(request);
+        if (response.ok) (await caches.open(CACHE_NAME)).put(request, response.clone());
+        return response;
+      } catch {
+        return Response.error();
+      }
+    })());
   }
 });
