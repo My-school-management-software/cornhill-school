@@ -13,6 +13,12 @@ The active development branch includes these application areas:
 - Atomic payment posting and administrator-audited receipt reversal.
 - Daily collection reporting, expenses, inventory, staff attendance/import workflows, staff communication and settings/themes.
 
+## Work area 6 — secure phone evidence capture
+
+The branch now includes a first implementation of the shared CORNHILL Evidence Capture portal at `/evidence.html`. It supports administrator-issued one-time phone pairing, ten-minute evidence requests, phone camera/file uploads, private evidence storage and administrator review records. See [Evidence Capture Test Plan](docs/EVIDENCE_CAPTURE_TEST_PLAN.md).
+
+**Completion boundary:** the additive database migration has been applied and its tables, RLS, private bucket and policies have been verified. The portal still requires authenticated manual tests on designated staff accounts and Android devices. Browser notifications work while the portal is open and connected; background push delivery is not yet implemented. Evidence requests currently store a context label and optional amount; direct attachment to the saved Banking, Expenses, Staff ID and other module records is the next integration phase. The latest branch changes have not yet been deployed to a new Vercel preview.
+
 ## Work area 5 — staff fingerprint attendance
 
 The attendance workspace is prepared for a single office fingerprint terminal and approximately 30 staff. It includes staff/device ID mapping, work schedules, CSV preview/import, attendance review and administrator guidance. The Settings module contains a five-model shortlist and connection instructions. See [Fingerprint Attendance Integration](docs/FINGERPRINT_ATTENDANCE_INTEGRATION.md) before purchasing a terminal.
