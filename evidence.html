@@ -5,8 +5,23 @@
 <meta name="theme-color" content="#14532d"><meta name="description" content="CORNHILL secure phone evidence capture"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="/evidence.webmanifest"><link rel="apple-touch-icon" href="/assets/cornhill-school-badge.png">
 <title>CORNHILL Evidence Capture</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js" defer></script>
 <style>
-:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:16px max(16px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:850;font-size:18px}.sub{font-size:12px;opacity:.8;margin-top:4px}.wrap{max-width:1080px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid #dce7de;border-radius:15px;padding:18px;margin:0 0 14px;box-shadow:0 3px 14px #183d2010}.hidden{display:none!important}.muted{color:#647568;font-size:13px;line-height:1.5}.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf3;color:#166534}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-size:13px;font-weight:700;color:#435449;margin:8px 0 5px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:#fff;font:inherit;margin:0 0 9px}button,.button{border:0;border-radius:9px;padding:11px 14px;background:#e6efe7;color:#17452a;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}.badge{font-size:11px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:800}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#991b1b}.device,.request{border:1px solid #e0e9e1;border-radius:12px;padding:13px;margin:10px 0}.request h3{margin:0 0 5px;font-size:16px}.request p{margin:5px 0}.code{font:700 20px ui-monospace,monospace;letter-spacing:2px;background:#f1f5f2;padding:12px;border-radius:8px;overflow-wrap:anywhere}.preview{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.preview img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid #d8e2da}.timer{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums;color:#9a3412}.capture{border:2px dashed #9fb5a4;border-radius:13px;padding:18px;text-align:center;background:#f8fbf8}.small{font-size:11px;color:#647568}@media(max-width:620px){.grid{grid-template-columns:1fr}.top{align-items:flex-start}.panel{padding:14px}.wrap{margin:12px auto}}
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:16px max(16px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:850;font-size:18px}.sub{font-size:12px;opacity:.8;margin-top:4px}.wrap{max-width:1080px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid #dce7de;border-radius:15px;padding:18px;margin:0 0 14px;box-shadow:0 3px 14px #183d2010}.hidden{display:none!important}.muted{color:#647568;font-size:13px;line-height:1.5}.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf3;color:#166534}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-size:13px;font-weight:700;color:#435449;margin:8px 0 5px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:#fff;font:inherit;margin:0 0 9px}button,.button{border:0;border-radius:9px;padding:11px 14px;background:#e6efe7;color:#17452a;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}.badge{font-size:11px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:800}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#991b1b}.device,.request{border:1px solid #e0e9e1;border-radius:12px;padding:13px;margin:10px 0}.request h3{margin:0 0 5px;font-size:16px}.request p{margin:5px 0}.code{font:700 20px ui-monospace,monospace;letter-spacing:2px;background:#f1f5f2;padding:12px;border-radius:8px;overflow-wrap:anywhere}.preview{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.preview img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid #d8e2da}.timer{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums;color:#9a3412}.capture{border:2px dashed #9fb5a4;border-radius:13px;padding:18px;text-align:center;background:#f8fbf8}.small{font-size:11px;color:#647568}
+.scan-video-wrap{background:#17251c;border-radius:12px;overflow:hidden;min-height:200px;display:flex;align-items:center;justify-content:center}
+.scan-video-wrap video{width:100%;max-height:55vh;object-fit:contain}
+.scan-editor-image{display:block;max-width:100%;max-height:58vh}
+.scan-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.scan-page-thumb{width:88px;height:112px;object-fit:cover;border:1px solid #dce7de;border-radius:8px;background:white}
+.scan-page-card{border:1px solid #dce7de;border-radius:10px;padding:8px;display:grid;gap:4px;text-align:center}
+.scan-pages{display:flex;gap:9px;overflow:auto;padding:8px 0}
+.scan-camera-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.scan-progress{font-size:12px;color:#647568}
+.cropper-container{max-width:100%}
+@media(max-width:620px){.scan-toolbar button{flex:1 1 auto}.scan-video-wrap video{max-height:45vh}}
+@media(prefers-reduced-motion:reduce){.scan-page-card{scroll-behavior:auto}}
+@media(max-width:620px){.grid{grid-template-columns:1fr}.top{align-items:flex-start}.panel{padding:14px}.wrap{margin:12px auto}}
 </style>
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
 <script src="/assets/cornhill-appearance.js"></script>
@@ -35,6 +50,31 @@
 <form id="pairForm"><div><label>Phone name *</label><input id="phoneName" required maxlength="80" placeholder="e.g. Deputy Bursar phone"></div><div><label>One-time pairing code *</label><input id="phonePairCode" required autocomplete="one-time-code" minlength="24" maxlength="100" placeholder="Paste the code from the administrator"></div><div><label>Device type</label><select id="phonePlatform"><option>Android</option><option>iOS</option><option>Windows</option><option>Other</option></select></div><button class="primary" type="submit">Authorise this phone</button></form><div id="pairMsg" class="notice hidden"></div>
 </div>
 <div class="panel"><div class="row"><div><h2>Requests for this phone</h2><p class="muted">New requests appear here while this page is open and connected to the internet. For files already stored on this computer or phone, the administrator can upload them directly; otherwise the assigned phone can capture a photo or PDF.</p></div><div class="row"><button type="button" id="enableNotifications">Enable notifications</button><button type="button" id="refreshPhone">Refresh</button></div></div><div id="phoneRequests"><p class="muted">Pair this phone to see assigned requests.</p></div></div>
+<div id="scannerWorkspace" class="panel hidden">
+ <div class="row"><div><span class="eyebrow">MULTI-PAGE DOCUMENT SCANNER</span><h2>Scan a document</h2><p class="muted">Capture a page, crop its edges, rotate it and choose a clean document filter. Add several pages and submit one PDF to the linked school record.</p></div><button type="button" id="closeScanner">Close scanner</button></div>
+ <div class="notice">For best results, place the paper on a flat surface with good light. The browser scanner provides manual crop and image enhancement. Automatic edge detection varies by device; check every page before submitting.</div>
+ <div id="scannerCameraArea">
+  <div class="scan-video-wrap"><video id="scannerVideo" autoplay playsinline muted></video></div>
+  <div class="scan-camera-actions">
+   <button type="button" class="primary" id="captureScanPage">Capture page</button>
+   <label class="button" style="margin:0">Choose photo instead<input id="scannerImagePicker" type="file" accept="image/*" multiple hidden></label>
+   <button type="button" id="switchScanCamera">Switch camera</button>
+  </div>
+ </div>
+ <div id="scannerEditor" class="hidden" style="margin-top:14px">
+  <div class="capture"><img id="scannerEditorImage" class="scan-editor-image" alt="Document page crop preview"></div>
+  <div class="scan-toolbar">
+   <button type="button" id="rotateScanLeft">Rotate left</button><button type="button" id="rotateScanRight">Rotate right</button>
+   <label style="margin:0;min-width:150px">Document filter<select id="scannerFilter"><option value="original">Original colour</option><option value="colour">Colour document</option><option value="gray">Grayscale</option><option value="clean">Clean black & white</option></select></label>
+   <button type="button" id="resetScanCrop">Reset crop</button>
+   <button type="button" class="primary" id="addScanPage">Add page to PDF</button>
+  </div>
+ </div>
+ <div class="row" style="margin-top:12px"><strong>Pages in this scan</strong><span class="badge" id="scannerPageCount">0 / 8</span></div>
+ <div class="scan-pages" id="scannerPageList"><span class="muted">No pages added yet.</span></div>
+ <p class="scan-progress" id="scannerStatus" role="status">Camera ready when you open a scan request.</p>
+ <div class="scan-toolbar"><button type="button" class="primary" id="finishScanPdf" disabled>Build PDF and submit evidence</button><button type="button" class="danger" id="discardScanPages">Discard pages</button></div>
+</div>
 </section>
 </section>
 </main>
