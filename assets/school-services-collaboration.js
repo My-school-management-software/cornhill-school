@@ -271,10 +271,17 @@ $("staffFeedRows").addEventListener("click", async event => {
     if (likeId) {
       if (!isActiveStaff()) throw new Error("Active staff access is required.");
       const own = cachedStaffReactions.find(row => row.post_id === likeId && row.user_id === user.id);
-      const result = own
-        ? await db.from("staff_communication_reactions").delete().eq("post_id", likeId).eq("user_id", user.id)
-        : await db.from("staff_communication_reactions").upsert({ post_id: likeId, user_id: user.id, reaction: "like" }, { onConflict: "post_id,user_id" });
-      if (result.error) throw result.error;
+      if (own) {
+        const removed = await db.from("staff_communication_reactions").delete().eq("post_id", likeId).eq("user_id", user.id);
+        if (removed.error) throw removed.error;
+        if (own.reaction !== "like") {
+          const added = await db.from("staff_communication_reactions").insert({ post_id: likeId, user_id: user.id, reaction: "like" });
+          if (added.error) throw added.error;
+        }
+      } else {
+        const added = await db.from("staff_communication_reactions").insert({ post_id: likeId, user_id: user.id, reaction: "like" });
+        if (added.error) throw added.error;
+      }
       await loadStaffFeed();
       return;
     }
