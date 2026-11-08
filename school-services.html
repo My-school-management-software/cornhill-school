@@ -7,6 +7,7 @@
 <meta name="description" content="CORNHILL secure school services portal">
 <link rel="icon" href="/assets/cornhill-school-badge.png" type="image/png">
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<script src="/assets/cornhill-appearance.js"></script>
 <title>CORNHILL · School Services</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -45,7 +46,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
-<body>
+<body data-theme="warm-corporate">
 <header class="top">
   <div class="brand"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL badge"><div>CORNHILL NURSERY AND PRIMARY SCHOOL<small>Secure School Services Portal · Uganda</small></div></div>
   <div class="row"><span id="userLabel" style="font-size:12px;color:#e5f4e8"></span><a class="button" href="/" style="background:#fff;color:#14532d">Main School System</a><button id="signOut" class="hidden">Sign out</button></div>
@@ -401,6 +402,7 @@ async function loadProfile(){
  if(error)throw error;
  if(!data||data.employment_status!=='Active'||!['Admin','Teacher','Staff'].includes(data.role))throw new Error('This account is not an active school staff account.');
  profile=data;
+ window.CornhillAppearance?.applyForUser?.(profile.id);
 }
 function configureModules(){
  const permissions={

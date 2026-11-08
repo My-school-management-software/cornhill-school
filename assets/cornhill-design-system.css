@@ -185,3 +185,16 @@ body:has(.account),body:has(.device),body:has(.card){
  html{scroll-behavior:auto}
  button,.button,a{transition:none}
 }
+
+
+/* Shared theme bridge for separate CORNHILL applications. */
+body[data-theme]{background:var(--cornhill-page)!important;color:var(--cornhill-ink)!important}
+body[data-theme] .panel,body[data-theme] .card,body[data-theme] .comm-card,body[data-theme] .stat,body[data-theme] .account,body[data-theme] .txn,body[data-theme] .device,body[data-theme] .request,body[data-theme] .tile{background:var(--cornhill-panel)!important;color:var(--cornhill-ink)!important;border-color:var(--cornhill-line)!important}
+body[data-theme] .top,body[data-theme] .comm-hero{background:var(--cornhill-accent-dark)!important;color:#fff!important}
+body[data-theme] button.primary,body[data-theme] .comm-btn:not(.secondary),body[data-theme] .cta:not(.light){background:var(--cornhill-accent)!important;color:#fff!important}
+body[data-theme] .navlinks a{background:var(--cornhill-panel)!important;color:var(--cornhill-accent-dark)!important;border-color:var(--cornhill-line)!important}
+body[data-theme] input,body[data-theme] select,body[data-theme] textarea{background:var(--cornhill-panel);color:var(--cornhill-ink);border-color:var(--cornhill-line)}
+body[data-theme] th{background:color-mix(in srgb,var(--cornhill-accent) 9%,var(--cornhill-panel));color:var(--cornhill-ink)}
+body[data-theme] .muted,body[data-theme] .small,body[data-theme] .sub,body[data-theme] .comm-muted{color:var(--cornhill-muted)}
+body[data-motion="off"] button,body[data-motion="off"] .button,body[data-motion="off"] a{transition:none!important}
+@media(prefers-reduced-motion:reduce){body[data-motion="on"] button,body[data-motion="on"] .button,body[data-motion="on"] a{transition:none!important}}

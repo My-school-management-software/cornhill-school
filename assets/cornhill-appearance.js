@@ -1,0 +1,22 @@
+/* Shared per-user CORNHILL appearance for staff apps. This does not share authentication sessions. */
+(function(){
+ 'use strict';
+ const STORAGE_KEY='cornhill_appearance_v1:';
+ const PALETTES={forest:['#166534','#14532d','#f3f7f3','#ffffff','#17251c','#607265','#dce7de'],ocean:['#0369a1','#0c4a6e','#eff8fc','#ffffff','#102b3b','#526d7b','#cfe3ed'],royal:['#6d28d9','#4c1d95','#f7f3ff','#ffffff','#281a3e','#716582','#e3d8f4'],sunrise:['#c2410c','#9a3412','#fff7ed','#ffffff','#3b2419','#806b5d','#f1ddcb'],ruby:['#be123c','#881337','#fff1f2','#ffffff','#3f1722','#80616b','#f2d4dc'],midnight:['#38bdf8','#0f172a','#111827','#1f2937','#f3f4f6','#c0cad8','#374151'],slate:['#475569','#1e293b','#f1f5f9','#ffffff','#1e293b','#64748b','#d8e0e9'],teal:['#0f766e','#134e4a','#f0fdfa','#ffffff','#153b38','#5c7773','#cce9e4'],emerald:['#059669','#064e3b','#ecfdf5','#ffffff','#12372b','#527568','#c9e8d9'],lavender:['#8b5cf6','#4c1d95','#f5f3ff','#ffffff','#2e2250','#746b8a','#e4dcf5'],sand:['#a16207','#713f12','#fffbeb','#fffefa','#3d3020','#82735b','#eadfca'],graphite:['#94a3b8','#0f172a','#0b1220','#182235','#f1f5f9','#aab7c9','#334155'],aurora:['#0f766e','#164e63','#effcfb','#ffffff','#143b3a','#5a7774','#cfe8e2'],cobalt:['#2563eb','#1e40af','#eff6ff','#ffffff','#172554','#64748b','#dbeafe'],coral:['#e11d48','#9f1239','#fff1f2','#ffffff','#4c0519','#80616b','#fecdd3'],rose:['#be185d','#831843','#fdf2f8','#ffffff','#500724','#9d647e','#fbcfe8'],arctic:['#0891b2','#155e75','#ecfeff','#ffffff','#164e63','#5b7e8a','#c8edf2'],indigo:['#4f46e5','#312e81','#eef2ff','#ffffff','#24205c','#69739a','#d7dcff'],'warm-corporate':['#2f6b45','#183e2a','#f8f6ef','#fffefa','#26342a','#68766c','#e5e1d4'],'finance-navy':['#17608a','#102b45','#f2f5f8','#ffffff','#1c2938','#647487','#dbe3ec'],'paper-swiss':['#a82727','#222222','#f4f2ec','#fffefa','#171717','#57534e','#d6d3cc'],'glass-mint':['#0f8278','#124b47','#edf7f4','#fbfffd','#173b37','#5d7771','#cde4de']};
+ const FONT_STACKS={system:'Inter,system-ui,-apple-system,Segoe UI,sans-serif',arial:'Arial,sans-serif',verdana:'Verdana,sans-serif',tahoma:'Tahoma,sans-serif',trebuchet:'Trebuchet MS,sans-serif',georgia:'Georgia,serif',times:'Times New Roman,serif',courier:'Courier New,monospace',lucida:'Lucida Sans Unicode,Lucida Grande,sans-serif',palatino:'Palatino Linotype,Book Antiqua,Palatino,serif',garamond:'Garamond,serif',bookman:'Bookman Old Style,serif',comic:'Comic Sans MS,cursive',impact:'Impact,Charcoal,sans-serif',segoe:'Segoe UI,sans-serif',calibri:'Calibri,Candara,sans-serif',candara:'Candara,Calibri,sans-serif',optima:'Optima,Segoe,sans-serif',futura:'Futura,Century Gothic,sans-serif',gill:'Gill Sans,Gill Sans MT,sans-serif',century:'Century Gothic,sans-serif',franklin:'Franklin Gothic Medium,sans-serif',monaco:'Monaco,monospace',consolas:'Consolas,monospace'};
+ const LAYOUTS=['executive','modern-grid','compact-tiles','sidebar-list','colorful','minimal','wide-cards','icon-focus','split','classic','command-center','soft-glass','editorial','focus-workspace','bento-grid','floating-minimal','split-screen','editorial-swiss'];
+ function applyForUser(userId){
+  if(!userId||typeof userId!=='string'||!document.body)return false;
+  let prefs={};try{prefs=JSON.parse(localStorage.getItem(STORAGE_KEY+userId)||'{}')||{}}catch(_){return false}
+  const theme=Object.prototype.hasOwnProperty.call(PALETTES,prefs.theme)?prefs.theme:'warm-corporate',c=PALETTES[theme];
+  ['--cornhill-accent','--cornhill-accent-dark','--cornhill-page','--cornhill-panel','--cornhill-ink','--cornhill-muted','--cornhill-line'].forEach((k,n)=>document.body.style.setProperty(k,c[n]));
+  ['--page','--panel','--ink','--muted','--line'].forEach((k,n)=>document.body.style.setProperty(k,[c[2],c[3],c[4],c[5],c[6]][n]));
+  document.body.dataset.theme=theme;document.body.dataset.motion=prefs.motion==='on'?'on':'off';document.body.dataset.density=prefs.density==='compact'?'compact':'comfortable';
+  if(LAYOUTS.includes(prefs.dashboardLayout))document.body.dataset.dashboardLayout=prefs.dashboardLayout;
+  const font=Object.prototype.hasOwnProperty.call(FONT_STACKS,prefs.font)?prefs.font:'system';
+  document.documentElement.style.fontFamily=FONT_STACKS[font];
+  document.documentElement.style.fontSize=({'14':'14px','16':'16px','18':'18px','20':'20px'})[String(prefs.fontSize)]||'16px';
+  document.body.dataset.appearanceUser='active';return true;
+ }
+ window.CornhillAppearance=Object.freeze({applyForUser});
+})();
