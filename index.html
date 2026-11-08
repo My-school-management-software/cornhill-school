@@ -1734,7 +1734,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <p><strong>Passwords:</strong> Every staff member must use a private password. Do not share passwords or send them in ordinary messages. Use the secure reset process when access is lost.</p>
  <p><strong>Accuracy:</strong> Staff must enter accurate records and report errors to the administrator. Financial transactions and official learner records must not be changed to conceal mistakes.</p>
  <p><strong>Devices:</strong> Sign out on shared computers, protect phones with a screen lock and do not leave school records open to unauthorised people.</p>
- <p><strong>Offline use:</strong> Offline mode currently provides the cached application shell only. It does not authorise offline payments or guarantee that learner records and marks are synchronised.</p>
+ <p><strong>Offline use:</strong> Online records remain the source of truth. An administrator or teacher who previously loaded the school records online may have a recent, read-only class-list snapshot available for up to 24 hours without internet. Administrator snapshots can include the school-wide learner register; teacher snapshots are limited to the assigned class. This local browser copy may contain learner names, pupil codes, LIN and class information. Use it only on a school-managed, screen-locked device and sign out after use. Offline mode does not support admissions, edits, marks entry/import, report publication, finance, parent messaging, staff or attendance changes. No changes are queued or automatically synchronised. Reconnect before updating official school records. Parent access remains online-only.</p>
  <p><strong>Notifications:</strong> Parent SMS requires guardian consent and an approved school-configured provider. No SMS or push service is promised by this release.</p>
  <p><strong>Retention and incidents:</strong> The school administrator should maintain approved backup, retention and data-breach response procedures and comply with applicable Ugandan data-protection requirements.</p>
  <p class="muted">This is an in-app policy summary for school review, not legal advice or a substitute for a formally approved school privacy notice.</p></div>
@@ -2023,7 +2023,7 @@ async function restoreOfflineSchoolSnapshot(owner){
   $('role').textContent=profile.role;
   setOfflineReadOnly(true);render();applyRoleNavigation();tab('dashboard');
   const saved=new Date(snap.savedAt).toLocaleString('en-UG');
-  message('appMsg','OFFLINE VIEW ONLY · Class list snapshot from '+saved+'. Class totals and searches are calculated on this device. Guardian contacts, bursary details, finance and live updates are not available. Changes are disabled until internet returns.',false);
+  message('appMsg','OFFLINE VIEW ONLY · Class-list snapshot from '+saved+'. This copy is stored in this browser and may contain learner names, pupil codes and LIN. Use only on a school-managed, screen-locked device and sign out after use. Guardian contacts, bursary details, finance and live updates are unavailable. No changes can be saved or synchronised offline.',false);
   return true;
  }catch(_){return false}
 }
