@@ -5,7 +5,7 @@
   "description": "Central school notifications, admissions, approvals and actions",
   "start_url": "/notifications.html",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#f3f7f3",
   "theme_color": "#14532d",
   "icons": [
@@ -15,5 +15,9 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "display_override": [
+    "fullscreen",
+    "standalone"
   ]
 }
