@@ -1315,7 +1315,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  </div>
    <div id="teacherExcelTransfer" style="margin:12px 0;padding:12px;border:1px solid #dce7de;border-radius:10px">
    <h4>Import existing marks from Excel</h4>
-   <p class="muted">Administrator or assigned teacher · Select the matching class and term above, then choose your original workbook and preview it. The system will load the selected class sheet automatically. Learners are matched to existing school records; names and learner records are never created or changed by this import.</p>
+   <p class="muted">Assigned teacher only · Select the matching class and term above, then choose your original workbook and preview it. The system will load the selected class sheet automatically. Learners are matched to existing school records; names and learner records are never created or changed by this import.</p>
    <input id="teacherMarksWorkbook" type="file" accept=".xlsx,.xls,.xlsm" />
    <label><input id="replaceExistingImportedMarks" type="checkbox"> Replace marks that already exist (leave unticked to protect saved marks)</label>
    <button type="button" id="previewTeacherMarksImport">Preview Excel marks</button>
@@ -3007,7 +3007,7 @@ async function loadAcademics(){
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
  $('assessmentSetup').classList.toggle('hidden',!['Admin','Teacher'].includes(profile?.role));
- $('teacherMarkEntry').classList.toggle('hidden',!['Admin','Teacher'].includes(profile?.role));
+ $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
  $('adminTeacherMarksRegister').classList.toggle('hidden',profile?.role!=='Admin');
  $('adminReportActions').classList.toggle('hidden',profile?.role!=='Admin');
  $('exportAcademicClassCsv').classList.toggle('hidden',profile?.role!=='Admin');
@@ -3596,7 +3596,7 @@ function matchImportAssessment(header,ctx,period){
 let teacherExcelImportPlan=null;
 $('previewTeacherMarksImport').addEventListener('click',async()=>{
  const file=$('teacherMarksWorkbook').files?.[0],confirm=$('confirmTeacherMarksImport');confirm.disabled=true;teacherExcelImportPlan=null;
- if(!['Teacher','Admin'].includes(profile?.role)||demoMode){message('teacherMarksImportMsg','Sign in with an authorised school account to import marks.',true);return}
+ if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using your assigned class-teacher account to import marks. Administrator accounts can review marks but cannot post them.',true);return}
  if(profile?.role==='Teacher'&&!sessionStorage.getItem('cornhill_teacher_class_id')){message('teacherMarksImportMsg','Your assigned class could not be verified. Sign out and sign in again.',true);return}
  if(!file){message('teacherMarksImportMsg','Choose your Excel workbook first.',true);return}
  if(!window.XLSX){message('teacherMarksImportMsg','The Excel reader is unavailable. Reconnect and reload the page before importing.',true);return}
@@ -3652,7 +3652,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
 });
 $('confirmTeacherMarksImport').addEventListener('click',async()=>{
  const plan=teacherExcelImportPlan,ctx=window.cornhillExcelMarksContext,button=$('confirmTeacherMarksImport');
- if(!['Teacher','Admin'].includes(profile?.role)||demoMode||!plan||plan.blockingIssues?.length||!ctx||plan.ctxKey!==ctx.classId+'|'+ctx.termId)return;
+ if(profile?.role!=='Teacher'||demoMode||!plan||plan.blockingIssues?.length||!ctx||plan.ctxKey!==ctx.classId+'|'+ctx.termId)return;
  button.disabled=true;button.textContent='Importing…';
  try{
   const importTermId=ctx.termId,importClassId=ctx.classId;
@@ -4017,7 +4017,7 @@ async function submitAcademic(formId,table,transform,success){
     const existingIds=matching.map(x=>x.id).filter(Boolean);
     // Existing blank columns may have been created by "Prepare class sheet".
     // Apply the form's metadata to those columns too, without discarding marks.
-    if(existingIds.length){
+    if(existingIds.length&&profile?.role==='Admin'){
       const {data:recordedMarks,error:marksError}=await db.from('assessment_scores')
         .select('assessment_id,score').in('assessment_id',existingIds);
       if(marksError)throw new Error('Could not verify marks already entered for this assessment period. Nothing was changed. '+marksError.message);
@@ -4042,8 +4042,8 @@ async function submitAcademic(formId,table,transform,success){
     e.target.reset();
     if(profile?.role==='Teacher')$('assessmentClassSelect').value=classId;
     await loadAcademics();
-    const created=missing.length,updated=existingIds.length;
-    message('academicMsg','Assessment period ready for '+cls.name+' · '+period+'. '+created+' new subject column(s) created; '+updated+' existing column(s) updated. Existing learner marks were preserved. Maximum score: '+maximum+'.');
+    const created=missing.length,updated=profile?.role==='Admin'?existingIds.length:0,kept=existingIds.length-updated;
+    message('academicMsg','Assessment period ready for '+cls.name+' · '+period+'. '+created+' new subject column(s) created; '+updated+' existing column(s) updated; '+kept+' existing column(s) left unchanged. Existing learner marks were preserved. '+(kept&&profile?.role==='Teacher'?'An administrator must adjust metadata on already-prepared columns. ':'')+'Maximum score: '+maximum+'.');
     return;
    }
    const {error}=await db.from(table).insert(payload);
