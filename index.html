@@ -4016,25 +4016,44 @@ async function submitAcademic(formId,table,transform,success){
     const validPeriods=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End'];
     if(!validPeriods.includes(period))throw new Error('Choose a valid assessment period for '+cls.name+'.');
     const finalTitle=period+(note?' · '+note:' Assessment');
-    const existing=academic.assessments.filter(x=>x.term_id===values.term_id&&x.class_id===classId);
-    const present=new Set(existing.filter(x=>excelAssessmentPeriod(x)===period).map(x=>x.subject_id));
+    const auth=await db.auth.getUser(),user=auth.data?.user;
+    if(auth.error||!user)throw new Error('Your session has expired. Sign in again before preparing assessments.');
+    const {data:existingRows,error:existingError}=await db.from('assessments')
+      .select('id,subject_id,title,assessment_type,max_score,assessment_date')
+      .eq('term_id',values.term_id).eq('class_id',classId).in('subject_id',subjectIds);
+    if(existingError)throw existingError;
+    const matching=(existingRows||[]).filter(x=>excelAssessmentPeriod(x)===period);
+    const present=new Set(matching.map(x=>x.subject_id));
+    const existingIds=matching.map(x=>x.id).filter(Boolean);
+    // Existing blank columns may have been created by "Prepare class sheet".
+    // Apply the form's metadata to those columns too, without discarding marks.
+    if(existingIds.length){
+      const {data:recordedMarks,error:marksError}=await db.from('assessment_scores')
+        .select('assessment_id,score').in('assessment_id',existingIds);
+      if(marksError)throw new Error('Could not verify marks already entered for this assessment period. Nothing was changed. '+marksError.message);
+      const invalidExisting=(recordedMarks||[]).filter(x=>x.score!==null&&x.score!==undefined&&Number(x.score)>maximum);
+      if(invalidExisting.length)throw new Error('Some existing marks are higher than the new maximum score of '+maximum+'. No assessment details were changed. Review those marks or keep the existing maximum score.');
+      const {error:updateError}=await db.from('assessments').update({
+        title:finalTitle,assessment_type:values.assessment_type||'Coursework',
+        max_score:maximum,assessment_date:values.assessment_date||null
+      }).in('id',existingIds);
+      if(updateError)throw updateError;
+    }
     const missing=subjects.filter(x=>!present.has(x.id)).map(subject=>({
       term_id:values.term_id,class_id:classId,subject_id:subject.id,title:finalTitle,
       assessment_type:values.assessment_type||'Coursework',max_score:maximum,
-      assessment_date:values.assessment_date||null,created_by:currentUserId
+      assessment_date:values.assessment_date||null,created_by:user.id
     }));
-    if(!missing.length){message('academicMsg','All '+subjects.length+' subject columns for '+period+' already exist in '+cls.name+'. No duplicates were created.');return}
-    const auth=await db.auth.getUser(),user=auth.data?.user;
-    if(auth.error||!user)throw new Error('Your session has expired. Sign in again before preparing assessments.');
-    missing.forEach(x=>x.created_by=user.id);
-    const {error:insertError}=await db.from('assessments').insert(missing);
-    if(insertError)throw insertError;
+    if(missing.length){
+      const {error:insertError}=await db.from('assessments').insert(missing);
+      if(insertError)throw insertError;
+    }
     await clearLocalFormDraft(currentUserId,'academic-assessment');
     e.target.reset();
     if(profile?.role==='Teacher')$('assessmentClassSelect').value=classId;
     await loadAcademics();
-    const created=missing.length,skipped=subjects.length-created;
-    message('academicMsg','Prepared '+created+' subject columns for '+cls.name+' · '+period+'.'+(skipped?' '+skipped+' existing subject column(s) were safely left unchanged.':'')+' Maximum score: '+maximum+'.');
+    const created=missing.length,updated=existingIds.length;
+    message('academicMsg','Assessment period ready for '+cls.name+' · '+period+'. '+created+' new subject column(s) created; '+updated+' existing column(s) updated. Existing learner marks were preserved. Maximum score: '+maximum+'.');
     return;
    }
    const {error}=await db.from(table).insert(payload);
