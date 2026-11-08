@@ -2130,8 +2130,20 @@ async function refresh(){
  }
  let allowedClassIds=null;
  if(profile?.role==='Teacher'){
-  const selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id');
-  if(!selectedClassId){message('appMsg','Your class workspace is not selected. Sign out and sign in again using Class teacher, then choose your assigned class.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
+  // Recover the active workspace from the authenticated teacher's database assignment
+  // when a browser/PWA session has lost its tab-scoped selection. Never guess a class.
+  let selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||null;
+  if(!selectedClassId){
+   window.cornhillStartupStage='recovering assigned teacher class';
+   const recovery=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);
+   if(recovery?.error){message('appMsg','Could not recover your assigned class: '+recovery.error.message+'. Contact the administrator if this continues.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
+   const recoveredIds=[...new Set((recovery?.data||[]).map(x=>x.class_id).filter(Boolean))];
+   if(recoveredIds.length!==1){message('appMsg','This teacher account must have exactly one assigned class before opening the class workspace. Please ask the administrator to check the teacher assignment.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
+   selectedClassId=recoveredIds[0];
+   sessionStorage.setItem('cornhill_teacher_class_id',selectedClassId);
+   sessionStorage.setItem('cornhill_login_mode','Teacher');
+   window.teacherClassId=selectedClassId;
+  }
   window.cornhillStartupStage='checking teacher class access';
   const access=await db.from('class_teacher_access').select('class_id').eq('user_id',currentUserId);
   if(access?.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not verify your class access: '+access.error.message,true);return}
