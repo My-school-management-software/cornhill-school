@@ -35,7 +35,7 @@ label{display:block;font-size:12px;font-weight:750;color:#405646;margin:8px 0 5p
 @media(max-width:840px){.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.grid,.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.toolbar,.grid,.stats,.editor{grid-template-columns:1fr}.toolbar input{grid-column:auto}.card{padding:14px}.wrap{margin:12px auto}}
 </style>
-</head>
+<script src="/assets/cornhill-offline.js"></script></head>
 <body data-theme="warm-corporate">
 <header class="top">
  <div><div class="brand">CORNHILL · RECORDS CENTRE</div><div class="sub">Private document index · OCR · verification · expiry monitoring</div></div>
@@ -275,7 +275,6 @@ $('loginForm').addEventListener('submit',async e=>{
  try{await enterApp(data.user)}catch(err){$('loginError').textContent=err.message}
 });
 $('signOut').addEventListener('click',async()=>{await db.auth.signOut();location.reload()});
-toast('Records Centre is installed on this device.')});
 
 db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(data.session.user)}catch(err){$('loginError').textContent=err.message}}});
 db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')location.reload()});
