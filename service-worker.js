@@ -1,6 +1,6 @@
 /* CORNHILL offline application shell and safe static-asset cache.
    Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v55';
+const CACHE_NAME = 'cornhill-shell-v56';
 const SHELL = [
   '/',
   '/index.html',
@@ -24,7 +24,7 @@ const STATIC_CDN = [
   'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v55';
+const STATIC_CACHE = 'cornhill-static-v56';
 const STATIC_HOSTS = new Set(['cdn.jsdelivr.net']);
 
 self.addEventListener('install', event => {
@@ -91,6 +91,7 @@ self.addEventListener('fetch', event => {
     const isPublicSchoolSite = url.pathname === '/school.html';
     const isAdmissionsPortal = url.pathname === '/admissions.html';
     const isCommunicationsPortal = url.pathname === '/school-communications.html';
+    const isMainApp = url.pathname === '/' || url.pathname === '/index.html';
     const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : isBankingPortal ? '/banking.html' : isServicesPortal ? '/school-services.html' : isPublicSchoolSite ? '/school.html' : isAdmissionsPortal ? '/admissions.html' : isCommunicationsPortal ? '/school-communications.html' : '/index.html';
     event.respondWith((async () => {
       try {
@@ -99,7 +100,7 @@ self.addEventListener('fetch', event => {
           const cache = await caches.open(CACHE_NAME);
           // Keep guardian, phone evidence, banking, and school-admin shells separate.
           await cache.put(routeCacheKey, response.clone());
-          if (!isParentPortal && !isEvidencePortal && !isBankingPortal && !isCommunicationsPortal) await cache.put('/', response.clone());
+          if (isMainApp) await cache.put('/', response.clone());
         }
         return response;
       } catch {
@@ -122,6 +123,21 @@ self.addEventListener('fetch', event => {
         }
         if (isCommunicationsPortal) {
           return new Response('CORNHILL Staff Communications is offline. Reconnect to authenticate staff and refresh notices and events.', {
+            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
+        }
+        if (isServicesPortal) {
+          return new Response('CORNHILL School Services is offline. Reconnect to verify your staff account before opening leave, library, transport, welfare or property records.', {
+            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
+        }
+        if (isAdmissionsPortal) {
+          return new Response('CORNHILL Admissions is offline. Reconnect before submitting an enquiry; no offline form submission is stored.', {
+            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
+        }
+        if (isPublicSchoolSite) {
+          return new Response('The CORNHILL public school website is unavailable offline on this device. Reconnect to load current school information.', {
             status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
           });
         }
