@@ -30,7 +30,7 @@ input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius
 @media(max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.controls{grid-template-columns:1fr 1fr}.controls input{grid-column:1/-1}}
 @media(max-width:460px){.controls{grid-template-columns:1fr}.controls input{grid-column:auto}.card{padding:14px}.wrap{margin:12px auto}}
 </style>
-</head>
+<script src="/assets/cornhill-offline.js"></script></head>
 <body data-theme="warm-corporate">
 <header class="top">
  <div><div class="brand">CORNHILL · NOTIFICATION CENTRE</div><div class="sub">One school-wide attention and approvals inbox</div></div>
@@ -197,7 +197,6 @@ $('signOut').addEventListener('click',async()=>{if(pollTimer)clearInterval(pollT
 db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(data.session.user)}catch(e){$('loginError').textContent=e.message}}});
 db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(pollTimer)clearInterval(pollTimer);user=null;profile=null;$('app').classList.add('hidden');$('loginCard').classList.remove('hidden')}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user)loadNotifications({quiet:true})});
-toast('Notification Centre is installed on this device.')});
 
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
