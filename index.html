@@ -3374,40 +3374,38 @@ async function loadAllTeacherMarksRegister(){
 }
 async function ensureTeacherAcademicClassContext(){
  if(profile?.role!=='Teacher')return true;
- const owner=currentUserId;
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  if(!owner)throw new Error('Your teacher sign-in session is missing. Sign out and sign in again.');
- const [classAccess,subjectAccess]=await Promise.all([
-  db.from('class_teacher_access').select('class_id,school_classes(id,name,stream)').eq('user_id',owner),
-  db.from('class_subjects').select('class_id,subject_id,teacher_user_id,school_classes(id,name,stream)').eq('teacher_user_id',owner)
- ]);
- if(currentUserId!==owner)return false;
- const accessError=classAccess.error||subjectAccess.error;
- if(accessError)throw new Error('Could not verify your teaching assignments: '+accessError.message);
- const fullClassRows=classAccess.data||[],subjectRows=subjectAccess.data||[];
- const ids=[...new Set([...fullClassRows,...subjectRows].map(x=>x.class_id).filter(Boolean))];
+ const {data,error}=await db.rpc('teacher_list_my_assignments');
+ if(currentUserId!==owner||generation!==(window.cornhillSessionGeneration||0))return false;
+ if(error)throw new Error('Could not securely verify your teaching assignments: '+error.message);
+ const assignments=Array.isArray(data)?data:[];
+ const ids=[...new Set(assignments.map(x=>x.class_id).filter(Boolean))];
  let id=sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||null;
  try{id=id||localStorage.getItem('cornhill_teacher_class_id:'+owner)||null}catch(_){}
  if(!id){
-  if(ids.length!==1)throw new Error(ids.length?'This teaching account has more than one assigned class. Sign out, choose the class workspace, and sign in again.':'No class or subject assignment is linked to this teacher account. Ask the administrator to assign your teaching work.');
+  if(ids.length!==1)throw new Error(ids.length?'Your teaching account has several assigned classes. Sign in and choose the class workspace first.':'No active class or subject assignment is linked to this account. Ask the administrator to assign your teaching work.');
   id=ids[0];
  }
- if(!ids.includes(id))throw new Error('The selected class is not assigned to this teacher account. Sign out and choose an authorised class.');
- const record=fullClassRows.find(x=>x.class_id===id)?.school_classes||subjectRows.find(x=>x.class_id===id)?.school_classes;
- if(!record?.id||record.id!==id)throw new Error('Your assigned class record could not be loaded from the school database.');
+ if(!ids.includes(id))throw new Error('The selected class is not assigned to this teacher account. Choose an authorised class and sign in again.');
+ const selected=assignments.filter(x=>x.class_id===id);
+ const record=selected[0];
+ if(!record?.class_name)throw new Error('Your assigned class details could not be loaded. Ask the administrator to check the assignment.');
+ const fullClass=selected.some(x=>x.is_full_class===true);
  sessionStorage.setItem('cornhill_teacher_class_id',id);
  sessionStorage.setItem('cornhill_login_mode','Teacher');
  try{localStorage.setItem('cornhill_teacher_class_id:'+owner,id)}catch(_){}
  window.teacherClassId=id;
- window.cornhillTeacherAssignedClassRecord={id,name:record.name,stream:record.stream||null};
+ window.cornhillTeacherAssignedClassRecord={id,name:record.class_name,stream:record.stream||null};
+ window.cornhillTeacherFullClassAccess=fullClass;
+ window.cornhillTeacherFullClassIds=[...new Set(assignments.filter(x=>x.is_full_class===true).map(x=>x.class_id))];
  window.teacherClassIds=[id];
- const {data:links,error:linksError}=await db.from('class_subjects').select('class_id,subject_id,teacher_user_id,subjects(name)').eq('class_id',id);
- if(currentUserId!==owner)return false;
- if(linksError)throw new Error('Your assigned subjects could not be loaded: '+linksError.message);
- window.teacherAssignments=links||[];
- window.teacherSubjectIds=[...new Set((links||[]).map(x=>x.subject_id).filter(Boolean))];
- if(!classes.some(x=>x.id===id))classes=[...classes,{id,name:record.name,stream:record.stream||null}];
+ window.teacherAssignments=selected.filter(x=>x.subject_id).map(x=>({...x,subjects:{name:x.subject_name||'Assigned subject'}}));
+ window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id).filter(Boolean))];
+ if(!classes.some(x=>x.id===id))classes=[...classes,{id,name:record.class_name,stream:record.stream||null}];
  return true;
 }
+
 async function loadAcademics(){
  const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;
  // One-time cleanup of the teacher's old local test drafts for this assigned class.
