@@ -2033,7 +2033,7 @@ function resetAccountScopedCommunicationState(){
  if(typeof teacherExcelImportPlan!=='undefined')teacherExcelImportPlan=null;
  academic={years:[],terms:[],subjects:[],assessments:[],classSubjects:[]};
  window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;window.cornhillTeacherAssignedClassRecord=null;
- const clearIds=['reportCardPreview','reportBatchPrint','teacherMarksCodeReview'];clearIds.forEach(id=>{const el=$(id);if(el)el.innerHTML=''});
+ const clearIds=['reportCardPreview','reportBatchPrint','teacherMarksCodeReview','teacherPortalSummary','staffPortalSummary'];clearIds.forEach(id=>{const el=$(id);if(el)el.innerHTML=''});
  const importRows=$('teacherMarksImportRows');if(importRows)importRows.innerHTML='<tr><td colspan="4">Choose a workbook after signing in.</td></tr>';
  const importMsg=$('teacherMarksImportMsg');if(importMsg){importMsg.textContent='';importMsg.classList.add('hidden')}
  const excelHead=$('excelMarksHead'),excelBody=$('excelMarksBody');if(excelHead)excelHead.innerHTML='<tr><th>SN</th><th>Pupil code</th><th>Learner</th><th>Choose class and term</th></tr>';if(excelBody)excelBody.innerHTML='<tr><td colspan="4">Load the signed-in account’s permitted class sheet.</td></tr>';
