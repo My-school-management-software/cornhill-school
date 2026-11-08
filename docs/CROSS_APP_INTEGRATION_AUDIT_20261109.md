@@ -50,6 +50,7 @@ On supported Windows browsers, users open the assigned HTTPS page and choose the
 - Confirmed the parent enquiry owner column already existed as `submitted_by`; the admissions screen reuses it rather than adding a duplicate ownership field.
 - Confirmed RLS policies exist for applicants to submit their own enquiries and read only their own application statuses.
 - Confirmed Evidence Capture storage is private and the admin upload policy is scoped to a pending request created by that administrator.
+- Expanded and verified the database evidence-purpose constraint to accept staff application letter, staff national ID, staff certificates, staff appointment letter, academic qualification, birth certificate, previous report and transfer letter, alongside the original bank/expense and general types. Evidence Capture is enabled in the App Centre for Admin, Teacher and Staff roles.
 - Confirmed the evidence request's device/user fields allow null only for the administrator's local-computer upload path; paired phone capture still uses the assigned-device controls.
 - Added and checked foreign-key columns for learner-facing library, transport and welfare records. Those three tables had zero rows at audit time, so there was no legacy data to guess/backfill.
 - Confirmed the service learner view is granted to authenticated users, the staff-directory lookup RPC is executable, and the limited learner identity columns are selectable. RLS limits the rows to active learners and approved job titles; guardian contact fields are not included in that view.
@@ -58,7 +59,7 @@ On supported Windows browsers, users open the assigned HTTPS page and choose the
 
 ## Known limits / next checks
 
-1. A fresh Vercel preview for the latest feature-branch commit could not be created because Vercel returned its free daily deployment API quota limit (more than 100 deployments; retry after the quota window). The previous READY preview is older than this audit's final commits, so it must not be treated as proof that the latest screens are live. No production alias was changed.
+1. Vercel has a READY preview at commit `c639fb40996880b12bb918664cdbd7340a20270d` (`cornhill-school-3x2kla7b6-cypher-projects1.vercel.app`). The current feature branch has since advanced to commit `8cfd4fc78d0419a253d339fb7e402a7d356b0621`, so that preview is behind the latest source. A manual Vercel deployment request was refused by the free daily deployment API quota (more than 100 deployments; retry after the quota window). Do not treat that older READY preview as proof that the latest final files are live. No production alias was changed.
 2. Browser interaction tests with a real administrator account, a separate Teacher account, a Transport/Librarian/Welfare account, a guardian email-confirmation flow, and a paired Android phone still need to be run. Source syntax and database structure checks are not substitutes for these end-to-end tests.
 3. Existing unlinked staff/teacher directory entries are not automatically merged by matching a name. The new invitation form lets the administrator select the exact employee record; any older duplicates should be manually verified before linking.
 4. Staff-library loans for employees without a CORNHILL login retain a clearly labelled manual path. Learner loans and logged-in staff loans are linked to their main records.
