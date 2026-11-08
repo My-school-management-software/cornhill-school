@@ -3653,7 +3653,9 @@ async function loadExcelMarksGrid(){
  await showOfflineAssessmentDraftCount();
 }
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
-function isImportLearnerNameHeading(value){return ['NAME','PUPILNAME','PUPILSNAMES','PUPILFULLNAME','STUDENTNAME','STUDENTFULLNAME','LEARNERNAME','LEARNERSNAME','FULLNAME'].includes(normaliseImportText(value))}
+function isImportLearnerNameHeading(value){return ['NAME','PUPILNAME','PUPILSNAMES','PUPILFULLNAME','PUPILSFULLNAME','STUDENTNAME','STUDENTSNAME','STUDENTFULLNAME','LEARNERNAME','LEARNERSNAME','LEARNERFULLNAME','LEARNERSFULLNAME','FULLNAME','NAMEOFPUPIL','NAMEOFLEARNER'].includes(normaliseImportText(value))}
+function isImportLearnerCodeHeading(value){return /^(ID\\d*|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
+function isImportLinHeading(value){return /^(LIN|LINS|LINNO|LINNUMBER|LEARNERIDENTIFICATIONNUMBER|LEARNERSIDENTIFICATIONNUMBERLIN)$/.test(normaliseImportText(value))}
 function importSubjectAliases(token,group){
  const nursery=group==='Nursery',lower=group==='P1-P3';
  const common={NU:['Numbers'],NUM:['Numbers'],EN:['English'],ENG:['English'],MTC:['Mathematics'],MT:['Mathematics'],MAT:['Mathematics'],MA:['Mathematics'],MATH:['Mathematics'],SC:['Science'],SCI:['Science'],SST:['Social Studies'],SS:['Social Studies'],LI1:['Literacy I'],LIT1:['Literacy I'],LI:['Literacy I'],LIT:['Literacy I'],LIT2:['Literacy II'],LI2:['Literacy II'],LT2:['Literacy II'],L12:['Literacy II'],LL:['Local Language'],LOC:['Local Language'],RE:['Religious Education'],CRE:['Religious Education'],HH:['Health Habits'],SD:['Social Development'],WR:['Writing'],WRI:['Writing'],DR:['Drawing'],DRAW:['Drawing'],LD:['Language Development']};
@@ -3751,8 +3753,8 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   for(const info of sheetInfos){
    const headers=info.matrix[info.headerRow].map(v=>String(v??'').trim()),rows=info.matrix.slice(info.headerRow+1),normal=headers.map(normaliseImportText);
    const nameIndex=normal.findIndex(isImportLearnerNameHeading);
-   const codeIndex=normal.findIndex(v=>/^(ID\d*|PUPILCODE|ADMISSIONNUMBER|ADMISSIONCODE)$/.test(v));
-   const linIndex=normal.findIndex(v=>/^LINS?$/.test(v));
+   const codeIndex=normal.findIndex(isImportLearnerCodeHeading);
+   const linIndex=normal.findIndex(isImportLinHeading);
    if(nameIndex<0){issues.push(info.name+': learner-name heading was not recognised.');continue}
    let activePeriod=1;const columns=[];
    headers.forEach((header,index)=>{
