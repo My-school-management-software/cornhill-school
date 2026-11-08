@@ -1,0 +1,19 @@
+{
+  "id": "/school.html",
+  "name": "CORNHILL Nursery and Primary School",
+  "short_name": "CORNHILL School",
+  "description": "Public school information and admission enquiry website",
+  "start_url": "/school.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f8f4",
+  "theme_color": "#14532d",
+  "icons": [
+    {
+      "src": "/assets/cornhill-school-badge.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
