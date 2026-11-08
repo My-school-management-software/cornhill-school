@@ -3646,14 +3646,21 @@ async function renderReportCard(options={}){
  const className=learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'';
  const classGroup=curriculumGroupForClass(className),isP47=classGroup==='P4-P7',isNursery=classGroup==='Nursery',isP6=/P\.?\s*6|PRIMARY\s*6/i.test(className),isP7=/P\.?\s*7|PRIMARY\s*7/i.test(className),isSetBased=isP6||isP7;
  const periods=assessmentPeriodsForClassName(className);
- const subjectMap=new Map((data.assessments||[]).map(a=>a.subjects).filter(sub=>sub?.id).map(sub=>[sub.id,academic.subjects.find(x=>x.id===sub.id)||sub]));
- const subjects=[...subjectMap.values()];
- const ordered=subjects.sort((a,b)=>{const aa=data.assessments.find(x=>x.subject_id===a.id),bb=data.assessments.find(x=>x.subject_id===b.id);return excelSubjectOrder(aa)-excelSubjectOrder(bb)});
+ const expectedCurriculum=classCurriculumProfile(className);
+ const linkedSubjects=classSubjectsFor(learner.class_id);
+ const assessmentSubjects=(data.assessments||[]).map(a=>a.subjects).filter(sub=>sub?.name);
+ const subjectCandidates=[...linkedSubjects,...assessmentSubjects,...(academic.subjects||[])];
+ // Build the report from the learner's class curriculum, not only from subjects
+ // that already have assessments or saved marks. A blank subject stays visible.
+ const ordered=(expectedCurriculum.subjects||[]).map(name=>{
+  const found=subjectCandidates.find(sub=>excelSubjectKey(sub.name||sub.subjects?.name)===excelSubjectKey(name));
+  return found?{...found,name:found.name||found.subjects?.name||name}:{id:null,name};
+ });
  const classList=students.filter(x=>x.class_id===learner.class_id&&x.status==='Active');
  const subjectRows=ordered.map(sub=>{
   const cells={};periods.forEach(p=>{const aa=data.assessments.filter(a=>a.subject_id===sub.id&&excelAssessmentPeriod(a)===p);let got=0,max=0,absent=false,comments=[];aa.forEach(a=>(data.scores||[]).filter(sc=>sc.assessment_id===a.id&&sc.student_id===studentId).forEach(sc=>{if(isAbsentMark(sc))absent=true;else{got+=Number(sc.score);max+=Number(a.max_score)}if(sc.teacher_comment)comments.push(sc.teacher_comment)}));cells[p]={got,max,absent,comments}});
   return {subject:sub,cells};
- }).filter(x=>periods.some(p=>x.cells[p].max||x.cells[p].absent));
+ });
  const phaseTotals={};periods.forEach(p=>{phaseTotals[p]=subjectRows.reduce((o,r)=>({got:o.got+r.cells[p].got,max:o.max+r.cells[p].max,absent:o.absent||r.cells[p].absent}),{got:0,max:0,absent:false})});
  const rankFor=p=>{const scored=classList.map(l=>{let got=0,max=0;subjectRows.forEach(r=>{const aa=data.assessments.filter(a=>a.subject_id===r.subject.id&&excelAssessmentPeriod(a)===p);aa.forEach(a=>(data.scores||[]).filter(sc=>sc.assessment_id===a.id&&sc.student_id===l.id&&!isAbsentMark(sc)).forEach(sc=>{got+=Number(sc.score);max+=Number(a.max_score)}))});return {id:l.id,got,max,percent:max>0?got/max*100:null}}).filter(x=>x.max>0).sort((a,b)=>b.percent-a.percent);const mine=scored.find(x=>x.id===studentId);if(!mine)return null;const index=scored.findIndex(x=>x.id===studentId);let rank=index+1;while(rank>1&&Math.abs(scored[rank-2].percent-mine.percent)<0.000001)rank--;return rank};
  const gradesFor=p=>subjectRows.map(r=>{const c=r.cells[p];return {name:r.subject.name,absent:c.absent,grade:c.max?unebGradeFor(r.subject.id,c.got/c.max*100)?.grade_code||'':null}});
