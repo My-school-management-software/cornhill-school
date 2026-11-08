@@ -1313,6 +1313,15 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
    <button type="button" id="saveExcelMarks">Save all marks</button><button type="button" id="syncOfflineMarks">Synchronise pending offline marks</button>
   </div>
   <div id="excelMarksMsg" class="notice hidden" style="margin-top:10px"></div>
+  <section id="excelClassPerformance" class="panel hidden" style="margin:12px 0;padding:14px">
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div><h3 style="margin:0">Whole-class performance</h3><p id="excelClassPerformanceMeta" class="muted" style="margin:5px 0 0">Load the class sheet to calculate class performance.</p></div>
+    <button type="button" id="refreshExcelClassPerformance">Refresh performance</button>
+   </div>
+   <div id="excelClassPerformanceSummary" class="grid" style="margin-top:12px"></div>
+   <div class="table-wrap" style="overflow:auto"><table style="min-width:650px"><thead><tr><th>Assessment period</th><th>Subject</th><th>Learners assessed</th><th>Class average</th><th>Highest</th><th>Lowest</th><th>Average %</th></tr></thead><tbody id="excelClassPerformanceRows"><tr><td colspan="7">Load the class sheet first.</td></tr></tbody></table></div>
+   <p class="muted" style="margin-bottom:0">This is a read-only class summary calculated from the marks currently shown in the class sheet. Blank marks and absence entries are not counted. It does not change learner marks.</p>
+  </section>
   <div id="excelMarksCodeKey" class="muted" style="margin-top:9px;padding:10px 12px;border:1px solid var(--cornhill-line);border-radius:10px;background:var(--cornhill-panel)">Subject code key will appear when the class sheet loads.</div>
   <div class="table-wrap" style="margin-top:12px;max-height:65vh;overflow:auto">
    <table id="excelMarksTable" class="excel-marks-table" style="min-width:760px;border-collapse:separate;border-spacing:0">
@@ -3734,9 +3743,41 @@ async function loadExcelMarksGrid(){
  const photoLearners=list.filter(x=>x.photo_path);
  if(photoLearners.length){const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)})}
  recalculateExcelMarkSheet();
+ renderExcelClassPerformance();
  let localDraftCount=0;try{localDraftCount=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>!x.expires_at||x.expires_at>Date.now()).filter(x=>assessments.some(a=>a.id===x.assessment_id)).length}catch(_){}
  message('excelMarksMsg',list.length+' active learners loaded · '+assessments.length+' assessment columns · '+(data||[]).length+' saved server marks loaded · '+localDraftCount+' pending offline drafts. Enter marks in the table and press Save all marks. Totals, aggregate and division recalculate automatically for P4–P7; positions are shown for Nursery through P5; P6 and P7 use aggregate and division.');
 }
+function renderExcelClassPerformance(){
+ const ctx=window.cornhillExcelMarksContext,panel=$('excelClassPerformance');
+ if(!panel)return;
+ if(!ctx){panel.classList.add('hidden');return}
+ const rows=[];
+ let allScores=[],assessedCells=0;
+ for(const assessment of ctx.assessments){
+  const values=[];
+  for(const learner of ctx.students){
+   const input=document.querySelector('[data-grid-score][data-assessment-id="'+CSS.escape(assessment.id)+'"][data-student-id="'+CSS.escape(learner.id)+'"]');
+   const raw=String(input?.value??'').trim();
+   if(!raw||/^x$/i.test(raw))continue;
+   const value=Number(raw);
+   if(!Number.isFinite(value))continue;
+   values.push(value);allScores.push(value);assessedCells++;
+  }
+  const sum=values.reduce((a,b)=>a+b,0),avg=values.length?sum/values.length:null;
+  rows.push({period:excelAssessmentPeriod(assessment),subject:assessment.subjects?.name||assessment.title||'Subject',count:values.length,avg,high:values.length?Math.max(...values):null,low:values.length?Math.min(...values):null,pct:avg===null?null:(avg/Number(assessment.max_score||100))*100});
+ }
+ const average=allScores.length?allScores.reduce((a,b)=>a+b,0)/allScores.length:null;
+ $('excelClassPerformanceMeta').textContent=(classes.find(x=>x.id===ctx.classId)?.name||'Class')+' · '+(academic.terms.find(x=>x.id===ctx.termId)?.name||'Selected term')+' · '+ctx.students.length+' active learners';
+ $('excelClassPerformanceSummary').innerHTML=[
+  ['Active learners',ctx.students.length],
+  ['Assessment columns',ctx.assessments.length],
+  ['Marks entered',assessedCells],
+  ['Overall average',average===null?'—':average.toFixed(1)]
+ ].map(([label,value])=>'<div class="stat"><small>'+label+'</small><div class="num">'+value+'</div></div>').join('');
+ $('excelClassPerformanceRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.period)+'</td><td>'+esc(x.subject)+'</td><td>'+x.count+' / '+ctx.students.length+'</td><td>'+(x.avg===null?'—':x.avg.toFixed(1))+'</td><td>'+(x.high===null?'—':x.high)+'</td><td>'+(x.low===null?'—':x.low)+'</td><td>'+(x.pct===null?'—':x.pct.toFixed(1)+'%')+'</td></tr>').join('')||'<tr><td colspan="7">No assessment columns are available.</td></tr>';
+ panel.classList.remove('hidden');
+}
+$('refreshExcelClassPerformance')?.addEventListener('click',renderExcelClassPerformance);
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function isImportLearnerNameHeading(value){return ['NAME','PUPILNAME','PUPILSNAMES','PUPILFULLNAME','PUPILSFULLNAME','STUDENTNAME','STUDENTSNAME','STUDENTFULLNAME','LEARNERNAME','LEARNERSNAME','LEARNERFULLNAME','LEARNERSFULLNAME','FULLNAME','NAMEOFPUPIL','NAMEOFLEARNER'].includes(normaliseImportText(value))}
 function isImportLearnerCodeHeading(value){return /^(IDNUMBER|PUPILNO|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERNO|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGNO|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
