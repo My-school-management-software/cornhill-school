@@ -1284,8 +1284,15 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
 </section>
 <section id="academics" class="panel hidden">
  <div class="row"><h2>Academics · administration, teaching and results</h2><span class="badge" id="academicAccessBadge">Administrator and assigned teacher access</span></div>
- <p class="muted">Administrators control admissions, class placement, subjects and grading rules, and review all teacher-entered marks. Assigned teachers prepare class assessments and enter or update marks for their own class. Administrator mark entry is disabled.</p>
+ <p class="muted">Teachers independently prepare assessments, enter marks and manage results for their assigned classes. Administrators monitor school-wide performance and manage academic structure; routine assessment approval is not required.</p>
  <div id="academicMsg" class="notice hidden"></div>
+ <section id="adminAcademicInsights" class="panel hidden" style="margin:14px 0;padding:16px">
+  <div class="row" style="align-items:center;justify-content:space-between"><div><h3 style="margin:0">Academic Performance &amp; Insights</h3><p class="muted" style="margin:5px 0">School-wide monitoring. Teachers manage assessments and marks; this view is for oversight and analysis, not approval.</p></div><span class="badge">Administrator overview</span></div>
+  <div class="row" style="align-items:end;gap:10px;margin:12px 0"><div style="min-width:190px;flex:1"><label for="adminAcademicTerm">Academic term</label><select id="adminAcademicTerm"></select></div><button type="button" class="primary" id="refreshAdminAcademicInsights">Refresh school performance</button></div>
+  <div id="adminAcademicInsightMsg" class="notice hidden"></div><div id="adminAcademicKpis" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px"></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px"><section class="panel"><h4>Class performance comparison</h4><div id="adminAcademicClassBars" class="muted">Choose a term and refresh.</div></section><section class="panel"><h4>Subject performance overview</h4><div id="adminAcademicSubjectBars" class="muted">Choose a term and refresh.</div></section></div>
+  <h4 style="margin-top:16px">Class activity and results</h4><div class="table-wrap"><table><thead><tr><th>Class</th><th>Assessments</th><th>Learners with marks</th><th>Average</th><th>Highest</th><th>Lowest</th><th>Activity</th></tr></thead><tbody id="adminAcademicClassRows"><tr><td colspan="7">Choose a term and refresh.</td></tr></tbody></table></div>
+ </section>
  <div id="academicAdminSetup">
  <h3>1. Academic year</h3>
  <form id="academicYearForm"><div><label>Academic year *</label><input name="name" required placeholder="e.g. 2027"></div><div class="full"><p class="muted">The academic year becomes current when you activate one of its terms from the dashboard.</p></div><div><label>Starts *</label><input name="starts_on" type="date" required></div><div><label>Ends *</label><input name="ends_on" type="date" required></div><div class="full"><button class="primary">Save academic year</button></div></form>
@@ -3267,7 +3274,8 @@ async function loadAcademics(){
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  if(profile?.role==='Teacher'){try{const ready=await ensureTeacherAcademicClassContext();if(!ready)return}catch(contextError){message('academicMsg',contextError?.message||'Your assigned class could not be verified. Sign out and sign in again.',true);const field=$('markGridTerm')?.closest('section.panel')?.querySelector('input[readonly]');if(field)field.value='Class assignment needs administrator review';return}}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
- $('assessmentSetup').classList.toggle('hidden',profile?.role!=='Admin');
+ $('assessmentSetup').classList.toggle('hidden',!['Admin','Teacher'].includes(profile?.role));
+ $('adminAcademicInsights')?.classList.toggle('hidden',profile?.role!=='Admin');
  $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
  $('adminTeacherMarksRegister').classList.toggle('hidden',profile?.role!=='Admin');
  $('adminReportActions').classList.toggle('hidden',profile?.role!=='Admin');
@@ -3278,7 +3286,8 @@ async function loadAcademics(){
  $('academicGradingPanel')?.classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
- $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic administration · marks read-only':'Assigned teacher · assessment and mark entry';
+ $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic Performance & Insights · school-wide monitoring':'Academics & Results · teacher-managed';
+ $('academics').querySelector('h2').textContent=profile?.role==='Admin'?'Academic Performance & Insights':'Academics & Results';
  $('adminReportActions')?.classList.toggle('hidden',profile?.role!=='Admin');
  const [y,t,s,a,staff,teacherDirectory,cscores,assignments,classTeacherAssignments]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
@@ -3327,6 +3336,10 @@ async function loadAcademics(){
  $('academicScoreRows').innerHTML=profile?.role==='Admin'?window.cornhillTeacherMarksRegister.map(x=>'<tr><td>'+esc(x.assessments?.school_classes?.name||'—')+'</td><td>'+esc(x.assessments?.academic_terms?.name||'—')+'</td><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.middle_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.subjects?.name||'—')+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>'+esc(window.cornhillStaffNames[x.entered_by]||'Teacher account')+'</td><td>'+esc(x.updated_at?new Date(x.updated_at).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No teacher marks have been saved yet.</td></tr>':'<tr><td colspan="10">Administrator register only.</td></tr>';
  updateScoreLearners();
  populateReportFilters();
+ if(profile?.role==='Admin'){
+  const insightTerm=$('adminAcademicTerm');if(insightTerm){insightTerm.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');const current=academic.terms.find(x=>x.is_current&&!x.is_closed)||academic.terms.find(x=>!x.is_closed)||academic.terms[0];if(current)insightTerm.value=current.id;}
+  await loadAdminAcademicInsights();
+ }
  // Rebuild the teacher register only after the assigned class, subjects, terms and assessments
  // have all been loaded. Select the active term automatically and open the class sheet.
  setupExcelMarksFilters();
@@ -3642,6 +3655,33 @@ async function renderReportCard(options={}){
  const print=preview.querySelector('#printOfficialReport');if(print)print.addEventListener('click',()=>{if(profile?.role!=='Admin'){message('academicMsg','Official report-card printing is managed by the administrator and bursar.',true);return}document.body.classList.add('print-official-report');window.print();document.body.classList.remove('print-official-report')});
 
 }
+async function loadAdminAcademicInsights(){
+ if(profile?.role!=='Admin'||demoMode)return;
+ const termId=$('adminAcademicTerm')?.value,note=$('adminAcademicInsightMsg'),kpis=$('adminAcademicKpis'),classBars=$('adminAcademicClassBars'),subjectBars=$('adminAcademicSubjectBars'),rows=$('adminAcademicClassRows');
+ if(!termId){if(note){note.textContent='Choose an academic term to view school performance.';note.classList.remove('hidden')}return}
+ if(note){note.textContent='Loading school-wide academic records…';note.classList.remove('hidden')}
+ try{
+  const {data:assessments,error:assessmentError}=await db.from('assessments').select('id,class_id,subject_id,max_score,school_classes(name),subjects(name)').eq('term_id',termId);if(assessmentError)throw assessmentError;
+  const list=assessments||[],ids=list.map(x=>x.id);let scores=[];
+  if(ids.length){const result=await db.from('assessment_scores').select('assessment_id,student_id,score').in('assessment_id',ids);if(result.error)throw result.error;scores=result.data||[]}
+  const cm=new Map(),sm=new Map(),am=new Map(list.map(a=>[a.id,a]));
+  list.forEach(a=>{const c=cm.get(a.class_id)||{name:a.school_classes?.name||'Class',assessments:0,learners:new Set(),sum:0,max:0,marks:[]};c.assessments++;cm.set(a.class_id,c);const q=sm.get(a.subject_id)||{name:a.subjects?.name||'Subject',learners:new Set(),sum:0,max:0};sm.set(a.subject_id,q)});
+  scores.forEach(m=>{const a=am.get(m.assessment_id);if(!a||m.score==null)return;const n=Number(m.score),max=Number(a.max_score||0);if(!Number.isFinite(n)||max<=0)return;const c=cm.get(a.class_id),q=sm.get(a.subject_id);if(c){c.sum+=n;c.max+=max;c.learners.add(m.student_id);c.marks.push(n/max*100)}if(q){q.sum+=n;q.max+=max;q.learners.add(m.student_id)}});
+  const cr=[...cm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:0})).sort((a,b)=>a.name.localeCompare(b.name)),sr=[...sm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:0})).sort((a,b)=>a.average-b.average);
+  const learnerCount=new Set(scores.map(x=>x.student_id)).size,recordedClasses=cr.filter(x=>x.learners.size).length,den=cr.reduce((n,x)=>n+x.max,0),schoolAvg=den?cr.reduce((n,x)=>n+x.sum,0)/den*100:0;
+  const tile=(label,value)=>'<div class="panel" style="padding:12px"><div class="muted">'+label+'</div><strong style="font-size:1.4rem">'+value+'</strong></div>';
+  kpis.innerHTML=tile('Classes with assessments',cr.length)+tile('Classes with saved marks',recordedClasses)+tile('Learners with marks',learnerCount)+tile('School average',den?schoolAvg.toFixed(1)+'%':'—')+tile('Subjects assessed',sr.length)+tile('Saved mark records',scores.length);
+  const bar=(label,p)=>'<div style="margin:8px 0"><div class="row" style="justify-content:space-between;gap:8px"><span>'+esc(label)+'</span><b>'+p.toFixed(1)+'%</b></div><div style="height:9px;background:var(--cornhill-line);border-radius:9px;overflow:hidden"><div style="height:100%;width:'+Math.max(0,Math.min(100,p))+'%;background:var(--cornhill-accent);border-radius:9px"></div></div></div>';
+  classBars.innerHTML=cr.length?cr.map(x=>bar(x.name,x.average)).join(''):'No class assessments found for this term.';
+  subjectBars.innerHTML=sr.length?sr.map(x=>bar(x.name,x.average)).join(''):'No subject assessments found for this term.';
+  rows.innerHTML=cr.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+x.learners.size+'</td><td>'+(x.learners.size?x.average.toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.max(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.min(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.learners.size?'Marks recorded':'Awaiting marks')+'</td></tr>').join('')||'<tr><td colspan="7">No assessments found.</td></tr>';
+  if(note){note.textContent='Updated from saved school records · '+scores.length+' mark records analysed.';note.classList.remove('hidden')}
+  window.cornhillAdminAcademicInsights={termId,classes:cr.map(x=>({name:x.name,average:x.average,learners:x.learners.size})),subjects:sr.map(x=>({name:x.name,average:x.average})),scoreCount:scores.length};
+ }catch(err){if(note){note.textContent='Could not load school academic insights: '+(err?.message||String(err));note.classList.remove('hidden')}console.error('Academic insights load failed',err)}
+}
+$('refreshAdminAcademicInsights')?.addEventListener('click',loadAdminAcademicInsights);
+$('adminAcademicTerm')?.addEventListener('change',loadAdminAcademicInsights);
+
 async function renderClassPerformance(){
  if(demoMode)return;
  const data=await getTermScores();if(!data)return;
