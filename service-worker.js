@@ -1,9 +1,10 @@
 /* CORNHILL offline application shell and safe static-asset cache.
    Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v38';
+const CACHE_NAME = 'cornhill-shell-v39';
 const SHELL = [
   '/',
   '/index.html',
+  '/parents.html',
   '/manifest.webmanifest',
   '/service-worker.js',
   '/assets/cornhill-school-badge.png'
@@ -13,7 +14,7 @@ const STATIC_CDN = [
   'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v38';
+const STATIC_CACHE = 'cornhill-static-v39';
 const STATIC_HOSTS = new Set(['cdn.jsdelivr.net']);
 
 self.addEventListener('install', event => {
@@ -71,18 +72,29 @@ self.addEventListener('fetch', event => {
   }
 
   if (request.mode === 'navigate') {
+    const isParentPortal = url.pathname === '/p' ||
+      url.pathname === '/parents.html' ||
+      url.pathname === '/parents';
+    const routeCacheKey = isParentPortal ? '/parents.html' : '/index.html';
     event.respondWith((async () => {
       try {
         const response = await fetch(request);
         if (response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          await cache.put('/index.html', response.clone());
-          await cache.put('/', response.clone());
+          // Keep the public guardian page separate from the school-admin app shell.
+          await cache.put(routeCacheKey, response.clone());
+          if (!isParentPortal) await cache.put('/', response.clone());
         }
         return response;
       } catch {
-        return (await caches.match('/index.html')) ||
-          (await caches.match('/')) ||
+        const cached = await caches.match(routeCacheKey);
+        if (cached) return cached;
+        if (isParentPortal) {
+          return new Response('The CORNHILL Parent Portal is offline. Reconnect to verify the guardian account and load learner records.', {
+            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
+        }
+        return (await caches.match('/')) ||
           new Response('CORNHILL is offline and its saved app shell is unavailable on this device. Reconnect once to load the application.', {
             status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
           });
