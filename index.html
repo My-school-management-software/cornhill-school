@@ -5769,16 +5769,31 @@ $('runBulkPromotion')?.addEventListener('click',async()=>{
  const targetName=destination.name+(destination.stream?' · '+destination.stream:'');
  if(!confirm('Confirm this BULK class promotion?\n\nLearners selected: '+chosen.length+'\nFrom class(es): '+sourceNames.join(', ')+'\nTo: '+targetName+'\nEffective date: '+effectiveDate+'\nReason: '+(notes||'Bulk class promotion')+'\n\nLearners: '+sample+more+'\n\nThe system will save one class-history record per learner and update their active enrolment class. Existing fees, receipts, marks, LINs and pupil codes will remain unchanged. All learners are processed together; a validation failure stops the whole batch.'))return;
  button.disabled=true;button.textContent='Promoting learners…';status.className='notice';status.textContent='Saving '+chosen.length+' learner promotion(s) together…';
+ let promotionCommitted=false;
  try{
   const {data,error}=await db.rpc('promote_learners_bulk',{p_student_ids:ids,p_new_class_id:destinationId,p_effective_date:effectiveDate,p_notes:notes||null});
   if(error)throw error;
+  // A successful RPC response means the atomic database transaction has committed.
+  // Do not report "not saved" or invite a repeat if a later UI refresh fails.
+  promotionCommitted=true;
   const result=Array.isArray(data)?data[0]:data;
-  const promoted=Number(result?.promoted_count||chosen.length),history=Number(result?.history_count||promoted);
+  const promoted=Number(result?.promoted_count),history=Number(result?.history_count);
+  if(!Number.isSafeInteger(promoted)||!Number.isSafeInteger(history)||promoted!==ids.length||history!==ids.length){
+   showError('The database accepted the promotion request but returned an unexpected confirmation. DO NOT repeat this batch. Refresh the register and ask an administrator to verify the class and promotion history before taking further action.');
+   return;
+  }
   window.cornhillBulkPromotionSelectedIds=new Set();
-  await refresh();
+  try{await refresh()}
+  catch(refreshError){
+   showError('The promotion was saved for '+promoted+' learner(s), but the register could not refresh. DO NOT repeat this batch. Refresh the learner register and verify the destination class and class-history records. '+(refreshError?.message||''));
+   return;
+  }
   if($('bulkPromotionMessage')){$('bulkPromotionMessage').className='notice success';$('bulkPromotionMessage').textContent='Successfully promoted '+promoted+' learner(s) to '+targetName+'. '+history+' class-history record(s) saved. Existing financial and academic history was preserved.'}
   message('appMsg','Bulk promotion completed: '+promoted+' learner(s) moved to '+targetName+'.');
- }catch(err){showError('Bulk promotion was not saved. No learners were moved. '+(err?.message||'Please review the selection and try again.'))}
+ }catch(err){
+  if(promotionCommitted)showError('The promotion request was accepted, but a follow-up screen update failed. DO NOT repeat this batch. Refresh the register and verify the class-history records. '+(err?.message||''));
+  else showError('Bulk promotion was not saved. No learners were moved. '+(err?.message||'Please review the selection and try again.'));
+ }
  finally{button.disabled=false;button.textContent='Review and promote selected';render()}
 });
 $('studentRows').addEventListener('click',async e=>{
