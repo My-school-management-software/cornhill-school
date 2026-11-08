@@ -6018,6 +6018,154 @@ function renderRecordsBarChart(hostId,items,format='number'){
  const bars=data.map((x,i)=>{const value=Number(x.value)||0,bh=Math.max(value>0?3:0,(value/max)*plotH),x0=left+i*(barW+barGap),y=bottom+plotH-bh,label=String(x.label).slice(0,12);return '<g><title>'+esc(String(x.label))+': '+esc(format==='ugx'?Math.round(value).toLocaleString('en-UG')+' UGX':value.toFixed(1))+'</title><rect x="'+x0+'" y="'+y+'" width="'+barW+'" height="'+bh+'" rx="4" fill="var(--cornhill-accent)" opacity=".82"/><text x="'+(x0+barW/2)+'" y="'+(y-5)+'" font-size="10" text-anchor="middle" fill="var(--cornhill-ink)">'+(format==='ugx'?(value>=1000000?(value/1000000).toFixed(1)+'m':value>=1000?Math.round(value/1000)+'k':Math.round(value)):value.toFixed(1))+'</text><text x="'+(x0+barW/2)+'" y="'+(bottom+plotH+16)+'" font-size="9" text-anchor="middle" fill="var(--cornhill-muted)">'+esc(label)+'</text></g>'}).join('');
  host.innerHTML='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Records bar chart"><line x1="'+left+'" y1="'+(bottom+plotH)+'" x2="'+(w-8)+'" y2="'+(bottom+plotH)+'" stroke="currentColor" opacity=".25"/>'+bars+'</svg>';
 }
+window.cornhillDocumentIndex=window.cornhillDocumentIndex||[];
+function getRecordExpiryState(record){
+ if(!record.expires_on)return 'none';
+ const today=new Date();today.setHours(0,0,0,0);
+ const expiry=new Date(record.expires_on+'T00:00:00');
+ if(expiry<today)return 'expired';
+ const days=Math.ceil((expiry-today)/86400000);
+ return days<=30?'due':'valid';
+}
+function renderSchoolDocumentRegister(){
+ const rows=window.cornhillDocumentIndex||[];
+ const query=String($('recordIndexSearch')?.value||'').trim().toLowerCase();
+ const type=$('recordIndexType')?.value||'all';
+ const expiry=$('recordIndexExpiry')?.value||'all';
+ const filtered=rows.filter(r=>{
+  if(type!=='all'&&r.record_type!==type)return false;
+  if(expiry!=='all'&&getRecordExpiryState(r)!==expiry)return false;
+  const hay=[r.record_title,r.record_type,r.original_file_name,r.record_identifier,r.issuing_authority,r.source_context_type,r.source_record_id,r.extracted_text].join(' ').toLowerCase();
+  return !query||hay.includes(query);
+ });
+ const total=rows.length,ocrPending=rows.filter(r=>['Not started','Failed','Needs review'].includes(r.ocr_status)).length;
+ const due=rows.filter(r=>getRecordExpiryState(r)==='due').length,expired=rows.filter(r=>getRecordExpiryState(r)==='expired').length;
+ $('recordIndexTotal').textContent=String(total);$('recordIndexOcrPending').textContent=String(ocrPending);
+ $('recordIndexDue').textContent=String(due);$('recordIndexExpired').textContent=String(expired);
+ $('recordIndexRows').innerHTML=filtered.map(r=>{
+  const expiryState=getRecordExpiryState(r);
+  const expiryLabel=expiryState==='expired'?'Expired':expiryState==='due'?'Due soon':expiryState==='valid'?'Valid':'Not entered';
+  return '<tr data-record-index-row="'+esc(r.id)+'">'+
+   '<td><strong>'+esc(r.record_title)+'</strong><br><small class="muted">'+esc(r.original_file_name)+' · '+esc(r.source_context_type||'unlinked')+'</small><details style="margin-top:6px"><summary>OCR text preview</summary><p class="muted" style="max-width:280px;white-space:pre-wrap">'+esc((r.extracted_text||'No extracted text yet.').slice(0,1400))+'</p></details></td>'+
+   '<td>'+esc(r.record_type)+'</td>'+
+   '<td><label class="small">Record number</label><input data-record-identifier maxlength="120" value="'+esc(r.record_identifier||'')+'" placeholder="Document / reference no."><label class="small">Issuing authority</label><input data-record-issuer maxlength="180" value="'+esc(r.issuing_authority||'')+'" placeholder="School, bank, authority…"></td>'+
+   '<td><input data-record-issued type="date" value="'+esc(r.issued_on||'')+'"></td>'+
+   '<td><input data-record-expires type="date" value="'+esc(r.expires_on||'')+'"><span class="badge '+(expiryState==='expired'?'bad':expiryState==='due'?'warn':'')+'">'+expiryLabel+'</span></td>'+
+   '<td><span class="badge '+(r.ocr_status==='Completed'?'':r.ocr_status==='Failed'?'bad':'warn')+'">'+esc(r.ocr_status)+'</span><br><button type="button" data-record-ocr="'+esc(r.id)+'">Extract text</button></td>'+
+   '<td><select data-record-verification><option'+(r.verification_status==='Pending'?' selected':'')+'>Pending</option><option'+(r.verification_status==='Verified'?' selected':'')+'>Verified</option><option'+(r.verification_status==='Rejected'?' selected':'')+'>Rejected</option><option'+(r.verification_status==='Archived'?' selected':'')+'>Archived</option></select><textarea data-record-notes rows="2" maxlength="2000" placeholder="Review notes">'+esc(r.notes||'')+'</textarea></td>'+
+   '<td><button type="button" data-record-open="'+esc(r.id)+'">Open file</button><small class="muted">'+(r.content_type?esc(r.content_type):'')+' · '+Number(r.size_bytes||0).toLocaleString('en-UG')+' bytes</small></td>'+
+   '<td><button type="button" class="primary" data-record-save="'+esc(r.id)+'">Save details</button></td>'+
+   '</tr>';
+ }).join('')||'<tr><td colspan="9">No documents match this search.</td></tr>';
+ $('recordIndexStatus').textContent=filtered.length+' of '+total+' indexed document(s). Files remain private; links are generated only when an authorised user opens a record.';
+}
+async function loadSchoolDocumentRegister(){
+ const host=$('recordIndexRows');if(!host)return;
+ if(profile?.role!=='Admin'||demoMode){host.innerHTML='<tr><td colspan="9">Document records are available to administrators only.</td></tr>';return}
+ $('recordIndexStatus').textContent='Refreshing expiry alerts and loading indexed documents…';
+ const {data:alerts,error:alertError}=await db.rpc('refresh_school_record_expiry_notifications');
+ if(alertError){$('recordIndexStatus').textContent='Expiry alerts could not be refreshed: '+alertError.message}
+ const {data,error}=await db.from('school_record_index')
+  .select('id,evidence_file_id,request_id,record_type,record_title,source_context_type,source_record_id,original_file_name,record_identifier,issuing_authority,issued_on,expires_on,extracted_text,extracted_fields,ocr_status,verification_status,notes,created_at')
+  .order('created_at',{ascending:false}).limit(1000);
+ if(error){host.innerHTML='<tr><td colspan="9">Document register could not load: '+esc(error.message)+'</td></tr>';$('recordIndexStatus').textContent=error.message;return}
+ const ids=(data||[]).map(r=>r.evidence_file_id);
+ let files=[];
+ if(ids.length){
+  const result=await db.from('evidence_capture_files').select('id,storage_path,content_type,size_bytes').in('id',ids);
+  if(result.error){$('recordIndexStatus').textContent='Document metadata loaded, but private file metadata could not load: '+result.error.message;return}
+  files=result.data||[];
+ }
+ const fileMap=Object.fromEntries(files.map(file=>[file.id,file]));
+ window.cornhillDocumentIndex=(data||[]).map(row=>({...row,...(fileMap[row.evidence_file_id]||{})}));
+ renderSchoolDocumentRegister();
+ if(!alertError)$('recordIndexStatus').textContent=(alerts||0)+' new expiry alert(s) added. '+window.cornhillDocumentIndex.length+' document(s) indexed.';
+}
+async function loadTesseract(){
+ if(window.Tesseract)return window.Tesseract;
+ await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';script.async=true;
+  script.onload=resolve;script.onerror=()=>reject(new Error('OCR engine could not load. Connect to the internet and try again.'));
+  document.head.appendChild(script);
+ });
+ if(!window.Tesseract)throw new Error('OCR engine did not initialise.');
+ return window.Tesseract;
+}
+function suggestRecordFields(ocrText){
+ const text=String(ocrText||'');
+ const dates=[...new Set(text.match(/\b(?:\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{4}-\d{2}-\d{2})\b/g)||[])].slice(0,20);
+ const identifiers=[...new Set(text.match(/\b[A-Z0-9][A-Z0-9\/-]{5,24}\b/gi)||[])].slice(0,30);
+ const amounts=[...new Set(text.match(/(?:UGX|UShs?|Shs?)\s*[\d,]+/gi)||[])].slice(0,20);
+ return {candidate_dates:dates,candidate_identifiers:identifiers,candidate_amounts:amounts,review_required:true};
+}
+async function runRecordIndexOcr(id,button){
+ const row=(window.cornhillDocumentIndex||[]).find(x=>x.id===id);if(!row)return;
+ if(!row.content_type?.startsWith('image/')){message('reportsMsg','Automatic OCR currently supports scanned image files. For a PDF, use the scanner workflow to create OCR text, or attach image pages for extraction.',true);return}
+ button.disabled=true;button.textContent='Reading…';
+ try{
+  const {data:signed,error:signedError}=await db.storage.from('cornhill-private-evidence').createSignedUrl(row.storage_path,300);
+  if(signedError||!signed?.signedUrl)throw signedError||new Error('Private file link could not be created.');
+  const response=await fetch(signed.signedUrl);if(!response.ok)throw new Error('The source image could not be downloaded.');
+  const blob=await response.blob(),Tesseract=await loadTesseract();
+  const result=await Tesseract.recognize(blob,'eng',{logger:progress=>{
+   if(progress.status==='recognizing text')button.textContent='OCR '+Math.round((progress.progress||0)*100)+'%';
+  }});
+  const extractedText=String(result?.data?.text||'').trim();
+  if(!extractedText)throw new Error('No readable text was detected. Try a clearer scan or use manual entry.');
+  const fields=suggestRecordFields(extractedText);
+  const {error}=await db.rpc('save_school_record_ocr_text',{p_evidence_file_id:row.evidence_file_id,p_extracted_text:extractedText,p_extracted_fields:fields});
+  if(error)throw error;
+  message('reportsMsg','Text extracted and saved for '+row.original_file_name+'. Suggested identifiers and dates are for administrator verification only.');
+  await loadSchoolDocumentRegister();
+ }catch(error){message('reportsMsg','OCR did not finish: '+(error.message||'Please try again.'),true)}
+ finally{button.disabled=false;button.textContent='Extract text'}
+}
+$('refreshDocumentRegister')?.addEventListener('click',loadSchoolDocumentRegister);
+for(const id of ['recordIndexSearch','recordIndexType','recordIndexExpiry']){
+ $(id)?.addEventListener('input',renderSchoolDocumentRegister);
+ $(id)?.addEventListener('change',renderSchoolDocumentRegister);
+}
+$('recordIndexRows')?.addEventListener('click',async event=>{
+ const open=event.target.closest('[data-record-open]');
+ if(open){
+  const row=(window.cornhillDocumentIndex||[]).find(x=>x.id===open.dataset.recordOpen);if(!row?.storage_path)return;
+  const {data,error}=await db.storage.from('cornhill-private-evidence').createSignedUrl(row.storage_path,600);
+  if(error||!data?.signedUrl){message('reportsMsg','The private document could not be opened: '+(error?.message||'No temporary file link returned.'),true);return}
+  window.open(data.signedUrl,'_blank','noopener,noreferrer');return;
+ }
+ const ocr=event.target.closest('[data-record-ocr]');
+ if(ocr){runRecordIndexOcr(ocr.dataset.recordOcr,ocr);return}
+ const save=event.target.closest('[data-record-save]');
+ if(save){
+  const row=save.closest('[data-record-index-row]'),id=save.dataset.recordSave;
+  const payload={
+   record_identifier:row.querySelector('[data-record-identifier]').value.trim()||null,
+   issuing_authority:row.querySelector('[data-record-issuer]').value.trim()||null,
+   issued_on:row.querySelector('[data-record-issued]').value||null,
+   expires_on:row.querySelector('[data-record-expires]').value||null,
+   verification_status:row.querySelector('[data-record-verification]').value,
+   notes:row.querySelector('[data-record-notes]').value.trim()||null,
+   reviewed_by:row.querySelector('[data-record-verification]').value==='Verified'?currentUserId:null,
+   reviewed_at:row.querySelector('[data-record-verification]').value==='Verified'?new Date().toISOString():null
+  };
+  save.disabled=true;
+  const {data,error}=await db.from('school_record_index').update(payload).eq('id',id).select('id').maybeSingle();
+  save.disabled=false;
+  if(error||!data){message('reportsMsg','Document metadata was not saved: '+(error?.message||'No record was updated.'),true);return}
+  message('reportsMsg','Document details and verification status saved. The original evidence file was not changed.');
+  await loadSchoolDocumentRegister();
+ }
+});
+$('exportDocumentRegister')?.addEventListener('click',()=>{
+ if(profile?.role!=='Admin'||demoMode)return;
+ const rows=window.cornhillDocumentIndex||[];
+ if(!rows.length){message('reportsMsg','There are no indexed documents to export.',true);return}
+ const headers=['Document title','Type','Original file','Record number','Issuer','Issued on','Expires on','OCR status','Verification','Source context','Extracted text'];
+ const values=rows.map(r=>[r.record_title,r.record_type,r.original_file_name,r.record_identifier,r.issuing_authority,r.issued_on,r.expires_on,r.ocr_status,r.verification_status,r.source_context_type,r.extracted_text]);
+ const csv=[headers,...values].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ const blob=new Blob([String.fromCharCode(65279),csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='cornhill-document-register.csv';a.click();URL.revokeObjectURL(url);
+});
 async function loadSchoolReports(){
  if(demoMode||profile?.role!=='Admin'){message('reportsMsg','School records and backups are available to administrators only.',true);return}
  clearMessage('reportsMsg');$('refreshSchoolReports').disabled=true;
@@ -6062,7 +6210,6 @@ async function loadSchoolReports(){
   renderRecordsBarChart('recordsSalaryChangeChart',[...salaryChangeAgg].map(([label,x])=>({label,value:x.n?x.sum/x.n:0})),'ugx');
   window.cornhillReportLearners=learners;window.cornhillRecordsCache={learners,classes:classResult.data||[],assessments,scores,subjects,terms,payments,payroll,salaryAgreements:salaryAgreementResult.data||[],classHistory:historyResult.data||[]};
   message('reportsMsg','Records refreshed. Charts use saved school records only; no missing historical values have been estimated.');
-  await loadSchoolDocumentRegister();
  }catch(error){message('reportsMsg','Could not prepare school records: '+(error.message||'Unknown error'),true)}
  finally{$('refreshSchoolReports').disabled=false}
 }
