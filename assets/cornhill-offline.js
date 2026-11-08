@@ -377,6 +377,9 @@
     updateIndicator();
   }
 
+  // Hook immediately: page inline scripts may create their Supabase client before DOMContentLoaded.
+  hookSupabaseAuth();
+
   const api = Object.freeze({
     enqueue,
     registerSyncHandler,
