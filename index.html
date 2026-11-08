@@ -6149,15 +6149,15 @@ async function renderDirectMessageContacts(){
  if(!host||!select||contactUnreadBusy||!currentUserId)return;
  contactUnreadBusy=true;
  try{
-  const [textUnread,mediaUnread]=await Promise.all([
-   db.from('staff_direct_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null),
-   db.from('staff_media_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null)
-  ]);
-  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
-  const error=textUnread.error||mediaUnread.error;
-  if(error){host.innerHTML='<p class="muted">Could not refresh unread counts: '+esc(error.message)+'</p>';return}
-  const counts={};
-  [...(textUnread.data||[]),...(mediaUnread.data||[])].forEach(m=>counts[m.sender_user_id]=(counts[m.sender_user_id]||0)+1);
+  let counts={};
+  if(navigator.onLine){
+   const [textUnread,mediaUnread]=await Promise.all([
+    db.from('staff_direct_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null),
+    db.from('staff_media_messages').select('sender_user_id').eq('recipient_user_id',currentUserId).is('read_at',null)
+   ]);
+   if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
+   if(!textUnread.error&&!mediaUnread.error)[...(textUnread.data||[]),...(mediaUnread.data||[])].forEach(m=>counts[m.sender_user_id]=(counts[m.sender_user_id]||0)+1);
+  }
   const activeContacts=staffDirectoryCache.map(person=>{
    const active=select.value===person.id,count=counts[person.id]||0;
    const initials=(person.full_name||'C').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
@@ -6167,7 +6167,7 @@ async function renderDirectMessageContacts(){
    const initials=(person.full_name||'S').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
    return '<div class="direct-message-contact" aria-disabled="true" style="opacity:.62;cursor:not-allowed"><span class="direct-message-contact-avatar">'+esc(initials)+'</span><span class="direct-message-contact-copy"><strong>'+esc(person.full_name)+'</strong><small>'+esc(person.subject_specialism||'Teacher')+' · Messaging account not linked</small></span></div>';
   }).join('');
-  host.innerHTML=(activeContacts||'<p class="muted">No other staff accounts are available yet.</p>')+(pendingContacts?'<div class="muted" style="padding:12px 8px 4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em">Staff awaiting account link</div>'+pendingContacts:'');
+  host.innerHTML=(activeContacts||'<p class="muted">No other staff accounts are available yet.</p>')+(pendingContacts?'<div class="muted" style="padding:12px 8px 4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em">Staff awaiting account link</div>'+pendingContacts:'')+(!navigator.onLine?'<p class="muted" role="status">Offline · showing the last staff list saved on this device. Private messages need an internet connection.</p>':'');
  }catch(error){host.innerHTML='<p class="muted">Could not refresh unread counts: '+esc(error.message||'Please retry.')+'</p>'}
  finally{contactUnreadBusy=false}
 }
@@ -6176,23 +6176,47 @@ $('directMessageContactList').addEventListener('click',async e=>{
  $('directMessageRecipient').value=button.dataset.staffContact;
  await renderDirectMessageContacts();await loadDirectMessageThread();
 });
+function staffDirectoryStorageKey(owner){return 'cornhill-staff-directory-v1:'+String(owner||'')}
+function readCachedStaffDirectory(owner){
+ try{const rows=JSON.parse(localStorage.getItem(staffDirectoryStorageKey(owner))||'[]');return Array.isArray(rows)?rows.filter(x=>x&&typeof x.id==='string'&&typeof x.full_name==='string').map(x=>({id:x.id,full_name:x.full_name,role:String(x.role||'Staff')})):[]}catch(_){return []}
+}
 async function loadDirectMessageDirectory(){
  const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  const select=$('directMessageRecipient');if(!select||!owner)return;
+ const isCurrent=()=>owner===currentUserId&&generation===(window.cornhillSessionGeneration||0);
+ const useDirectory=async(rows,offline)=>{
+  if(!isCurrent())return;
+  staffDirectoryCache=(rows||[]).filter(x=>x&&x.id&&x.full_name).map(x=>({id:String(x.id),full_name:String(x.full_name),role:String(x.role||'Staff')}));
+  select.innerHTML='<option value="">Choose a colleague</option>'+staffDirectoryCache.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.full_name)+' · '+esc(x.role)+'</option>').join('');
+  select.value='';
+  await renderDirectMessageContacts();
+  if(offline)message('directMessageMsg','Offline: showing the last staff directory saved on this device. Private messages and updates will work again when you reconnect.',false);
+  else clearMessage('directMessageMsg');
+  if(!offline)await loadUnreadMessageAlerts();
+  await loadDirectMessageThread();
+ };
+ if(!navigator.onLine){
+  const cached=readCachedStaffDirectory(owner);
+  await useDirectory(cached,true);
+  if(!cached.length)message('directMessageMsg','You are offline and no staff directory has been saved on this device yet. Reconnect and refresh VICconnect to load colleagues.',true);
+  return;
+ }
  const [{data,error},{data:pendingData,error:pendingError}]=await Promise.all([
   db.rpc('list_staff_directory'),
   db.from('academic_teacher_directory').select('full_name,subject_specialism,linked_user_id,employment_status').is('linked_user_id',null).eq('employment_status','Active').order('full_name')
  ]);
- if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
- if(error){message('directMessageMsg','Could not load staff directory: '+error.message,true);return}
- staffDirectoryCache=data||[];
+ if(!isCurrent())return;
+ if(error){
+  const cached=readCachedStaffDirectory(owner);
+  if(cached.length){await useDirectory(cached,true);message('directMessageMsg','The school service could not be reached. Showing the last saved staff list; reconnect to refresh it. '+(error.message||''),true);}
+  else message('directMessageMsg','Could not load staff directory: '+(error.message||'Check your internet connection and try again.'),true);
+  return;
+ }
+ const fresh=(data||[]).filter(x=>x&&x.id&&x.full_name).map(x=>({id:String(x.id),full_name:String(x.full_name),role:String(x.role||'Staff')}));
+ staffDirectoryCache=fresh;
+ try{localStorage.setItem(staffDirectoryStorageKey(owner),JSON.stringify(fresh))}catch(_){}
  window.cornhillPendingStaffDirectory=pendingError?[]:(pendingData||[]);
- await loadUnreadMessageAlerts();
- // Always start with no recipient selected. The previous account's selection is never reused.
- select.innerHTML='<option value="">Choose a colleague</option>'+staffDirectoryCache.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.full_name)+' · '+esc(x.role)+'</option>').join('');
- select.value='';
- await renderDirectMessageContacts();
- await loadDirectMessageThread();
+ await useDirectory(fresh,false);
 }
 async function loadDirectMessageThread(){
  const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
