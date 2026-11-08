@@ -51,7 +51,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
 <body data-theme="warm-corporate">
 <header class="top">
   <div class="brand"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL badge"><div>CORNHILL NURSERY AND PRIMARY SCHOOL<small>Secure School Services Portal · Uganda</small></div></div>
-  <div class="row"><span id="userLabel" style="font-size:12px;color:#e5f4e8"></span><button id="installServicesApp" type="button" class="hidden" style="background:#fff;color:#14532d">Install Services</button><a class="button" href="/" style="background:#fff;color:#14532d">Main School System</a><button id="signOut" class="hidden">Sign out</button></div>
+  <div class="row"><span id="userLabel" style="font-size:12px;color:#e5f4e8"></span><button id="installServicesApp" type="button" class="hidden" style="background:#fff;color:#14532d">Install Services</button><a class="button" href="/notifications.html" style="background:#fff;color:#14532d">Notifications</a><a class="button hidden" id="servicesRecordsLink" href="/records.html" style="background:#fff;color:#14532d">Records Centre</a><a class="button" href="/" style="background:#fff;color:#14532d">Main School System</a><button id="signOut" class="hidden">Sign out</button></div>
 </header>
 <main class="wrap">
 <section id="loginPanel" class="panel login">
@@ -449,7 +449,7 @@ function configureModules(){
  $('welcome').textContent='Welcome, '+(profile.full_name||'CORNHILL staff member');
  $('roleInfo').textContent=profile.role+(profile.job_title?' · '+profile.job_title:'')+' · Active account';
  $('roleBadge').textContent=profile.role;
- $('userLabel').textContent=profile.full_name||'Signed in';
+ $('userLabel').textContent=profile.full_name||'Signed in';$('servicesRecordsLink').classList.toggle('hidden',profile.role!=='Admin');
 }
 async function enterApp(){
  await loadProfile();configureModules();
