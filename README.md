@@ -93,7 +93,7 @@ The active App Centre contains **21 destinations**. The combined School Services
 
 The database work reuses the existing visitor, asset, maintenance, notice, calendar and staff-feed tables. Row-level security policies are retained. Visitor, asset and maintenance updates use column-scoped grants in addition to RLS: gate staff only receive the permitted check-out fields; store managers only receive operational asset fields; maintenance managers only receive status, actual cost, resolution note and completion-time fields.
 
-The service worker caches the communications launcher, the School Services page and the collaboration module using shell/static cache version **v57**. The cache holds application shells only; authentication and all server-backed school records require an internet connection.
+The service worker caches the communications launcher, the School Services page and the collaboration module using shell/static cache version **v59**. The cache holds application shells only; authentication and all server-backed school records require an internet connection.
 
 **Acceptance evidence:** simulated role tests confirmed that ordinary teachers cannot check visitors out or update assets/maintenance; authorised receptionist, store-manager and maintenance-officer roles can update their respective records. Teachers see teacher-targeted notices/events but not staff-only entries, and cannot publish or modify administrator announcements. The staff feed passed tests for role-targeted reading, post creation, comments, reactions, author-only deletion and administrator pinning. Tests used synthetic rows and rolled back; no real school records were changed. JavaScript syntax and DOM-reference checks passed for the School Services collaboration module and Communications launcher. Real reception/security/store-manager accounts still need browser sign-in testing once the administrator creates those accounts.
 
@@ -103,7 +103,7 @@ The active development branch is `fix/assessment-selection-save-preview-20261108
 
 ## Offline limitation — important
 
-The service worker (v56 on the source branch) caches each application shell independently. The main class marks workspace also supports account-scoped IndexedDB mark drafts, queued synchronisation and conflict checks. That offline mark-draft support is not a general offline mode for every application. Admission enquiries, parent/guardian API access, library loans, leave, payroll, visitor check-in/out, asset updates, staff communications, mobile-money transactions and other server-backed operations require an internet connection. Do not accept payments or make official visitor, finance or learner-record changes while offline.
+The service worker (v59 on the source branch) caches each application shell independently. The main class marks workspace also supports account-scoped IndexedDB mark drafts, queued synchronisation and conflict checks. That offline mark-draft support is not a general offline mode for every application. Admission enquiries, parent/guardian API access, library loans, leave, payroll, visitor check-in/out, asset updates, staff communications, mobile-money transactions and other server-backed operations require an internet connection. Do not accept payments or make official visitor, finance or learner-record changes while offline.
 
 ## Data protection and safe updates
 
