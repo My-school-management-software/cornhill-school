@@ -4432,7 +4432,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     }
    });
    for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
-    const row=rows[rowIndex],rawName=row[nameIndex],cleanRowName=String(rawName??'').trim();if(!cleanRowName||/^(TOTAL(?:\s+CLASS\s+ENROL?L?MENT)?|BOYS|GIRLS|CLASS\s+TEACHER|HEADTEACHER|SIGNATURE)$/i.test(cleanRowName))continue;
+    const row=rows[rowIndex],rawName=row[nameIndex],cleanRowName=String(rawName??'').trim(),summaryName=normaliseImportText(cleanRowName);if(!cleanRowName||/^(TOTAL(?:\s+CLASS\s+ENROL?L?MENT)?|BOYS|GIRLS|CLASS\s+TEACHER|HEAD\s*TEACHER|SIGNATURE)$/i.test(cleanRowName)||['DIVISION','DIVISIONI','DIVISIONII','DIVISIONIII','DIVISIONIV','DIVISIONU','DIVISIONX','NOOFPUPILS','NUMBEROFPUPILS','TOTALPUPILS','TOTALLEARNERS','CLASSSTRENGTH','CLASSENROLMENT','CLASSENROLLMENT'].includes(summaryName))continue;
     const code=codeIndex>=0?normaliseImportText(row[codeIndex]):'',lin=linIndex>=0?normaliseImportText(row[linIndex]):'',name=normaliseImportText(rawName);
     const cm=code?(byCode.get(code)||[]):[],lm=lin?(byLin.get(lin)||[]):[],nm=byName.get(name)||[];
     let learner=null,issue='';
