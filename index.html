@@ -1418,7 +1418,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <details id="individualMissedPaperEntry" class="panel" style="margin:12px 0;padding:12px">
   <summary style="font-weight:800;cursor:pointer">Add one missed paper / individual subject mark</summary>
   <p class="muted">Use this only when one learner completes a paper later or needs one subject mark entered separately. For normal end-of-term work, use the complete all-subject class sheet below.</p>
-  <form id="scoreForm" style="margin-top:10px"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score or X (Absent) *</label><input name="score" type="text" inputmode="decimal" placeholder="Enter a mark or X if absent" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save individual mark</button></div></form>
+  <form id="scoreForm" style="margin-top:10px"><div class="full"><label>Subject *</label><select id="scoreSubjectSelect" required><option value="">Choose a subject</option></select><small class="muted">Only subjects assigned to your class are shown. Choose the subject first, then select the matching paper/assessment.</small></div><div class="full"><label>Assessment / paper *</label><select name="assessment_id" id="scoreAssessmentSelect" required><option value="">Choose a subject first</option></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score or X (Absent) *</label><input name="score" type="text" inputmode="decimal" placeholder="Enter a mark or X if absent" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save individual mark</button></div></form>
  </details>
  <div class="hidden" aria-hidden="true" style="display:none!important"><div style="margin-top:18px"><h4>Legacy single-assessment mark list</h4><p class="muted">Retained internally for compatibility; the all-subject class sheet is the teacher's main register.</p><div id="bulkMarksMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Learner / school code</th><th>LIN</th><th>P7 index</th><th>Score</th><th>Comment</th></tr></thead><tbody id="bulkMarkRows"><tr><td colspan="5">Choose an assessment to load the class mark sheet.</td></tr></tbody></table></div><div class="row" style="margin-top:12px;justify-content:flex-start"><button type="button" class="primary" id="saveBulkMarks">Save all entered marks</button><button type="button" id="syncBulkMarks">Synchronise pending drafts</button></div><p class="muted">Legacy single-assessment draft synchronisation.</p></div></div>
  <div class="excel-marks-panel" style="margin-top:24px">
@@ -2279,6 +2279,8 @@ $('notificationList')?.addEventListener('click',async e=>{
    if(!allowedClasses.has(assessment.class_id)||!hasSubject){message('appMsg','This assessment is outside your assigned teaching access.',true);return}
   }
   tab('academics');
+  const subjectSelector=$('scoreSubjectSelect');
+  if(subjectSelector){subjectSelector.value=assessment.class_id+'|'+assessment.subject_id;subjectSelector.dispatchEvent(new Event('change',{bubbles:true}))}
   const selector=$('scoreAssessmentSelect');
   if(selector){selector.value=assessmentId;selector.dispatchEvent(new Event('change',{bubbles:true}))}
   setTimeout(()=>{
@@ -3540,7 +3542,7 @@ async function loadAcademics(){
  $('academicTeacherDirectoryRows').innerHTML=(teacherDirectory.data||[]).map(t=>'<tr data-academic-teacher-row="'+esc(t.id)+'"><td><input data-teacher-field="full_name" value="'+esc(t.full_name)+'" maxlength="160" aria-label="Teacher name"></td><td><input data-teacher-field="phone" value="'+esc(t.phone||'')+'" aria-label="Teacher phone"></td><td><input data-teacher-field="subject_specialism" value="'+esc(t.subject_specialism||'')+'" aria-label="Subject specialism"></td><td><select data-teacher-field="employment_status" aria-label="Employment status">'+['Active','On Leave','Exited'].map(v=>'<option '+(v===t.employment_status?'selected':'')+'>'+v+'</option>').join('')+'</select></td><td>'+(t.linked_user_id?'Keras account linked':'No sign-in account')+'</td><td><button type="button" class="primary" data-save-academic-teacher="'+esc(t.id)+'">Save</button></td></tr>').join('')||'<tr><td colspan="6">No teachers registered yet. Add the first teacher above.</td></tr>';
  if(profile?.role==='Admin'&&currentUserId){for(const row of assignments.data||[]){try{const draft=await readLocalFormDraft(currentUserId,'academic-teacher-assignment-'+row.id);const select=document.querySelector('[data-assignment-teacher="'+CSS.escape(row.id)+'"]');if(draft&&select&&[...select.options].some(o=>o.value===draft.values?.teacher_directory_id))select.value=draft.values.teacher_directory_id}catch(_){}}}
  $('assessmentTermSelect').innerHTML=opts(academic.terms,x=>x.name+' · '+(x.academic_years?.name||''));
- $('scoreAssessmentSelect').innerHTML=opts(academic.assessments,x=>(x.title+' · '+(x.school_classes?.name||'')+' · '+(x.subjects?.name||'')));
+ updateIndividualSubjectOptions();
  window.cornhillTeacherMarksRegister=cscores.data||[];
  window.cornhillStaffNames=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||'Teacher account']));
  $('academicScoreRows').innerHTML=profile?.role==='Admin'?window.cornhillTeacherMarksRegister.map(x=>'<tr><td>'+esc(x.assessments?.school_classes?.name||'—')+'</td><td>'+esc(x.assessments?.academic_terms?.name||'—')+'</td><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.middle_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.subjects?.name||'—')+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>'+esc(window.cornhillStaffNames[x.entered_by]||'Teacher account')+'</td><td>'+esc(x.updated_at?new Date(x.updated_at).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No teacher marks have been saved yet.</td></tr>':'<tr><td colspan="10">Administrator register only.</td></tr>';
@@ -3977,6 +3979,25 @@ $('exportAcademicClassCsv').addEventListener('click',()=>{
  const term=$('reportTermSelect').selectedOptions[0]?.textContent||'Selected term',cls=$('reportClassSelect').selectedOptions[0]?.textContent||'Selected class';
  downloadCSV('cornhill-academic-results.csv',['Term','Class','Position','Admission code','Learner','Subjects scored','Total marks','Maximum marks','Average percent'],rows.map(x=>[term,cls,x.position,x.admission_code,x.learner,x.subjects_scored,x.total_marks,x.maximum_marks,x.average_percent]));
 });
+function updateIndividualAssessmentOptions(){
+ const subjectKey=$('scoreSubjectSelect')?.value||'',[classId,subjectId]=subjectKey.split('|');
+ const allowed=academic.assessments.filter(a=>a.subject_id===subjectId&&a.class_id===classId);
+ $('scoreAssessmentSelect').innerHTML='<option value="">'+(subjectKey?(allowed.length?'Choose paper / assessment':'No assessment exists for this subject yet'):'Choose a subject first')+'</option>'+allowed.map(a=>'<option value="'+a.id+'">'+esc(a.title+' · '+(a.school_classes?.name||'')+' · '+(a.subjects?.name||''))+'</option>').join('');
+ updateScoreLearners();
+}
+function updateIndividualSubjectOptions(){
+ const select=$('scoreSubjectSelect');if(!select)return;
+ const assignedClass=profile?.role==='Teacher'?getAssignedTeacherClassId():'';
+ const rows=(academic.classSubjects||[]).filter(row=>!assignedClass||row.class_id===assignedClass);
+ const unique=new Map();
+ rows.forEach(row=>{const key=row.class_id+'|'+row.subject_id;if(!unique.has(key))unique.set(key,{key,name:row.subjects?.name||'Subject',className:row.school_classes?.name||classes.find(c=>c.id===row.class_id)?.name||'Class'});});
+ const prior=select.value;
+ select.innerHTML='<option value="">Choose a subject</option>'+[...unique.values()].sort((a,b)=>a.className.localeCompare(b.className)||a.name.localeCompare(b.name)).map(x=>'<option value="'+esc(x.key)+'">'+esc(x.name+' · '+x.className)+'</option>').join('');
+ if(prior&&unique.has(prior))select.value=prior;
+ updateIndividualAssessmentOptions();
+}
+$('scoreSubjectSelect')?.addEventListener('change',updateIndividualAssessmentOptions);
+$('scoreAssessmentSelect')?.addEventListener('change',updateScoreLearners);
 function updateScoreLearners(){
  const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
  const list=ass?students.filter(x=>x.class_id===ass.class_id):[];
@@ -4002,14 +4023,13 @@ async function loadBulkMarkSheet(){
  message('bulkMarksMsg',(data||[]).length+' server mark(s) loaded. '+pending.length+' local draft(s) restored. Changes autosave on this device; drafts are not official until synchronised. Maximum score: '+ass.max_score+'.');
 }
 
-function setupExcelMarksFilters(){function setExcelPhaseOptions(classId){
+function setExcelPhaseOptions(classId){
  const cls=classes.find(x=>x.id===classId)||(profile?.role==='Teacher'&&window.cornhillTeacherAssignedClassRecord?.id===classId?window.cornhillTeacherAssignedClassRecord:null),phase=$('excelMarksPhase'),current=phase?.value||'All';
  if(!phase)return;
  const periods=assessmentPeriodsForClassName(cls?.name||'');
  phase.innerHTML='<option value="All">All periods · full class sheet</option>'+periods.map((x,i)=>'<option value="'+x+'">'+x+' · '+(i+1)+'</option>').join('');
- phase.value=periods.includes(current)?current:'All';
 }
-
+function setupExcelMarksFilters(){
  const term=$('excelMarksTerm'),cls=$('excelMarksClass'),classField=$('excelMarksClassField');
  if(classField)classField.classList.toggle('hidden',profile?.role==='Teacher');
  term.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');
@@ -4362,19 +4382,23 @@ $('downloadTeacherMarksTemplate').addEventListener('click',async()=>{
  finally{button.disabled=false;$('excelMarksPhase').value=oldPhase;await loadExcelMarksGrid()}
 });
 $('previewTeacherMarksImport').addEventListener('click',async()=>{
- const file=$('teacherMarksWorkbook').files?.[0],confirm=$('confirmTeacherMarksImport');
+ const previewButton=$('previewTeacherMarksImport'),confirm=$('confirmTeacherMarksImport');
+ const file=$('teacherMarksWorkbook').files?.[0];
  confirm.disabled=true;teacherExcelImportPlan=null;
- if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using your assigned class-teacher account to import marks.',true);return}
- const classId=getAssignedTeacherClassId(),termId=$('excelMarksTerm').value;
- $('excelMarksClass').value=classId||'';$('excelMarksPhase').value='All';setExcelPhaseOptions(classId);
- if(!classId){message('teacherMarksImportMsg','Your assigned class could not be verified. Sign out and sign in again.',true);return}
- if(!file){message('teacherMarksImportMsg','Choose your Excel workbook first.',true);return}
- if(!window.XLSX){message('teacherMarksImportMsg','The Excel reader is unavailable. Refresh the app while online and try again.',true);return}
- if(!termId){message('teacherMarksImportMsg','Choose the term first.',true);return}
- let ctx=window.cornhillExcelMarksContext;
- if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Loading your class marks sheet…');await loadExcelMarksGrid();ctx=window.cornhillExcelMarksContext}
- if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Could not load your class sheet.',true);return}
+ const oldLabel=previewButton.textContent;previewButton.disabled=true;previewButton.textContent='Checking workbook…';
+ $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">Checking workbook. No marks are saved during preview.</td></tr>';
+ $('teacherMarksCodeReview').innerHTML='';
  try{
+  if(profile?.role!=='Teacher'||demoMode)throw new Error('Sign in using your assigned class-teacher account to import marks.');
+  const classId=getAssignedTeacherClassId(),termId=$('excelMarksTerm').value;
+  if(!classId)throw new Error('Your assigned class could not be verified. Sign out and sign in again.');
+  if(!file)throw new Error('Choose your Excel workbook first.');
+  if(!window.XLSX)throw new Error('The Excel reader is unavailable. Refresh the app while online and try again.');
+  if(!termId)throw new Error('Choose the term first.');
+  $('excelMarksClass').value=classId;$('excelMarksPhase').value='All';setExcelPhaseOptions(classId);
+  let ctx=window.cornhillExcelMarksContext;
+  if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Loading your assigned class sheet…');await loadExcelMarksGrid();ctx=window.cornhillExcelMarksContext}
+  if(!ctx||ctx.termId!==termId||ctx.classId!==classId)throw new Error('Could not load your assigned class sheet. Check the academic term and ask the administrator to verify the class-subject setup.');
   const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false});
   const cls=classes.find(c=>c.id===classId),clsName=cls?.name||'',setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(clsName);
   const metadata=wb.Workbook?.Sheets||[],sheetInfos=[];
@@ -4483,7 +4507,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   message('teacherMarksImportMsg','Import preview failed: '+(err?.message||String(err)),true);
   $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">No import preview is available.</td></tr>';
   const review=$('teacherMarksCodeReview');if(review)review.innerHTML='';
- }
+ }finally{previewButton.disabled=false;previewButton.textContent=oldLabel}
 });
 $('confirmTeacherMarksImport').addEventListener('click',async()=>{
  const plan=teacherExcelImportPlan,ctx=window.cornhillExcelMarksContext,button=$('confirmTeacherMarksImport');
