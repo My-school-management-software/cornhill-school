@@ -3376,7 +3376,7 @@ $('refreshStaffDashboard')?.addEventListener('click',()=>loadStaffProfiles());
    const payload={full_name:String(values.full_name||'').trim(),phone:String(values.phone||'').trim()||null,gender:String(values.gender||'')||null,staff_category:String(values.staff_category||''),job_title:String(values.job_title||'').trim(),department:String(values.department||'').trim()||null,responsibilities:String(values.responsibilities||'').trim()||null,employment_start_date:values.employment_start_date||null,reporting_date:values.reporting_date||null,employment_status:values.employment_status||'Active',created_by:user.id};
    const {data:savedStaff,error}=await db.from('school_staff_directory').insert(payload).select('id,full_name').single();if(error)throw error;
    e.target.reset();
-   const evidenceUrl='/evidence.html?contextType=staff_profile&recordId='+encodeURIComponent(savedStaff.id)+'&contextLabel='+encodeURIComponent(savedStaff.full_name)+'&purpose='+encodeURIComponent('Staff ID');
+   const evidenceUrl='/evidence.html?contextType=school_staff_directory&recordId='+encodeURIComponent(savedStaff.id)+'&contextLabel='+encodeURIComponent(savedStaff.full_name)+'&purpose='+encodeURIComponent('Staff ID');
    const evidenceLink=document.createElement('a');evidenceLink.href=evidenceUrl;evidenceLink.textContent='Open Evidence Capture for '+savedStaff.full_name;evidenceLink.target='_blank';evidenceLink.rel='noopener';evidenceLink.style.cssText='display:inline-block;margin:6px 0;padding:9px 12px;border-radius:8px;background:#e8f4eb;color:#14532d;font-weight:700';
    const msg=$('staffProfileMsg');message('staffProfileMsg','Employee record saved in the central staff directory. No login account was created. Attach application letter, national ID and other documents using Evidence Capture.');msg.appendChild(document.createElement('br'));msg.appendChild(evidenceLink);await loadStaffProfiles();
   }catch(err){message('staffProfileMsg','Could not save employee record: '+(err?.message||'Please try again.'),true)}
@@ -3399,8 +3399,9 @@ async function loadStaffProfiles(){
  const accountRows=staffProfiles.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">'+esc(x.role)+'</span></td><td>'+esc(x.staff_category||'Not classified')+'</td><td>'+esc(x.gender||'Not recorded')+'</td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.parent_contact_visible&&x.parent_contact_phone?x.parent_contact_phone:'Not published')+'</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td><td><button type="button" data-open-evidence="staff_profile" data-record-id="'+esc(x.id)+'" data-record-name="'+esc(x.full_name||'Staff member')+'">Documents</button></td></tr>');
  const teacherHtml=teacherDirectoryRows.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">Teacher directory · account not linked</span></td><td>Teaching</td><td>Not recorded</td><td>'+esc(x.job_title||'Teacher')+'</td><td>Teaching staff</td><td>'+esc(x.phone||'—')+'</td><td>Not published</td><td>Active</td><td>—</td><td><button type="button" data-open-evidence="academic_teacher_directory" data-record-id="'+esc(x.id.replace('teacher-directory:',''))+'" data-record-name="'+esc(x.full_name||'Teacher')+'">Documents</button></td></tr>');
  const directoryHtml=directoryRows.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">School staff directory · no login</span></td><td>'+esc(x.staff_category||'—')+'</td><td>'+esc(x.gender||'Not recorded')+'</td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>Not published</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td><td><button type="button" data-open-evidence="school_staff_directory" data-record-id="'+esc(x.id.replace('school-directory:',''))+'" data-record-name="'+esc(x.full_name||'School employee')+'">Documents</button></td></tr>');
- $('staffProfileRows').innerHTML=[...accountRows,...teacherHtml,...directoryHtml].join('')||'<tr><td colspan="9">No staff records found.</td></tr>';
+ $('staffProfileRows').innerHTML=[...accountRows,...teacherHtml,...directoryHtml].join('')||'<tr><td colspan="10">No staff records found.</td></tr>';
  $('staffProfileSelect').innerHTML='<option value="">Choose staff member</option>'+staffProfiles.map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed')+' ('+esc(x.role)+')</option>').join('');
+ $('staffEvidenceList').innerHTML='Choose a staff account to view its attached documents.';
 }
 $('staffInviteForm').addEventListener('submit',async e=>{
  e.preventDefault();if(profile?.role!=='Admin'){message('staffProfileMsg','Only school administrators can invite staff.',true);return}
@@ -3478,7 +3479,7 @@ document.addEventListener('click',event=>{
   return;
  }
  const staffEvidence=$('requestStaffEvidence');
- if(event.target===staffEvidence){
+ if(event.target.closest('#requestStaffEvidence')){
   const id=$('staffProfileSelect')?.value,person=staffProfiles.find(x=>x.id===id);
   if(!id||!person){message('staffProfileMsg','Choose a staff account first.');return}
   openRecordEvidenceCapture('staff_profile',id,$('staffEvidencePurpose')?.value||'General document',person.full_name||'Staff member');
