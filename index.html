@@ -1868,7 +1868,7 @@ function tab(name){
  $('adminParentPortalDirectory')?.classList.toggle('hidden',profile?.role!=='Admin');
  if(window.cornhillOfflineReadOnly&&!['dashboard','students','classes'].includes(name))return;
  if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;
- if(profile?.role==='Teacher'&&!['dashboard','notifications','helpAssistant','academics','communication','students','classes','learnerProfile','parentAccess'].includes(name))return;
+ if(profile?.role==='Teacher'&&!['dashboard','notifications','helpAssistant','academics','attendance','communication','students','classes','learnerProfile','parentAccess'].includes(name))return;
  if(name==='helpAssistant'&&!['Admin','Teacher'].includes(profile?.role))return;
  if(profile?.role!=='Admin'&&['midtermAdmissions','achievedLearners','trashBin'].includes(name))return;
  if(profile?.role==='Staff'&&!['dashboard','notifications','attendance','communication'].includes(name))return;
@@ -2100,13 +2100,21 @@ function resetAccountScopedCommunicationState(){
  window.cornhillPendingStaffDirectory=[];
  contactUnreadBusy=false;unreadAlertsBusy=false;
  window.schoolNotifications=[];
+ // Attendance is account-private: clear rendered data and forms before another identity loads.
+ window.pendingAttendanceNotificationSourceId=null;
+ const attendanceMessage=$('attendanceMsg');if(attendanceMessage){attendanceMessage.textContent='';attendanceMessage.classList.add('hidden')}
+ ['attendanceAdmin','attendanceStaff','attendanceReview'].forEach(id=>$(id)?.classList.add('hidden'));
+ ['attendancePreview','myAttendance','myAttendanceAlerts','myAttendanceAdjustments','attendanceAdjustmentRows','attendanceIncidentRows','workScheduleRows','scheduleAssignmentRows','deviceMapList','todayAttendanceRows','attendanceSummaryRows'].forEach(id=>{const el=$(id);if(el)el.innerHTML=''});
+ ['attendanceExpected','attendancePresent','attendanceLate','attendanceAbsent','attendanceMissing','attendanceOvertime'].forEach(id=>{const el=$(id);if(el)el.textContent='—'});
+ ['attendanceAdjustmentForm','workScheduleForm','scheduleAssignmentForm','deviceMapForm','attendanceImportForm'].forEach(id=>{const form=$(id);if(form)form.reset()});
+ const attendanceNotice=$('staffAttendanceNotice');if(attendanceNotice){attendanceNotice.textContent='';attendanceNotice.classList.add('hidden')}
 }
 async function startSession(session){
  window.cornhillStartupStage='resetting account state';
  resetAccountScopedCommunicationState();
  const sessionGeneration=(window.cornhillSessionGeneration||0)+1,sessionUserId=session?.user?.id||null;window.cornhillSessionGeneration=sessionGeneration;
  const sessionIsCurrent=()=>sessionGeneration===(window.cornhillSessionGeneration||0)&&currentUserId===sessionUserId;
- demoMode=false;currentUserId=sessionUserId;$('demoBanner').style.display='none';
+ demoMode=false;currentUserId=sessionUserId;applyAppearance(readAppearance());$('demoBanner').style.display='none';
  if(!session){profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;financeCodeAliases=[];setOfflineReadOnly(false);sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.add('hidden');$('logout').classList.remove('hidden');
 window.cornhillStartupStage='loading signed-in user profile';
@@ -2143,12 +2151,16 @@ await refresh();if(!sessionIsCurrent())return;
 }
 async function loadNotifications(){
  const host=$('notificationList'),badge=$('notificationsNavBadge');
+ const notificationOwner=currentUserId,notificationGeneration=window.cornhillSessionGeneration||0;
+ const notificationIsCurrent=()=>!!notificationOwner&&currentUserId===notificationOwner&&notificationGeneration===(window.cornhillSessionGeneration||0)&&!!profile;
  if(!host||!db||demoMode){if(host)host.innerHTML='<div class="empty">Notifications are unavailable in demo mode.</div>';if(badge)badge.classList.add('hidden');return}
- host.innerHTML='<div class="empty">Checking school notifications…</div>';
+ if(!notificationIsCurrent()){if(host)host.innerHTML='<div class="empty">Sign in to view this account’s notifications.</div>';if(badge)badge.classList.add('hidden');return}
+ host.innerHTML='<div class="empty">Checking notifications for this account…</div>';
  const {data,error}=await db.rpc('list_school_notifications');
+ if(!notificationIsCurrent())return;
  if(error){host.innerHTML='<div class="notice error">Could not load notifications: '+esc(error.message)+'</div>';if(badge)badge.classList.add('hidden');return}
  const rows=Array.isArray(data)?data:[];window.schoolNotifications=rows;
- if(profile?.role==='Admin'){const {data:reviewRows}=await db.rpc('list_school_bursary_review_ids');window.bursaryReviewStudentIds=new Set((reviewRows||[]).map(x=>x.student_id).filter(Boolean));}else window.bursaryReviewStudentIds=new Set();
+ if(profile?.role==='Admin'){const {data:reviewRows}=await db.rpc('list_school_bursary_review_ids');if(!notificationIsCurrent())return;window.bursaryReviewStudentIds=new Set((reviewRows||[]).map(x=>x.student_id).filter(Boolean));}else window.bursaryReviewStudentIds=new Set();
  if(badge){badge.textContent=String(rows.length);badge.classList.toggle('hidden',rows.length===0)}
  const summary=$('notificationSummary');
  if(summary){summary.textContent=rows.length?rows.length+' item'+(rows.length===1?'':'s')+' currently require attention.':'No active notifications. You are up to date.';summary.classList.remove('hidden')}
@@ -2156,33 +2168,39 @@ async function loadNotifications(){
  if($('studentRows')&&profile?.role==='Admin')render();
 }
 async function archiveSchoolNotification(id){
- if(!id||!confirm('Archive this notification? The original school record will remain unchanged.'))return;
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
+ const stillOwner=()=>!!owner&&currentUserId===owner&&generation===(window.cornhillSessionGeneration||0)&&!!profile;
+ if(!id||!stillOwner()||!confirm('Archive this notification? The original school record will remain unchanged.'))return;
  const {error}=await db.rpc('archive_school_notification',{p_notification_id:id,p_reason:'Archived from Notifications centre'});
+ if(!stillOwner())return;
  if(error){message('appMsg','Could not archive notification: '+error.message,true);return}
- await loadNotifications();if(typeof loadStaffAttendanceNotice==='function')await loadStaffAttendanceNotice();if($('studentRows')&&profile?.role==='Admin')render();
+ await loadNotifications();if(!stillOwner())return;
+ if(typeof loadStaffAttendanceNotice==='function')await loadStaffAttendanceNotice();
+ if(!stillOwner())return;
+ if($('studentRows')&&profile?.role==='Admin')render();
 }
 $('notificationList')?.addEventListener('click',e=>{
  const archive=e.target.closest('[data-archive-notification]');
  if(archive){archiveSchoolNotification(archive.dataset.archiveNotification);return}
  const open=e.target.closest('[data-open-notification]');
- if(open){
-  const n=(window.schoolNotifications||[]).find(x=>x.id===open.dataset.openNotification);
-  if(n?.category==='bursary_review'&&n.student_id){
-   if(profile?.role!=='Admin'){message('appMsg','Only an administrator can review bursary approvals.',true);return}
-   const learner=students.find(x=>x.id===n.student_id);
-   if(!learner){message('appMsg','The learner linked to this bursary alert is not in the active learner register. Refresh the learner records or contact the administrator.',true);return}
-   tab('students');
-   studentRegisterClassFilter='all';
-   if($('search'))$('search').value='';
-   window.pendingBursaryReviewStudentId=learner.id;
-   window.pendingBursaryReviewNotificationId=n.id;
-   render();
-   const target=document.querySelector('#studentRows .viewLearner[data-id="'+n.student_id+'"]');
-   if(target){target.click()}else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null;message('appMsg','The learner was found, but the register row could not be opened. Refresh the learner register and try Review again.',true)}
-   return;
-  }
-  tab(n?.action_workspace||'dashboard');
+ if(!open)return;
+ const n=(window.schoolNotifications||[]).find(x=>x.id===open.dataset.openNotification);
+ if(!n)return;
+ if(n.category==='bursary_review'&&profile?.role!=='Admin'){message('appMsg','Only an administrator can review bursary approvals.',true);return}
+ if(n.student_id){
+  const learner=students.find(x=>x.id===n.student_id);
+  if(!learner){message('appMsg','The linked learner is not in this account’s permitted register. Refresh the learner records or ask an administrator to verify access.',true);return}
+  tab('students');studentRegisterClassFilter='all';if($('search'))$('search').value='';
+  if(n.category==='bursary_review'){window.pendingBursaryReviewStudentId=learner.id;window.pendingBursaryReviewNotificationId=n.id}
+  else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null}
+  render();
+  const target=document.querySelector('#studentRows .viewLearner[data-id="'+n.student_id+'"]');
+  if(target){target.click()}else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null;message('appMsg','The learner was found, but the register record could not be opened. Refresh the learner register and try Review again.',true)}
+  return;
  }
+ if(n.category==='attendance'&&n.source_id)window.pendingAttendanceNotificationSourceId=n.source_id;
+ tab(n.action_workspace||'dashboard');
+ if(n.category==='attendance'&&n.source_id)setTimeout(()=>{const target=[...document.querySelectorAll('[data-attendance-source-id]')].find(el=>el.dataset.attendanceSourceId===String(n.source_id));if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.setAttribute('tabindex','-1');target.focus({preventScroll:true})}},350);
 });
 $('notificationList')?.addEventListener('touchstart',e=>{
  const card=e.target.closest('[data-notification-card]');
@@ -2197,9 +2215,11 @@ $('notificationList')?.addEventListener('touchend',e=>{
 $('refreshNotifications')?.addEventListener('click',loadNotifications);
 
 async function loadStaffAttendanceNotice(){
- const box=$('staffAttendanceNotice');
- if(!box||demoMode||!currentUserId||profile?.role==='Admin'){if(box)box.classList.add('hidden');return}
- const {data,error}=await db.from('staff_attendance_alerts').select('attendance_date,alert_type,message').eq('staff_user_id',currentUserId).eq('status','unread').order('attendance_date',{ascending:false}).limit(3);
+ const box=$('staffAttendanceNotice'),owner=currentUserId,generation=window.cornhillSessionGeneration||0;
+ const stillOwner=()=>!!owner&&currentUserId===owner&&generation===(window.cornhillSessionGeneration||0)&&!!profile;
+ if(!box||demoMode||!owner||profile?.role==='Admin'){if(box)box.classList.add('hidden');return}
+ const {data,error}=await db.from('staff_attendance_alerts').select('attendance_date,alert_type,message').eq('staff_user_id',owner).eq('status','unread').order('attendance_date',{ascending:false}).limit(3);
+ if(!stillOwner())return;
  if(error){box.classList.add('hidden');return}
  if(!(data||[]).length){box.classList.add('hidden');box.textContent='';return}
  box.innerHTML='<strong>Attendance warning</strong><p>You have '+data.length+' unread attendance message'+(data.length===1?'':'s')+'. '+esc(data[0].message)+'</p><small>Open Staff Attendance to review all messages.</small>';
@@ -2342,10 +2362,10 @@ function applyRoleNavigation(){
  const role=profile?.role;
  $('setupStandardClasses').classList.toggle('hidden',role!=='Admin');
  document.querySelectorAll('.tabs [data-tab]').forEach(b=>{
-  const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','helpAssistant','academics','communication','students','classes','parentAccess'].includes(b.dataset.tab))||(role==='Staff'&&['dashboard','notifications','attendance','communication'].includes(b.dataset.tab));
+  const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','helpAssistant','academics','attendance','communication','students','classes','parentAccess'].includes(b.dataset.tab))||(role==='Staff'&&['dashboard','notifications','attendance','communication'].includes(b.dataset.tab));
   b.classList.toggle('hidden',!allowed)
  });
- document.querySelectorAll('[data-module]').forEach(b=>b.classList.toggle('hidden',role!=='Admin'&&!(role==='Teacher'&&b.dataset.module==='academics')&&!(role==='Staff'&&b.dataset.module==='attendance')));
+ document.querySelectorAll('[data-module]').forEach(b=>b.classList.toggle('hidden',role!=='Admin'&&!(role==='Teacher'&&['academics','attendance'].includes(b.dataset.module))&&!(role==='Staff'&&b.dataset.module==='attendance')));
  $('teacherPortalSummary').classList.toggle('hidden',role!=='Teacher');
  $('staffPortalSummary')?.classList.toggle('hidden',role!=='Staff');
  $('classForm').classList.toggle('hidden',role!=='Admin');
@@ -2412,7 +2432,7 @@ $('teacherPortalSummary').addEventListener('keydown',e=>{if(e.target.id==='teach
 $('teacherPortalSummary').addEventListener('change',e=>{
  if(!['teacherThemeChoice','teacherFontChoice','teacherFontSize'].includes(e.target.id))return;
  const p={...readAppearance(),theme:$('teacherThemeChoice').value,font:$('teacherFontChoice').value,fontSize:$('teacherFontSize').value};
- try{localStorage.setItem(APPEARANCE_KEY,JSON.stringify(p));applyAppearance(p)}catch(_){}
+ try{localStorage.setItem(appearanceStorageKey(),JSON.stringify(p));applyAppearance(p)}catch(_){}
 });
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 let studentRegisterClassFilter='all';
@@ -4800,25 +4820,34 @@ function parseAttendanceTime(value){
  return new Date(Date.UTC(y,mo-1,d,hh-3,mm,ss)).toISOString();
 }
 async function setupAttendance(){
- if(profile?.role!=='Admin')restoreLocalAutosaveForm($('attendanceAdjustmentForm'),'attendance-correction','attendanceMsg').catch(()=>{});
- if(profile?.role==='Admin'){restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg').catch(()=>{});restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg').catch(()=>{})}
+ const attendanceOwner=currentUserId,attendanceGeneration=window.cornhillSessionGeneration||0;
+ const attendanceIsCurrent=()=>!!attendanceOwner&&currentUserId===attendanceOwner&&attendanceGeneration===(window.cornhillSessionGeneration||0)&&!!profile;
+ if(!attendanceIsCurrent())return;
+ if(profile?.role!=='Admin'){await restoreLocalAutosaveForm($('attendanceAdjustmentForm'),'attendance-correction','attendanceMsg').catch(()=>{});if(!attendanceIsCurrent())return}
+ if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg').catch(()=>{});if(!attendanceIsCurrent())return;await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg').catch(()=>{});if(!attendanceIsCurrent())return}
  if(demoMode){message('attendanceMsg','Attendance is not available in read-only demo mode.');return}
  syncOfflineAttendanceCorrections().catch(()=>{});
  const admin=profile?.role==='Admin';
  $('attendanceAdmin').classList.toggle('hidden',!admin);
  $('attendanceStaff').classList.toggle('hidden',admin);
  if(!admin){
-  const {data,error}=await db.from('staff_attendance_events').select('event_type,occurred_at,source').eq('staff_user_id',currentUserId).order('occurred_at',{ascending:false}).limit(100);
-  const adjustments=await db.from('staff_attendance_adjustments').select('attendance_date,adjustment_type,proposed_time,reason,status,review_note,created_at').eq('staff_user_id',currentUserId).order('created_at',{ascending:false}).limit(50);
-  const alerts=await db.from('staff_attendance_alerts').select('attendance_date,alert_type,message,created_at').eq('staff_user_id',currentUserId).order('created_at',{ascending:false}).limit(50);if(alerts.error){message('attendanceMsg','Your warning messages could not be read: '+alerts.error.message,true);return}$('myAttendanceAlerts').innerHTML=(alerts.data||[]).map(x=>'<div style="padding:10px;border-left:4px solid #d97706;margin:8px 0;background:#fff7ed"><strong>'+esc(x.attendance_date)+' · '+esc(x.alert_type.replace(/_/g,' '))+'</strong><p>'+esc(x.message)+'</p><small>'+esc(new Date(x.created_at).toLocaleString())+'</small></div>').join('')||'<p class="muted">No attendance warning messages.</p>';if(adjustments.error){message('attendanceMsg','Your attendance loaded, but correction requests could not be read: '+adjustments.error.message,true);return}
+  const {data,error}=await db.from('staff_attendance_events').select('event_type,occurred_at,source').eq('staff_user_id',attendanceOwner).order('occurred_at',{ascending:false}).limit(100);
+  if(!attendanceIsCurrent())return;
+  const adjustments=await db.from('staff_attendance_adjustments').select('attendance_date,adjustment_type,proposed_time,reason,status,review_note,created_at').eq('staff_user_id',attendanceOwner).order('created_at',{ascending:false}).limit(50);
+  if(!attendanceIsCurrent())return;
+  const alerts=await db.from('staff_attendance_alerts').select('id,attendance_date,alert_type,message,created_at').eq('staff_user_id',attendanceOwner).order('created_at',{ascending:false}).limit(50);
+  if(!attendanceIsCurrent())return;
+  if(alerts.error){message('attendanceMsg','Your warning messages could not be read: '+alerts.error.message,true);return}$('myAttendanceAlerts').innerHTML=(alerts.data||[]).map(x=>'<div data-attendance-source-id="'+esc(x.id)+'" style="padding:10px;border-left:4px solid #d97706;margin:8px 0;background:#fff7ed"><strong>'+esc(x.attendance_date)+' · '+esc(x.alert_type.replace(/_/g,' '))+'</strong><p>'+esc(x.message)+'</p><small>'+esc(new Date(x.created_at).toLocaleString())+'</small></div>').join('')||'<p class="muted">No attendance warning messages.</p>';
+  if(window.pendingAttendanceNotificationSourceId){const target=[...document.querySelectorAll('[data-attendance-source-id]')].find(el=>el.dataset.attendanceSourceId===String(window.pendingAttendanceNotificationSourceId));if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.setAttribute('tabindex','-1');target.focus({preventScroll:true})}window.pendingAttendanceNotificationSourceId=null}if(adjustments.error){message('attendanceMsg','Your attendance loaded, but correction requests could not be read: '+adjustments.error.message,true);return}
   $('myAttendanceAdjustments').innerHTML=(adjustments.data||[]).map(x=>'<div style="padding:9px;border-bottom:1px solid #eee"><strong>'+esc(x.attendance_date)+' · '+esc(x.adjustment_type.replace(/_/g,' '))+'</strong><br>'+esc(x.reason)+'<br><span class="badge">'+esc(x.status)+'</span>'+(x.review_note?'<br><span class="muted">Administrator: '+esc(x.review_note)+'</span>':'')+'</div>').join('')||'<p class="empty">You have not submitted any correction requests.</p>';
   if(error){message('attendanceMsg','Attendance database is not ready yet. The administrator must apply the attendance migration.',true);return}
   $('myAttendance').innerHTML=(data||[]).map(x=>'<div style="padding:9px;border-bottom:1px solid #eee">'+esc(x.event_type)+' · '+esc(new Date(x.occurred_at).toLocaleString())+'</div>').join('')||'<p class="empty">No attendance records yet.</p>';return;
  }
  const [staff,maps]=await Promise.all([
-  db.from('user_profiles').select('id,full_name,role').order('full_name'),
+  db.from('user_profiles').select('id,full_name,role').eq('employment_status','Active').order('full_name'),
   db.from('staff_attendance_device_users').select('device_serial,device_user_id,staff_user_id').order('device_serial')
  ]);
+ if(!attendanceIsCurrent())return;
  if(staff.error||maps.error){message('attendanceMsg','Apply the staff attendance migration in Supabase before using this screen.',true);return}
  $('staffUserSelect').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.full_name||x.id)+' ('+esc(x.role)+')</option>').join('');
  $('scheduleStaffSelect').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.full_name||x.id)+' ('+esc(x.role)+')</option>').join('');
@@ -4827,6 +4856,7 @@ async function setupAttendance(){
   db.from('staff_work_schedules').select('id,name,start_time,end_time,grace_minutes,break_minutes,weekdays,is_active').order('name'),
   db.from('staff_attendance_schedule_assignments').select('staff_user_id,schedule_id').order('assigned_at',{ascending:false})
  ]);
+ if(!attendanceIsCurrent())return;
  if(schedules.error||assignments.error){message('attendanceMsg','Attendance mappings loaded, but work schedules could not be read: '+(schedules.error||assignments.error).message,true);return}
  const scheduleById=Object.fromEntries((schedules.data||[]).map(x=>[x.id,x]));
  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -4836,10 +4866,12 @@ async function setupAttendance(){
  $('deviceMapList').innerHTML=(maps.data||[]).map(x=>'<div style="padding:7px;border-bottom:1px solid #eee">Device '+esc(x.device_serial)+' · ID '+esc(x.device_user_id)+' → '+esc(byId[x.staff_user_id]||'Unknown staff')+'</div>').join('')||'No machine IDs mapped yet.';
  const reviewPanel=$('attendanceReview');reviewPanel.classList.remove('hidden');
  const requests=await db.from('staff_attendance_adjustments').select('id,staff_user_id,attendance_date,adjustment_type,proposed_time,reason,status,created_at').order('created_at',{ascending:false}).limit(100);
+ if(!attendanceIsCurrent())return;
  if(requests.error){message('attendanceMsg','Attendance loaded, but correction requests could not be read: '+requests.error.message,true);return}
- $('attendanceAdjustmentRows').innerHTML=(requests.data||[]).map(x=>'<tr><td>'+esc(byId[x.staff_user_id]||'Unknown staff')+'</td><td>'+esc(x.attendance_date)+'</td><td>'+esc(x.adjustment_type.replace(/_/g,' '))+'</td><td>'+esc(x.proposed_time?fmt(x.proposed_time):'—')+'</td><td>'+esc(x.reason)+'</td><td>'+(x.status==='pending'?'<input aria-label="Review note" data-review-note="'+x.id+'" maxlength="500" placeholder="Optional note">':esc(x.review_note||'—'))+'</td><td>'+(x.status==='pending'?'<button type="button" class="primary" data-adjustment-review="approved" data-adjustment-id="'+x.id+'">Approve</button> <button type="button" data-adjustment-review="rejected" data-adjustment-id="'+x.id+'">Reject</button>':'<span class="badge">'+esc(x.status)+'</span>')+'</td></tr>').join('')||'<tr><td colspan="7">No correction requests have been submitted.</td></tr>';
+ $('attendanceAdjustmentRows').innerHTML=(requests.data||[]).map(x=>'<tr data-attendance-source-id="'+esc(x.id)+'"><td>'+esc(byId[x.staff_user_id]||'Unknown staff')+'</td><td>'+esc(x.attendance_date)+'</td><td>'+esc(x.adjustment_type.replace(/_/g,' '))+'</td><td>'+esc(x.proposed_time?fmt(x.proposed_time):'—')+'</td><td>'+esc(x.reason)+'</td><td>'+(x.status==='pending'?'<input aria-label="Review note" data-review-note="'+x.id+'" maxlength="500" placeholder="Optional note">':esc(x.review_note||'—'))+'</td><td>'+(x.status==='pending'?'<button type="button" class="primary" data-adjustment-review="approved" data-adjustment-id="'+x.id+'">Approve</button> <button type="button" data-adjustment-review="rejected" data-adjustment-id="'+x.id+'">Reject</button>':'<span class="badge">'+esc(x.status)+'</span>')+'</td></tr>').join('')||'<tr><td colspan="7">No correction requests have been submitted.</td></tr>';
  const since=new Date(Date.now()-14*86400000).toISOString();
  const events=await db.from('staff_attendance_events').select('staff_user_id,event_type,occurred_at').gte('occurred_at',since).order('occurred_at',{ascending:true}).limit(5000);
+ if(!attendanceIsCurrent())return;
  if(events.error){message('attendanceMsg','Staff mappings loaded, but the attendance summary could not load: '+events.error.message,true);return}
  const tz='Africa/Kampala';
  const dayKey=d=>new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
@@ -4867,7 +4899,7 @@ async function setupAttendance(){
   }
   return {staffId:x.staffId,name:byId[x.staffId]||'Unknown staff',schedule:x.schedule,first,last,status,late,missing:!!first&&!last&&nowMinute>minutes(x.schedule.end_time)+x.schedule.grace_minutes,absent:!first&&nowMinute>deadline,overtimeMinutes};
  });
- const settingResult=await db.from('staff_attendance_deduction_settings').select('enabled').eq('id',true).single();if(settingResult.error){message('attendanceMsg','Deduction settings could not be read: '+settingResult.error.message,true);return}const deductionEnabled=!!settingResult.data.enabled;$('attendanceDeductionToggle').checked=deductionEnabled;$('attendanceDeductionState').textContent=deductionEnabled?'ON — future missed events with a daily rate are approved automatically for payroll.':'OFF — warnings only; no automatic salary deduction.';const incidents=await db.from('staff_attendance_incidents').select('id,staff_user_id,attendance_date,incident_type,status,proposed_deduction_ugx,approved_deduction_ugx').order('attendance_date',{ascending:false}).limit(150);if(incidents.error){message('attendanceMsg','Attendance incidents could not be listed: '+incidents.error.message,true);return}$('attendanceIncidentRows').innerHTML=(incidents.data||[]).map(x=>'<tr><td>'+esc(byId[x.staff_user_id]||'Staff')+'</td><td>'+esc(x.attendance_date)+'</td><td>'+esc(x.incident_type.replace(/_/g,' '))+'</td><td>'+(x.status==='pending'?'<input type="number" min="0" step="1" data-incident-amount="'+x.id+'" value="'+Number(x.proposed_deduction_ugx||0)+'">':money(x.approved_deduction_ugx))+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==='pending'?'<button type="button" data-incident-review="approved" data-incident-id="'+x.id+'">Approve</button> <button type="button" data-incident-review="rejected" data-incident-id="'+x.id+'">Reject</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="6">No attendance incidents recorded.</td></tr>';$('attendanceExpected').textContent=assigned.length;
+ const settingResult=await db.from('staff_attendance_deduction_settings').select('enabled').eq('id',true).single();if(!attendanceIsCurrent())return;if(settingResult.error){message('attendanceMsg','Deduction settings could not be read: '+settingResult.error.message,true);return}const deductionEnabled=!!settingResult.data.enabled;$('attendanceDeductionToggle').checked=deductionEnabled;$('attendanceDeductionState').textContent=deductionEnabled?'ON — future missed events with a daily rate are approved automatically for payroll.':'OFF — warnings only; no automatic salary deduction.';const incidents=await db.from('staff_attendance_incidents').select('id,staff_user_id,attendance_date,incident_type,status,proposed_deduction_ugx,approved_deduction_ugx').order('attendance_date',{ascending:false}).limit(150);if(!attendanceIsCurrent())return;if(incidents.error){message('attendanceMsg','Attendance incidents could not be listed: '+incidents.error.message,true);return}$('attendanceIncidentRows').innerHTML=(incidents.data||[]).map(x=>'<tr data-attendance-source-id="'+esc(x.id)+'"><td>'+esc(byId[x.staff_user_id]||'Staff')+'</td><td>'+esc(x.attendance_date)+'</td><td>'+esc(x.incident_type.replace(/_/g,' '))+'</td><td>'+(x.status==='pending'?'<input type="number" min="0" step="1" data-incident-amount="'+x.id+'" value="'+Number(x.proposed_deduction_ugx||0)+'">':money(x.approved_deduction_ugx))+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==='pending'?'<button type="button" data-incident-review="approved" data-incident-id="'+x.id+'">Approve</button> <button type="button" data-incident-review="rejected" data-incident-id="'+x.id+'">Reject</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="6">No attendance incidents recorded.</td></tr>';$('attendanceExpected').textContent=assigned.length;
  $('attendancePresent').textContent=todayRows.filter(x=>x.first).length;
  $('attendanceLate').textContent=todayRows.filter(x=>x.late).length;
  $('attendanceAbsent').textContent=todayRows.filter(x=>x.absent).length;
@@ -5339,16 +5371,16 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
   if(!data.session){message('loginMsg','Sign-in was not completed. Please try again.',true);return}
   const userId=data.session.user.id;
   const {data:account,error:profileError}=await db.from('user_profiles').select('role').eq('id',userId).single();
-  if(profileError||!account){await db.auth.signOut();message('loginMsg','Your staff profile could not be verified. Contact the administrator.',true);return}
-  if(mode==='Admin'&&account.role!=='Admin'){await db.auth.signOut();message('loginMsg','This account is not an administrator account.',true);return}
+  if(profileError||!account){await db.auth.signOut({scope:'local'});message('loginMsg','Your staff profile could not be verified. Contact the administrator.',true);return}
+  if(mode==='Admin'&&account.role!=='Admin'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not an administrator account.',true);return}
   if(mode==='Teacher'){
-   if(account.role!=='Teacher'){await db.auth.signOut();message('loginMsg','This account is not registered as a class teacher.',true);return}
+   if(account.role!=='Teacher'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as a class teacher.',true);return}
    const {data:assigned,error:assignmentError}=await db.from('class_teacher_access').select('class_id,school_classes(name)').eq('user_id',userId);
-   if(assignmentError){await db.auth.signOut();message('loginMsg','Could not verify your class access. Contact the administrator.',true);return}
+   if(assignmentError){await db.auth.signOut({scope:'local'});message('loginMsg','Could not verify your class access. Contact the administrator.',true);return}
    const matches=(assigned||[]).filter(x=>String(x.school_classes?.name||'').trim().toLowerCase()===selectedClass.toLowerCase());
    const ids=[...new Set(matches.map(x=>x.class_id))];
    const allAssignedClassIds=[...new Set((assigned||[]).map(x=>x.class_id))];
-   if(ids.length!==1||allAssignedClassIds.length!==1){await db.auth.signOut();message('loginMsg','This code is not authorised for '+selectedClass+'. Check the class selected or contact the administrator.',true);return}
+   if(ids.length!==1||allAssignedClassIds.length!==1){await db.auth.signOut({scope:'local'});message('loginMsg','This code is not authorised for '+selectedClass+'. Check the class selected or contact the administrator.',true);return}
    sessionStorage.setItem('cornhill_teacher_class_id',ids[0]);sessionStorage.setItem('cornhill_login_mode','Teacher');window.teacherClassId=ids[0];
   }else{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.setItem('cornhill_login_mode','Admin')}
   // Hold the automatic SIGNED_IN callback until the selected teacher class has been verified and stored.
@@ -5362,12 +5394,17 @@ $('adminSignIn').addEventListener('click',()=>authenticateAccount($('adminEmail'
 loadPublicClassLoginDirectory();
 $('logout').addEventListener('click',async()=>{
  if(demoMode){resetAccountScopedCommunicationState();demoMode=false;profile=null;location.reload();return}
- const owner=currentUserId;
- resetAccountScopedCommunicationState();
- await db.auth.signOut();await offlineSchoolDelete(owner);
- sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');
- profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;
- setOfflineReadOnly(false);
+ const owner=currentUserId;resetAccountScopedCommunicationState();
+ try{
+  const {error}=await db.auth.signOut({scope:'local'});if(error)throw error;
+  if(owner)await offlineSchoolDelete(owner);
+  currentUserId=null;sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');
+  profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;setOfflineReadOnly(false);
+ }catch(error){
+  const result=await db.auth.getSession().catch(()=>({data:{session:null}}));
+  if(result?.data?.session)await startSession(result.data.session);
+  message('loginMsg','Sign-out could not be confirmed. The workspace was cleared; check the connection and try again. '+(error?.message||''),true);
+ }
 });
 function syncBursaryAdmissionFields(){
  const enabled=$('bursaryStatus').value==='true';
@@ -6109,21 +6146,22 @@ applyReceiptPaperWidth();
 
 
 const APPEARANCE_KEY='cornhill_appearance_v1';
+function appearanceStorageKey(){return APPEARANCE_KEY+':'+(currentUserId||'signed-out')}
 const APPEARANCE_THEMES=[['forest','Forest green'],['ocean','Ocean blue'],['royal','Royal purple'],['sunrise','Sunrise orange'],['ruby','Ruby red'],['midnight','Midnight dark'],['slate','Slate grey'],['teal','Teal calm'],['emerald','Emerald luxury'],['lavender','Lavender mist'],['sand','Warm sand'],['graphite','Graphite dark'],['aurora','Aurora teal'],['cobalt','Cobalt blue'],['coral','Coral glow'],['rose','Rose garden'],['arctic','Arctic cyan'],['indigo','Indigo dusk']];
 const APPEARANCE_FONTS=[
  ['system','System default'],['arial','Arial'],['verdana','Verdana'],['tahoma','Tahoma'],['trebuchet','Trebuchet MS'],['georgia','Georgia'],['times','Times New Roman'],['courier','Courier New'],['lucida','Lucida Sans'],['palatino','Palatino'],['garamond','Garamond'],['bookman','Bookman'],['comic','Comic Sans MS'],['impact','Impact'],['segoe','Segoe UI'],['calibri','Calibri'],['candara','Candara'],['optima','Optima'],['futura','Futura'],['gill','Gill Sans'],['century','Century Gothic'],['franklin','Franklin Gothic'],['monaco','Monaco'],['consolas','Consolas']
 ];
 const FONT_STACKS={system:'Inter,system-ui,-apple-system,Segoe UI,sans-serif',arial:'Arial,sans-serif',verdana:'Verdana,sans-serif',tahoma:'Tahoma,sans-serif',trebuchet:'Trebuchet MS,sans-serif',georgia:'Georgia,serif',times:'Times New Roman,serif',courier:'Courier New,monospace',lucida:'Lucida Sans Unicode,Lucida Grande,sans-serif',palatino:'Palatino Linotype,Book Antiqua,Palatino,serif',garamond:'Garamond,serif',bookman:'Bookman Old Style,serif',comic:'Comic Sans MS,cursive',impact:'Impact,Charcoal,sans-serif',segoe:'Segoe UI,sans-serif',calibri:'Calibri,Candara,sans-serif',candara:'Candara,Calibri,sans-serif',optima:'Optima,Segoe,sans-serif',futura:'Futura,Century Gothic,sans-serif',gill:'Gill Sans,Gill Sans MT,sans-serif',century:'Century Gothic,sans-serif',franklin:'Franklin Gothic Medium,sans-serif',monaco:'Monaco,monospace',consolas:'Consolas,monospace'};
-function readAppearance(){try{return JSON.parse(localStorage.getItem(APPEARANCE_KEY)||'{}')}catch(_){return {}}}
+function readAppearance(){try{return JSON.parse(localStorage.getItem(appearanceStorageKey())||'{}')}catch(_){return {}}}
 function applyAppearance(prefs){const loginLayouts=['classic','crest','bubbles','waves','geometric','symbols','minimal','night','school','rounded'];const loginLayout=loginLayouts.includes(prefs.loginLayout)?prefs.loginLayout:'classic';$('login').dataset.loginLayout=loginLayout;const theme=APPEARANCE_THEMES.some(x=>x[0]===prefs.theme)?prefs.theme:'forest';const font=FONT_STACKS[prefs.font]?prefs.font:'system';const layouts=['executive','modern-grid','compact-tiles','sidebar-list','colorful','minimal','wide-cards','icon-focus','split','classic','command-center','soft-glass','editorial','focus-workspace'];const dashboardLayout=layouts.includes(prefs.dashboardLayout)?prefs.dashboardLayout:'executive';const navigationLayouts=['left','top','right','rail'];const navigationLayout=navigationLayouts.includes(prefs.navigationLayout)?prefs.navigationLayout:'left';const motion=prefs.motion==='on'?'on':'off';const fontSize=({14:'14px',16:'16px',18:'18px',20:'20px'}[prefs.fontSize]||'16px');const density=prefs.density==='compact'?'compact':'comfortable';document.body.dataset.theme=theme;document.body.dataset.motion=motion;document.body.dataset.density=density;document.body.dataset.dashboardLayout=dashboardLayout;document.body.dataset.navigationLayout=navigationLayout;document.documentElement.style.fontFamily=FONT_STACKS[font];document.documentElement.style.fontSize=fontSize;const livePreview=$('appearanceLivePreview');if(livePreview){const palettes={forest:['#166534','#14532d','#f3f7f3','#ffffff','#17251c','#607265','#dce7de'],ocean:['#0369a1','#0c4a6e','#eff8fc','#ffffff','#102b3b','#526d7b','#cfe3ed'],royal:['#6d28d9','#4c1d95','#f7f3ff','#ffffff','#281a3e','#716582','#e3d8f4'],sunrise:['#c2410c','#9a3412','#fff7ed','#ffffff','#3b2419','#806b5d','#f1ddcb'],ruby:['#be123c','#881337','#fff1f2','#ffffff','#3f1722','#80616b','#f2d4dc'],midnight:['#38bdf8','#0f172a','#111827','#1f2937','#f3f4f6','#c0cad8','#374151'],slate:['#475569','#1e293b','#f1f5f9','#ffffff','#1e293b','#64748b','#d8e0e9'],teal:['#0f766e','#134e4a','#f0fdfa','#ffffff','#153b38','#5c7773','#cce9e4'],emerald:['#059669','#064e3b','#ecfdf5','#ffffff','#12372b','#527568','#c9e8d9'],lavender:['#8b5cf6','#4c1d95','#f5f3ff','#ffffff','#2e2250','#746b8a','#e4dcf5'],sand:['#a16207','#713f12','#fffbeb','#fffefa','#3d3020','#82735b','#eadfca'],graphite:['#94a3b8','#0f172a','#0b1220','#182235','#f1f5f9','#aab7c9','#334155'],aurora:['#0f766e','#164e63','#effcfb','#ffffff','#143b3a','#5a7774','#cfe8e2'],cobalt:['#2563eb','#1e40af','#eff6ff','#ffffff','#172554','#64748b','#dbeafe'],coral:['#e11d48','#9f1239','#fff1f2','#ffffff','#4c0519','#80616b','#fecdd3'],rose:['#be185d','#831843','#fdf2f8','#ffffff','#500724','#9d647e','#fbcfe8'],arctic:['#0891b2','#155e75','#ecfeff','#ffffff','#164e63','#5b7e8a','#c8edf2'],indigo:['#4f46e5','#312e81','#eef2ff','#ffffff','#24205c','#69739a','#d7dcff']};const c=palettes[theme]||palettes.forest;['--cornhill-accent','--cornhill-accent-dark','--cornhill-page','--cornhill-panel','--cornhill-ink','--cornhill-muted','--cornhill-line'].forEach((k,i)=>livePreview.style.setProperty(k,c[i]));livePreview.dataset.previewTheme=theme;livePreview.dataset.previewLayout=dashboardLayout;livePreview.dataset.previewMotion=motion;livePreview.dataset.previewDensity=density;livePreview.style.fontFamily=FONT_STACKS[font];livePreview.style.fontSize=fontSize;const label=livePreview.querySelector('.appearance-preview-top span');if(label)label.textContent='LIVE PREVIEW · '+theme.toUpperCase().replace('-',' ')+' · '+dashboardLayout.toUpperCase().replace('-',' ');}}
 function setupAppearance(){const prefs=readAppearance(),theme=$('themeChoice'),font=$('fontChoice');const messaging=JSON.parse(localStorage.getItem('cornhill-messaging-preferences')||'{}');if($('parentPaymentNoticeMode'))$('parentPaymentNoticeMode').value=messaging.paymentMode||'automatic';if($('teacherAttendanceNoticeMode'))$('teacherAttendanceNoticeMode').value=messaging.teacherAttendanceMode||'both';if($('parentMessageChannels'))$('parentMessageChannels').value=messaging.channels||'sms';if($('schoolSenderName'))$('schoolSenderName').value=messaging.senderName||'CORNHILL';if($('parentWhatsAppEnabled'))$('parentWhatsAppEnabled').checked=!!messaging.whatsappEnabled;if($('staffSmsEnabled'))$('staffSmsEnabled').checked=!!messaging.staffSmsEnabled;if(!theme.options.length)theme.innerHTML=APPEARANCE_THEMES.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');if(!font.options.length)font.innerHTML=APPEARANCE_FONTS.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');theme.value=prefs.theme||'forest';font.value=prefs.font||'system';$('navigationLayoutChoice').value=prefs.navigationLayout||'left';$('motionChoice').value=prefs.motion||'off';$('fontSizeChoice').value=prefs.fontSize||'16';$('densityChoice').value=prefs.density||'comfortable';$('dashboardLayoutChoice').value=prefs.dashboardLayout||'executive';$('loginLayoutChoice').value=prefs.loginLayout||'classic';$('loginLayoutPreview').dataset.loginLayout=prefs.loginLayout||'classic';$('timezoneChoice').value=prefs.timezone||'Africa/Kampala';$('dateFormatChoice').value=prefs.dateFormat||'dd/mm/yyyy';$('receiptWidthChoice').value=prefs.receiptWidth||localStorage.getItem(RECEIPT_PAPER_KEY)||'80';$('welcomeGreetingChoice').value=prefs.greetings||'on';$('customWelcomeMessage').value=prefs.customWelcome||'';}
-function saveAppearance(){const prefs={...readAppearance(),theme:$('themeChoice').value,font:$('fontChoice').value,motion:$('motionChoice').value,fontSize:$('fontSizeChoice').value,density:$('densityChoice').value,dashboardLayout:$('dashboardLayoutChoice').value,navigationLayout:$('navigationLayoutChoice').value,loginLayout:$('loginLayoutChoice').value};try{localStorage.setItem(APPEARANCE_KEY,JSON.stringify(prefs));applyAppearance(prefs);$('appearanceMsg').textContent='Appearance saved on this device.'}catch(_){$('appearanceMsg').textContent='Could not save; browser storage may be disabled.'}}
+function saveAppearance(){const prefs={...readAppearance(),theme:$('themeChoice').value,font:$('fontChoice').value,motion:$('motionChoice').value,fontSize:$('fontSizeChoice').value,density:$('densityChoice').value,dashboardLayout:$('dashboardLayoutChoice').value,navigationLayout:$('navigationLayoutChoice').value,loginLayout:$('loginLayoutChoice').value};try{localStorage.setItem(appearanceStorageKey(),JSON.stringify(prefs));applyAppearance(prefs);$('appearanceMsg').textContent='Appearance saved on this device.'}catch(_){$('appearanceMsg').textContent='Could not save; browser storage may be disabled.'}}
 $('loginLayoutChoice').addEventListener('change',()=>{$('loginLayoutPreview').dataset.loginLayout=$('loginLayoutChoice').value;$('loginLayoutStatus').textContent='Previewing layout '+$('loginLayoutChoice').selectedOptions[0].text+'. Select Apply to save it on this device.'});$('applyLoginLayout').addEventListener('click',()=>{saveAppearance();$('loginLayoutStatus').textContent='Sign-in layout applied on this device.'});
  $('themeChoice').addEventListener('change',saveAppearance);$('fontChoice').addEventListener('change',saveAppearance);$('motionChoice').addEventListener('change',saveAppearance);$('fontSizeChoice').addEventListener('change',saveAppearance);$('densityChoice').addEventListener('change',saveAppearance);$('dashboardLayoutChoice').addEventListener('change',saveAppearance);$('navigationLayoutChoice').addEventListener('change',saveAppearance);
-$('resetAppearance').addEventListener('click',()=>{const defaults={theme:'forest',font:'system',motion:'off',fontSize:'16',density:'comfortable',dashboardLayout:'executive',navigationLayout:'left',loginLayout:'classic'};try{localStorage.setItem(APPEARANCE_KEY,JSON.stringify(defaults))}catch(_){}setupAppearance();applyAppearance(defaults);$('appearanceMsg').textContent='Professional default appearance restored.'});
+$('resetAppearance').addEventListener('click',()=>{const defaults={theme:'forest',font:'system',motion:'off',fontSize:'16',density:'comfortable',dashboardLayout:'executive',navigationLayout:'left',loginLayout:'classic'};try{localStorage.setItem(appearanceStorageKey(),JSON.stringify(defaults))}catch(_){}setupAppearance();applyAppearance(defaults);$('appearanceMsg').textContent='Professional default appearance restored.'});
 function getSchoolGreeting(){const zone=readAppearance().timezone||'Africa/Kampala';let parts;try{parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:zone,month:'numeric',day:'numeric',weekday:'short',hour:'numeric',hour12:false}).formatToParts(new Date()).map(x=>[x.type,x.value]))}catch(_){parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Africa/Kampala',month:'numeric',day:'numeric',weekday:'short',hour:'numeric',hour12:false}).formatToParts(new Date()).map(x=>[x.type,x.value]))}const h=Number(parts.hour),m=Number(parts.month)-1,d=Number(parts.day),sun=parts.weekday==='Sun';if(m===0&&d===1)return 'Happy New Year!';if(m===2&&d===8)return 'Happy International Women’s Day!';if(m===4&&d===1)return 'Happy Labour Day!';if(m===5&&d===3)return 'Happy Martyrs’ Day!';if(m===5&&d===9)return 'Happy Heroes’ Day, Uganda!';if(m===9&&d===9)return 'Happy Independence Day, Uganda!';if(m===11&&d===25)return 'Merry Christmas!';if(m===11&&d===26)return 'Happy Boxing Day!';if(m===4&&sun&&d>=8&&d<=14)return 'Happy Mother’s Day!';if(h<12)return 'Good morning';if(h<17)return 'Good afternoon';return 'Good evening';}
 function setSchoolGreeting(person){const p=readAppearance(),line=$('welcomeMessage');if(!line)return;if(p.greetings==='off'){line.textContent='Manage school records securely and efficiently.';return}line.textContent=(p.customWelcome||getSchoolGreeting())+(person?' · '+person:'')+' — welcome to CORNHILL.';}
-$('saveGeneralSettings').addEventListener('click',()=>{const p={...readAppearance(),timezone:$('timezoneChoice').value,dateFormat:$('dateFormatChoice').value,receiptWidth:$('receiptWidthChoice').value,greetings:$('welcomeGreetingChoice').value,customWelcome:$('customWelcomeMessage').value.trim()};try{localStorage.setItem(APPEARANCE_KEY,JSON.stringify(p));localStorage.setItem(RECEIPT_PAPER_KEY,p.receiptWidth);$('receiptPaperWidth').value=p.receiptWidth;applyReceiptPaperWidth();setSchoolGreeting(profile?.full_name);$('generalSettingsMsg').textContent='Device preferences saved. School-wide settings have not been changed.'}catch(_){$('generalSettingsMsg').textContent='Could not save device preferences.'}});
+$('saveGeneralSettings').addEventListener('click',()=>{const p={...readAppearance(),timezone:$('timezoneChoice').value,dateFormat:$('dateFormatChoice').value,receiptWidth:$('receiptWidthChoice').value,greetings:$('welcomeGreetingChoice').value,customWelcome:$('customWelcomeMessage').value.trim()};try{localStorage.setItem(appearanceStorageKey(),JSON.stringify(p));localStorage.setItem(RECEIPT_PAPER_KEY,p.receiptWidth);$('receiptPaperWidth').value=p.receiptWidth;applyReceiptPaperWidth();setSchoolGreeting(profile?.full_name);$('generalSettingsMsg').textContent='Device preferences saved. School-wide settings have not been changed.'}catch(_){$('generalSettingsMsg').textContent='Could not save device preferences.'}});
 $('changeMyPasswordForm').addEventListener('submit',async e=>{e.preventDefault();const password=$('newPassword').value,confirm=$('confirmNewPassword').value;if(!db||!currentUserId||demoMode){message('passwordChangeMsg','Sign in with your real school account before changing a password.',true);return}if(password!==confirm){message('passwordChangeMsg','The two passwords do not match.',true);return}const button=e.submitter;button.disabled=true;button.textContent='Checking password…';try{if(!await approveNewPassword(password,'passwordChangeMsg'))return;const {error}=await db.auth.updateUser({password});if(error)throw error;e.target.reset();message('passwordChangeMsg','Password updated successfully. Keep it private and sign in again if requested.')}catch(err){message('passwordChangeMsg','Password was not changed: '+(err.message||'Please sign in again and retry.'),true)}finally{button.disabled=false;button.textContent='Update my password'}});
 $('sendStaffReset').addEventListener('click',async()=>{const email=$('staffResetEmail').value.trim();if(profile?.role!=='Admin'||demoMode){message('staffResetMsg','Only a signed-in administrator can send staff reset links.',true);return}if(!email){message('staffResetMsg','Enter the staff member’s registered email address.',true);return}const button=$('sendStaffReset');button.disabled=true;try{const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;message('staffResetMsg','A secure password-reset request has been sent if this email belongs to a school account. The staff member must use the link privately.')}catch(err){message('staffResetMsg','Could not request the reset email: '+(err.message||'Check the address and authentication settings.'),true)}finally{button.disabled=false}});
 (function(){const prefs=readAppearance();applyAppearance(prefs)})();
