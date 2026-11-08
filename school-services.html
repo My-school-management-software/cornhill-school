@@ -76,6 +76,8 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
       <a href="#integrations" data-service="integrations">Integrations</a>
       <a href="#system-health" data-service="system-health">System Health</a>
       <a href="#attendance-kiosk" data-service="attendance-kiosk">Attendance Kiosk</a>
+      <a href="#visitor-register" data-service="visitor-register">Visitors</a>
+      <a href="#facilities" data-service="facilities">Assets & Maintenance</a>
     </nav>
     <div id="globalMsg" class="notice hidden" role="status" aria-live="polite"></div>
   </div>
@@ -211,6 +213,67 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
     <p class="muted">Do not use this register as a medical diagnosis file. Any formal safeguarding or medical process must follow the school's approved procedures.</p>
   </section>
 
+  <section id="visitor-register" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">RECEPTION & SECURITY</span><h2>Visitor & Gate Register</h2><p class="muted">Restricted visitor check-in and check-out. Record only the information needed to account for visitors while they are on school premises.</p></div><button type="button" id="refreshVisitors">Refresh visitor log</button></div>
+    <div class="stats">
+      <div class="stat"><small>Currently checked in</small><strong id="visitorInsideCount">—</strong></div>
+      <div class="stat"><small>Visitor entries today</small><strong id="visitorTodayCount">—</strong></div>
+    </div>
+    <div class="card">
+      <h3>Check a visitor in</h3>
+      <form id="visitorForm">
+        <div><label for="visitorName">Visitor full name *</label><input id="visitorName" maxlength="140" required></div>
+        <div><label for="visitorPhone">Contact phone</label><input id="visitorPhone" type="tel" maxlength="25"></div>
+        <div><label for="visitorOrganisation">Organisation / company</label><input id="visitorOrganisation" maxlength="120"></div>
+        <div><label for="visitorPerson">Person to visit *</label><input id="visitorPerson" maxlength="140" required></div>
+        <div class="full"><label for="visitorPurpose">Purpose of visit *</label><textarea id="visitorPurpose" maxlength="500" required></textarea></div>
+        <div><label for="visitorDestination">Office / destination</label><input id="visitorDestination" maxlength="120"></div>
+        <div><label for="visitorVehicle">Vehicle registration (optional)</label><input id="visitorVehicle" maxlength="30"></div>
+        <div class="full"><label for="visitorNotes">Gate note (optional)</label><input id="visitorNotes" maxlength="600"></div>
+        <div class="full"><button class="primary" type="submit">Check visitor in & issue pass code</button><p id="visitorMsg" class="muted" role="status"></p></div>
+      </form>
+    </div>
+    <h3>Visitor log</h3>
+    <div class="table-wrap"><table><thead><tr><th>Pass / time</th><th>Visitor / organisation</th><th>Purpose / destination</th><th>Person to visit</th><th>Status</th><th>Action</th></tr></thead><tbody id="visitorRows"><tr><td colspan="6">Loading visitor log…</td></tr></tbody></table></div>
+    <p class="muted">This is an internal operational register. Do not copy visitor contact details into public messages or disclose the register outside approved school duties.</p>
+  </section>
+
+  <section id="facilities" class="panel module">
+    <div class="module-head"><div><span class="kicker">SCHOOL PROPERTY & SUPPORT</span><h2>School Assets & Maintenance</h2><p class="muted">Staff can report a broken or unsafe school item. Approved store, property, maintenance and ICT operators can view the asset register and manage reported work.</p></div><button type="button" id="refreshFacilities">Refresh facilities</button></div>
+    <div class="card" id="assetAdminCard">
+      <h3>Register a school asset</h3>
+      <form id="assetForm">
+        <div><label for="assetCode">Asset code *</label><input id="assetCode" maxlength="60" required placeholder="e.g. ICT-001"></div>
+        <div><label for="assetName">Asset / equipment name *</label><input id="assetName" maxlength="160" required></div>
+        <div><label for="assetCategory">Category *</label><select id="assetCategory"><option>Furniture</option><option>ICT equipment</option><option>Teaching equipment</option><option>Kitchen equipment</option><option>Sports equipment</option><option>Vehicle</option><option>Building / facility</option><option>Other</option></select></div>
+        <div><label for="assetSerial">Serial number</label><input id="assetSerial" maxlength="100"></div>
+        <div><label for="assetLocation">Location</label><input id="assetLocation" maxlength="120" placeholder="e.g. P.5 classroom"></div>
+        <div><label for="assetPurchaseDate">Purchase date</label><input id="assetPurchaseDate" type="date"></div>
+        <div><label for="assetCost">Purchase cost (UGX)</label><input id="assetCost" type="number" min="0" step="1" value="0"></div>
+        <div><label for="assetCondition">Condition</label><select id="assetCondition"><option>New</option><option selected>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></div>
+        <div class="full"><label for="assetNotes">Asset note</label><textarea id="assetNotes" maxlength="1000"></textarea></div>
+        <div class="full"><button class="primary" type="submit">Save school asset</button><p id="assetMsg" class="muted" role="status"></p></div>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Report a maintenance issue</h3>
+      <form id="maintenanceForm">
+        <div><label for="maintenanceAsset">Asset code / item name (optional)</label><input id="maintenanceAsset" maxlength="160" placeholder="e.g. ICT-001 or staffroom door"></div>
+        <div><label for="maintenanceUrgency">Urgency</label><select id="maintenanceUrgency"><option>Low</option><option selected>Normal</option><option>High</option><option>Urgent</option></select></div>
+        <div><label for="maintenanceTitle">Issue title *</label><input id="maintenanceTitle" maxlength="140" required placeholder="e.g. Projector not working"></div>
+        <div class="full"><label for="maintenanceDescription">Describe the issue and location *</label><textarea id="maintenanceDescription" maxlength="1600" required></textarea></div>
+        <div class="full"><button class="primary" type="submit">Submit maintenance report</button><p id="maintenanceMsg" class="muted" role="status"></p></div>
+      </form>
+    </div>
+    <div id="assetRegisterPanel" class="hidden">
+      <h3>School asset register</h3>
+      <div class="table-wrap"><table><thead><tr><th>Asset code</th><th>Asset</th><th>Category</th><th>Location</th><th>Condition</th><th>Status</th><th>Purchase cost</th></tr></thead><tbody id="assetRows"><tr><td colspan="7">Loading assets…</td></tr></tbody></table></div>
+    </div>
+    <h3 style="margin-top:18px">Maintenance reports</h3>
+    <div class="table-wrap"><table><thead><tr><th>Date / issue</th><th>Asset</th><th>Reported by</th><th>Urgency</th><th>Description</th><th>Status / manager action</th></tr></thead><tbody id="maintenanceRows"><tr><td colspan="6">Loading maintenance reports…</td></tr></tbody></table></div>
+    <p class="muted">Do not use this register for safeguarding concerns or confidential learner information. Use the restricted Student Welfare Office for appropriate welfare matters.</p>
+  </section>
+
   <section id="integrations" class="panel module hidden">
     <div class="module-head"><div><span class="kicker">ADMINISTRATOR SETUP</span><h2>Mobile Money, SMS & Backup Integrations</h2><p class="muted">Register the services the school intends to connect. This register never stores provider passwords, API tokens, private keys or PINs. It cannot mark a provider Active: live activation requires a separate server-side connection and verified test transactions.</p></div><button type="button" id="refreshIntegrations">Refresh providers</button></div>
     <div class="notice warning">MTN Mobile Money, Airtel Money and SMS are not yet connected. Live payments require merchant approval, official provider credentials, secure server-side processing, callback verification and reconciliation tests. Do not enter or paste secrets here.</div>
@@ -269,6 +332,10 @@ const isLibrarian=()=>isAdmin()||hasJob('librarian','library manager','library o
 const isTransport=()=>isAdmin()||hasJob('transport manager','transport officer','driver','bus driver');
 const isTransportManager=()=>isAdmin()||hasJob('transport manager','transport officer');
 const isWelfare=()=>isAdmin()||hasJob('matron','senior woman','senior man','school nurse');
+const isGateStaff=()=>isAdmin()||hasJob('receptionist','security officer','security guard','gatekeeper','front office','office administrator');
+const isAssetViewer=()=>isAdmin()||hasJob('store manager','store officer','stores manager','property officer','maintenance officer','ict support','ict officer');
+const isAssetCustodian=()=>isAdmin()||hasJob('store manager','store officer','stores manager');
+const isMaintenanceManager=()=>isAssetViewer();
 const isActiveStaff=()=>!!profile&&profile.employment_status==='Active';
 function note(id,msg,type='info'){const el=$(id);if(!el)return;el.textContent=msg;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.classList.remove('hidden')}
 function inlineMsg(id,msg,type='info'){const el=$(id);if(!el)return;el.textContent=msg;el.style.color=type==='error'?'#9f1239':type==='success'?'#166534':'var(--muted)'}
@@ -293,7 +360,9 @@ function configureModules(){
   welfare:isWelfare(),
   integrations:isAdmin(),
   'system-health':isAdmin(),
-  'attendance-kiosk':isAdmin()||profile.role==='Staff'
+  'attendance-kiosk':isAdmin()||profile.role==='Staff',
+  'visitor-register':isGateStaff(),
+  facilities:true
  };
  Object.entries(permissions).forEach(([id,allowed])=>{
   const section=$(id);if(section)section.classList.toggle('hidden',!allowed);
@@ -304,6 +373,8 @@ function configureModules(){
  show('loanAdminCard',isLibrarian());
  show('routeAdminCard',isTransportManager());
  show('transportAssignmentCard',isTransportManager());
+ show('assetAdminCard',isAssetCustodian());
+ show('assetRegisterPanel',isAssetViewer());
  $('welcome').textContent='Welcome, '+(profile.full_name||'CORNHILL staff member');
  $('roleInfo').textContent=profile.role+(profile.job_title?' · '+profile.job_title:'')+' · Active account';
  $('roleBadge').textContent=profile.role;
@@ -322,6 +393,9 @@ async function refreshAll(){
  jobs.push((async()=>{await loadBooks();if(isLibrarian())await loadLoans()})());
  if(isTransport())jobs.push(loadTransport());
  if(isWelfare())jobs.push(loadWelfare());
+ if(isGateStaff())jobs.push(loadVisitors());
+ jobs.push(loadMaintenance());
+ if(isAssetViewer())jobs.push(loadAssets());
  const results=await Promise.allSettled(jobs);
  const failed=results.filter(x=>x.status==='rejected');
  if(failed.length)note('globalMsg','Some panels could not refresh. Check their individual status messages; database permissions remain in force.', 'error');
@@ -464,6 +538,81 @@ $('welfareForm').addEventListener('submit',async e=>{
  const {error}=await db.from('school_welfare_cases').insert(p);if(error)throw error;e.target.reset();inlineMsg('welfareMsg','Restricted welfare record saved.','success');await loadWelfare();
  }catch(err){inlineMsg('welfareMsg','Welfare record not saved: '+err.message,'error')}
 });
+function gatePassCode(){
+ const d=new Date(),stamp=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+ const token=(window.crypto?.randomUUID?.()||Math.random().toString(36).slice(2)).replace(/[^a-z0-9]/gi,'').slice(0,6).toUpperCase();
+ return 'VIS-'+stamp+'-'+token;
+}
+async function loadVisitors(){
+ if(!isGateStaff())return;
+ const {data,error}=await db.from('school_visitor_log').select('id,visitor_name,visitor_phone,organisation,visit_purpose,person_to_visit,destination,vehicle_number,pass_code,status,checked_in_at,checked_out_at,notes').order('checked_in_at',{ascending:false}).limit(300);
+ if(error){$('visitorRows').innerHTML='<tr><td colspan="6">Visitor log unavailable: '+esc(error.message)+'</td></tr>';return}
+ const rows=data||[],todayKey=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Kampala'});
+ $('visitorInsideCount').textContent=rows.filter(x=>x.status==='Checked In').length;
+ $('visitorTodayCount').textContent=rows.filter(x=>new Date(x.checked_in_at).toLocaleDateString('en-CA',{timeZone:'Africa/Kampala'})===todayKey).length;
+ $('visitorRows').innerHTML=rows.map(x=>'<tr><td><strong>'+esc(x.pass_code)+'</strong><br><small>'+esc(new Date(x.checked_in_at).toLocaleString('en-GB'))+'</small></td><td>'+esc(x.visitor_name)+'<br><small>'+esc(x.organisation||'')+' '+esc(x.visitor_phone||'')+'</small></td><td>'+esc(x.visit_purpose)+'<br><small>'+esc(x.destination||'')+(x.vehicle_number?' · '+esc(x.vehicle_number):'')+'</small></td><td>'+esc(x.person_to_visit)+'</td><td><span class="badge">'+esc(x.status)+'</span>'+(x.checked_out_at?'<br><small>'+esc(new Date(x.checked_out_at).toLocaleString('en-GB'))+'</small>':'')+'</td><td>'+(x.status==='Checked In'?'<button type="button" data-visitor-checkout="'+esc(x.id)+'">Check out</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">No visitor entries are recorded.</td></tr>';
+}
+$('visitorForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ try{
+  if(!isGateStaff())throw new Error('Visitor register access is restricted to reception and approved security staff.');
+  const p={visitor_name:$('visitorName').value.trim(),visitor_phone:$('visitorPhone').value.trim(),organisation:$('visitorOrganisation').value.trim(),person_to_visit:$('visitorPerson').value.trim(),visit_purpose:$('visitorPurpose').value.trim(),destination:$('visitorDestination').value.trim(),vehicle_number:$('visitorVehicle').value.trim(),notes:$('visitorNotes').value.trim(),pass_code:gatePassCode(),checked_in_by:user.id};
+  const {error}=await db.from('school_visitor_log').insert(p);if(error)throw error;e.target.reset();inlineMsg('visitorMsg','Visitor checked in. Pass code: '+p.pass_code,'success');await loadVisitors();
+ }catch(err){inlineMsg('visitorMsg','Visitor was not checked in: '+err.message,'error')}
+});
+$('visitorRows').addEventListener('click',async e=>{
+ const id=e.target.closest('[data-visitor-checkout]')?.dataset.visitorCheckout;if(!id)return;
+ try{
+  if(!isGateStaff())throw new Error('Visitor check-out access is restricted.');
+  const {error}=await db.from('school_visitor_log').update({status:'Checked Out',checked_out_at:new Date().toISOString(),checked_out_by:user.id}).eq('id',id).eq('status','Checked In');
+  if(error)throw error;await loadVisitors();note('globalMsg','Visitor check-out recorded.','success');
+ }catch(err){note('globalMsg','Check-out was not recorded: '+err.message,'error')}
+});
+async function loadAssets(){
+ if(!isAssetViewer())return;
+ const {data,error}=await db.from('school_assets').select('id,asset_code,asset_name,category,serial_number,location,condition,status,purchase_cost_ugx,purchase_date').order('asset_code').limit(500);
+ if(error){$('assetRows').innerHTML='<tr><td colspan="7">Asset register unavailable: '+esc(error.message)+'</td></tr>';return}
+ const rows=data||[];$('assetRows').innerHTML=rows.map(x=>'<tr><td><strong>'+esc(x.asset_code)+'</strong></td><td>'+esc(x.asset_name)+'<br><small>'+esc(x.serial_number||'')+'</small></td><td>'+esc(x.category)+'</td><td>'+esc(x.location||'')+'</td><td>'+esc(x.condition)+'</td><td><span class="badge">'+esc(x.status)+'</span></td><td>'+money(x.purchase_cost_ugx)+'</td></tr>').join('')||'<tr><td colspan="7" class="empty">No school assets registered yet.</td></tr>';
+}
+$('assetForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ try{
+  if(!isAssetCustodian())throw new Error('Only the administrator or an authorised store manager can register assets.');
+  const cost=Number($('assetCost').value);if(!Number.isSafeInteger(cost)||cost<0)throw new Error('Enter a valid UGX purchase cost.');
+  const p={asset_code:$('assetCode').value.trim(),asset_name:$('assetName').value.trim(),category:$('assetCategory').value,serial_number:$('assetSerial').value.trim(),location:$('assetLocation').value.trim(),purchase_date:$('assetPurchaseDate').value||null,purchase_cost_ugx:cost,condition:$('assetCondition').value,notes:$('assetNotes').value.trim(),created_by:user.id,updated_by:user.id};
+  const {error}=await db.from('school_assets').insert(p);if(error)throw error;e.target.reset();inlineMsg('assetMsg','School asset registered. No existing inventory record was modified.','success');await loadAssets();
+ }catch(err){inlineMsg('assetMsg','Asset was not saved: '+err.message,'error')}
+});
+async function loadMaintenance(){
+ const {data,error}=await db.from('school_asset_maintenance').select('id,asset_label,issue_title,description,urgency,status,estimated_cost_ugx,actual_cost_ugx,resolution_note,reported_by,assigned_to,created_at,resolved_at').order('created_at',{ascending:false}).limit(300);
+ if(error){$('maintenanceRows').innerHTML='<tr><td colspan="6">Maintenance report register unavailable: '+esc(error.message)+'</td></tr>';return}
+ const rows=data||[];$('maintenanceRows').innerHTML=rows.map(x=>{
+  const manager=isMaintenanceManager();
+  const action=manager?'<select data-maint-status="'+esc(x.id)+'">'+['Reported','Assigned','In Progress','Awaiting Parts','Completed','Cancelled'].map(s=>'<option '+(x.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select><input data-maint-cost="'+esc(x.id)+'" type="number" min="0" step="1" value="'+Number(x.actual_cost_ugx||0)+'" placeholder="Actual cost UGX"><input data-maint-note="'+esc(x.id)+'" maxlength="1200" value="'+esc(x.resolution_note||'')+'" placeholder="Resolution note"><button type="button" data-maint-save="'+esc(x.id)+'">Save update</button>':'<span class="badge">'+esc(x.status)+'</span>';
+  return '<tr><td><strong>'+esc(new Date(x.created_at).toLocaleString('en-GB'))+'</strong><br>'+esc(x.issue_title)+'</td><td>'+esc(x.asset_label||'Not specified')+'</td><td>'+(x.reported_by===user.id?'You':'School staff')+'</td><td>'+esc(x.urgency)+'</td><td>'+esc(x.description)+'</td><td>'+action+(x.resolved_at?'<br><small>Resolved '+esc(new Date(x.resolved_at).toLocaleDateString('en-GB'))+'</small>':'')+'</td></tr>';
+ }).join('')||'<tr><td colspan="6" class="empty">No maintenance issues have been reported.</td></tr>';
+}
+$('maintenanceForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ try{
+  if(!isActiveStaff())throw new Error('An active staff account is required to report an issue.');
+  const p={asset_label:$('maintenanceAsset').value.trim(),issue_title:$('maintenanceTitle').value.trim(),description:$('maintenanceDescription').value.trim(),urgency:$('maintenanceUrgency').value,reported_by:user.id};
+  const {error}=await db.from('school_asset_maintenance').insert(p);if(error)throw error;e.target.reset();inlineMsg('maintenanceMsg','Maintenance issue reported to the authorised school operations team.','success');await loadMaintenance();
+ }catch(err){inlineMsg('maintenanceMsg','Maintenance report not saved: '+err.message,'error')}
+});
+$('maintenanceRows').addEventListener('click',async e=>{
+ const id=e.target.closest('[data-maint-save]')?.dataset.maintSave;if(!id)return;
+ try{
+  if(!isMaintenanceManager())throw new Error('Only authorised property, store, maintenance or ICT managers can update maintenance work.');
+  const find=attr=>$('maintenanceRows').querySelector('['+attr+'="'+CSS.escape(id)+'"]');
+  const cost=Number(find('data-maint-cost').value);if(!Number.isSafeInteger(cost)||cost<0)throw new Error('Enter a valid actual cost in UGX.');
+  const status=find('data-maint-status').value;
+  const p={status,actual_cost_ugx:cost,resolution_note:find('data-maint-note').value.trim(),updated_at:new Date().toISOString(),resolved_at:status==='Completed'?new Date().toISOString():null};
+  const {error}=await db.from('school_asset_maintenance').update(p).eq('id',id);if(error)throw error;await loadMaintenance();note('globalMsg','Maintenance issue updated.','success');
+ }catch(err){note('globalMsg','Maintenance update failed: '+err.message,'error')}
+});
+$('refreshVisitors').addEventListener('click',loadVisitors);
+$('refreshFacilities').addEventListener('click',async()=>{await loadMaintenance();if(isAssetViewer())await loadAssets()});
 async function loadIntegrations(){
  if(!isAdmin())return;const {data,error}=await db.from('school_provider_integrations').select('*').order('service_type').order('provider_name');
  if(error){$('integrationRows').innerHTML='<tr><td colspan="6">Provider register could not load.</td></tr>';return}
