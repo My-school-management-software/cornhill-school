@@ -4487,7 +4487,7 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
   {name:'Science',key:'science'},
   {name:'Social Studies',key:'socialstudies'}
  ];
- meta.textContent=className+' · workbook-style B.O.T, M.O.T and E.O.T analysis · four core subjects · gender and division summaries.';
+ meta.textContent=className+' · workbook-style '+phases.map(p=>p.label).join(', ')+' analysis · four core subjects · gender and division summaries.';
  const blocks=phases.map(config=>{
   const analysisAssessments=ctx.analysisAssessments||ctx.assessments;
   const phaseAssessments=analysisAssessments.filter(a=>excelAssessmentPeriod(a)===config.phase);
