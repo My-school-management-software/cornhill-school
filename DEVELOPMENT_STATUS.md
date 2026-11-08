@@ -1,3 +1,49 @@
+# CORNHILL current build and security record — 8 November 2026 (supersedes earlier snapshots below)
+
+**Working branch for this batch:** `fix/assessment-selection-save-preview-20261108`  
+**Release boundary:** this work is committed to the development branch. It has not yet been published to the stable website or verified in a live browser/device session.
+
+## Latest grouped work
+- Expanded the shared appearance system to **18 colour themes**, **24 font choices**, **14 dashboard layouts** and the existing four navigation layouts. Theme variables and dashboard styling apply to the shared application shell, including both administrator and teacher workspaces.
+- Added modern coordinated palettes (Aurora, Cobalt, Coral, Rose, Arctic and Indigo) and dashboard designs (Command centre, Soft glass, Editorial and Focus workspace).
+- Added a class-curriculum profile for all ten classes:
+  - Baby, Middle, Top: Numbers, Language Development, Reading, Health Habits, Social Development, Writing and Drawing; Beginning/Midterm/End.
+  - P1–P3: English, Mathematics, Literacy I, Literacy II, Local Language and Religious Education; Total Marks and Position.
+  - P4–P5: English, Mathematics, Science and Social Studies; Total Marks, Aggregate, Division and Position.
+  - P6: the same four Upper Primary subjects; Set I–III.
+  - P7: the same four subjects; Set I–IV and the P7 Index Number.
+- Added a visible class-curriculum check to the marks workspace. It compares the approved curriculum with that class's linked subjects and warns about missing or extra links rather than showing irrelevant columns.
+- Corrected the missing `excelPhaseCode()` helper used by the marks-sheet code labels.
+- Reworked assessment selection to read the selected subject and period checkboxes directly from the form, with select-all/clear controls and a live selection count.
+- Consolidated teacher marks entry into **one class-wide register**. The older second subject/learner picker was removed because it duplicated the same work and produced a competing selection path. The class register remains the single teacher entry sheet; Excel import/preview uses the class-specific code and subject mapping.
+- Report-card generation now starts from the class curriculum, so all expected subjects remain visible even before any marks are saved. Empty cells stay blank; the builder does not invent marks.
+- Refreshed the service-worker cache version to v37 so installed app shells can pick up these changes on their next online visit.
+
+## Verification in this batch
+- **23/23 targeted source checks passed** for theme counts, layout counts, class curriculum, assessment selection, report-card subject completeness, role-gated printing, single-register entry, import wiring, account-scoped AI history and service-worker cache boundaries.
+- All **9 application inline scripts** and the **1 parent-portal inline script** parsed successfully.
+- **0 duplicate HTML IDs** were found in the main application.
+- Current live database metadata review: **79 public tables; 79/79 have RLS enabled; 0 public SECURITY DEFINER functions executable by anon; 0 public SECURITY DEFINER functions missing an explicit search_path; 0 anon table grants on the four reviewed private staff/assignment directories.**
+- Targeted database policy review confirmed class teachers can create assessments and enter/read/update marks only for their assigned class; administrators can read school-wide marks and manage assessment setup. The authenticated account must be active.
+- Live data snapshot at the time of this batch: **487 learner records, 10 classes, 21 assessments and 0 saved assessment-score rows**. The 21 existing assessments are for Middle class. The other class assessment setup still needs to be created and checked by class.
+- Applied database hardening migrations:
+  - `20261108123446_revoke_public_default_privileges_for_postgres`
+  - `20261108123454_revoke_existing_anonymous_directory_grants`
+  - `20261108124200_scope_teacher_school_notifications_and_active_accounts`
+- Anonymous class sign-in remains intentionally available only through five display columns: class key, class label, teacher name, administrator name and display order. The directory timestamp is not public.
+
+## Still requiring real acceptance tests
+1. Sign in separately as a school administrator and as each assigned class-teacher test account; verify no class, marks, messages, AI history or private data crosses accounts.
+2. Create assessments for Nursery through P7 with approved disposable test data; verify selections, save, marks entry, import preview/commit and report-card preview.
+3. Enter non-production sample marks for every curriculum group and verify totals, positions, P4–P7 aggregate/division and P7 index display.
+4. Test parent PIN access, notification visibility, payment posting/allocation/receipts, backup restore and attendance workflows.
+5. Test the installed PWA on Windows 10/11 and Android. Offline view is limited to a recent local read-only class-list snapshot; admissions, marks changes/imports, report publication, finance, messaging and attendance changes require an online connection. No offline official transaction should be assumed.
+6. Verify the thermal printer, fingerprint device, and Google Drive backup/restore with the school's exact hardware/accounts before treating them as production-ready.
+
+No learner, guardian, mark, attendance, payment or finance record was created, edited, reversed or deleted during the source/security checks. No paid upgrade or subscription was activated. A GitHub commit or database migration does not mean the changes are live or device-tested.
+
+---
+
 # CORNHILL Development Status
 
 Last updated: 2026-11-08
