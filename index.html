@@ -1785,6 +1785,7 @@ const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
 const db=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
 let students=[],classes=[],profile=null,staffProfiles=[],demoMode=false,demoClassKey='',currentUserId=null,academic={years:[],terms:[],subjects:[],assessments:[],classSubjects:[]};
+window.cornhillTeacherAssignedClassRecord=null;
 const $=id=>document.getElementById(id);
 function message(id,text,error=false){const el=$(id);el.textContent=text;el.classList.remove('hidden','error');if(error)el.classList.add('error')}
 function clearMessage(id){$(id).classList.add('hidden')}
@@ -2023,7 +2024,7 @@ function resetAccountScopedCommunicationState(){
  window.cornhillExcelMarksContext=null;window.cornhillBulkMarkContext=null;window.cornhillOfflineReadOnly=false;
  if(typeof teacherExcelImportPlan!=='undefined')teacherExcelImportPlan=null;
  academic={years:[],terms:[],subjects:[],assessments:[],classSubjects:[]};
- window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;
+ window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;window.cornhillTeacherAssignedClassRecord=null;
  const clearIds=['reportCardPreview','reportBatchPrint','teacherMarksCodeReview'];clearIds.forEach(id=>{const el=$(id);if(el)el.innerHTML=''});
  const importRows=$('teacherMarksImportRows');if(importRows)importRows.innerHTML='<tr><td colspan="4">Choose a workbook after signing in.</td></tr>';
  const importMsg=$('teacherMarksImportMsg');if(importMsg){importMsg.textContent='';importMsg.classList.add('hidden')}
@@ -2200,9 +2201,11 @@ async function refresh(){
    window.teacherClassId=selectedClassId;
   }
   window.cornhillStartupStage='checking teacher class access';
-  const access=await db.from('class_teacher_access').select('class_id').eq('user_id',refreshOwner);if(!refreshIsCurrent())return;
+  const access=await db.from('class_teacher_access').select('class_id,school_classes(id,name,stream)').eq('user_id',refreshOwner);if(!refreshIsCurrent())return;
   if(access?.error){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not verify your class access: '+access.error.message,true);return}
   const assignedClassIds=[...new Set((access?.data||[]).map(x=>x.class_id).filter(Boolean))];
+  const assignedClassRecord=(access?.data||[]).find(x=>x.class_id===selectedClassId)?.school_classes;
+  window.cornhillTeacherAssignedClassRecord=assignedClassRecord?.id===selectedClassId?{id:assignedClassRecord.id,name:assignedClassRecord.name,stream:assignedClassRecord.stream||null}:null;
   if(assignedClassIds.length!==1||assignedClassIds[0]!==selectedClassId){
    await db.auth.signOut();sessionStorage.removeItem('cornhill_teacher_class_id');
    message('loginMsg','Access blocked. This teacher account must belong to exactly one class, and it must match the selected class. Contact the administrator.',true);
@@ -2225,7 +2228,10 @@ async function refresh(){
   codeAliasQuery
  ]);
  if(refreshOwner!==currentUserId||refreshGeneration!==(window.cornhillSessionGeneration||0))return;
- const failed=[studentResult,classResult,aliasResult].find(result=>result?.error);
+ const failed=[studentResult,aliasResult].find(result=>result?.error);
+ const teacherClassFallback=profile?.role==='Teacher'&&window.cornhillTeacherAssignedClassRecord?.id===sessionStorage.getItem('cornhill_teacher_class_id');
+ if(!failed&&profile?.role!=='Teacher'&&classResult?.error)failed=classResult;
+ if(!failed&&profile?.role==='Teacher'&&classResult?.error&&!teacherClassFallback)failed=classResult;
  if(failed){
   if(await restoreOfflineSchoolSnapshot(currentUserId))return;
   const detail=failed.error?.message||'The database returned an incomplete response.';
@@ -2234,6 +2240,7 @@ async function refresh(){
  }
  students=Array.isArray(studentResult?.data)?studentResult.data:[];
  classes=Array.isArray(classResult?.data)?classResult.data:[];
+ if(profile?.role==='Teacher'&&!classes.some(c=>c.id===sessionStorage.getItem('cornhill_teacher_class_id'))&&teacherClassFallback)classes=[window.cornhillTeacherAssignedClassRecord];
  financeCodeAliases=Array.isArray(aliasResult?.data)?aliasResult.data:[];
  // Populate the class selectors before drawing the rest of the dashboard. This keeps
  // the Excel fallback usable even if a separate dashboard widget has a rendering issue.
@@ -3177,7 +3184,7 @@ async function loadAcademics(){
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic administration · marks read-only':'Assigned teacher · assessment and mark entry';
  const [y,t,s,a,staff,teacherDirectory,cscores,assignments,classTeacherAssignments]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
-  db.from('academic_terms').select('*,academic_years(name)').order('starts_on',{ascending:false}),
+  db.from('academic_terms').select('id,name,academic_year_id,is_current,is_closed,starts_on,ends_on').order('starts_on',{ascending:false}),
   profile?.role==='Admin'?db.from('subjects').select('*').eq('is_active',true).order('name'):(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}),
   (profile?.role==='Teacher'?db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')):db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)')).order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('role','Teacher').order('full_name'):Promise.resolve({data:[],error:null}),
@@ -3192,7 +3199,8 @@ async function loadAcademics(){
  const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');
  const teacherSubjectScope=new Set((assignments.data||[]).filter(x=>x.class_id===teacherClassId).map(x=>x.subject_id));
  const scopedAssessments=profile?.role==='Teacher'?(a.data||[]).filter(x=>x.class_id===teacherClassId&&teacherSubjectScope.has(x.subject_id)):(a.data||[]);
- academic={years:y.data||[],terms:t.data||[],subjects:s.data||[],assessments:scopedAssessments,classSubjects:assignments.data||[]};
+ const academicYears=y.data||[];
+ academic={years:academicYears,terms:(t.data||[]).map(term=>({...term,academic_years:{name:academicYears.find(year=>year.id===term.academic_year_id)?.name||''}})),subjects:s.data||[],assessments:scopedAssessments,classSubjects:assignments.data||[]};
  $('unebGradeSubject').innerHTML=academic.subjects.filter(x=>['english','mathematics','science','social studies'].includes(String(x.name).toLowerCase())).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  await loadUnebSubjectGradeBands();
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
@@ -6437,7 +6445,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(profile?.role!=='Teacher')return null;
   return sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||null;
  }
- function cls(){return classes.find(c=>c.id===assignedClass())}
+ function cls(){return classes.find(c=>c.id===assignedClass())||(window.cornhillTeacherAssignedClassRecord?.id===assignedClass()?window.cornhillTeacherAssignedClassRecord:null)}
  function termOptions(){
   return academic.terms.map(t=>'<option value="'+escV(t.id)+'">'+escV(t.name+' · '+(t.academic_years?.name||''))+'</option>').join('');
  }
