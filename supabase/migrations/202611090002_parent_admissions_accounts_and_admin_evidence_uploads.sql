@@ -70,3 +70,8 @@ with check (
       and r.expires_at > now()
   )
 );
+
+-- A local-computer upload is a valid evidence source even when no phone is assigned.
+alter table public.evidence_capture_requests
+  alter column assigned_device_id drop not null,
+  alter column assigned_user_id drop not null;
