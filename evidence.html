@@ -65,7 +65,7 @@
   <div class="capture"><img id="scannerEditorImage" class="scan-editor-image" alt="Document page crop preview"></div>
   <div class="scan-toolbar">
    <button type="button" id="rotateScanLeft">Rotate left</button><button type="button" id="rotateScanRight">Rotate right</button>
-   <label style="margin:0;min-width:150px">Document filter<select id="scannerFilter"><option value="original">Original colour</option><option value="colour">Colour document</option><option value="gray">Grayscale</option><option value="clean">Clean black & white</option></select></label>
+   <label style="margin:0;min-width:150px">Document filter<select id="scannerFilter"><option value="enhanced" selected>Smart document · balanced colour</option><option value="original">Original colour</option><option value="colour">Colour document</option><option value="gray">Grayscale</option><option value="clean">Clean black & white</option></select></label>
    <button type="button" id="resetScanCrop">Reset crop</button>
    <button type="button" class="primary" id="addScanPage">Add page to PDF</button>
   </div>
@@ -376,11 +376,20 @@ function scannerApplyFilter(canvas,mode){
  if(mode==='original'||mode==='colour')return canvas;
  const ctx=canvas.getContext('2d',{willReadFrequently:true}),image=ctx.getImageData(0,0,canvas.width,canvas.height),d=image.data;
  for(let i=0;i<d.length;i+=4){
-  const grey=.299*d[i]+.587*d[i+1]+.114*d[i+2];
-  if(mode==='gray'){d[i]=grey;d[i+1]=grey;d[i+2]=grey}
-  else{
-   const contrast=1.65,clean=Math.max(0,Math.min(255,(grey-128)*contrast+128+8));
-   const value=clean>166?255:0;d[i]=value;d[i+1]=value;d[i+2]=value;
+  if(mode==='enhanced'){
+   // Mild per-channel contrast and brightness adjustment keeps stamps,
+   // coloured seals and ID portraits while making typed text clearer.
+   for(let channel=0;channel<3;channel++){
+    const value=(d[i+channel]-128)*1.12+133;
+    d[i+channel]=Math.max(0,Math.min(255,value));
+   }
+  }else{
+   const grey=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+   if(mode==='gray'){d[i]=grey;d[i+1]=grey;d[i+2]=grey}
+   else{
+    const contrast=1.65,clean=Math.max(0,Math.min(255,(grey-128)*contrast+128+8));
+    const value=clean>166?255:0;d[i]=value;d[i+1]=value;d[i+2]=value;
+   }
   }
  }
  ctx.putImageData(image,0,0);return canvas;
