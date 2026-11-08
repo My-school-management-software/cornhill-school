@@ -1864,6 +1864,7 @@ function tab(name){
  if(name==='communication'){loadStaffCommunication();loadDirectMessageDirectory();}
  if(name==='attendance')setupAttendance();
  if(name==='staffProfiles')loadStaffProfiles();
+ if(name==='dashboard'&&profile?.role==='Admin')loadStaffProfiles();
  if(name==='academics')loadAcademics();
  if(name==='finance')loadFinance();
  if(name==='inventory')loadInventory();
@@ -3018,8 +3019,10 @@ $('refreshStaffDashboard')?.addEventListener('click',()=>loadStaffProfiles());
 async function loadStaffProfiles(){
  if(demoMode)return;
  if(profile?.role!=='Admin'){message('staffProfileMsg','Only school administrators can manage staff profiles.',true);return}
+ const dashboardPanel=$('staffDashboardStats');
+ if(dashboardPanel){dashboardPanel.classList.remove('hidden');const note=$('staffDashboardNote');if(note)note.textContent='Loading staff figures…'}
  const {data,error}=await db.from('user_profiles').select('id,full_name,role,phone,gender,staff_category,parent_contact_phone,parent_contact_visible,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').order('full_name');
- if(error){message('staffProfileMsg','Could not load staff profiles: '+error.message,true);return}
+ if(error){message('staffProfileMsg','Could not load staff profiles: '+error.message,true);const note=$('staffDashboardNote');if(note)note.textContent='Staff figures could not be loaded: '+error.message;return}
  staffProfiles=data||[];
  const {data:unlinkedTeachers}=await db.from('academic_teacher_directory').select('id,full_name,phone,subject_specialism,employment_status').is('linked_user_id',null).eq('employment_status','Active');
  const {data:directoryEmployees}=await db.from('school_staff_directory').select('id,full_name,phone,gender,staff_category,job_title,department,responsibilities,employment_start_date,employment_status').is('linked_user_id',null).order('full_name');
