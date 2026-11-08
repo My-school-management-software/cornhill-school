@@ -124,7 +124,10 @@ function filteredRecords(){
  return records.filter(r=>{
   if(type&&r.record_type!==type)return false;
   if(status&&r.verification_status!==status)return false;
-  if(expiry&&expiryStage(r.expires_on)!==expiry)return false;
+  const stage=expiryStage(r.expires_on);
+  if(expiry==='7'&&!['today','7'].includes(stage))return false;
+  if(expiry==='30'&&!['today','7','30'].includes(stage))return false;
+  if(expiry&& !['7','30'].includes(expiry)&&stage!==expiry)return false;
   if(q&&!([r.record_title,r.record_type,r.original_file_name,r.record_identifier,r.issuing_authority,r.extracted_text,r.source_context_type,r.source_record_id].join(' ').toLowerCase().includes(q)))return false;
   return true;
  });
