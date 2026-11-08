@@ -2026,6 +2026,7 @@ function resetAccountScopedCommunicationState(){
  window.cornhillClearHelpAssistant?.();
  window.cornhillSessionGeneration=(window.cornhillSessionGeneration||0)+1;
  profile=null;students=[];classes=[];financeCodeAliases=[];
+ try{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode')}catch(_){}
  const appRoot=$('app');if(appRoot){appRoot.classList.add('hidden');appRoot.dataset.activeWorkspace='dashboard';appRoot.dataset.accountOwner=''}
  // Clear every account-bound academic workspace before another identity is loaded.
  window.cornhillExcelMarksContext=null;window.cornhillBulkMarkContext=null;window.cornhillOfflineReadOnly=false;
