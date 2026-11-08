@@ -1269,6 +1269,11 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <p class="notice">At five years, a record becomes eligible for an administrator-led retention review. Permanent erasure is not automatic because receipts, financial records and academic evidence may need to be retained.</p>
 </section>
 <section id="register" class="panel hidden"><h2 id="studentFormTitle">Register a student</h2>
+<div id="admissionEnquiryPrefillNote" class="notice hidden" role="status" aria-live="polite" style="margin:12px 0">
+ <strong>Approved online admission — administrator verification required</strong>
+ <p id="admissionEnquiryPrefillSummary" class="muted">The approved parent enquiry is loaded below. Verify every learner field, especially the learner's full name, gender, verified birth year/date, class, official LIN and guardian contacts. Blank information must be completed by the administrator before saving.</p>
+ <div class="row"><small class="muted" id="admissionEnquiryPrefillReference"></small><button type="button" id="cancelAdmissionEnquiryPrefill">Cancel this admission hand-off</button></div>
+</div>
 <div id="admissionMatchPanel" class="notice hidden" style="margin:12px 0 18px" aria-live="polite">
  <strong>Previous learner recognition check</strong>
  <p class="muted">The system checks the school's full learner history using names, date/year of birth, LIN and guardian phone. Similar names are only possible matches; an administrator must verify the identity.</p>
@@ -2115,6 +2120,60 @@ function tab(name){
  if(name==='midtermAdmissions')loadMidtermAdmissions();
   if(name==='appCentre')loadAppCentre();
 }
+async function loadOnlineAdmissionEnquiryFromUrl(){
+ const params=new URLSearchParams(location.search),enquiryId=params.get('admissionEnquiry');
+ if(!enquiryId)return;
+ if(profile?.role!=='Admin'||!currentUserId){message('loginMsg','This approved admission link is for a signed-in CORNHILL administrator only.',true);return}
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(enquiryId)){message('appMsg','The admission reference in this link is not valid.',true);return}
+ if(window.pendingSchoolAdmissionEnquiry?.id===enquiryId)return;
+ const {data:enquiry,error}=await db.from('school_admission_enquiries')
+  .select('id,learner_name,class_applied,guardian_name,guardian_phone,guardian_email,message,status,student_id')
+  .eq('id',enquiryId).maybeSingle();
+ if(error){message('appMsg','The approved online enquiry could not be loaded: '+error.message,true);return}
+ if(!enquiry){message('appMsg','This admission enquiry could not be found. Refresh the admissions queue and try again.',true);return}
+ if(enquiry.student_id||enquiry.status==='Registered'){
+  message('appMsg','This online admission is already linked to a learner record. Open the learner register and search by the permanent pupil code.',true);
+  const url=new URL(location.href);url.searchParams.delete('admissionEnquiry');history.replaceState({},'',url);
+  return;
+ }
+ if(enquiry.status!=='Approved for admission'){
+  message('appMsg','This enquiry is not yet approved for admission. Its current status is '+enquiry.status+'. Return to Admissions & Enquiries and complete the approval first.',true);
+  return;
+ }
+ const form=$('studentForm');
+ if(!form){message('appMsg','The main learner registration form is unavailable.',true);return}
+ const words=String(enquiry.learner_name||'').trim().split(/\s+/).filter(Boolean);
+ form.elements.first_name.value=words[0]||'';
+ form.elements.middle_name.value=words.length>2?words.slice(1,-1).join(' '):'';
+ form.elements.last_name.value=words.length>1?words[words.length-1]:'';
+ form.elements.guardian_name.value=enquiry.guardian_name||'';
+ form.elements.guardian_phone.value=enquiry.guardian_phone||'';
+ form.elements.guardian_email.value=enquiry.guardian_email||'';
+ const normalizeClass=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'').replace(/^primary/,'p');
+ const wanted=normalizeClass(enquiry.class_applied);
+ const classMatch=(classes||[]).find(x=>normalizeClass(x.name)===wanted);
+ if(form.elements.class_id)form.elements.class_id.value=classMatch?.id||'';
+ if(form.elements.status)form.elements.status.value='Active';
+ if(form.elements.learner_type)form.elements.learner_type.value='Day';
+ if(form.elements.is_bursary)form.elements.is_bursary.value='false';
+ syncBursaryAdmissionFields();
+ window.pendingSchoolAdmissionEnquiry={id:enquiry.id};
+ const note=$('admissionEnquiryPrefillNote');
+ $('admissionEnquiryPrefillReference').textContent='Application reference: '+enquiry.id.slice(0,8).toUpperCase()+' · Status: Approved for admission';
+ $('admissionEnquiryPrefillSummary').textContent='Parent enquiry received for '+enquiry.learner_name+' · requested class '+enquiry.class_applied+'. '+(classMatch?'The matching class has been preselected.':'No exact class match was found; choose the correct class manually. ')+'The name has been split into suggested name fields only. Verify them against the original documents. The learner's gender, verified birth year/date and official LIN were not supplied online and must be completed here.';
+ note.classList.remove('hidden');
+ tab('register');
+ if(typeof scheduleAdmissionMatchSearch==='function')scheduleAdmissionMatchSearch();
+ message('appMsg','Approved enquiry loaded. Complete and verify all required learner details, then save through the normal Learner Register. The permanent pupil code and fee/bursary workflows remain handled by the main system.');
+}
+$('cancelAdmissionEnquiryPrefill')?.addEventListener('click',()=>{
+ window.pendingSchoolAdmissionEnquiry=null;
+ $('admissionEnquiryPrefillNote')?.classList.add('hidden');
+ $('studentForm')?.reset();syncBursaryAdmissionFields();clearAdmissionMatches();
+ const url=new URL(location.href);url.searchParams.delete('admissionEnquiry');history.replaceState({},'',url);
+ message('appMsg','The admission hand-off was cancelled. No learner record was created.');
+ tab('students');
+});
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
 const parentPortalMainLink=window.location.origin+'/p';
 const parentPortalMainAnchor=$('parentPortalMainLink');if(parentPortalMainAnchor){parentPortalMainAnchor.href=parentPortalMainLink;parentPortalMainAnchor.textContent=parentPortalMainLink}
@@ -2361,7 +2420,7 @@ await refresh();if(!sessionIsCurrent())return;
  $('app').dataset.accountOwner=session.user.id;
  applyRoleNavigation();if(profile?.role==='Staff')renderStaffPortal();tab('dashboard');
  if(!window.cornhillOfflineReadOnly){window.cornhillStartupStage='loading academic year and term controls';await loadAcademicControl();if(!sessionIsCurrent())return;}
- if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}
+ if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}if(!sessionIsCurrent())return;await loadOnlineAdmissionEnquiryFromUrl();
  if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');if(!sessionIsCurrent())return;
  if(profile?.role==='Teacher')await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg');if(!sessionIsCurrent())return;
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
@@ -7018,6 +7077,7 @@ $('studentForm').addEventListener('submit',async e=>{
    admissionEnquiryLinkNote=' The original public enquiry is now linked to this learner record.';
    window.pendingSchoolAdmissionEnquiry=null;
    document.getElementById('admissionEnquiryPrefillNote')?.classList.add('hidden');
+   const admissionUrl=new URL(location.href);admissionUrl.searchParams.delete('admissionEnquiry');history.replaceState({},'',admissionUrl);
   }catch(linkError){admissionEnquiryLinkNote=' The learner record was saved, but the enquiry link could not be completed: '+(linkError.message||'Open the Admissions queue and check the enquiry before retrying.');}
  }
  await clearLocalFormDraft(currentUserId,'learner-admission');
