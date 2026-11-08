@@ -134,7 +134,7 @@ async function handle(req: Request) {
       learnerData.code_change_notice = {
         previous_code_entered: code,
         current_pupil_code: learnerCode,
-        message: "The school has updated this learner’s pupil code after correcting admission details. Please use the current code shown here for future sign-ins. Your learner’s history and parent access remain linked."
+        message: "The code entered is an older school code that remains linked to this learner’s record. Please use the current permanent pupil code shown here for future sign-ins. The learner’s history and parent access remain linked."
       };
     }
     const { data: student, error: studentError } = await db.from("students").select("id").eq("admission_number",learnerCode).maybeSingle();
