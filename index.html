@@ -1931,6 +1931,18 @@ async function restoreOfflineSchoolSnapshot(owner){
 
 function resetAccountScopedCommunicationState(){
  window.cornhillSessionGeneration=(window.cornhillSessionGeneration||0)+1;
+ // Clear every account-bound academic workspace before another identity is loaded.
+ window.cornhillExcelMarksContext=null;window.cornhillBulkMarkContext=null;window.cornhillOfflineReadOnly=false;
+ if(typeof teacherExcelImportPlan!=='undefined')teacherExcelImportPlan=null;
+ academic={years:[],terms:[],subjects:[],assessments:[],classSubjects:[]};
+ window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;
+ const clearIds=['reportCardPreview','reportBatchPrint','teacherMarksCodeReview'];clearIds.forEach(id=>{const el=$(id);if(el)el.innerHTML=''});
+ const importRows=$('teacherMarksImportRows');if(importRows)importRows.innerHTML='<tr><td colspan="4">Choose a workbook after signing in.</td></tr>';
+ const importMsg=$('teacherMarksImportMsg');if(importMsg){importMsg.textContent='';importMsg.classList.add('hidden')}
+ const excelHead=$('excelMarksHead'),excelBody=$('excelMarksBody');if(excelHead)excelHead.innerHTML='<tr><th>SN</th><th>Pupil code</th><th>Learner</th><th>Choose class and term</th></tr>';if(excelBody)excelBody.innerHTML='<tr><td colspan="4">Load the signed-in account’s permitted class sheet.</td></tr>';
+ ['assessmentForm','scoreForm'].forEach(id=>{const form=$(id);if(form)form.reset()});
+ ['excelMarksTerm','excelMarksClass','reportTermSelect','reportClassSelect','reportStudentSelect'].forEach(id=>{const el=$(id);if(el)el.selectedIndex=0});
+ const app=$('app');if(app){app.dataset.activeWorkspace='dashboard';app.dataset.accountOwner=''}
  // Never let a draft, recipient, inbox preview or cached directory survive an account change.
  try{if(typeof stopStaffMediaRecording==='function'&&staffMediaRecorder)stopStaffMediaRecording()}catch(_){}
  const form=$('directMessageForm');if(form)form.reset();
@@ -1980,6 +1992,9 @@ if(p.employment_status&&p.employment_status!=='Active'){
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 window.cornhillStartupStage='loading permitted school records';
 await refresh();
+ // Never inherit the previous account's open page, tab, or populated workspace.
+ $('app').dataset.accountOwner=session.user.id;
+ applyRoleNavigation();tab('dashboard');
  if(!window.cornhillOfflineReadOnly){window.cornhillStartupStage='loading academic year and term controls';await loadAcademicControl();}
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}
  if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');
@@ -3002,10 +3017,10 @@ async function loadAcademics(){
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
   db.from('academic_terms').select('*,academic_years(name)').order('starts_on',{ascending:false}),
   profile?.role==='Admin'?db.from('subjects').select('*').eq('is_active',true).order('name'):(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}),
-  db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').order('created_at',{ascending:false}),
+  (profile?.role==='Teacher'?db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')):db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)')).order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('role','Teacher').order('full_name'):Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?db.from('academic_teacher_directory').select('*').order('full_name'):Promise.resolve({data:[],error:null}),
-  loadAllTeacherMarksRegister(),
+  profile?.role==='Admin'?loadAllTeacherMarksRegister():Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,teacher_directory_id,school_classes(name),subjects(name),academic_teacher_directory(full_name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')),
   profile?.role==='Admin'?db.from('class_teacher_directory_assignments').select('class_id,teacher_directory_id,updated_at,academic_teacher_directory(full_name,employment_status,linked_user_id)'):Promise.resolve({data:[],error:null})
  ]);
@@ -3273,7 +3288,8 @@ async function getTermScores(){
  }
  return {assessments:data||[],scores};
 }
-async function renderReportCard(options={}){
+async function reportSubjectDisplayName(value){return String(value||'').replace(/\\s*[\\[(]?[A-Z]{1,5}\\d{1,2}[\\])]?$ /i,'').replace(/\\s*[\\[(]?[A-Z]{1,5}\\d{1,2}[\\])]?$ /i,'').trim()||String(value||'Subject')}
+function renderReportCard(options={}){
  const data=options.data||await getTermScores();if(!data)return;
  const studentId=options.studentId||$('reportStudentSelect').value;if(!studentId){message('academicMsg','Choose a learner for the individual report card.',true);return}
  const learner=students.find(x=>x.id===studentId);if(!learner)return;
@@ -3301,7 +3317,7 @@ async function renderReportCard(options={}){
  const approveButton=!options.batch&&profile?.role==='Admin'&&!approved&&Object.values(phaseTotals).some(p=>Number(p.max||0)>0)?'<button class="primary" type="button" id="approveReportButton">Approve official report</button>':'';
  const gradeColor=pct=>pct>=85?'#8ccf52':pct>=70?'#4f86bd':pct>=50?'#fff000':'#ef4444';
  const remarksPeriod=isSetBased?'Set IV':'End';
- const rowsHtml=subjectRows.map(r=>'<tr><th>'+esc(r.subject.name)+'</th>'+periods.map(p=>{const c=r.cells[p];return '<td class="report-mark">'+(c.absent?'X':c.max?money(c.got):'—')+'</td><td>'+(c.max?money(c.max):'—')+'</td>'}).join('')+(isNursery?'<td style="background:'+(r.cells.End.max?gradeColor(r.cells.End.got/r.cells.End.max*100):'#fff')+'"></td><td>'+esc(r.cells.End.comments.join('; ')||'')+'</td>':'<td>'+esc(r.cells[remarksPeriod].comments.join('; ')||'')+'</td>')+'</tr>').join('');
+ const rowsHtml=subjectRows.map(r=>'<tr><th>'+esc(reportSubjectDisplayName(r.subject.name))+'</th>'+periods.map(p=>{const c=r.cells[p];return '<td class="report-mark">'+(c.absent?'X':c.max?money(c.got):'—')+'</td><td>'+(c.max?money(c.max):'—')+'</td>'}).join('')+(isNursery?'<td style="background:'+(r.cells.End.max?gradeColor(r.cells.End.got/r.cells.End.max*100):'#fff')+'"></td><td>'+esc(r.cells.End.comments.join('; ')||'')+'</td>':'<td>'+esc(r.cells[remarksPeriod].comments.join('; ')||'')+'</td>')+'</tr>').join('');
  const totalRow='<tr class="report-total"><th>TOTAL</th>'+periods.map(p=>'<td>'+money(phaseTotals[p].got)+'</td><td>'+money(phaseTotals[p].max)+'</td>').join('')+'<td colspan="'+(isNursery?2:1)+'"></td></tr>';
  const positionRow=(isP6||isP7)?'':'<tr class="report-total"><th>POSITION</th>'+periods.map(p=>'<td colspan="2">'+(rankFor(p)||'—')+' / '+classList.length+'</td>').join('')+'<td></td></tr>';
  const summary=isP47?'<div class="report-summary">'+periods.map(p=>{const d=divisions[p];return '<strong>'+p.toUpperCase()+' TOTAL: '+money(phaseTotals[p].got)+' / '+money(phaseTotals[p].max)+'</strong><strong>'+p.toUpperCase()+' AGGREGATE: '+(d?.ready?d.aggregate:'X')+'</strong><strong>'+p.toUpperCase()+' DIVISION: '+(d?.ready?d.division:'X')+'</strong>'+(isP6||isP7?'':'<strong>POSITION: '+(rankFor(p)||'—')+'</strong>')}).join('')+'</div>':'<div class="report-summary">'+periods.map(p=>'<span>'+p.toUpperCase()+' POSITION: '+(rankFor(p)||'—')+'</span>').join('')+'</div>';
