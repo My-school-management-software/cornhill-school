@@ -1287,7 +1287,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <form id="assessmentForm">
  <div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div>
  <div id="assessmentClassField"><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div>
- <div class="full"><label>Assessment periods</label><div id="assessmentPeriodChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px"></div><p class="muted">All periods start selected. Untick any period you are not preparing.</p></div>
+ <div class="full"><label>Assessment periods</label><div id="assessmentPeriodChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px"></div><p class="muted">Beginning and Midterm start selected. End is left unticked unless you are preparing it now. You can change these selections at any time.</p></div>
  <div class="full"><label>Subjects</label><div id="assessmentSubjectChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"><span class="muted">Class subjects will appear here.</span></div><p class="muted">All subjects start selected. Untick any subject you are not preparing.</p></div>
  <div><label>Assessment title / note</label><input name="title" placeholder="Optional note"></div>
  <div><label>Maximum score *</label><input name="max_score" type="number" min="1" max="100" step="0.01" value="100" required></div>
@@ -1324,7 +1324,18 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  </div>
    <div id="teacherExcelTransfer" style="margin:12px 0;padding:12px;border:1px solid #dce7de;border-radius:10px">
    <h4>Import existing marks from Excel</h4>
-   <p class="muted">Choose the workbook and term. CORNHILL scans visible and hidden worksheets and columns, including Beginning, Mid and End marks. Only this class's learners and subjects are matched; learner records are never changed.</p>
+   <p class="muted">Choose your workbook and term. CORNHILL matches the learners and subjects in your assigned class. Learner records are never changed.</p>
+   <div class="notice" style="margin:10px 0">
+    <b>Simple Excel import guide — no subject codes required</b>
+    <ol style="margin:8px 0 8px 20px">
+     <li>Use one worksheet for your class. Put <b>Pupil Code</b>, <b>LIN</b> and <b>Learner Name</b> in the first columns.</li>
+     <li>Use two heading rows: on the first row write <b>Beginning</b> above the Beginning subject columns and <b>Midterm</b> above the Midterm subject columns. You may merge each period heading across its subject columns.</li>
+     <li>On the second heading row, write full subject names, for example <b>Number Development</b>, <b>Language Development</b>, <b>Reading</b>, <b>Health Habits</b>, <b>Social Development</b>, <b>Writing</b> and <b>Drawing</b>. Do not type short codes such as NU1 or EN2.</li>
+     <li>Enter marks as numbers. If a learner has not yet done a subject, <b>leave that cell empty</b>. CORNHILL skips it and shows a dash (—) on the report; it does not save zero.</li>
+     <li>If the learner later does the missed subject, enter the mark in that empty cell and import again. Keep <b>Replace marks that already exist</b> unticked unless you deliberately need to replace a saved mark.</li>
+    </ol>
+    <p><b>Important:</b> A real score of 0 is entered as <b>0</b>. Do not type a dash or X for a missed Nursery subject; leave the cell blank. For now, when importing only Beginning and Midterm, include those two heading groups and leave End out of the workbook.</p>
+   </div>
    <input id="teacherMarksWorkbook" type="file" accept=".xlsx,.xls,.xlsm" />
    <label><input id="replaceExistingImportedMarks" type="checkbox"> Replace marks that already exist (leave unticked to protect saved marks)</label>
    <button type="button" id="previewTeacherMarksImport">Preview Excel marks</button>
@@ -3025,7 +3036,7 @@ function classSubjectsFor(classId){
 }
 function renderAssessmentPeriodChoices(classId){
  const host=$('assessmentPeriodChoices');if(!host)return;
- host.innerHTML=assessmentPeriodsForClass(classId).map(p=>'<label style="display:flex;gap:8px;align-items:center;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px"><input type="checkbox" name="assessment_periods" value="'+esc(p)+'" checked><span>'+esc(p)+'</span></label>').join('');
+ host.innerHTML=assessmentPeriodsForClass(classId).map(p=>'<label style="display:flex;gap:8px;align-items:center;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px"><input type="checkbox" name="assessment_periods" value="'+esc(p)+'" '+(p==='End'?'':'checked')+'><span>'+esc(p)+'</span></label>').join('');
 }
 function renderAssessmentSubjectChoices(classId){
  const host=$('assessmentSubjectChoices');if(!host)return;
