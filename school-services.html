@@ -404,6 +404,9 @@ async function loadProfile(){
 }
 function configureModules(){
  const permissions={
+  notices:true,
+  calendar:true,
+  'staff-feed':true,
   admissions:isAdmin(),
   'hr-payroll':true,
   learning:isAdmin()||profile.role==='Teacher',
@@ -420,6 +423,8 @@ function configureModules(){
   const section=$(id);if(section)section.classList.toggle('hidden',!allowed);
   const link=document.querySelector('[data-service="'+id+'"]');if(link)link.classList.toggle('hidden',!allowed);
  });
+ show('noticeAdminCard',isAdmin());
+ show('calendarAdminCard',isAdmin());
  show('payrollAdminCard',isAdmin());
  show('bookAdminCard',isLibrarian());
  show('loanAdminCard',isLibrarian());
@@ -439,7 +444,7 @@ async function enterApp(){
  if(location.hash)setTimeout(()=>document.querySelector(location.hash)?.scrollIntoView({behavior:'instant',block:'start'}),150);
 }
 async function refreshAll(){
- const jobs=[loadLeave(),loadPayroll()];
+ const jobs=[loadLeave(),loadPayroll(),loadStaffNotices(),loadSchoolCalendar(),loadStaffFeed()];
  if(isAdmin())jobs.push(loadAdmissions(),loadIntegrations(),runHealthCheck(false));
  if(profile.role==='Admin'||profile.role==='Teacher')jobs.push((async()=>{await loadClasses();await loadResources()})());
  jobs.push((async()=>{await loadBooks();if(isLibrarian())await loadLoans()})());
