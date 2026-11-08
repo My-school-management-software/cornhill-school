@@ -1,0 +1,19 @@
+{
+  "id": "/records.html",
+  "name": "CORNHILL Records Centre",
+  "short_name": "CORNHILL Records",
+  "description": "Private school records, OCR and expiry tracking",
+  "start_url": "/records.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f2f7f3",
+  "theme_color": "#14532d",
+  "icons": [
+    {
+      "src": "/assets/cornhill-school-badge.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
