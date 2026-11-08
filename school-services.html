@@ -67,6 +67,9 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
     <div class="row"><div><span class="kicker">ONE PORTAL · ROLE-RESTRICTED WORKSPACES</span><h1 id="welcome">Welcome to CORNHILL Services</h1><p class="muted" id="roleInfo">Your available services are based on your active school account.</p></div><span class="badge" id="roleBadge">Verified account</span></div>
     <div class="notice warning">Every save is checked by Supabase Row Level Security. A hidden menu is not a substitute for database permission checks. Use only the records needed for your school duty.</div>
     <nav class="navlinks" aria-label="School services navigation">
+      <a href="#notices" data-service="notices">Notice Board</a>
+      <a href="#calendar" data-service="calendar">School Calendar</a>
+      <a href="#staff-feed" data-service="staff-feed">Staff Feed</a>
       <a href="#admissions" data-service="admissions">Admissions</a>
       <a href="#hr-payroll" data-service="hr-payroll">HR & Payroll</a>
       <a href="#learning" data-service="learning">Learning</a>
@@ -82,6 +85,55 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
     <div id="globalMsg" class="notice hidden" role="status" aria-live="polite"></div>
   </div>
 
+  <section id="notices" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">ADMINISTRATOR-PUBLISHED STAFF INFORMATION</span><h2>Staff Notice Board</h2><p class="muted">Read school notices intended for your account's role. Only administrators can publish or remove notices.</p></div><button type="button" id="refreshNotices">Refresh notices</button></div>
+    <div class="card hidden" id="noticeAdminCard">
+      <h3>Publish a staff notice</h3>
+      <form id="noticeForm">
+        <div><label for="noticeTitle">Notice title *</label><input id="noticeTitle" maxlength="140" required></div>
+        <div><label for="noticeCategory">Category</label><select id="noticeCategory"><option>General</option><option>Academic</option><option>Operations</option><option>Urgent</option></select></div>
+        <div><label for="noticePriority">Priority</label><select id="noticePriority"><option>Normal</option><option>Important</option><option>Urgent</option></select></div>
+        <div><label for="noticeAudience">Audience</label><select id="noticeAudience"><option value="all">All staff</option><option value="teachers">Teachers only</option><option value="admins">Administrators only</option></select></div>
+        <div><label for="noticePublishAt">Publish from (Uganda local time)</label><input id="noticePublishAt" type="datetime-local"></div>
+        <div><label for="noticeExpiresAt">Expiry (optional)</label><input id="noticeExpiresAt" type="datetime-local"></div>
+        <div class="full"><label for="noticeBody">Notice details *</label><textarea id="noticeBody" maxlength="8000" rows="5" required></textarea></div>
+        <div class="full"><label style="display:flex;align-items:center;gap:8px"><input id="noticeIsPublished" type="checkbox" checked style="width:auto"> Publish when the selected time is reached</label></div>
+        <div class="full"><button class="primary" type="submit">Save notice</button><p id="noticeMsg" class="muted" role="status"></p></div>
+      </form>
+    </div>
+    <div id="noticeRows" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px"><div class="notice">Loading targeted notices…</div></div>
+    <p class="muted">Staff-only. Parent and learner accounts cannot access this board. Do not include passwords, private medical details or welfare case information.</p>
+  </section>
+  <section id="calendar" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">SCHOOL EVENTS & IMPORTANT DATES</span><h2>School Calendar</h2><p class="muted">Internal calendar for school activities, meetings and academic dates. Published events are restricted to selected staff roles.</p></div><button type="button" id="refreshCalendar">Refresh calendar</button></div>
+    <div class="card hidden" id="calendarAdminCard">
+      <h3>Add a school calendar event</h3>
+      <form id="calendarForm">
+        <div><label for="calendarTitle">Event title *</label><input id="calendarTitle" maxlength="140" required></div>
+        <div><label for="calendarDate">Event date *</label><input id="calendarDate" type="date" required></div>
+        <div><label for="calendarStart">Start time (optional)</label><input id="calendarStart" type="time"></div>
+        <div><label for="calendarEnd">End time (optional)</label><input id="calendarEnd" type="time"></div>
+        <div><label for="calendarVenue">Venue</label><input id="calendarVenue" maxlength="160"></div>
+        <div><label for="calendarAudience">Audience</label><select id="calendarAudience"><option value="all">All staff</option><option value="teachers">Teachers only</option><option value="admins">Administrators only</option></select></div>
+        <div class="full"><label for="calendarDescription">Description / preparation note</label><textarea id="calendarDescription" maxlength="4000" rows="4"></textarea></div>
+        <div class="full"><label style="display:flex;align-items:center;gap:8px"><input id="calendarIsPublished" type="checkbox" checked style="width:auto"> Publish to selected staff audience</label></div>
+        <div class="full"><button class="primary" type="submit">Save calendar event</button><p id="calendarMsg" class="muted" role="status"></p></div>
+      </form>
+    </div>
+    <div id="calendarRows" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px"><div class="notice">Loading school calendar…</div></div>
+    <p class="muted">This internal calendar does not publish private learner information to the public website.</p>
+  </section>
+  <section id="staff-feed" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">ACTIVE STAFF ONLY</span><h2>Staff Communication Feed</h2><p class="muted">Share school-work updates with the approved staff audience. This is not a parent or learner messaging channel.</p></div><button type="button" id="refreshStaffFeed">Refresh feed</button></div>
+    <div class="notice warning">Do not post pupil names, LINs, admission codes, passwords, private welfare information or payment details. This feed is text-only; do not share learner photographs or videos here.</div>
+    <div class="card"><form id="staffPostForm">
+      <div class="full"><label for="staffPostBody">Share a work update *</label><textarea id="staffPostBody" maxlength="5000" rows="4" required placeholder="Write a school-work update for the permitted staff audience…"></textarea></div>
+      <div><label for="staffPostAudience">Audience</label><select id="staffPostAudience"><option value="all_staff">All staff</option><option value="teachers">Teachers only</option><option value="admins">Administrators only</option></select></div>
+      <div><button class="primary" type="submit">Publish staff update</button><p id="staffPostMsg" class="muted" role="status"></p></div>
+    </form></div>
+    <div id="staffFeedRows" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px"><div class="notice">Loading staff updates…</div></div>
+    <p class="muted">Posts, comments and reactions are visible only to authorised active staff under existing database policies.</p>
+  </section>
   <section id="admissions" class="panel module hidden">
     <div class="module-head"><div><span class="kicker">ADMINISTRATOR WORKSPACE</span><h2>Admissions & Enquiries</h2><p class="muted">Review public enquiries before formal admission. Approval here does not create a pupil record; complete approved admissions in the main Learner Register.</p></div><button type="button" id="refreshAdmissions">Refresh enquiries</button></div>
     <div class="stats"><div class="stat"><small>Pending enquiries</small><strong class="kpi" id="admissionPending">—</strong></div><div class="stat"><small>Total enquiries</small><strong class="kpi" id="admissionTotal">—</strong></div></div>
