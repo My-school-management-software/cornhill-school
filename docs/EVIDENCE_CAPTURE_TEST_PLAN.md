@@ -59,10 +59,40 @@ Use designated test staff accounts and test phones only. Do not use real bank de
 29. Signing out and signing into another account in the same tab does not reuse the previous account's portal session.
 30. Disconnecting the network during upload does not display a false success message; the user must retry while the request remains active.
 
-## Current limitations / next phase
+## Banking & Daily Deposits integration now present
 
-- Browser notifications are available while the portal is open and connected. Reliable notifications when the browser is closed require a separate Web Push subscription and server-side push delivery; that is not claimed as implemented.
-- The portal currently records a human-readable context label and optional amount. The next integration phase must link evidence requests directly to saved bank deposit, expense, withdrawal, staff profile and other module record IDs so evidence appears in those records automatically.
-- This phase does not yet create the Banking & Cash Control ledger or change the existing expense workflow.
+The branch now has a separate `/banking.html` workspace. The connected database has bank account, bank transaction, transaction-event and verified-balance objects. An authorised bursary operator can submit a deposit only after selecting an active phone for the bank slip. A withdrawal is first recorded as Awaiting approval; only an administrator can approve or reject it. Approving a withdrawal creates a ten-minute evidence request on the selected phone. A bank transaction's balance effect occurs only after evidence is separately reviewed and marked Approved.
+
+Bank evidence requests use `context_type='bank_transaction'` plus the linked transaction ID. The review trigger records evidence verification/rejection on the bank transaction. If the administrator selects Needs clearer photo for bank evidence, the portal calls the bank's audited replacement-evidence RPC rather than merely reopening an unrelated request.
+
+## Additional manual acceptance tests still required
+
+Use designated test accounts, a test phone and a test bank account only. No fake deposits should be added to the live school ledger just to pass a test. Where a real test transaction is necessary, it needs the school's explicit approval and a matching real bank statement.
+
+31. Banking navigation opens `/banking.html` from the main application.
+32. A non-finance staff account cannot enter Banking & Daily Deposits.
+33. An active Staff account with the Deputy Bursar/Bursar job title can open the finance-operator view.
+34. A non-administrator cannot create or edit a bank account.
+35. Bank account registration stores only the last four digits and rejects a malformed value.
+36. A finance operator cannot submit a deposit without selecting an active authorised phone.
+37. The deposit request is created against the selected device owner and the matching bank transaction ID.
+38. A withdrawal can be submitted without selecting a phone; it remains Awaiting approval and does not reduce the verified balance.
+39. Only an administrator can approve or reject a withdrawal.
+40. Approving a withdrawal creates a separate ten-minute evidence request assigned to the selected phone.
+41. Rejecting a withdrawal requires a reason and records the decision event.
+42. Approving bank-slip evidence changes the matching transaction to Verified and increases the verified balance once.
+43. Rejecting bank-slip evidence leaves the amount out of the verified balance.
+44. Requesting a clearer bank slip creates a new evidence request for the same bank transaction and keeps the balance unchanged until approved.
+45. A verified withdrawal reduces the verified balance once; an unapproved withdrawal does not.
+46. A revoked phone cannot upload evidence for a new request.
+47. A bank transaction's evidence link opens only for an authorised administrator or the assigned staff member.
+48. A staff member cannot attach a file to another bank transaction by altering the request or record ID.
+49. An expired request cannot be submitted even if the phone page remains open.
+50. A closed or backgrounded browser is not assumed to receive reliable push notification; foreground polling and Realtime require connectivity.
+
+## Current limitations
+
+- Browser notifications and in-app Realtime are available while the portal is open and connected. Reliable push after the browser is closed requires a separate Web Push subscription and server-side push delivery; this is not implemented.
+- Bank deposit and withdrawal records are linked to evidence. Direct “Capture from phone” actions in general school expense records, staff IDs, learner documents and other record forms remain to be integrated.
 - Camera preview, Android browser behaviour, account isolation, Realtime delivery and actual file uploads still require manual acceptance testing on authorised test accounts/devices.
 - The latest code has not been deployed to a new Vercel preview yet. Do not test a previously deployed/stale preview as if it contains this feature.
