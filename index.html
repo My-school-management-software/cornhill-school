@@ -3912,7 +3912,7 @@ function renderExcelClassPerformance(){
 $('refreshExcelClassPerformance')?.addEventListener('click',renderExcelClassPerformance);
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function isImportLearnerNameHeading(value){return ['NAME','PUPILNAME','PUPILSNAMES','PUPILFULLNAME','PUPILSFULLNAME','STUDENTNAME','STUDENTSNAME','STUDENTFULLNAME','LEARNERNAME','LEARNERSNAME','LEARNERFULLNAME','LEARNERSFULLNAME','FULLNAME','NAMEOFPUPIL','NAMEOFLEARNER'].includes(normaliseImportText(value))}
-function isImportLearnerCodeHeading(value){return /^(ID|SCHOOLID|IDNUMBER|PUPILNO|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERNO|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGNO|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
+function isImportLearnerCodeHeading(value){return /^(ID|ID2|SCHOOLID|IDNUMBER|PUPILNO|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERNO|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGNO|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
 function isImportLinHeading(value){return /^(LIN|LINS|LINNO|LINNUMBER|LEARNERIDENTIFICATIONNUMBER|LEARNERSIDENTIFICATIONNUMBERLIN)$/.test(normaliseImportText(value))}
 function importSubjectAliases(token,group){
  const nursery=group==='Nursery',lower=group==='P1-P3';
@@ -4042,7 +4042,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     const token=normal[index];if(!token||index===nameIndex||index===codeIndex||index===linIndex)return;
     const summary=token.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
     if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
-    if(/^(SN|ID|PHOTO|SEX|GENDER|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|FIELD\d*|COLUMN\d*|MAX|OUTOF|PERCENT|PERCENTAGE)$/.test(token)||/^(AEN|AMT|ASC|ASS)\d*$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
+    if(/^(N|SN|ID|ID2|PHOTO|SEX|GENDER|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|FIELD\d*|COLUMN\d*|MAX|OUTOF|PERCENT|PERCENTAGE|EXCELLENT|VERYGOOD|GOOD|FAIR|WEAK|MISSED|AIMHIGHER)$/.test(token)||/^(AEN|AENG|AMT|ASC|ASS)\d*$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
     const phase=importColumnPeriod(info.matrix,info.headerRow,index,header,activePeriod,info.name),period=importPeriodLabel(phase.period,clsName),suffix=phase.codePeriod;
     if(!period){issues.push(info.name+' · '+header+': this period does not apply to '+clsName+'.');codeReview.push({header,period:'—',status:'Wrong class period',detail:'Remove this column or correct its period.'});return}
     if(suffix&&phase.explicit&&suffix!==phase.period){
