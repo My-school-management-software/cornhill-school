@@ -1,3 +1,14 @@
+# CORNHILL development update — 8 November 2026
+
+- Live Term 3 (2026) currently has all ten school classes and the expected subject assignments, but assessment records exist only for Middle: 21 records. Baby, Top and P1–P7 currently have zero assessment records. This prevents teachers in those classes from loading the assessment-based import and marks grid until their columns are prepared.
+- Added an administrator-only **Prepare all class sheets** action. It previews missing subject/period records for all ten classes, creates only missing records, and leaves existing assessments and learner marks unchanged. It is idempotent by class + subject + period. It requires an administrator to review and confirm in the application; no assessment records were created by this code change.
+- Existing individual and bulk promotion remain administrator-only in both the interface and database RPCs. The teacher workspace shows future promotion controls as disabled with an administrator-only notice. The private Software Work Plan is administrator-only and records future teacher promotion, fingerprint hardware, SMS, offline sync and other pending items.
+- Teacher navigation is limited to dashboard, notifications, help, academics, attendance and school communication. The class-wide marks sheet includes all assigned class subjects together; the individual missed-paper form remains separate.
+- The original Excel importer supports worksheet matching, subject aliases, LIN/name/code matching, period mapping, blocking issue review and protected existing marks. Original workbook formats are now included in the release acceptance checklist. Runtime import testing with authenticated teacher accounts is still required.
+- The next preview should be checked with an administrator account to review the new bulk assessment preparation action and with a teacher account to verify the restricted teacher workspace and all-subject mark sheet. No real learner marks, fees or promotions were changed during this code pass.
+
+---
+
 # CORNHILL release note — offline cache and preview coverage
 
 - Updated the installed application cache keys to **v38** (`cornhill-shell-v38` and `cornhill-static-v38`) so an online visit can install the latest shared app shell rather than retain the prior v37 cache.
