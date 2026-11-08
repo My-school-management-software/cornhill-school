@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d"><meta name="description" content="CORNHILL central notifications and school approval centre">
+<link rel="manifest" href="/notifications.webmanifest"><link rel="apple-touch-icon" href="/assets/cornhill-school-badge.png">
+<title>CORNHILL · Notification Centre</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#18251d;background:#f3f7f3}*{box-sizing:border-box}body{margin:0}
+.top{background:#14532d;color:#fff;padding:15px max(14px,calc((100% - 1180px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-weight:850;letter-spacing:.02em}.sub{font-size:12px;opacity:.82;margin-top:3px}
+.top a{color:#fff;text-decoration:none;font-size:13px}.top-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.wrap{max-width:1180px;margin:22px auto;padding:0 14px}.card{background:white;border:1px solid #dce7de;border-radius:15px;padding:17px;margin-bottom:14px;box-shadow:0 3px 14px #183d2010}
+h1,h2,h3{margin:0 0 8px;color:#183b27}.muted{font-size:13px;color:#647568;line-height:1.5}
+button,input,select{font:inherit}button{border:0;border-radius:9px;background:#e7efe8;color:#19452c;padding:10px 13px;font-weight:750;cursor:pointer}
+button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.5;cursor:not-allowed}
+input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius:9px;background:#fff;color:#19271e}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stat{padding:12px;border:1px solid #e0e9e1;border-radius:12px;background:#f8fbf8}.stat b{font-size:22px;display:block;color:#17452a}.stat span{font-size:12px;color:#617367}
+.controls{display:grid;grid-template-columns:1fr 180px 180px auto;gap:9px;align-items:center}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.tabs button[aria-selected=true]{background:#166534;color:#fff}
+.notice{border:1px solid #e1eae2;border-radius:12px;padding:13px;margin:9px 0;background:#fff}
+.notice.urgent{border-left:5px solid #b91c1c}.notice.warning{border-left:5px solid #c0841b}.notice.info{border-left:5px solid #3979ac}
+.notice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.notice-title{font-weight:800;color:#1a3825}.badge{display:inline-block;border-radius:30px;padding:4px 8px;font-size:11px;background:#e9f0ea;color:#385c43;font-weight:800}
+.badge.urgent{background:#fee2e2;color:#991b1b}.badge.warning{background:#fef3c7;color:#92400e}.badge.unread{background:#dbeafe;color:#1d4ed8}
+.notice-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.notice-meta{font-size:11px;color:#728176;margin-top:7px}
+.hidden{display:none!important}.toast{position:sticky;top:8px;z-index:5;padding:10px 13px;border-radius:9px;background:#ecfdf3;color:#166534;margin-bottom:10px}
+.empty{padding:28px;text-align:center;color:#637467;border:1px dashed #cbd8ce;border-radius:12px}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.controls{grid-template-columns:1fr 1fr}.controls input{grid-column:1/-1}}
+@media(max-width:460px){.controls{grid-template-columns:1fr}.controls input{grid-column:auto}.card{padding:14px}.wrap{margin:12px auto}}
+</style>
+</head>
+<body data-theme="warm-corporate">
+<header class="top">
+ <div><div class="brand">CORNHILL · NOTIFICATION CENTRE</div><div class="sub">One school-wide attention and approvals inbox</div></div>
+ <div class="top-actions"><a href="/">Main system</a><a href="/evidence.html">Evidence Capture</a><a id="recordsLink" class="hidden" href="/records.html">Records Centre</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
+</header>
+<main class="wrap">
+ <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+ <section id="loginCard" class="card" style="max-width:460px;margin:32px auto">
+  <h2>Staff sign-in</h2><p class="muted">Use your CORNHILL account. The notification list is filtered by your school role, assigned class and personal account.</p>
+  <form id="loginForm"><label>Email address</label><input name="email" type="email" autocomplete="username" required><label>Password</label><input name="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">Sign in</button></form>
+  <p id="loginError" class="muted"></p>
+ </section>
+ <section id="app" class="hidden">
+  <section class="card">
+   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div><span class="badge">LIVE SCHOOL ATTENTION</span><h1>Notifications & approvals</h1><p class="muted">Admissions, finance, staff attendance, leave, welfare, records, maintenance and school operations are collected here. Opening or archiving an alert does not delete the original school record.</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="enableBrowser" type="button">Enable browser alerts</button><button class="primary" id="refresh" type="button">Refresh now</button></div>
+   </div>
+   <div class="stats" style="margin-top:14px">
+    <div class="stat"><b id="totalCount">0</b><span>Visible notices</span></div>
+    <div class="stat"><b id="unreadCount">0</b><span>Unread</span></div>
+    <div class="stat"><b id="urgentCount">0</b><span>Urgent</span></div>
+    <div class="stat"><b id="actionCount">0</b><span>Need action</span></div>
+   </div>
+   <p class="muted" id="connection">Checking connection…</p>
+  </section>
+  <section class="card">
+   <div class="tabs" role="tablist" aria-label="Notification views">
+    <button type="button" data-view="inbox" aria-selected="true">Inbox</button>
+    <button type="button" data-view="history" aria-selected="false">History</button>
+    <button type="button" data-view="archived" aria-selected="false">My archived</button>
+   </div>
+   <div class="controls">
+    <input id="search" type="search" placeholder="Search title, message or reference…" aria-label="Search notifications">
+    <select id="severity"><option value="">All priorities</option><option value="urgent">Urgent</option><option value="warning">Needs attention</option><option value="info">Information</option></select>
+    <select id="category"><option value="">All categories</option></select>
+    <button id="clearFilters" type="button">Clear filters</button>
+   </div>
+   <div class="muted" id="viewHint" style="margin:10px 0">Showing active notifications assigned to your account or school role.</div>
+   <div id="notificationsList"><div class="empty">Loading notifications…</div></div>
+  </section>
+ </section>
+ <footer class="muted" style="text-align:center;padding:10px">Browser alerts operate while this app is open. Background push while the browser is fully closed is not enabled.</footer>
+</main>
+<script>
+const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
+const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'cornhill-notifications-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const $=id=>document.getElementById(id);
+let user=null,profile=null,rows=[],view='inbox',pollTimer=null,lastSeen=new Set(),isFirstLoad=true;
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg,error=false){$('toast').textContent=msg;$('toast').classList.remove('hidden');$('toast').style.background=error?'#fff1f2':'#ecfdf3';$('toast').style.color=error?'#9f1239':'#166534'}
+function setBusy(msg){$('connection').textContent=msg}
+function when(value){return value?new Date(value).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}):'—'}
+function showApp(){
+ $('loginCard').classList.add('hidden');$('app').classList.remove('hidden');$('signOut').classList.remove('hidden');
+ $('recordsLink').classList.toggle('hidden',profile?.role!=='Admin');
+ $('who').textContent=(profile?.full_name||user?.email||'')+' · '+(profile?.role||'');
+}
+async function enterApp(nextUser){
+ user=nextUser;
+ const {data:account,error}=await db.from('user_profiles').select('id,full_name,role,employment_status,job_title').eq('id',user.id).maybeSingle();
+ if(error||!account||account.employment_status!=='Active'){await db.auth.signOut();throw new Error('An active CORNHILL staff account is required.')}
+ profile=account;showApp();await loadNotifications();
+ if(pollTimer)clearInterval(pollTimer);
+ pollTimer=setInterval(()=>{if(document.visibilityState==='visible')loadNotifications({quiet:true})},20000);
+}
+function filteredRows(){
+ const q=$('search').value.trim().toLowerCase(),severity=$('severity').value,category=$('category').value;
+ return rows.filter(r=>{
+  if(severity&&r.severity!==severity)return false;
+  if(category&&r.category!==category)return false;
+  if(q&&!([r.title,r.message,r.source_key,r.category,r.created_by_name].join(' ').toLowerCase().includes(q)))return false;
+  return true;
+ });
+}
+function actionUrl(r){
+ const raw=r.action_payload?.url;
+ if(typeof raw==='string'&&raw.startsWith('/')&&!raw.startsWith('//')){
+  const u=new URL(raw,location.origin);if(u.origin===location.origin)return u.href;
+ }
+ const target=r.action_payload?.target_id||'';
+ const workspace=r.action_payload?.workspace||r.action_workspace||'';
+ if(target==='recordsVault'||workspace==='records')return '/records.html';
+ if(workspace==='finance')return '/?workspace=finance';
+ if(workspace==='attendance')return '/?workspace=attendance';
+ if(workspace==='academics')return '/?workspace=academics';
+ if(workspace==='school')return '/school-services.html';
+ if(workspace==='reports')return '/admissions.html';
+ return '/';
+}
+function render(){
+ const filtered=filteredRows();
+ $('totalCount').textContent=rows.length;
+ $('unreadCount').textContent=rows.filter(r=>!r.read_at).length;
+ $('urgentCount').textContent=rows.filter(r=>r.severity==='urgent').length;
+ $('actionCount').textContent=rows.filter(r=>r.is_actionable&&!r.resolved_at).length;
+ $('viewHint').textContent=view==='inbox'?'Open actions are shown first. Read and archived state belongs to your account.':view==='history'?'Previously resolved events remain available for reference.':'Items archived by your account; the original school record is retained.';
+ $('category').innerHTML='<option value="">All categories</option>'+[...new Set(rows.map(r=>r.category))].sort().map(v=>'<option value="'+esc(v)+'">'+esc(v.replaceAll('_',' '))+'</option>').join('');
+ const currentCategory=$('category').dataset.selected||'';$('category').value=currentCategory;
+ $('notificationsList').innerHTML=filtered.length?filtered.map(r=>{
+  const priority=r.severity==='urgent'?'urgent':r.severity==='warning'?'warning':'info';
+  const badges='<span class="badge '+priority+'">'+esc(priority==='info'?'Information':priority==='warning'?'Attention':'Urgent')+'</span>'+
+    (!r.read_at?'<span class="badge unread">Unread</span>':'')+
+    (r.is_actionable&&!r.resolved_at?'<span class="badge">Action required</span>':'')+
+    (r.resolved_at?'<span class="badge">Resolved</span>':'');
+  return '<article class="notice '+priority+'"><div class="notice-head"><div><div class="notice-title">'+esc(r.title)+'</div><div class="notice-meta">'+esc(r.category.replaceAll('_',' '))+' · '+esc(when(r.created_at))+' · By '+esc(r.created_by_name||'School system')+'</div></div><div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">'+badges+'</div></div>'+
+   '<p>'+esc(r.message)+'</p>'+
+   '<div class="notice-actions">'+(!r.read_at?'<button type="button" data-read="'+esc(r.id)+'">Mark read</button>':'')+
+    (r.is_actionable&&!r.resolved_at?'<button class="primary" type="button" data-open="'+esc(r.id)+'">Open linked workspace</button>':'')+
+    (view!=='archived'?'<button type="button" data-archive="'+esc(r.id)+'">Archive for me</button>':'<button type="button" data-unarchive="'+esc(r.id)+'">Restore to inbox</button>')+
+   '</div><div class="notice-meta">Reference: '+esc(r.source_key)+'</div></article>';
+ }).join(''):'<div class="empty">No notifications match this view and filter.</div>';
+ document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===view)));
+}
+async function loadNotifications(options={}){
+ if(!user)return;
+ try{
+  setBusy('Refreshing secure notification feed…');
+  const args={p_include_resolved:view==='history',p_archived:view==='archived'};
+  const {data,error}=await db.rpc('list_school_notification_center',args);
+  if(error)throw error;
+  rows=data||[];
+  const fresh=rows.filter(r=>!r.read_at&&!lastSeen.has(r.id));
+  if(!isFirstLoad&&fresh.length&&'Notification'in window&&Notification.permission==='granted'){
+   fresh.slice(0,3).forEach(r=>{try{new Notification(r.title,{body:r.message,tag:r.id})}catch(_){ }});
+  }
+  lastSeen=new Set(rows.map(r=>r.id));isFirstLoad=false;
+  render();setBusy('Connected · Last checked '+when(new Date().toISOString())+' · checks every 20 seconds while this page is open');
+ }catch(error){setBusy('Could not refresh notifications: '+error.message);if(!options.quiet)toast('Notification refresh failed: '+error.message,true)}
+}
+async function markRead(id){const {error}=await db.rpc('mark_school_notification_read',{p_notification_id:id});if(error)throw error}
+async function archive(id,reason){const {error}=await db.rpc('archive_school_notification',{p_notification_id:id,p_reason:reason});if(error)throw error}
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',async()=>{view=b.dataset.view;isFirstLoad=true;await loadNotifications()}));
+$('search').addEventListener('input',render);$('severity').addEventListener('change',render);$('category').addEventListener('change',()=>{$('category').dataset.selected=$('category').value;render()});
+$('clearFilters').addEventListener('click',()=>{$('search').value='';$('severity').value='';$('category').value='';$('category').dataset.selected='';render()});
+$('refresh').addEventListener('click',()=>loadNotifications());
+$('enableBrowser').addEventListener('click',async()=>{
+ if(!('Notification'in window)){toast('This browser does not support browser notifications. The in-app centre still refreshes while open.',true);return}
+ const permission=await Notification.requestPermission();
+ toast(permission==='granted'?'Browser alerts are enabled while CORNHILL Notification Centre is open.':'Browser alerts were not enabled; in-app notifications remain available.');
+});
+$('notificationsList').addEventListener('click',async e=>{
+ const read=e.target.closest('[data-read]'),arch=e.target.closest('[data-archive]'),restore=e.target.closest('[data-unarchive]'),open=e.target.closest('[data-open]');
+ try{
+  if(read){await markRead(read.dataset.read);toast('Notification marked as read.');await loadNotifications({quiet:true});return}
+  if(arch){await archive(arch.dataset.archive,'Archived from Notification Centre');toast('Archived for your account.');await loadNotifications({quiet:true});return}
+  if(restore){await archive(restore.dataset.unarchive,'Restored to inbox');toast('Notification restored.');await loadNotifications({quiet:true});return}
+  if(open){
+   const r=rows.find(x=>x.id===open.dataset.open);if(!r)return;
+   if(!r.read_at)await markRead(r.id);
+   location.href=actionUrl(r);
+  }
+ }catch(error){toast('Action could not be completed: '+error.message,true)}
+});
+$('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));
+ const {data:result,error}=await db.auth.signInWithPassword({email:data.email,password:data.password});
+ if(error){$('loginError').textContent=error.message;return}
+ try{await enterApp(result.user)}catch(err){$('loginError').textContent=err.message}
+});
+$('signOut').addEventListener('click',async()=>{if(pollTimer)clearInterval(pollTimer);await db.auth.signOut();location.reload()});
+db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(data.session.user)}catch(e){$('loginError').textContent=e.message}}});
+db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(pollTimer)clearInterval(pollTimer);user=null;profile=null;$('app').classList.add('hidden');$('loginCard').classList.remove('hidden')}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user)loadNotifications({quiet:true})});
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+</script>
+</body></html>
