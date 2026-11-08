@@ -3191,6 +3191,32 @@ async function loadAllTeacherMarksRegister(){
  }
  return {data:rows,error:null};
 }
+async function ensureTeacherAcademicClassContext(){
+ if(profile?.role!=='Teacher')return true;
+ const owner=currentUserId;
+ if(!owner)throw new Error('Your teacher sign-in session is missing. Sign out and sign in again.');
+ const {data,error}=await db.from('class_teacher_access').select('class_id,school_classes(id,name,stream)').eq('user_id',owner);
+ if(currentUserId!==owner) return false;
+ if(error)throw new Error('Could not verify your assigned class: '+error.message);
+ const rows=data||[],ids=[...new Set(rows.map(x=>x.class_id).filter(Boolean))];
+ if(ids.length!==1)throw new Error('This teacher account must have exactly one assigned class. The administrator must review the class assignment.');
+ const id=ids[0],record=rows.find(x=>x.class_id===id)?.school_classes;
+ if(!record?.id||record.id!==id)throw new Error('Your assigned class record could not be loaded from the school database.');
+ const stored=sessionStorage.getItem('cornhill_teacher_class_id');
+ if(stored&&stored!==id)throw new Error('The selected class does not match your authorised teacher assignment. Sign out and sign in again.');
+ sessionStorage.setItem('cornhill_teacher_class_id',id);
+ sessionStorage.setItem('cornhill_login_mode','Teacher');
+ window.teacherClassId=id;
+ window.cornhillTeacherAssignedClassRecord={id,name:record.name,stream:record.stream||null};
+ window.teacherClassIds=[id];
+ const {data:links,error:linksError}=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('class_id',id);
+ if(currentUserId!==owner)return false;
+ if(linksError)throw new Error('Your assigned class was found, but its subject links could not be loaded: '+linksError.message);
+ window.teacherAssignments=links||[];
+ window.teacherSubjectIds=[...new Set((links||[]).map(x=>x.subject_id).filter(Boolean))];
+ if(!classes.some(x=>x.id===id))classes=[...classes,{id,name:record.name,stream:record.stream||null}];
+ return true;
+}
 async function loadAcademics(){
  const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;
  // One-time cleanup of the teacher's old local test drafts for this assigned class.
@@ -3211,6 +3237,7 @@ async function loadAcademics(){
  $('prepareExcelAssessments').classList.toggle('hidden',profile?.role!=='Admin');
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
+ if(profile?.role==='Teacher'){try{const ready=await ensureTeacherAcademicClassContext();if(!ready)return}catch(contextError){message('academicMsg',contextError?.message||'Your assigned class could not be verified. Sign out and sign in again.',true);const field=$('markGridTerm')?.closest('section.panel')?.querySelector('input[readonly]');if(field)field.value='Class assignment needs administrator review';return}}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
  $('assessmentSetup').classList.toggle('hidden',profile?.role!=='Admin');
  $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
