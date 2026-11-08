@@ -4,7 +4,7 @@
 **Release boundary:** this work is committed to the development branch. It has not yet been published to the stable website or verified in a live browser/device session.
 
 ### Vercel preview gate
-- The latest READY preview currently found is https://cornhill-school-r2xm9p64f-cypher-projects1.vercel.app/ for commit `06a0a2d8fe39b8a360dc9ce342545524b340556c`. It is not the latest appearance/marks-entry build.
+- The latest READY preview currently found is https://cornhill-school-r2xm9p64f-cypher-projects1.vercel.app/ for commit `06a0a2d8fe39b8a360dc9ce342545524b340556c`. It includes the new theme set and blank report-card curriculum change, but it does not include the later single-register consolidation commit `19fa5aa02d5c432174b90feaff22e3e43089cf65` or service-worker cache v37.
 - A preview build was requested for the latest reviewed commit `18b71bafe16ee4e24cecdabc15668ddc51d8063f`, but Vercel returned HTTP 402 `api-deployments-free-per-day` with a 24-hour retry window. No paid upgrade was made. No CLI deployment route is installed in the available workspace.
 - Do not describe the earlier READY preview as containing the new themes or single class-wide marks register. Wait until Vercel's free preview allowance resets before creating the next preview.
 
