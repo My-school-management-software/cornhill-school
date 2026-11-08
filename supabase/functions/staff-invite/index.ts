@@ -67,6 +67,7 @@ Deno.serve(async (req: Request) => {
   }
 
   let teacherDirectoryId: string | null = null;
+  let teacherDirectoryPhone: string | null = null;
   let createTeacherDirectory = false;
   if (role === "Teacher") {
     const { data: matches, error: teacherLookupError } = await admin
@@ -85,6 +86,7 @@ Deno.serve(async (req: Request) => {
         return json(409, { error: "The teacher-directory phone does not match this employee record. Resolve the identity link before inviting." });
       }
       teacherDirectoryId = candidate.id;
+      teacherDirectoryPhone = candidate.phone;
     } else {
       createTeacherDirectory = true;
     }
@@ -133,7 +135,7 @@ Deno.serve(async (req: Request) => {
     if (teacherDirectoryId) {
       const { data: linkedTeacher, error: teacherLinkError } = await admin
         .from("academic_teacher_directory")
-        .update({ linked_user_id: invitedUserId, employment_status: "Active", phone: employee.phone })
+        .update({ linked_user_id: invitedUserId, employment_status: "Active", phone: employee.phone || teacherDirectoryPhone })
         .eq("id", teacherDirectoryId)
         .is("linked_user_id", null)
         .select("id")
