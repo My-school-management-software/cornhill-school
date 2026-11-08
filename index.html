@@ -6674,6 +6674,19 @@ $('studentForm').addEventListener('submit',async e=>{
  if(wasEditing){const existing=students.find(x=>x.id===editingStudentId);if(existing){record.is_bursary=!!existing.is_bursary;record.bursary_fee_ugx=Number(existing.bursary_fee_ugx||0);record.bursary_category=existing.bursary_category||null;record.bursary_reason=existing.bursary_reason||existing.bursary_notes||null;record.bursary_notes=record.bursary_reason;}}
  const result=wasEditing?await db.from('students').update(record).eq('id',editingStudentId).select('id,admission_number').single():await db.from('students').insert(record).select('id,admission_number,lin,p7_index_number').single();
  if(result.error){message('appMsg',(wasEditing?'Could not update learner: ':'Could not save learner: ')+result.error.message,true);return}
+ let admissionEnquiryLinkNote='';
+ const pendingEnquiry=!wasEditing?window.pendingSchoolAdmissionEnquiry:null;
+ if(pendingEnquiry?.id){
+  try{
+   const linkedAt=new Date().toISOString();
+   const {data:linked,error:linkError}=await db.from('school_admission_enquiries').update({student_id:result.data.id,registered_at:linkedAt,status:'Registered',reviewed_by:currentUserId,reviewed_at:linkedAt}).eq('id',pendingEnquiry.id).is('student_id',null).select('id').maybeSingle();
+   if(linkError)throw linkError;
+   if(!linked){const {data:check,error:checkError}=await db.from('school_admission_enquiries').select('student_id').eq('id',pendingEnquiry.id).maybeSingle();if(checkError||check?.student_id!==result.data.id)throw checkError||new Error('This enquiry has already been linked to another learner or changed by another administrator.');}
+   admissionEnquiryLinkNote=' The original public enquiry is now linked to this learner record.';
+   window.pendingSchoolAdmissionEnquiry=null;
+   document.getElementById('admissionEnquiryPrefillNote')?.classList.add('hidden');
+  }catch(linkError){admissionEnquiryLinkNote=' The learner record was saved, but the enquiry link could not be completed: '+(linkError.message||'Open the Admissions queue and check the enquiry before retrying.');}
+ }
  await clearLocalFormDraft(currentUserId,'learner-admission');
  if(editDraftKey)await clearLocalFormDraft(currentUserId,editDraftKey);
  let photoWarning='';if(photoFile){try{const ext=photoFile.type==='image/jpeg'?'jpg':photoFile.type==='image/png'?'png':'webp';const photoPath=result.data.id+'/'+Date.now()+'.'+ext;const upload=await db.storage.from('learner-photos').upload(photoPath,photoFile,{contentType:photoFile.type,upsert:false,cacheControl:'3600'});if(upload.error)throw upload.error;const saved=await db.from('students').update({photo_path:photoPath}).eq('id',result.data.id);if(saved.error){await db.storage.from('learner-photos').remove([photoPath]);throw saved.error}const oldPhotoPath=students.find(x=>x.id===result.data.id)?.photo_path;if(oldPhotoPath&&oldPhotoPath!==photoPath)await db.storage.from('learner-photos').remove([oldPhotoPath])}catch(photoErr){photoWarning=' Learner record was saved, but photograph upload failed: '+(photoErr.message||'Please retry from Edit learner.')}}
@@ -6689,7 +6702,7 @@ $('studentForm').addEventListener('submit',async e=>{
  }
  editingStudentId=null;e.target.reset();clearAdmissionMatches();$('studentFormTitle').textContent='Register a student';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();e.target.querySelector('button[type="submit"]').textContent='Save student record';
  await refresh();if(!wasEditing&&record.class_id){tab('classes');currentRosterClassId=record.class_id;$('classRosterSearch').value='';$('classRosterStatus').value='all';renderClassRoster()}else tab('students');
- message('appMsg',(wasEditing?'Learner record updated. '+(previousLearnerCode&&previousLearnerCode!==result.data.admission_number?'Pupil code regenerated from '+previousLearnerCode+' to '+result.data.admission_number+'. The old code remains a valid historical reference; teachers and administrators have been notified.':'Pupil code '+result.data.admission_number+' was retained.'):'Student registered successfully. School learner code: '+result.data.admission_number+'. Ministry LIN: '+(result.data.lin||'to be entered when officially issued')+'. P7 index: '+(result.data.p7_index_number||'to be entered when registered')+(record.is_bursary?'. '+record.bursary_category+' recorded: UGX '+money(record.bursary_fee_ugx)+' payable. The compulsory reason and administrator approval details were saved. '+(record.bursary_fee_ugx>0?'A bursary charge was created automatically.':'No charge was created because the approved amount is UGX 0.'):'')+'. Please record this code on the learner file.')+feeScheduleNote+photoWarning,!!photoWarning);
+ message('appMsg',(wasEditing?'Learner record updated. '+(previousLearnerCode&&previousLearnerCode!==result.data.admission_number?'Pupil code regenerated from '+previousLearnerCode+' to '+result.data.admission_number+'. The old code remains a valid historical reference; teachers and administrators have been notified.':'Pupil code '+result.data.admission_number+' was retained.'):'Student registered successfully. School learner code: '+result.data.admission_number+'. Ministry LIN: '+(result.data.lin||'to be entered when officially issued')+'. P7 index: '+(result.data.p7_index_number||'to be entered when registered')+(record.is_bursary?'. '+record.bursary_category+' recorded: UGX '+money(record.bursary_fee_ugx)+' payable. The compulsory reason and administrator approval details were saved. '+(record.bursary_fee_ugx>0?'A bursary charge was created automatically.':'No charge was created because the approved amount is UGX 0.'):'')+'. Please record this code on the learner file.')+feeScheduleNote+admissionEnquiryLinkNote+photoWarning,!!photoWarning);
  }catch(err){
   message('appMsg','Learner record processing stopped unexpectedly. Check the learner register before retrying: '+(err?.message||'Unknown error'),true);
  }finally{
@@ -7724,4 +7737,5 @@ setupAppCentre();
  function initialise(){const owner=typeof currentUserId!=='undefined'&&currentUserId?currentUserId:null;if(owner!==assistantOwner)setAccount(owner);}
  newChatButton?.addEventListener('click',newConversation);document.getElementById('helpAssistantDeleteAll')?.addEventListener('click',deleteAllHistory);form?.addEventListener('submit',e=>{e.preventDefault();ask(input.value)});panel.querySelectorAll('[data-help-prompt]').forEach(b=>b.addEventListener('click',()=>ask(b.dataset.helpPrompt)));setTimeout(initialise,0);
 })();
-</script></body></html>
+</script><script src="/assets/main-school-workspace-bridge.js"></script>
+</body></html>
