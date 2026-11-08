@@ -2370,7 +2370,7 @@ async function refresh(){
   window.cornhillTeacherAssignedClassRecord={id:selectedClassId,name:assignedClassRecord.class_name,stream:assignedClassRecord.stream||null};
   window.cornhillTeacherFullClassAccess=fullClass;
   window.cornhillTeacherFullClassIds=[...new Set(assignments.filter(x=>x.is_full_class===true).map(x=>x.class_id))];
-  window.teacherAssignments=selectedAssignments.filter(x=>x.subject_id);
+  window.teacherAssignments=selectedAssignments.filter(x=>x.subject_id).map(x=>({...x,subjects:{name:x.subject_name||'Assigned subject'}}));
   window.teacherClassIds=[selectedClassId];
   window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id).filter(Boolean))];
   allowedClassIds=[selectedClassId];
@@ -5510,15 +5510,10 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
   if(profileError||!account){await db.auth.signOut({scope:'local'});message('loginMsg','Your staff profile could not be verified. Contact the administrator.',true);return}
   if(mode==='Admin'&&account.role!=='Admin'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not an administrator account.',true);return}
   if(mode==='Teacher'){
-   if(account.role!=='Teacher'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as a class teacher.',true);return}
-   const [classAccess,subjectAccess]=await Promise.all([
-    db.from('class_teacher_access').select('class_id,school_classes(name)').eq('user_id',userId),
-    db.from('class_subjects').select('class_id,school_classes(name)').eq('teacher_user_id',userId)
-   ]);
-   const assignmentError=classAccess.error||subjectAccess.error;
-   if(assignmentError){await db.auth.signOut({scope:'local'});message('loginMsg','Could not verify your teaching assignments. Contact the administrator.',true);return}
-   const allAssignments=[...(classAccess.data||[]),...(subjectAccess.data||[])];
-   const matches=allAssignments.filter(x=>String(x.school_classes?.name||'').trim().toLowerCase()===selectedClass.toLowerCase());
+   if(account.role!=='Teacher'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as an active teacher.',true);return}
+   const {data:myAssignments,error:assignmentError}=await db.rpc('teacher_list_my_assignments');
+   if(assignmentError){await db.auth.signOut({scope:'local'});message('loginMsg','Could not securely verify your teaching assignments. Contact the administrator.',true);return}
+   const matches=(Array.isArray(myAssignments)?myAssignments:[]).filter(x=>String(x.class_name||'').trim().toLowerCase()===selectedClass.toLowerCase());
    const ids=[...new Set(matches.map(x=>x.class_id).filter(Boolean))];
    if(ids.length!==1){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not assigned to '+selectedClass+'. Ask the administrator to assign this class or a subject in it.',true);return}
    sessionStorage.setItem('cornhill_teacher_class_id',ids[0]);sessionStorage.setItem('cornhill_login_mode','Teacher');
