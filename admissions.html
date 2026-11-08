@@ -129,10 +129,7 @@ async function createAccount(){
  }catch(error){show('accountMessage','Account could not be created: '+(error.message||'Please try again.'),'error')}
  finally{button.disabled=false}
 }
-let admissionsInstallPrompt=null;
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();admissionsInstallPrompt=event;$('installAdmissionsApp').classList.remove('hidden')});
-$('installAdmissionsApp').addEventListener('click',async()=>{if(!admissionsInstallPrompt)return;admissionsInstallPrompt.prompt();await admissionsInstallPrompt.userChoice;admissionsInstallPrompt=null;$('installAdmissionsApp').classList.add('hidden')});
-window.addEventListener('appinstalled',()=>{$('installAdmissionsApp').classList.add('hidden');show('accountMessage','CORNHILL Parent Admissions is installed on this device.','success')});
+show('accountMessage','CORNHILL Parent Admissions is installed on this device.','success')});
 $('createAccount').addEventListener('click',createAccount);
 $('signInAccount').addEventListener('click',signIn);
 $('signOutAccount').addEventListener('click',async()=>{await db.auth.signOut();setParentUser(null);show('accountMessage','You have signed out.','success')});
