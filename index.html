@@ -5474,10 +5474,8 @@ if(refreshAppButton)refreshAppButton.addEventListener('click',async()=>{
    const registration=await navigator.serviceWorker.getRegistration();
    if(registration)await registration.update().catch(()=>{});
   }
-  if('caches' in window){
-   const keys=await caches.keys();
-   await Promise.all(keys.filter(key=>key.startsWith('cornhill-shell-')).map(key=>caches.delete(key)));
-  }
+  // Do not clear the active offline cache here. The service worker installs
+  // the new version and replaces old caches only after the new shell is ready.
  }catch(error){console.warn('App refresh check:',error)}
  refreshAppButton.textContent='Refreshing…';
  window.location.replace(location.pathname+location.search.split('&').filter(part=>!part.startsWith('app-refresh=')).join('&')+(location.search?'&':'?')+'app-refresh='+Date.now());
@@ -5959,7 +5957,7 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
 </script><script>
 (function(){
  const status=document.getElementById('connectionStatus');
- function updateConnection(){if(!status)return;const offline=!navigator.onLine;status.classList.toggle('hidden',!offline);status.textContent=offline?'You are offline. The app shell is available. Learner records, marks, finance, payments and receipts need internet. Staff attendance correction requests can be saved on this device and sync after you reconnect; they are not sent while offline.':'You are back online. Saved attendance correction requests will sync after you sign in. Refresh if live records did not load.';if(!offline){status.classList.remove('hidden');setTimeout(()=>{if(navigator.onLine)status.classList.add('hidden')},4500)}}
+ function updateConnection(){if(!status)return;const offline=!navigator.onLine;status.classList.remove('hidden');status.style.background=offline?'#fff7ed':'#ecfdf5';status.style.color=offline?'#9a3412':'#166534';status.textContent=offline?'OFFLINE MODE · Saved CORNHILL app is available. Class-list snapshots are view-only; queued teacher marks and attendance requests stay on this device until they can sync. Finance, payments, receipts, messages and live database updates require internet.':'ONLINE · Connected to the school service. Pending teacher marks and attendance requests will be synchronised when you are signed in.';}
  window.addEventListener('online',updateConnection);window.addEventListener('offline',updateConnection);updateConnection();
  
 })();
