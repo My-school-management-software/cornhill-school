@@ -104,7 +104,7 @@ async function loadMyApplications(){
  const host=$('applicationRows');host.innerHTML='<p class="muted">Loading your applications…</p>';
  const {data,error}=await db.from('school_admission_enquiries')
   .select('id,learner_name,class_applied,status,created_at,reviewed_at,registered_at,student_id')
-  .eq('applicant_user_id',parentUser.id).order('created_at',{ascending:false}).limit(100);
+  .eq('submitted_by',parentUser.id).order('created_at',{ascending:false}).limit(100);
  if(error){host.innerHTML='<p class="notice error">Your application tracker could not load. Sign in again or contact the school office. '+escapeHtml(error.message)+'</p>';return}
  if(!data?.length){host.innerHTML='<p class="muted">No admission enquiries have been submitted from this account yet.</p>';return}
  host.innerHTML='<div class="table-wrap"><table><thead><tr><th>Application reference</th><th>Learner / requested class</th><th>Status</th><th>Last school review</th></tr></thead><tbody>'+data.map(x=>'<tr><td>'+escapeHtml(x.id.slice(0,8).toUpperCase())+'</td><td><strong>'+escapeHtml(x.learner_name)+'</strong><br>'+escapeHtml(x.class_applied)+'</td><td><span class="status">'+escapeHtml(x.student_id?'Registered in learner register':x.status)+'</span></td><td>'+escapeHtml(x.reviewed_at?new Date(x.reviewed_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}):'Awaiting school review')+'</td></tr>').join('')+'</tbody></table></div>';
@@ -153,7 +153,7 @@ $('admissionForm').addEventListener('submit',async e=>{
   id:crypto.randomUUID(),learner_name:$('learnerName').value.trim(),class_applied:$('classApplied').value,
   guardian_name:$('guardianName').value.trim(),guardian_phone:phone,guardian_email:email||null,
   contact_preference:$('contactPreference').value,message:$('message').value.trim(),
-  applicant_user_id:parentUser?.id||null
+  submitted_by:parentUser?.id||null
  };
  btn.disabled=true;btn.textContent='Submitting…';
  try{
