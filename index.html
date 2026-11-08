@@ -3191,7 +3191,7 @@ $('confirmBulkLearners').addEventListener('click',async()=>{
  if(birthYears.some((y,i)=>$('bulkImportPreview').querySelector('[data-bulk-birth-year="'+i+'"]')?.value&&!y)){message('bulkImportMsg','Correct invalid birth years or leave them blank to use temporary codes.',true);return}
  const confirmImport=confirm('Import '+bulkLearnerRows.length+' learner(s) now? Gender has been confirmed for every learner. Learners missing year of birth receive temporary codes and an admission-incomplete warning.');
  if(!confirmImport)return;
- const button=$('confirmBulkLearners');button.disabled=true;button.textContent='Importing…';
+ const button=$('confirmBulkLearners');button.disabled=true;button.textContent='Importing…';teacherImportCancel.disabled=true;
  try{
   const payload=bulkLearnerRows.map((r,i)=>({first_name:r.first,last_name:r.last,gender:genders[i],birth_year:birthYears[i],class_id:r.classId,status:'Active',learner_type:'Day',admission_year:new Date().getFullYear(),admission_complete:false}));
   const {data,error}=await db.from('students').insert(payload).select('id,admission_number');
@@ -4346,6 +4346,7 @@ function matchImportAssessment(header,ctx,period){
  return suggestions[0]?.distance<=1?{suggested:suggestions[0]}:{};
 }
 let teacherExcelImportPlan=null;
+let teacherExcelImportPreviewRun=0;
 let teacherExcelHeadingMappings=Object.create(null);
 function teacherExcelMappingKey(file,classId,termId,sheetName,header){return [classId,termId,file?.name||'',file?.size||0,file?.lastModified||0,sheetName,header].join('|')}
 function importSheetClassMatch(sheetName,className){
@@ -4433,10 +4434,42 @@ $('downloadTeacherMarksTemplate').addEventListener('click',async()=>{
  }catch(error){message('teacherMarksImportMsg','Template could not be created: '+(error?.message||'Unknown error'),true)}
  finally{button.disabled=false;$('excelMarksPhase').value=oldPhase;await loadExcelMarksGrid()}
 });
+function addUnsavedEntryCancel(formId,label,messageText,messageId){
+ const form=$(formId);if(!form||form.querySelector('[data-cancel-unsaved]'))return;
+ const holder=document.createElement('div');holder.className='full';holder.style.display='flex';holder.style.justifyContent='flex-end';holder.style.marginTop='4px';
+ const button=document.createElement('button');button.type='button';button.className='tab';button.textContent=label;button.setAttribute('data-cancel-unsaved','');
+ holder.append(button);form.append(holder);
+ button.addEventListener('click',()=>{
+  form.reset();
+  form.querySelectorAll('select').forEach(el=>el.dispatchEvent(new Event('change',{bubbles:true})));
+  form.querySelectorAll('input[type="search"]').forEach(el=>el.dispatchEvent(new Event('input',{bubbles:true})));
+  if(messageId&&$(messageId))message(messageId,messageText);
+ });
+}
+addUnsavedEntryCancel('assessmentForm','Cancel assessment setup','Assessment setup cleared. No assessments or marks were saved.','assessmentSelectionSummary');
+addUnsavedEntryCancel('scoreForm','Cancel individual mark','Individual mark entry cleared. No mark was saved.','teacherMarkEntryMsg');
+addUnsavedEntryCancel('learnerChargeForm','Cancel charge entry','Learner charge entry cleared. No charge was created.','financeMsg');
+addUnsavedEntryCancel('schoolPaymentForm','Cancel payment entry','Payment entry cleared. No payment was posted and no receipt was created.','paymentMsg');
+addUnsavedEntryCancel('expenseForm','Cancel expense entry','Expense entry cleared. No expense was posted.','expenseMsg');
+addUnsavedEntryCancel('inventoryMovementForm','Cancel stock movement','Stock movement entry cleared. No stock was received or issued.','inventoryMsg');
+const teacherImportCancel=document.createElement('button');
+teacherImportCancel.type='button';teacherImportCancel.className='tab';teacherImportCancel.id='cancelTeacherMarksImport';teacherImportCancel.textContent='Cancel preview / clear workbook';teacherImportCancel.disabled=true;
+$('previewTeacherMarksImport').after(teacherImportCancel);
+$('teacherMarksWorkbook')?.addEventListener('change',()=>{teacherImportCancel.disabled=!$('teacherMarksWorkbook').files?.length});
+teacherImportCancel.addEventListener('click',()=>{
+ teacherExcelImportPreviewRun++;const selectedFile=$('teacherMarksWorkbook').files?.[0];
+ const ctx=window.cornhillExcelMarksContext;
+ if(selectedFile&&ctx){const prefix=teacherExcelMappingKey(selectedFile,ctx.classId,ctx.termId,'','').replace(/\\|\\|$/,'');for(const key of Object.keys(teacherExcelHeadingMappings))if(key.startsWith(prefix.slice(0,prefix.lastIndexOf('|')+1)))delete teacherExcelHeadingMappings[key];}
+ teacherExcelImportPlan=null;$('teacherMarksWorkbook').value='';$('replaceExistingImportedMarks').checked=false;
+ $('confirmTeacherMarksImport').disabled=true;$('previewTeacherMarksImport').disabled=false;$('previewTeacherMarksImport').textContent='Preview Excel marks';
+ $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">Choose a workbook to preview its marks.</td></tr>';
+ $('teacherMarksCodeReview').innerHTML='';teacherImportCancel.disabled=true;
+ message('teacherMarksImportMsg','Import preview cancelled. No marks were imported or changed. You can choose another workbook or return to the marks sheet.');
+});
 $('previewTeacherMarksImport').addEventListener('click',async()=>{
- const previewButton=$('previewTeacherMarksImport'),confirm=$('confirmTeacherMarksImport');
+ const previewButton=$('previewTeacherMarksImport'),confirm=$('confirmTeacherMarksImport'),previewRun=++teacherExcelImportPreviewRun;
  const file=$('teacherMarksWorkbook').files?.[0];
- confirm.disabled=true;teacherExcelImportPlan=null;
+ confirm.disabled=true;teacherExcelImportPlan=null;teacherImportCancel.disabled=false;
  const oldLabel=previewButton.textContent;previewButton.disabled=true;previewButton.textContent='Checking workbook…';
  $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">Checking workbook. No marks are saved during preview.</td></tr>';
  $('teacherMarksCodeReview').innerHTML='';
@@ -4449,9 +4482,9 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   if(!termId)throw new Error('Choose the term first.');
   $('excelMarksClass').value=classId;$('excelMarksPhase').value='All';setExcelPhaseOptions(classId);
   let ctx=window.cornhillExcelMarksContext;
-  if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Loading your assigned class sheet…');await loadExcelMarksGrid();ctx=window.cornhillExcelMarksContext}
+  if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Loading your assigned class sheet…');await loadExcelMarksGrid();if(previewRun!==teacherExcelImportPreviewRun)return;ctx=window.cornhillExcelMarksContext}
   if(!ctx||ctx.termId!==termId||ctx.classId!==classId)throw new Error('Could not load your assigned class sheet. Check the academic term and ask the administrator to verify the class-subject setup.');
-  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false});
+  const workbookBuffer=await file.arrayBuffer();if(previewRun!==teacherExcelImportPreviewRun)return;const wb=XLSX.read(workbookBuffer,{type:'array',cellDates:false});
   const cls=classes.find(c=>c.id===classId),clsName=cls?.name||'',setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(clsName);
   const metadata=wb.Workbook?.Sheets||[],sheetInfos=[];
   for(const sheetName of wb.SheetNames||[]){
@@ -4592,7 +4625,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   message('teacherMarksImportMsg','Import preview failed: '+(err?.message||String(err)),true);
   $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">No import preview is available.</td></tr>';
   const review=$('teacherMarksCodeReview');if(review)review.innerHTML='';
- }finally{previewButton.disabled=false;previewButton.textContent=oldLabel}
+ }finally{if(previewRun===teacherExcelImportPreviewRun){previewButton.disabled=false;previewButton.textContent=oldLabel}}
 });
 $('confirmTeacherMarksImport').addEventListener('click',async()=>{
  const plan=teacherExcelImportPlan,ctx=window.cornhillExcelMarksContext,button=$('confirmTeacherMarksImport');
