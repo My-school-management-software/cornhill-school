@@ -4365,13 +4365,13 @@ async function loadExcelMarksGrid(){
  if(!list.length){head.innerHTML='<tr><th>Class register</th></tr>';body.innerHTML='<tr><td>No learners are enrolled in '+esc(cls?.name||'this class')+'. Register learners first.</td></tr>';message('excelMarksMsg','No learners are enrolled in this class.',true);return}
  const keyItems=[...new Map(assessments.map(a=>{const full=excelSubjectLabel(a,0,cls),code=full.replace(/\d+$/,'');return [code,{code,name:code==='D'?'Drawing / Art':(a.subjects?.name||a.title||'Subject')}]})).values()];
  $('excelMarksCodeKey').innerHTML='<strong>Subject code key:</strong> '+keyItems.map(x=>'<span style="display:inline-block;margin:3px 8px 3px 0"><b>'+esc(x.code)+'</b> = '+esc(x.name)+'</span>').join('');
- const ids=assessments.map(x=>x.id);
+ const ids=[...new Set(allAssessments.map(x=>x.id))];
  const showPosition=true;
  const {data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
  const saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x]));
- window.cornhillExcelMarksContext={termId,classId,phase:phaseFilter,assessments,students:list,savedMarks:saved};
+ window.cornhillExcelMarksContext={termId,classId,phase:phaseFilter,assessments,analysisAssessments:allAssessments,students:list,savedMarks:saved};
  $('exportExcelMarks').disabled=profile?.role!=='Teacher';
  const phases=phaseFilter==='All'?phaseOrder:[phaseFilter];
  const phaseBlocks=phases.map(phase=>{const items=assessments.filter(a=>excelAssessmentPeriod(a)===phase),code=excelPhaseCode(phase);return {phase,items,code}});
@@ -4446,7 +4446,8 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
  };
  meta.textContent=className+' · B.O.T, M.O.T and E.O.T · workbook grading bands and four-subject aggregate.';
  const blocks=phases.map(config=>{
-  const phaseAssessments=ctx.assessments.filter(a=>excelAssessmentPeriod(a)===config.phase);
+  const analysisAssessments=ctx.analysisAssessments||ctx.assessments;
+  const phaseAssessments=analysisAssessments.filter(a=>excelAssessmentPeriod(a)===config.phase);
   const groups=core.map(subject=>({
    ...subject,
    assessments:phaseAssessments.filter(a=>excelSubjectKey(a.subjects?.name||a.title||'')===subject.key)
