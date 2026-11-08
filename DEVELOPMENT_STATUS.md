@@ -1,3 +1,52 @@
+# CORNHILL — account privacy, attendance and notification security — 8 November 2026
+
+**Working branch:** `fix/assessment-selection-save-preview-20261108`  
+**Source commits in this security pass:** `51bc28e8` (account workspaces and notification navigation), `74e44a52` (offline attendance session guard), `50aeca81` (database migration record), `2542c2c0` (50-point improvement roadmap).
+
+## What changed
+
+- The shared attendance workspace is cleared when an account ends or changes: personal attendance rows, alert cards, correction requests, attendance forms, device mapping views, status totals and visible warning messages are cleared from the page. This does not delete attendance records from the database or remove the other account's own offline queue.
+- Attendance reads now capture the signed-in account ID and session generation. Responses that return after sign-out or account switching are ignored rather than being allowed to repaint the next account's screen.
+- Offline attendance-correction sync is also scoped to the owner captured at the start of the sync. It cannot update the newly signed-in account's page with the previous account's sync result.
+- Class teachers can open the attendance workspace for their own records. The administrator's school-wide controls remain hidden and inaccessible to non-admin accounts. The administrator's staff list used for schedule assignment now includes active accounts only.
+- Sign-out uses the local session scope, so signing out from a shared school computer does not terminate that user's other-device sessions. Failed role checks during sign-in also revoke only the local browser session.
+- Appearance preferences (theme, font, layout, density and related choices) are now stored under an account-specific browser key. A teacher's choice does not silently become the next administrator's choice on the same computer.
+- Notification loading, archiving and the attendance-warning strip now reject late responses from a different account/session.
+- Notification Review now opens the linked learner record for learner-related notifications. Attendance notifications can carry a source ID; the page attempts to focus the originating attendance row.
+- Added the 50-point school improvement roadmap at `docs/50_SCHOOL_IMPROVEMENT_IDEAS.md`.
+
+## Live notification privacy migration
+
+Applied and recorded migration: `20261108131532_scope_notifications_to_accounts_and_review_targets`.
+
+- Personal notifications are visible only to their intended account, including when the viewer is an administrator.
+- Admin inbox: personal notices addressed to that Admin plus school/global notices and notices addressed to the Admin audience. Teacher and Staff broadcasts and private messages are not exposed to Admin merely because the viewer is an administrator.
+- Other roles: their own personal notices plus broadcasts addressed to their role; learner-specific teacher alerts still require assigned-class access.
+- Archive authorization now blocks every account from archiving another person's personal notification. Admin can manage eligible school-wide/Admin notices, not another employee's private notice.
+- The notification RPC returns the source record ID as an additional field for deep-link navigation.
+- Live SQL verification: the RPC returns ten expected fields including `source_id`; both notification-list and archive functions have an explicit empty `search_path`; anon EXECUTE is false and authenticated EXECUTE is true. The functions still require a signed-in, active account.
+
+## Account roles and pending work
+
+- Current live profile snapshot: **1 Admin, 10 Teachers, 0 Staff accounts**.
+- The current database role constraint is still `Admin`, `Teacher` or `Staff`. The staff-invitation function currently issues Teacher or Staff invitations; Admin is not granted through that route.
+- Class teachers remain on the assigned-class path. **Subject teachers who are not class teachers are not yet ready for invitations**: the next safe step is a separate SubjectTeacher role and an explicit class+subject assignment model, with matching RLS checks for marks, learners, reports and communication. Do not give a subject teacher full class-teacher access through the existing class assignment helper.
+- Operational employees (bursar, store manager, matron, cooks, etc.) should receive one individual Staff account with job title and a narrowly delegated set of capabilities. A job title must not automatically grant Finance, Payroll or Inventory access.
+- Parents/guardians remain outside the staff account table and administrator dashboard. Their separate guardian portal uses the learner link and a verified guardian second factor; each guardian must see only the explicitly linked learner(s).
+
+## Security review still open
+
+The latest Supabase security advisor snapshot reports **17 RLS-enabled tables without direct policies**, **30 authenticated-callable SECURITY DEFINER functions**, and the `pg_net` extension in the public schema. No broad policy or function grant was changed in response to the advisor alone. The no-policy tables need table-by-table direct privilege and server-only route verification; every authenticated-callable definer function needs its own authorization review. These warnings are not evidence that the corresponding records are publicly readable, but they remain review items.
+
+## Verification and release boundary
+
+- Passed source transformation assertions for attendance session guards, attendance reset, local sign-out, account-specific appearance, notification session guards, and source-ID review routing.
+- Live database verification confirmed the notification RPC return signature and function grants/search paths.
+- **Not yet completed:** real browser checks with two separate logins in the same browser, positive/negative Admin/Teacher/Staff notification tests, deep-link checks against live alert rows, Android/Windows device testing, and full academic/finance end-to-end workflows.
+- The work is committed to the development branch. A current-branch Vercel deployment must be inspected after the latest commit before its preview is presented as current.
+
+---
+
 # CORNHILL current build and security record — 8 November 2026 (supersedes earlier snapshots below)
 
 **Working branch for this batch:** `fix/assessment-selection-save-preview-20261108`  
