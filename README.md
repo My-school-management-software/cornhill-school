@@ -79,20 +79,23 @@ The four core subject grade-band rows in Supabase have been aligned to the sourc
 
 **Acceptance evidence:** 13/13 synthetic division-helper cases passed, including aggregate 10 with English/Mathematics P7/P8, aggregate 12 with a gateway F9, both English and Mathematics F9, absence handling, class subject aliases, and the current aggregate boundaries. The three analysis panels for each of P.5, P.6 and P.7 passed synthetic rendering checks. Real teacher sign-in and live browser acceptance with actual marks remain pending.
 
-## Work area 11 — School Services and communications applications
+## Work area 11 — School Services, gate, property and staff collaboration
 
-The active App Centre now has 18 valid destinations. The combined School Services Hub includes the following separate permission-controlled workspaces:
+The active App Centre contains **21 destinations**. The combined School Services Hub is the canonical secure staff workspace; individual App Centre entries open its specific sections.
 
-- **Visitor & Gate Register:** reception/security staff can check visitors in and out. Visitor identity, purpose and pass-code fields are not editable during check-out; authenticated updates are limited to status and check-out audit fields.
-- **School Assets & Maintenance:** active staff can submit a maintenance report and read their own reports. Administrators and approved operations/store/property/maintenance/ICT operators can view the asset register and manage work. Asset managers can update location, condition, status and notes, but not asset codes or purchase costs.
-- **Staff Communications & Events:** a separate staff-only app for administrator-authored notices and school calendar events. Teachers and staff see only published entries addressed to their own role. Inactive profiles are excluded by the database policies as well as the sign-in screen.
-- **Existing Guardian Portal:** remains separate from staff communications and administration. Guardian PIN verification, learner-scoped portal sessions and private parent-to-school text/voice messages remain in the dedicated Parent Portal. Parent portal messages and staff notices use different tables and access paths.
+- **Visitor & Gate Register:** approved reception/security staff can check visitors in and out. Check-out updates are limited to status, check-out time and the staff audit field. Visitor identity, purpose and pass-code fields are not editable during check-out.
+- **School Assets & Maintenance:** active staff can submit maintenance reports and read their own reports. Administrators and approved operations/store/property/maintenance/ICT operators can view the asset register and manage work. Store managers can update location, condition, status and notes, but not asset codes or purchase costs.
+- **Staff Notice Board:** administrators create notices with category, priority, selected audience, Uganda-time publication schedule and expiry. Staff see only published, in-date notices targeted to their role.
+- **School Calendar & Events:** administrators create dated events with times, venue, description and staff audience. Staff see only published events targeted to their role.
+- **Staff Discussion Feed:** active staff can publish role-appropriate text posts, comment and react. Teachers may post to teachers or all staff; non-teaching staff may post to all staff; administrators can also target administrators. Photos/video uploads and parent/learner messaging are not enabled in this first version.
+- **Staff Communications & Events launcher:** `/school-communications.html` is a lightweight entry page linking to the canonical notice, calendar and feed sections in `/school-services.html`. It does not create duplicate messages or calendar records.
+- **Guardian separation:** the Parent Portal remains separate. Guardian PIN verification, learner-scoped sessions and parent-to-school messages are not accessible from the staff communications workspace.
 
-The service worker is at shell cache v56. Public website, admissions, School Services, Staff Communications, Banking, Evidence and Guardian routes use separate cache keys. Only the main school system writes to the root application cache; opening a separate portal no longer replaces the cached main dashboard. The service worker caches the application shells only. It does not make server-backed records, sign-in, submissions or payments available offline.
+The database work reuses the existing visitor, asset, maintenance, notice, calendar and staff-feed tables. Row-level security policies are retained. Visitor, asset and maintenance updates use column-scoped grants in addition to RLS: gate staff only receive the permitted check-out fields; store managers only receive operational asset fields; maintenance managers only receive status, actual cost, resolution note and completion-time fields.
 
-**Role checks:** 12 synthetic database tests passed for teacher/admin separation across visitor, asset, maintenance and staff communications records. Further synthetic role tests passed for Store Managers (asset read/update permissions and protected asset identifiers) and Security Guard (visitor read/check-out permissions and protected visitor identity). All test rows and temporary profile title changes were rolled back. No reception, security or store-manager staff accounts currently exist in the active live profile list; their first real sign-in must be tested after the administrator creates those profiles.
+The service worker caches the communications launcher, the School Services page and the collaboration module using shell/static cache version **v57**. The cache holds application shells only; authentication and all server-backed school records require an internet connection.
 
-**Page checks:** JavaScript syntax and static DOM-ID checks passed for School Services and Staff Communications, and all 18 App Centre file/anchor destinations resolve. Actual browser sign-in and device testing remain required.
+**Acceptance evidence:** simulated role tests confirmed that ordinary teachers cannot check visitors out or update assets/maintenance; authorised receptionist, store-manager and maintenance-officer roles can update their respective records. Teachers see teacher-targeted notices/events but not staff-only entries, and cannot publish or modify administrator announcements. The staff feed passed tests for role-targeted reading, post creation, comments, reactions, author-only deletion and administrator pinning. Tests used synthetic rows and rolled back; no real school records were changed. JavaScript syntax and DOM-reference checks passed for the School Services collaboration module and Communications launcher. Real reception/security/store-manager accounts still need browser sign-in testing once the administrator creates those accounts.
 
 ## Current preview
 
@@ -129,15 +132,3 @@ Before daily use, complete the authenticated test checklist in [docs/ACCEPTANCE_
 ## Repository workflow
 
 Work is on fix/assessment-selection-save-preview-20261108. Review the branch and acceptance evidence before creating/merging a pull request into main. A successful Vercel preview build does not by itself prove that database permissions, school workflows, printers, biometrics or offline synchronisation work.
-
-## Work area 10 — staff notice board, calendar and communications
-
-The School Services portal now includes three additional internal workspaces:
-
-- `/school-services.html#notices` — Staff Notice Board. Administrators create/publish or unpublish notices, choose Admin/Teacher/Staff audience, schedule publication, set an expiry, and assign category and priority. Active staff can see only published, in-date notices targeted to their role under the existing RLS policy.
-- `/school-services.html#calendar` — School Calendar & Events. Administrators create events with dates, times, venue, description and staff audience. Published events are role-targeted; the portal keeps this internal calendar separate from the public website.
-- `/school-services.html#staff-feed` — Staff Communication Feed. Active staff can post text updates, comment and react within the existing role-filtered feed. The first version deliberately does not support learner photos/videos or direct learner/parent messaging.
-
-The three entries are registered in App Centre. The notice, calendar and staff feed tables already existed and already had RLS policies; this work reuses them rather than introducing duplicate record stores. The staff feed uses the existing post/comment/reaction policies. The Service Worker now precaches the collaboration module and uses cache version v57.
-
-**Acceptance boundary:** front-end syntax and DOM-reference checks plus simulated database-role tests are required before accepting the preview. Actual staff login in a browser, scheduled-notice timing, notification delivery and realtime refresh need separate live acceptance. No push/SMS notifications are claimed in this version.
