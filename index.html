@@ -3760,7 +3760,7 @@ async function loadExcelMarksGrid(){
  window.cornhillExcelMarksContext=null;
  $('exportExcelMarks').disabled=true;
  if(!termId||!classId){message('excelMarksMsg',!classId?'Your assigned class is missing. Sign out and sign in again; if it continues, ask the administrator to verify the class assignment.':'Choose an academic term before loading marks.',true);return}
- const cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
+ const cls=classes.find(x=>x.id===classId)||(profile?.role==='Teacher'&&window.cornhillTeacherAssignedClassRecord?.id===classId?window.cornhillTeacherAssignedClassRecord:null),group=curriculumGroupForClass(cls?.name||'');
  if(!cls){message('excelMarksMsg','The assigned class could not be found in the loaded school records. Refresh the page and sign in again.',true);return}
  if(profile?.role==='Teacher'&&classId!==sessionStorage.getItem('cornhill_teacher_class_id')){message('excelMarksMsg','Access blocked: this class is not assigned to your account.',true);return}
  const classSubjectIds=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
@@ -6439,7 +6439,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 (()=>{
  const $=id=>document.getElementById(id);
  const escV=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let selectedPairs=[],selectedLearners=new Set(),saved=new Map(),loading=false,subjectSelectionTouched=true,markGridRenderVersion=0;
+ let selectedPairs=[],selectedLearners=new Set(),saved=new Map(),loading=false,subjectSelectionTouched=false,markGridRenderVersion=0;
  const periods=['Beginning','Midterm','End'];
  function assignedClass(){
   if(profile?.role!=='Teacher')return null;
@@ -6479,6 +6479,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  function periodFor(a){return excelAssessmentPeriod(a)}
  function renderSubjectChoices(){
   const host=$('markGridSubjects');if(!host)return;
+  defaultSelectSubjects();
   const ps=chosenPeriods(),ass=classAssessments().filter(a=>ps.includes(periodFor(a)));
   const groups=periods.filter(p=>ps.includes(p)).map(period=>{
    const ordered=ass.filter(a=>periodFor(a)===period).sort((a,b)=>excelSubjectOrder(a)-excelSubjectOrder(b));
@@ -6557,8 +6558,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   panel.innerHTML='<h3>Teacher mark entry · assigned class only</h3><p class="muted">Your assigned class is loaded automatically. Choose the term, assessment periods, subjects and learners yourself. Nothing is preselected.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><div><label>Assigned class</label><input readonly value="'+escV(cls()?.name||'Loading assigned class…')+'"></div><div><label>Academic term</label><select id="markGridTerm"><option value="">Choose term</option>'+termOptions()+'</select></div></div><div><b>1. Assessment periods</b><div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0"><label><input type="checkbox" data-mark-period value="Beginning"> Beginning</label><label><input type="checkbox" data-mark-period value="Midterm"> Midterm</label><label><input type="checkbox" data-mark-period value="End"> End assessment</label></div></div><div style="margin-top:14px"><b>2. Select subjects</b><div id="markGridSubjects" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>3. Choose learners</b><div id="markGridLearners" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>4. Enter marks</b><div id="markGridTableHost" style="margin-top:8px"><p class="muted">Choose a term, subjects and learners.</p></div></div><div id="markGridStatus" class="notice hidden"></div><button type="button" class="primary" id="saveSelectedLearnerMarks">Save learner marks</button>';
   root.prepend(panel);
   $('markGridTerm').value=academic.terms.find(t=>t.is_current&&!t.is_closed)?.id||academic.terms.find(t=>!t.is_closed)?.id||academic.terms[0]?.id||'';
-  $('markGridTerm').addEventListener('change',()=>{subjectSelectionTouched=true;selectedPairs=[];renderSubjectChoices();renderMarkGrid()});
-  document.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',()=>{subjectSelectionTouched=true;selectedPairs=[];renderSubjectChoices();renderMarkGrid()}));
+  panel.querySelectorAll('[data-mark-period]').forEach(x=>{x.checked=true});
+  $('markGridTerm').addEventListener('change',()=>{subjectSelectionTouched=false;selectedPairs=[];renderSubjectChoices();renderMarkGrid()});
+  panel.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',()=>{subjectSelectionTouched=false;selectedPairs=[];renderSubjectChoices();renderMarkGrid()}));
   $('saveSelectedLearnerMarks').addEventListener('click',saveMarks);
   renderSubjectChoices();renderLearnerChoices();
   syncAcademicControls();
