@@ -1816,6 +1816,7 @@ function tab(name){
   dashboardHeader.classList.toggle('hidden',!showDashboard);
   dashboardHeader.setAttribute('aria-hidden',String(!showDashboard));
  }
+ const activeWorkspace=$(name);if(activeWorkspace){activeWorkspace.scrollTop=0;activeWorkspace.querySelectorAll('[data-scroll-container],.scroll-container,.table-scroll,.workspace-content').forEach(el=>{el.scrollTop=0;el.scrollLeft=0});}requestAnimationFrame(()=>{window.scrollTo({top:0,left:0,behavior:'instant'});document.documentElement.scrollTop=0;document.body.scrollTop=0;activeWorkspace?.scrollIntoView({block:'start',behavior:'instant'});});
  if(name==='notifications'){loadNotifications();}
  if(name==='settings'){setupAppearance();refreshGoogleDriveStatus();requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'instant'}));}
  if(name==='communication'){loadStaffCommunication();loadDirectMessageDirectory();}
@@ -1877,7 +1878,7 @@ async function readLocalFormDraft(owner,key){const d=await localFormDraftDb(),dr
 async function clearLocalFormDraft(owner,key){if(!owner)return;const d=await localFormDraftDb();await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readwrite');tx.objectStore('formDrafts').delete(owner+'|'+key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});d.close()}
 function localFormValues(form){const values={};[...form.elements].forEach(el=>{if(!el.name||el.type==='file'||['submit','button','reset','password'].includes(el.type))return;if(el.type==='checkbox')values[el.name]=!!el.checked;else if(el.type==='radio'){if(el.checked)values[el.name]=el.value}else values[el.name]=el.value});return values}
 function bindLocalAutosaveForm(form,key,statusId,allowed){if(!form||form.dataset.localAutosaveBound==='1')return;form.dataset.localAutosaveBound='1';let timer=null;const save=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(!currentUserId||!allowed())return;try{await saveLocalFormDraft(currentUserId,key,localFormValues(form));const box=$(statusId);if(box){box.textContent='Draft autosaved on this device · '+new Date().toLocaleTimeString();box.className='notice';box.classList.remove('hidden')}}catch(error){const box=$(statusId);if(box){box.textContent='Autosave could not store this draft. Keep the form open and retry. '+(error?.message||'');box.className='notice error';box.classList.remove('hidden')}}},450)};form.addEventListener('input',save);form.addEventListener('change',save)}
-async function restoreLocalAutosaveForm(form,key,statusId){if(!form||!currentUserId)return;try{const draft=await readLocalFormDraft(currentUserId,key);if(!draft)return;const hasTyped=[...form.elements].some(el=>el.name&&['text','email','tel','number','date','datetime-local','textarea'].includes(el.type||el.tagName.toLowerCase())&&String(el.value||'').trim()!=='');if(hasTyped)return;for(const [name,value] of Object.entries(draft.values||{})){const fields=[...form.elements].filter(el=>el.name===name);fields.forEach(el=>{if(el.type==='checkbox')el.checked=!!value;else if(el.type==='radio')el.checked=el.value===value;else if(el.type!=='file')el.value=value??''})}const box=$(statusId);if(box){box.textContent='Recovered an unfinished draft saved on this device ('+new Date(draft.updated_at).toLocaleString()+'). Review it before submitting.';box.className='notice';box.classList.remove('hidden')}}catch(_){}}
+async function restoreLocalAutosaveForm(form,key,statusId){const owner=currentUserId,generation=window.cornhillSessionGeneration||0;if(!form||!owner)return;try{const draft=await readLocalFormDraft(owner,key);if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;if(!draft)return;const hasTyped=[...form.elements].some(el=>el.name&&['text','email','tel','number','date','datetime-local','textarea'].includes(el.type||el.tagName.toLowerCase())&&String(el.value||'').trim()!=='');if(hasTyped)return;for(const [name,value] of Object.entries(draft.values||{})){const fields=[...form.elements].filter(el=>el.name===name);fields.forEach(el=>{if(el.type==='checkbox')el.checked=!!value;else if(el.type==='radio')el.checked=el.value===value;else if(el.type!=='file')el.value=value??''})}const box=$(statusId);if(box){box.textContent='Recovered an unfinished draft saved on this device ('+new Date(draft.updated_at).toLocaleString()+'). Review it before submitting.';box.className='notice';box.classList.remove('hidden')}}catch(_){}}
 
 function bindLocalAutosaveDynamicForm(form,keyForForm,statusId,allowed){if(!form||form.dataset.localAutosaveDynamicBound==='1')return;form.dataset.localAutosaveDynamicBound='1';let timer=null;const save=()=>{clearTimeout(timer);timer=setTimeout(async()=>{const key=keyForForm();if(!currentUserId||!key||!allowed())return;try{await saveLocalFormDraft(currentUserId,key,localFormValues(form));const box=$(statusId);if(box){box.textContent='Edit draft autosaved on this device · '+new Date().toLocaleTimeString();box.className='notice';box.classList.remove('hidden')}}catch(error){const box=$(statusId);if(box){box.textContent='Could not autosave this edit. Keep the form open and retry. '+(error?.message||'');box.className='notice error';box.classList.remove('hidden')} }},450)};form.addEventListener('input',save);form.addEventListener('change',save)}
 
@@ -1955,8 +1956,9 @@ async function saveOfflineSchoolSnapshot(){
  try{await offlineSchoolPut(snapshot)}catch(error){message('appMsg','School records loaded online, but this device could not save an offline class-list copy. '+(error?.message||''),true)}
 }
 async function restoreOfflineSchoolSnapshot(owner){
+ const generation=window.cornhillSessionGeneration||0;if(currentUserId!==owner)return false;
  try{
-  const snap=await offlineSchoolGet(owner);
+  const snap=await offlineSchoolGet(owner);if(currentUserId!==owner||generation!==(window.cornhillSessionGeneration||0))return false;
   if(!snap||!snap.savedAt||Date.now()-new Date(snap.savedAt).getTime()>OFFLINE_SCHOOL_MAX_AGE)return false;
   if(!['Admin','Teacher'].includes(snap.role)||snap.profile?.role!==snap.role)return false;
   if(snap.role==='Teacher'){
@@ -1965,7 +1967,7 @@ async function restoreOfflineSchoolSnapshot(owner){
    if(!(snap.classes||[]).some(c=>c.id===selected))return false;
    if((snap.students||[]).some(s=>s.class_id!==selected))return false;
   }
-  currentUserId=owner;profile=snap.profile;students=snap.students||[];classes=snap.classes||[];
+  currentUserId=owner;profile=snap.profile;students=snap.students||[];classes=snap.classes||[];$('app').dataset.accountOwner=owner;
   $('welcome').textContent=profile.full_name?('Welcome, '+profile.full_name):'School dashboard';
   $('role').textContent=profile.role;
   setOfflineReadOnly(true);render();applyRoleNavigation();tab('dashboard');
@@ -2017,19 +2019,23 @@ function resetAccountScopedCommunicationState(){
 async function startSession(session){
  window.cornhillStartupStage='resetting account state';
  resetAccountScopedCommunicationState();
- demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';
+ const sessionGeneration=(window.cornhillSessionGeneration||0)+1,sessionUserId=session?.user?.id||null;window.cornhillSessionGeneration=sessionGeneration;
+ const sessionIsCurrent=()=>sessionGeneration===(window.cornhillSessionGeneration||0)&&currentUserId===sessionUserId;
+ demoMode=false;currentUserId=sessionUserId;$('demoBanner').style.display='none';
  if(!session){profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;financeCodeAliases=[];setOfflineReadOnly(false);sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
 $('login').classList.add('hidden');$('app').classList.add('hidden');$('logout').classList.remove('hidden');
 window.cornhillStartupStage='loading signed-in user profile';
 const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
+if(!sessionIsCurrent())return;
 if(error){
- if(await restoreOfflineSchoolSnapshot(session.user.id)){$('app').classList.remove('hidden');return}
+ const restoredOffline=await restoreOfflineSchoolSnapshot(session.user.id);if(!sessionIsCurrent())return;if(restoredOffline){$('app').classList.remove('hidden');return}
  $('app').classList.remove('hidden');
  message('appMsg','Your account profile could not be loaded, and no valid offline class-list snapshot is available. Reconnect to the internet and sign in again.',true);return
 }
 if(p.employment_status&&p.employment_status!=='Active'){
  const inactiveStatus=p.employment_status;
  try{await offlineSchoolDelete(session.user.id)}catch(_){}
+ if(!sessionIsCurrent())return;
  await db.auth.signOut();
  currentUserId=null;profile=null;students=[];classes=[];
  sessionStorage.removeItem('cornhill_teacher_class_id');
@@ -2040,15 +2046,15 @@ if(p.employment_status&&p.employment_status!=='Active'){
 }
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 window.cornhillStartupStage='loading permitted school records';
-await refresh();
+await refresh();if(!sessionIsCurrent())return;
  $('app').classList.remove('hidden');
  $('app').dataset.accountOwner=session.user.id;
  applyRoleNavigation();tab('dashboard');
- if(!window.cornhillOfflineReadOnly){window.cornhillStartupStage='loading academic year and term controls';await loadAcademicControl();}
- if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}
- if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');
- if(profile?.role==='Teacher')await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg');
- if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
+ if(!window.cornhillOfflineReadOnly){window.cornhillStartupStage='loading academic year and term controls';await loadAcademicControl();if(!sessionIsCurrent())return;}
+ if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}
+ if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');if(!sessionIsCurrent())return;
+ if(profile?.role==='Teacher')await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg');if(!sessionIsCurrent())return;
+ if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
 }
 async function loadNotifications(){
  const host=$('notificationList'),badge=$('notificationsNavBadge');
@@ -3240,13 +3246,14 @@ $('academicTermForm').addEventListener('submit',async e=>{
  finally{button.disabled=false;button.textContent=label}
 });
 async function loadAcademicControl(){
- if(!db||demoMode)return;
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;if(!db||demoMode)return;
  const admin=profile?.role==='Admin';
  // Do not close terms silently. Keep them open until an administrator reviews the warning and closes or extends them.
  const [yearsResult,termsResult]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
   db.from('academic_terms').select('*,academic_years(name,is_current,starts_on,ends_on)').order('starts_on',{ascending:false})
  ]);
+ if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
  if(yearsResult.error||termsResult.error){$('academicControlStatus').textContent='Calendar unavailable';$('academicControlHelp').textContent='Could not load the school calendar. '+(yearsResult.error||termsResult.error).message;return}
  const years=yearsResult.data||[],terms=termsResult.data||[],active=terms.find(t=>t.is_current&&!t.is_closed);
  $('dashboardTermSelect').innerHTML='<option value="">Choose a term</option>'+terms.filter(t=>!t.is_closed&&new Date(t.ends_on+'T00:00:00')>=new Date(new Date().toDateString())).map(t=>'<option value="'+t.id+'" '+(t.is_current?'selected':'')+'>'+esc(t.name+' · '+(t.academic_years?.name||'Year not set'))+'</option>').join('');
