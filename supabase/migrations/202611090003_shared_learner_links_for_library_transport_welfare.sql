@@ -223,3 +223,21 @@ alter table public.school_library_loans
   check (borrower_type <> 'Learner' or student_id is not null) not valid;
 alter table public.school_library_loans
   validate constraint school_library_learner_link_required;
+
+-- Keep class labels available to the same approved service operators; this does
+-- not expose learner profile or guardian contact fields.
+drop policy if exists "Authorised operators read class names for services" on public.school_classes;
+create policy "Authorised operators read class names for services"
+on public.school_classes for select to authenticated
+using (
+  exists (
+    select 1 from public.user_profiles p
+    where p.id=(select auth.uid())
+      and p.employment_status='Active'
+      and lower(btrim(coalesce(p.job_title,'')))=any(array[
+        'transport manager','transport officer','driver','bus driver',
+        'librarian','library manager','library officer',
+        'matron','senior woman','senior man','school nurse'
+      ])
+  )
+);
