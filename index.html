@@ -3847,7 +3847,7 @@ async function loadExcelMarksGrid(){
  const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&classSubjectIds.has(x.subject_id));
  const setBasedClass=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phaseOrder=assessmentPeriodsForClassName(cls?.name||'');
  const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>phaseOrder.indexOf(excelAssessmentPeriod(a))-phaseOrder.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b));
- if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments exist for this class and term. Create the subject assessments for Beginning, Midterm and End of term first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
+ if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments exist for this class and term. Prepare the subject assessments for the periods configured for this class first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
  const list=students.filter(x=>x.class_id===classId&&x.status==='Active').sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||String(a.first_name||'').localeCompare(String(b.first_name||'')));
  if(!list.length){head.innerHTML='<tr><th>Class register</th></tr>';body.innerHTML='<tr><td>No learners are enrolled in '+esc(cls?.name||'this class')+'. Register learners first.</td></tr>';message('excelMarksMsg','No learners are enrolled in this class.',true);return}
  const keyItems=[...new Map(assessments.map(a=>{const full=excelSubjectLabel(a,0,cls),code=full.replace(/\d+$/,'');return [code,{code,name:code==='D'?'Drawing / Art':(a.subjects?.name||a.title||'Subject')}]})).values()];
@@ -3878,7 +3878,7 @@ async function loadExcelMarksGrid(){
  recalculateExcelMarkSheet();
  renderExcelClassPerformance();
  let localDraftCount=0;try{localDraftCount=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>!x.expires_at||x.expires_at>Date.now()).filter(x=>assessments.some(a=>a.id===x.assessment_id)).length}catch(_){}
- message('excelMarksMsg',list.length+' active learners loaded · '+assessments.length+' assessment columns · '+(data||[]).length+' saved server marks loaded · '+localDraftCount+' pending offline drafts. Enter marks in the table and press Save all marks. Totals, aggregate and division recalculate automatically for P4–P7; positions are shown for Nursery through P5; P6 and P7 use aggregate and division.');
+ message('excelMarksMsg',list.length+' active learners loaded · '+assessments.length+' assessment columns · '+(data||[]).length+' saved server marks loaded · '+localDraftCount+' pending offline drafts. Enter marks in the table and press Save all marks. Totals, aggregate and division recalculate automatically for P4–P7; positions are shown for every class; P4–P7 also show aggregate and division.');
 }
 function renderExcelClassPerformance(){
  const ctx=window.cornhillExcelMarksContext,panel=$('excelClassPerformance');
