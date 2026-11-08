@@ -3469,9 +3469,13 @@ document.addEventListener('click',event=>{
  if(button){
   openRecordEvidenceCapture(button.dataset.openEvidence,button.dataset.recordId,'General document',button.dataset.recordName||'School record');
  }
- const learnerEvidence=$('requestLearnerEvidence');
- if(event.target===learnerEvidence){
-  const learnerId=$('learnerProfileContent')?.dataset?.learnerId;
+ const learnerEvidence=event.target.closest('#requestLearnerEvidence');
+ if(learnerEvidence){
+  const learnerId=window.currentLearnerEvidenceRecordId;
+  const learner=students.find(x=>x.id===learnerId);
+  if(!learnerId||!learner){message('appMsg','Open a learner profile first.');return}
+  openRecordEvidenceCapture('learner_profile',learnerId,$('learnerEvidencePurpose')?.value||'Learner document',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')||'Learner');
+  return;
  }
  const staffEvidence=$('requestStaffEvidence');
  if(event.target===staffEvidence){
@@ -6388,6 +6392,7 @@ $('studentRows').addEventListener('click',async e=>{
  const fields=[['School learner code',learner.admission_number],['Ministry LIN',learner.lin],['P7 index number',learner.p7_index_number],['Full name',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')],['Gender',learner.gender],['Date of birth',learner.date_of_birth],['Admission date',learner.admission_date],['Class',learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name],['Learner type',learner.learner_type],['Status',learner.status],['Previous school',learner.previous_school],...(profile?.role==='Admin'?[['Guardian',learner.guardian_name],['Relationship',learner.guardian_relationship],['Guardian phone',learner.guardian_phone],['Guardian email',learner.guardian_email],['Alternative guardian',learner.alternate_guardian_name],['Alternative phone',learner.alternate_guardian_phone],['Home address',learner.address],['Bursary',learner.is_bursary?(learner.bursary_category||'Approved')+' · UGX '+money(learner.bursary_fee_ugx):'Regular fees'],['Bursary reason',learner.bursary_reason||learner.bursary_notes],['Bursary approval account reference',learner.bursary_approved_by],['Bursary approved at',learner.bursary_approved_at]]:[])];
  $('learnerProfileContent').innerHTML='<div class="panel"><div class="row"><div style="display:flex;align-items:center;gap:14px"><div id="learnerPhotoFallback" class="excel-photo-placeholder" style="width:76px;height:76px;font-size:18px">'+esc(([learner.first_name,learner.last_name].filter(Boolean).map(x=>x[0]).join('')||'CH').toUpperCase())+'</div><img id="learnerProfilePhoto" class="hidden" alt="Learner photograph" style="width:76px;height:76px;object-fit:cover;border-radius:50%"><h3>'+esc([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '))+'</h3></div><button type="button" id="printLearnerProfile">Print learner profile</button></div><div class="table-wrap"><table><tbody>'+fields.map(x=>'<tr><th>'+esc(x[0])+'</th><td>'+esc(x[1]||'—')+'</td></tr>').join('')+'</tbody></table></div></div>';
  if(profile?.role==='Admin'){
+  window.currentLearnerEvidenceRecordId=learner.id;
   $('learnerProfileContent').innerHTML+='<div class="panel" id="learnerEvidencePanel" style="margin-top:14px"><h3>Admission documents & learner evidence</h3><p class="muted">Attach existing learner documents from this device, or request a fresh camera capture using Evidence Capture. All files are linked to this learner code and record.</p><div class="grid"><div><label for="learnerEvidencePurpose">Document type</label><select id="learnerEvidencePurpose"><option>Birth certificate</option><option>Previous report</option><option>Transfer letter</option><option>Learner document</option><option>Parent / guardian document</option><option>General document</option></select></div><div class="full"><button type="button" class="primary" id="requestLearnerEvidence">Open linked Evidence Capture</button></div></div><div id="learnerEvidenceList" class="muted">Loading learner documents…</div></div>';
   loadRecordEvidence('learner_profile',learner.id,'learnerEvidenceList');
  }
