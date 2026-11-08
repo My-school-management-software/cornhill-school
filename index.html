@@ -3921,7 +3921,7 @@ function importSubjectAliases(token,group){
  if(nursery){if(token==='EN'||token==='LD')return ['Language Development'];if(token==='RE')return ['Reading'];if(token==='NU')return ['Numbers']}
  if(lower&&token==='RE')return ['Religious Education'];return common[token]||[];
 }
-function importPeriodLabel(n,clsName){const setBased=/P\\.?\\s*[67]|PRIMARY\\s*[67]/i.test(clsName||'');return setBased?('Set '+(['','I','II','III','IV'][n]||'')):(['','Beginning','Midterm','End'][n]||'')}
+function importPeriodLabel(n,clsName){const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(clsName||'');return setBased?('Set '+(['','I','II','III','IV'][n]||'')):(['','Beginning','Midterm','End'][n]||'')}
 function importCodeDistance(a,b){a=normaliseImportText(a);b=normaliseImportText(b);const row=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let prev=row[0];row[0]=i;for(let j=1;j<=b.length;j++){const cur=row[j];row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=cur}}return row[b.length]}
 function matchImportAssessment(header,ctx,period){
  const clean=normaliseImportText(header),token=clean.replace(/\d$/,''),cls=classes.find(c=>c.id===ctx.classId),group=curriculumGroupForClass(cls?.name||''),aliases=importSubjectAliases(token,group).map(normaliseImportText);
@@ -3989,7 +3989,7 @@ $('downloadTeacherMarksTemplate').addEventListener('click',async()=>{
   const ctx=window.cornhillExcelMarksContext;
   if(!ctx||ctx.classId!==classId||ctx.termId!==termId)throw new Error('The complete class sheet could not be loaded. Check the term and assigned class.');
   const cls=classes.find(x=>x.id===classId),term=academic.terms.find(x=>x.id===termId);
-  const className=String(cls?.name||''),periods=assessmentPeriodsForClassName(className),isP7=/P\\.?\\s*7|PRIMARY\\s*7/i.test(className),isUpper=curriculumGroupForClass(className)==='P4-P7';
+  const className=String(cls?.name||''),periods=assessmentPeriodsForClassName(className),isP7=/P\.?\s*7|PRIMARY\s*7/i.test(className),isUpper=curriculumGroupForClass(className)==='P4-P7';
   const headers=['SN','ID','PHOTO','NAME','SEX','LINS',...(isP7?['INDEX NUMBER']:[])];
   const periodAssessments=new Map();
   periods.forEach((period,index)=>{
