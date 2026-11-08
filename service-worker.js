@@ -1,10 +1,12 @@
 /* CORNHILL offline application shell and safe static-asset cache.
    Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v45';
+const CACHE_NAME = 'cornhill-shell-v46';
 const SHELL = [
   '/',
   '/index.html',
   '/parents.html',
+  '/evidence.html',
+  '/evidence.webmanifest',
   '/manifest.webmanifest',
   '/service-worker.js',
   '/assets/cornhill-school-badge.png'
@@ -14,7 +16,7 @@ const STATIC_CDN = [
   'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v45';
+const STATIC_CACHE = 'cornhill-static-v46';
 const STATIC_HOSTS = new Set(['cdn.jsdelivr.net']);
 
 self.addEventListener('install', event => {
@@ -75,15 +77,16 @@ self.addEventListener('fetch', event => {
     const isParentPortal = url.pathname === '/p' ||
       url.pathname === '/parents.html' ||
       url.pathname === '/parents';
-    const routeCacheKey = isParentPortal ? '/parents.html' : '/index.html';
+    const isEvidencePortal = url.pathname === '/evidence.html' || url.pathname === '/evidence';
+    const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : '/index.html';
     event.respondWith((async () => {
       try {
         const response = await fetch(request);
         if (response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          // Keep the public guardian page separate from the school-admin app shell.
+          // Keep guardian, phone evidence, and school-admin shells separate.
           await cache.put(routeCacheKey, response.clone());
-          if (!isParentPortal) await cache.put('/', response.clone());
+          if (!isParentPortal && !isEvidencePortal) await cache.put('/', response.clone());
         }
         return response;
       } catch {
@@ -91,6 +94,11 @@ self.addEventListener('fetch', event => {
         if (cached) return cached;
         if (isParentPortal) {
           return new Response('The CORNHILL Parent Portal is offline. Reconnect to verify the guardian account and load learner records.', {
+            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          });
+        }
+        if (isEvidencePortal) {
+          return new Response('CORNHILL Evidence Capture is offline. Reconnect to receive requests, verify authorisation, and upload documents.', {
             status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
           });
         }
