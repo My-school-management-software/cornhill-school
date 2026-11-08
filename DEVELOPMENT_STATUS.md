@@ -1,3 +1,14 @@
+# CORNHILL release note — offline cache and preview coverage
+
+- Updated the installed application cache keys to **v38** (`cornhill-shell-v38` and `cornhill-static-v38`) so an online visit can install the latest shared app shell rather than retain the prior v37 cache.
+- The latest READY preview returned by Vercel is **https://cornhill-school-psvltv66m-cypher-projects1.vercel.app/** for commit `51bc28e8cbf425f67b8e75f89ab3ca44afe87151`.
+- That READY preview contains the main account-workspace, attendance-guard, account-specific appearance, local sign-out and notification navigation changes from the 51bc commit. It does **not** contain the later offline-attendance queue guard (`74e44a52`) or service-worker v38 (`7bd1bba5`).
+- A new preview request for commit `769a37cbc3859399f8d3dfee734725c6a7c80c6d` returned Vercel HTTP 402 `api-deployments-free-per-day` (24-hour retry). The Vercel CLI is not installed in the available workspace, so there was no same-project CLI fallback. No payment or plan upgrade was made.
+- Therefore, the READY URL above is an **interim inspection preview**, not the latest branch build. The latest source remains on the development branch. A fresh latest-branch preview must be built when the free Vercel deployment allowance is available.
+- Source-level assertions after the account/attendance/notification changes: **20/20 passed**. These are not substitutes for live browser tests with separate Admin and Teacher accounts.
+
+---
+
 # CORNHILL — account privacy, attendance and notification security — 8 November 2026
 
 **Working branch:** `fix/assessment-selection-save-preview-20261108`  
