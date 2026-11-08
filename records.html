@@ -211,7 +211,10 @@ async function runOcr(record){
  }
  }else if(meta.content_type?.startsWith('image/')){
   await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',()=>!!window.Tesseract);
-  const result=await window.Tesseract.recognize(blob,'eng');extracted=String(result?.data?.text||'').trim();
+  const bitmap=await createImageBitmap(blob);
+  const canvas=document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap,0,0);bitmap.close();
+  const result=await window.Tesseract.recognize(canvas,'eng');extracted=String(result?.data?.text||'').trim();
  }else throw new Error('OCR is supported for PDF, JPG, PNG and WebP files.');
  $('ocrProgress').textContent='Saving extracted text into the searchable record index…';
  const {error:saveError}=await db.rpc('save_school_record_ocr_text',{
