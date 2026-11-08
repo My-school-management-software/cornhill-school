@@ -34,13 +34,13 @@ footer{text-align:center;color:#647568;font-size:12px;padding:10px}
 <body>
 <header class="top">
  <a class="brand" href="/school.html" style="color:#fff;text-decoration:none"><img src="/assets/cornhill-school-badge.png" alt="">CORNHILL NURSERY AND PRIMARY SCHOOL</a>
- <nav><a href="/school.html" style="color:#fff;font-size:13px">School website</a> · <a href="/parents.html" style="color:#fff;font-size:13px">Current learner Parent Portal</a></nav>
+ <nav style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button id="installAdmissionsApp" type="button" class="hidden" style="background:#fff;color:#14532d">Install admissions app</button><a href="/school.html" style="color:#fff;font-size:13px">School website</a> · <a href="/parents.html" style="color:#fff;font-size:13px">Current learner Parent Portal</a></nav>
 </header>
 <main class="wrap">
  <section class="card">
   <span class="eyebrow">PARENT / GUARDIAN ACCESS</span>
   <h1>Parent Admissions Account</h1>
-  <p class="muted">Create your own email-and-password account to submit an admission enquiry and return later to check its progress. Your account can see only enquiries submitted from that account. It does not provide access to school administration records.</p>
+  <p class="muted">Create your own email-and-password account to submit an admission enquiry and return later to check its progress. Your account can see only enquiries submitted from that account. It does not provide access to school administration records. On Windows, open this page in Chrome or Edge and choose <strong>Install CORNHILL Parent Admissions</strong> from the browser menu. On Android, use the browser menu and choose <strong>Add to Home screen</strong>.</p>
   <div class="notice warning">Do not upload identity documents, birth certificates, medical details or payment evidence to this public page. Once the school begins formal admission, the office will request documents through its private evidence process.</div>
   <div class="form-grid">
    <div><label for="accountEmail">Your email address</label><input id="accountEmail" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com"></div>
@@ -129,6 +129,10 @@ async function createAccount(){
  }catch(error){show('accountMessage','Account could not be created: '+(error.message||'Please try again.'),'error')}
  finally{button.disabled=false}
 }
+let admissionsInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();admissionsInstallPrompt=event;$('installAdmissionsApp').classList.remove('hidden')});
+$('installAdmissionsApp').addEventListener('click',async()=>{if(!admissionsInstallPrompt)return;admissionsInstallPrompt.prompt();await admissionsInstallPrompt.userChoice;admissionsInstallPrompt=null;$('installAdmissionsApp').classList.add('hidden')});
+window.addEventListener('appinstalled',()=>{$('installAdmissionsApp').classList.add('hidden');show('accountMessage','CORNHILL Parent Admissions is installed on this device.','success')});
 $('createAccount').addEventListener('click',createAccount);
 $('signInAccount').addEventListener('click',signIn);
 $('signOutAccount').addEventListener('click',async()=>{await db.auth.signOut();setParentUser(null);show('accountMessage','You have signed out.','success')});
