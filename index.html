@@ -6713,148 +6713,33 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <script id="cornhill-subject-learner-mark-entry-v2">
+/* The older multi-step subject/learner picker duplicated the class-wide register
+   and caused teachers to encounter two different marks-entry workflows.
+   Keep only the single class-wide marks matrix and Excel import/preview. */
 (()=>{
  const $=id=>document.getElementById(id);
- const escV=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let selectedPairs=[],selectedLearners=new Set(),saved=new Map(),loading=false,subjectSelectionTouched=false,markGridRenderVersion=0;
- function currentPeriods(){return assessmentPeriodsForClassName(cls()?.name||'')}
- function assignedClass(){
-  if(profile?.role!=='Teacher')return null;
-  return sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||null;
+ let attempts=0;
+ function useSingleClassRegister(){
+  const root=$('teacherMarkEntry');
+  if(!root)return false;
+  if(typeof profile==='undefined'||profile?.role!=='Teacher')return false;
+  if(root.dataset.markGridV2==='single-register')return true;
+  root.dataset.markGridV2='single-register';
+  $('scoreForm')?.classList.add('hidden');
+  $('bulkMarkRows')?.closest('div[style]')?.classList.add('hidden');
+  const help=document.createElement('p');
+  help.className='notice';
+  help.textContent='Use the class-wide register below for all official teacher marks. The learner list and each class subject appear together; you do not need to select learners in a separate screen. Excel imports use the same class and subject layout.';
+  const matrix=root.querySelector('.excel-marks-panel');
+  if(matrix)matrix.insertBefore(help,matrix.children[1]||null);
+  return true;
  }
- function cls(){return classes.find(c=>c.id===assignedClass())||(window.cornhillTeacherAssignedClassRecord?.id===assignedClass()?window.cornhillTeacherAssignedClassRecord:null)}
- function termOptions(){
-  return academic.terms.map(t=>'<option value="'+escV(t.id)+'">'+escV(t.name+' · '+(t.academic_years?.name||''))+'</option>').join('');
+ function boot(){
+  if(useSingleClassRegister())return;
+  if(typeof profile!=='undefined'&&profile?.role&&profile.role!=='Teacher')return;
+  if(attempts++<80)setTimeout(boot,250);
  }
- function syncAcademicControls(){
-  const panel=$('markGridTerm')?.closest('section.panel');
-  const classInput=panel?.querySelector('input[readonly]');
-  const classRecord=cls();
-  if(classInput)classInput.value=classRecord?.name||(assignedClass()?'Assigned class could not be loaded':'Waiting for assigned class…');
-  const term=$('markGridTerm');
-  if(term){
-   const previous=term.value;
-   term.innerHTML='<option value="">Choose term</option>'+termOptions();
-   const preferred=academic.terms.find(t=>t.is_current&&!t.is_closed)||academic.terms.find(t=>!t.is_closed)||academic.terms[0];
-   term.value=academic.terms.some(t=>t.id===previous)?previous:(preferred?.id||'');
-  }
-  const periodHost=panel?.querySelector('[data-mark-period]')?.parentElement?.parentElement;
-  const periodClass=classRecord?.name||'';
-  if(periodHost&&periodHost.dataset.periodClass!==periodClass){
-   const selected=new Set(chosenPeriods()),options=currentPeriods(),kept=options.filter(p=>selected.has(p)),active=kept.length?kept:options;
-   periodHost.innerHTML=options.map(p=>'<label><input type="checkbox" data-mark-period value="'+escV(p)+'" '+(active.includes(p)?'checked':'')+'> '+escV(p)+'</label>').join('');
-   periodHost.dataset.periodClass=periodClass;
-   periodHost.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',onPeriodChoiceChange));
-  }
-  const validAssessments=new Set(classAssessments().map(a=>a.id));
-  selectedPairs=selectedPairs.filter(id=>validAssessments.has(id));
-  const validLearners=new Set(currentLearners().map(l=>l.id));
-  selectedLearners=new Set([...selectedLearners].filter(id=>validLearners.has(id)));
-  renderSubjectChoices();renderLearnerChoices();renderMarkGrid();
- }
- function chosenPeriods(){return [...document.querySelectorAll('[data-mark-period]:checked')].map(x=>x.value)}
- function onPeriodChoiceChange(){subjectSelectionTouched=false;selectedPairs=[];renderSubjectChoices();renderMarkGrid()}
- function defaultSelectSubjects(){
-  if(subjectSelectionTouched)return;
-  selectedPairs=classAssessments().filter(a=>chosenPeriods().includes(periodFor(a))).map(a=>a.id);
- }
- function classAssessments(){
-  const classId=assignedClass(),termId=$('markGridTerm')?.value;
-  return academic.assessments.filter(a=>a.class_id===classId&&a.term_id===termId);
- }
- function periodFor(a){return excelAssessmentPeriod(a)}
- function renderSubjectChoices(){
-  const host=$('markGridSubjects');if(!host)return;
-  defaultSelectSubjects();
-  const ps=chosenPeriods(),ass=classAssessments().filter(a=>ps.includes(periodFor(a))),periods=currentPeriods();
-  const groups=periods.filter(p=>ps.includes(p)).map(period=>{
-   const ordered=ass.filter(a=>periodFor(a)===period).sort((a,b)=>excelSubjectOrder(a)-excelSubjectOrder(b));
-   const unique=[...new Map(ordered.map(a=>[a.id,{a,code:excelSubjectLabel(a,0,cls())}])).values()];
-   return {period,items:unique};
-  }).filter(group=>group.items.length);
-  const total=groups.reduce((n,g)=>n+g.items.length,0);
-  host.innerHTML=total?groups.map(group=>'<section style="margin:10px 0 14px;padding:12px;border:1px solid var(--cornhill-line);border-radius:12px;background:var(--cornhill-page)"><div class="row" style="justify-content:space-between;gap:8px;margin-bottom:9px"><strong>'+escV(group.period)+'</strong><span class="muted">'+group.items.filter(x=>selectedPairs.includes(x.a.id)).length+' / '+group.items.length+' selected</span></div><div class="row" style="justify-content:flex-start;margin-bottom:8px"><button type="button" data-mark-select-period="'+escV(group.period)+'">Select all in this period</button><button type="button" data-mark-clear-period="'+escV(group.period)+'">Clear this period</button></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px">'+group.items.map(({a,code})=>'<label style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--cornhill-line);border-radius:9px;background:var(--cornhill-panel);margin:0"><input type="checkbox" data-mark-pair="'+escV(a.id)+'" '+(selectedPairs.includes(a.id)?'checked':'')+'><span><b>'+escV(code)+'</b> · '+escV(a.subjects?.name||a.title)+'<small style="display:block;color:var(--cornhill-muted)">'+escV(group.period)+' · Maximum '+escV(a.max_score)+'</small></span></label>').join('')+'</div></section>').join(''):'<p class="muted">Select a period above. Its prepared subject assessments will appear here as individual checkboxes. If a subject is missing, ask the administrator to prepare that assessment first.</p>';
-  const selected=groups.reduce((n,g)=>n+g.items.filter(x=>selectedPairs.includes(x.a.id)).length,0);
-  const count=document.createElement('p');count.className='muted';count.textContent=selected+' of '+total+' subject assessments selected';host.appendChild(count);
-  host.querySelectorAll('[data-mark-select-period]').forEach(button=>button.addEventListener('click',()=>{subjectSelectionTouched=true;const ids=groups.find(g=>g.period===button.dataset.markSelectPeriod)?.items.map(x=>x.a.id)||[];selectedPairs=[...new Set([...selectedPairs,...ids])];renderSubjectChoices();renderLearnerChoices();renderMarkGrid()}));
-  host.querySelectorAll('[data-mark-clear-period]').forEach(button=>button.addEventListener('click',()=>{subjectSelectionTouched=true;const ids=new Set(groups.find(g=>g.period===button.dataset.markClearPeriod)?.items.map(x=>x.a.id)||[]);selectedPairs=selectedPairs.filter(id=>!ids.has(id));renderSubjectChoices();renderLearnerChoices();renderMarkGrid()}));
-  host.querySelectorAll('[data-mark-pair]').forEach(input=>input.addEventListener('change',()=>{subjectSelectionTouched=true;selectedPairs=input.checked?[...new Set([...selectedPairs,input.dataset.markPair])]:selectedPairs.filter(x=>x!==input.dataset.markPair);renderLearnerChoices();renderMarkGrid()}));
- }
- function currentLearners(){
-  const classId=assignedClass();
-  return students.filter(x=>x.class_id===classId&&x.status==='Active').sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||String(a.first_name||'').localeCompare(String(b.first_name||'')));
- }
- function renderLearnerChoices(){
-  const host=$('markGridLearners');if(!host)return;
-  const list=currentLearners();
-  host.innerHTML='<div class="row" style="justify-content:flex-start;margin-bottom:8px"><label><input type="checkbox" id="markGridAllLearners" '+(selectedLearners.size===list.length&&list.length?'checked':'')+'> Choose all learners</label><button type="button" id="markGridClearLearners">Clear selection</button><span class="muted">'+selectedLearners.size+' of '+list.length+' selected</span></div>'+(list.length?'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px;max-height:260px;overflow:auto">'+list.map(l=>'<label style="display:flex;align-items:center;gap:7px;padding:7px;border:1px solid var(--cornhill-line);border-radius:8px;margin:0"><input type="checkbox" data-mark-learner="'+escV(l.id)+'" '+(selectedLearners.has(l.id)?'checked':'')+'><span>'+escV(l.admission_number||'No code')+' · '+escV([l.first_name,l.middle_name,l.last_name].filter(Boolean).join(' '))+'</span></label>').join('')+'</div>':'<p class="muted">No active learners are currently loaded for this assigned class. Refresh the app or ask the administrator to check the class register.</p>');
-  $('markGridAllLearners')?.addEventListener('change',e=>{selectedLearners=e.target.checked?new Set(list.map(x=>x.id)):new Set();renderLearnerChoices();renderMarkGrid()});
-  $('markGridClearLearners')?.addEventListener('click',()=>{selectedLearners.clear();renderLearnerChoices();renderMarkGrid()});
-  host.querySelectorAll('[data-mark-learner]').forEach(input=>input.addEventListener('change',()=>{if(input.checked)selectedLearners.add(input.dataset.markLearner);else selectedLearners.delete(input.dataset.markLearner);renderLearnerChoices();renderMarkGrid()}));
- }
- async function renderMarkGrid(){
-  const host=$('markGridTableHost');if(!host)return;
-  const renderVersion=++markGridRenderVersion;
-  const ass=classAssessments().filter(a=>selectedPairs.includes(a.id)),learners=currentLearners().filter(l=>selectedLearners.has(l.id));
-  if(!ass.length||!learners.length){host.innerHTML='<p class="muted">Select at least one subject/assessment and one learner to enter marks.</p>';return}
-  host.innerHTML='<p class="muted">Loading saved marks…</p>';
-  const ids=ass.map(a=>a.id),{data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);
-  if(renderVersion!==markGridRenderVersion)return;
-  if(error){host.textContent='Could not load existing marks: '+error.message;return}
-  saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x]));
-  const showP7Index=/P\.?\s*7|PRIMARY\s*7/i.test(cls()?.name||''),header=ass.map(a=>'<th><b>'+escV(excelSubjectLabel(a,0,cls()))+'</b><small style="display:block">'+escV(a.subjects?.name||a.title)+' · '+escV(periodFor(a))+'</small></th>').join('');
-  host.innerHTML='<div class="table-wrap"><table style="min-width:760px"><thead><tr><th>Learner / pupil code</th><th>LIN</th>'+(showP7Index?'<th>Index Number</th>':'')+header+'</tr></thead><tbody>'+learners.map(l=>'<tr><td><b>'+escV([l.first_name,l.middle_name,l.last_name].filter(Boolean).join(' '))+'</b><small style="display:block">'+escV(l.pupil_code||l.admission_number||'No pupil code')+'</small></td><td>'+escV(l.lin||'—')+'</td>'+(showP7Index?'<td>'+escV(l.p7_index_number||'—')+'</td>':'')+ass.map(a=>{const old=saved.get(a.id+'|'+l.id);return '<td><input data-mark-cell="'+escV(a.id)+'|'+escV(l.id)+'" type="number" min="0" max="'+Number(a.max_score)+'" step="0.01" inputmode="decimal" placeholder="—" value="'+(old?escV(old.score):'')+'" style="width:92px;margin:0" aria-label="'+escV(excelSubjectLabel(a,0,cls())+' '+l.first_name)+'"></td>'}).join('')+'</tr>').join('')+'</tbody></table></div><p class="muted">Blank cells are not saved. A real zero is saved as 0. Existing marks are displayed and will only be changed when you enter a replacement value.</p>';
- }
- function showMessage(t,bad=false){const n=$('markGridStatus');if(!n)return;n.textContent=t;n.className='notice'+(bad?' error':'');n.classList.remove('hidden')}
- async function saveMarks(){
-  if(profile?.role!=='Teacher'||demoMode){showMessage('Only the assigned class teacher can save marks. Administrator access is read-only.',true);return}
-  const classId=assignedClass(),termId=$('markGridTerm').value;
-  const verifiedClassId=window.teacherClassId||sessionStorage.getItem('cornhill_teacher_class_id');const permittedClasses=Array.isArray(window.teacherClassIds)?window.teacherClassIds:[];if(!classId||classId!==verifiedClassId||!permittedClasses.includes(classId)){showMessage('Assigned class could not be verified against your active teacher assignment. Sign out and sign in again.',true);return}
-  selectedPairs=[...$('markGridSubjects').querySelectorAll('[data-mark-pair]:checked')].map(x=>x.dataset.markPair);
-  selectedLearners=new Set([...$('markGridLearners').querySelectorAll('[data-mark-learner]:checked')].map(x=>x.dataset.markLearner));
-  const ass=classAssessments().filter(a=>selectedPairs.includes(a.id)),learners=currentLearners().filter(l=>selectedLearners.has(l.id));
-  if(!ass.length){showMessage('No subject assessments are selected. Choose a period that has prepared assessments, then select at least one subject.',true);return}
-  if(!learners.length){showMessage('No learners are selected. Choose one or more learners, or select all learners.',true);return}
-  const auth=await db.auth.getUser(),user=auth.data?.user;if(auth.error||!user||user.id!==currentUserId){showMessage('Your sign-in session expired. Sign in again.',true);return}
-  const payload=[];
-  for(const input of document.querySelectorAll('[data-mark-cell]')){
-   const raw=input.value.trim();if(raw==='')continue;
-   const [assessment_id,student_id]=input.dataset.markCell.split('|'),a=ass.find(x=>x.id===assessment_id),score=Number(raw);
-   if(!a||!Number.isFinite(score)||score<0||score>Number(a.max_score)){showMessage('One or more marks are invalid. Check each subject maximum before saving.',true);input.focus();return}
-   payload.push({assessment_id,student_id,score,teacher_comment:null,entered_by:user.id});
-  }
-  if(!payload.length){showMessage('No marks entered. Blank cells have been left untouched.',true);return}
-  const button=$('saveSelectedLearnerMarks');button.disabled=true;
-  try{
-   const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
-   if(error)throw error;
-   selectedPairs=[];selectedLearners.clear();subjectSelectionTouched=true;
-   showMessage(payload.length+' learner mark(s) saved successfully. The entry list has been cleared. Saved marks remain safely stored.');
-   await loadAcademics();
-   renderSubjectChoices();renderLearnerChoices();
-   const host=$('markGridTableHost');if(host)host.innerHTML='<p class="muted">Entry list cleared after saving. Select the subjects and learners you want to work on next.</p>';
-  }catch(e){showMessage('Marks were not saved: '+(e?.message||'Please retry.'),true)}
-  finally{button.disabled=false}
- }
- function build(){
-  const root=$('teacherMarkEntry');if(!root||root.dataset.markGridV2==='yes')return;
-  if(profile?.role!=='Teacher')return;
-  root.dataset.markGridV2='yes';
-  $('scoreForm')?.classList.add('hidden');$('bulkMarkRows')?.closest('div[style]')?.classList.add('hidden');
-  const panel=document.createElement('section');panel.className='panel';panel.style.marginTop='14px';
-  panel.innerHTML='<h3>Teacher mark entry · assigned class only</h3><p class="muted">Your assigned class is loaded automatically. Choose the term, assessment periods, subjects and learners yourself. Nothing is preselected.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><div><label>Assigned class</label><input readonly value="'+escV(cls()?.name||'Loading assigned class…')+'"></div><div><label>Academic term</label><select id="markGridTerm"><option value="">Choose term</option>'+termOptions()+'</select></div></div><div><b>1. Assessment periods</b><div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0">'+currentPeriods().map(p=>'<label><input type="checkbox" data-mark-period value="'+escV(p)+'"> '+escV(p)+'</label>').join('')+'</div></div><div style="margin-top:14px"><b>2. Select subjects</b><div id="markGridSubjects" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>3. Choose learners</b><div id="markGridLearners" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>4. Enter marks</b><div id="markGridTableHost" style="margin-top:8px"><p class="muted">Choose a term, subjects and learners.</p></div></div><div id="markGridStatus" class="notice hidden"></div><button type="button" class="primary" id="saveSelectedLearnerMarks">Save learner marks</button>';
-  root.prepend(panel);
-  $('markGridTerm').value=academic.terms.find(t=>t.is_current&&!t.is_closed)?.id||academic.terms.find(t=>!t.is_closed)?.id||academic.terms[0]?.id||'';
-  panel.querySelectorAll('[data-mark-period]').forEach(x=>{x.checked=true});
-  const initialPeriodHost=panel.querySelector('[data-mark-period]')?.parentElement?.parentElement;if(initialPeriodHost)initialPeriodHost.dataset.periodClass=cls()?.name||'';
-  $('markGridTerm').addEventListener('change',()=>{subjectSelectionTouched=false;selectedPairs=[];renderSubjectChoices();renderMarkGrid()});
-  panel.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',onPeriodChoiceChange));
-  $('saveSelectedLearnerMarks').addEventListener('click',saveMarks);
-  renderSubjectChoices();renderLearnerChoices();
-  syncAcademicControls();
- }
- window.addEventListener('cornhill-academics-loaded',syncAcademicControls);
- let attempts=0;const boot=()=>{if(profile?.role==='Teacher'||profile?.role==='Admin'){build();return}if(attempts++<80)setTimeout(boot,250)};boot();
+ boot();
 })();
 </script>
 
