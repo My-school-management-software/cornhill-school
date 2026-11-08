@@ -3461,9 +3461,9 @@ function unebPrimaryDivision(subjectGrades){
    n.includes('socialstudies')||n==='sst';
  })}));
  if(normalized.some(x=>!x.grade))return {ready:false,reason:'Enter marks and grades for English, Mathematics, Science and Social Studies to calculate the aggregate.'};
- const absentCore=normalized.filter(x=>x.grade?.absent).map(x=>x.label);
+ const absentCore=normalized.filter(x=>x.absent||x.grade?.absent).map(x=>x.label);
  if(absentCore.length)return {ready:false,reason:'Aggregate not calculated: learner was marked X (Absent) in '+absentCore.join(', ')+'.'};
- const points=normalized.map(x=>unebGradePoint(x.grade.grade));
+ const points=normalized.map(x=>unebGradePoint(x.grade?.grade_code||x.grade));
  if(points.some(x=>x===null))return {ready:false,reason:'Configure all nine grade boundaries for English, Mathematics, Science and Social Studies before calculating the aggregate.'};
  const aggregate=points.reduce((a,b)=>a+b,0);
  // Current PLE aggregate bands: I 4–12; II 13–23; III 24–29; IV 30–34; U 35–36.
