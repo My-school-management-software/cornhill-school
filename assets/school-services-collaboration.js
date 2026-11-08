@@ -204,6 +204,7 @@ function configureStaffFeedAudience() {
 }
 async function loadStaffFeed() {
   if (!isActiveStaff()) return;
+  configureStaffFeedAudience();
   const { data: posts, error } = await db.from("staff_communication_posts")
     .select("id,author_user_id,body,audience,is_pinned,created_at")
     .order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(60);
