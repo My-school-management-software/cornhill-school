@@ -131,6 +131,8 @@ revoke all on function public.sync_welfare_learner_snapshot() from public,anon,a
 revoke all on function public.sync_library_learner_snapshot() from public,anon,authenticated;
 
 alter table public.school_library_loans
+  drop constraint if exists school_library_learner_link_required;
+alter table public.school_library_loans
   add constraint school_library_learner_link_required
   check (borrower_type <> 'Learner' or student_id is not null) not valid;
 alter table public.school_library_loans validate constraint school_library_learner_link_required;
