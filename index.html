@@ -4445,6 +4445,11 @@ async function loadExcelMarksGrid(){
 }
 function upperPrimaryGradingPhases(className){
  const name=String(className||'');
+ if(/P\.?\s*4|PRIMARY\s*4/i.test(name))return [
+  {phase:'Beginning',label:'B.O.T',description:'Beginning of Term'},
+  {phase:'Midterm',label:'M.O.T',description:'Mid-Term'},
+  {phase:'End',label:'E.O.T',description:'End-of-Term'}
+ ];
  if(/P\.?\s*5|PRIMARY\s*5/i.test(name))return [
   {phase:'Beginning',label:'B.O.T',description:'Beginning of Term'},
   {phase:'Midterm',label:'M.O.T',description:'Mid-Term'},
@@ -4483,7 +4488,7 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
   {name:'Science',key:'science'},
   {name:'Social Studies',key:'socialstudies'}
  ];
- meta.textContent=className+' · B.O.T, M.O.T and E.O.T · workbook grading bands and four-subject aggregate.';
+ meta.textContent=className+' · workbook-style B.O.T, M.O.T and E.O.T analysis · four core subjects · gender and division summaries.';
  const blocks=phases.map(config=>{
   const analysisAssessments=ctx.analysisAssessments||ctx.assessments;
   const phaseAssessments=analysisAssessments.filter(a=>excelAssessmentPeriod(a)===config.phase);
@@ -4571,7 +4576,7 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY SUBJECT</h5><div class="table-wrap"><table style="min-width:205px"><thead><tr><th>Subject</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+subjectRows+'</tbody></table></div><p class="muted" style="margin:8px 0 0">Most performed: <strong>'+(best?esc(best.name)+' · '+best.average.toFixed(1)+'%':'—')+'</strong><br>Worst performed: <strong>'+(worst?esc(worst.name)+' · '+worst.average.toFixed(1)+'%':'—')+'</strong></p></div>'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY GENDER</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Group</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+genderRows+'</tbody></table></div></div>'+
    '</div>'+
-   '<p class="muted" style="margin:9px 0 0">Configured CORNHILL workbook grade cutoffs: D1 ≥89, D2 ≥79, C3 ≥74, C4 ≥69, C5 ≥59, C6 ≥49, P7 ≥44, P8 ≥39; F9 below 39. Aggregate divisions: I 4–12, II 13–23, III 24–29, IV 30–34, U 35–36. Under the CORNHILL English/Mathematics gateway policy, P7/P8 in either subject caps Division I at Division II; F9 in either caps the result at Division III or lower. Gateway downgrades in this period: '+gatewayDowngrades+' ('+englishMathP78+' due to P7/P8; '+englishMathF9+' due to F9). Blank marks and X entries are not treated as scores.</p>'+
+   '<p class="muted" style="margin:9px 0 0">Workbook subject grade cutoffs: D1 ≥89, D2 ≥79, C3 ≥74, C4 ≥69, C5 ≥59, C6 ≥49, P7 ≥44, P8 ≥39; F9 below 39. The Excel division formula uses aggregate grade points: I 4–12, II 13–24, III 25–28, IV 29–33, U 34–36. CORNHILL gateway-adjusted division is shown separately: P7/P8 in either English or Mathematics caps Division I at Division II; F9 in either prevents Division I and II. These workbook division bands are not silently replaced by the gateway summary ranges. Gateway downgrades in this period: '+gatewayDowngrades+' ('+englishMathP78+' due to P7/P8; '+englishMathF9+' due to F9). Blank marks and X entries are not treated as scores.</p>'+
   '</article>';
  }).join('');
  host.innerHTML=blocks;
