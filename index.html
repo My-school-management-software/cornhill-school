@@ -4572,7 +4572,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
      const matched=ctx.students.find(student=>normaliseImportText([student.first_name,student.middle_name,student.last_name].filter(Boolean).join(' '))===normName);
      const officialName=matched?[matched.first_name,matched.middle_name,matched.last_name].filter(Boolean).join(' '):'';
      const cells=identity.map((item,i)=>{
-      const value=item.index<0?String(info.headerRow+index+2):item.index<0?'':row[item.index];
+      const value=item.label==='Excel row'?String(info.headerRow+index+2):item.index<0?null:row[item.index];
       const shown=value===null||value===undefined||String(value).trim()===''?'—':String(value);
       return '<td class="'+(i===0?'excel-grid-rownum':'')+'">'+esc(shown)+'</td>';
      }).join('');
