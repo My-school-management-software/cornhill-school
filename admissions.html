@@ -129,13 +129,31 @@ async function createAccount(){
  }catch(error){show('accountMessage','Account could not be created: '+(error.message||'Please try again.'),'error')}
  finally{button.disabled=false}
 }
-show('accountMessage','CORNHILL Parent Admissions is installed on this device.','success')});
+
 $('createAccount').addEventListener('click',createAccount);
 $('signInAccount').addEventListener('click',signIn);
 $('signOutAccount').addEventListener('click',async()=>{await db.auth.signOut();setParentUser(null);show('accountMessage','You have signed out.','success')});
 $('refreshApplications').addEventListener('click',loadMyApplications);
 db.auth.getSession().then(({data})=>setParentUser(data.session?.user||null));
 db.auth.onAuthStateChange((_event,session)=>{setParentUser(session?.user||null)});
+if(window.CornhillOffline){
+ window.CornhillOffline.registerSyncHandler('admission_enquiry',async item=>{
+  if(item.userId){
+   const {data,error}=await db.auth.getUser();
+   if(error||data?.user?.id!==item.userId){const authError=new Error('Sign in with the parent account that created this enquiry before syncing.');authError.code='AUTH_REQUIRED';throw authError}
+  }else if(parentUser){
+   const authError=new Error('Sign out of the parent account before syncing this guest enquiry.');authError.code='AUTH_REQUIRED';throw authError;
+  }
+  const {error}=await db.from('school_admission_enquiries').insert(item.payload);
+  if(error&&error.code==='23505')return;
+  if(error)throw error;
+ });
+ window.addEventListener('cornhill:offline:item-synced',event=>{
+  if(event.detail?.type!=='admission_enquiry')return;
+  show('formMsg','Your saved offline admission enquiry has now been sent to the school. It is an enquiry, not a confirmed admission.','success');
+  if(parentUser)loadMyApplications();
+ });
+}
 $('admissionForm').addEventListener('submit',async e=>{
  e.preventDefault();const btn=$('submitBtn');
  if($('website').value.trim()){show('formMsg','Your enquiry could not be submitted. Please try again.','error');return}
