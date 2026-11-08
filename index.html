@@ -1338,11 +1338,11 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
  <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="1" inputmode="numeric" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="1" inputmode="numeric" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add general grading band</button></div></form></div>
  <div class="table-wrap"><table><thead><tr><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Comment</th></tr></thead><tbody id="gradeBandRows"></tbody></table></div>
- <h4 style="margin-top:16px">UNEB-style P4–P7 mock grading</h4>
+ <section id="unebGradingPanel"><h4 style="margin-top:16px">UNEB-style P4–P7 mock grading</h4>
  <p class="muted">Use these nine grade codes for internal tests and mock estimates. UNEB determines final examination subject grades through national standardisation, so percentage cut-offs here must be approved by the school for its own assessments and must not be presented as official UNEB cut-offs. Set the range separately for each core subject; aggregate remains unavailable until all required boundaries are configured.</p>
  <div id="unebGradeBandAdmin" class="hidden"><form id="unebGradeBandForm"><div><label>Core subject *</label><select name="subject_id" id="unebGradeSubject" required></select></div><div><label>Grade code *</label><select name="grade_code" required><option>D1</option><option>D2</option><option>C3</option><option>C4</option><option>C5</option><option>C6</option><option>P7</option><option>P8</option><option>F9</option></select></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div class="full"><button class="primary">Save UNEB subject boundary</button></div></form></div>
  <div class="table-wrap"><table><thead><tr><th>Subject</th><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Status</th></tr></thead><tbody id="unebGradeBandRows"></tbody></table></div>
- </section><h3 style="margin-top:24px">7. Term report cards and class performance</h3>
+ </section></section><h3 style="margin-top:24px">7. Term report cards and class performance</h3>
  <p class="muted">Preview individual learner results by term and review class averages. These are draft results for checking; official publication and grading bands require administrator approval.</p>
  <div class="row" style="align-items:end">
   <div style="flex:1;min-width:160px"><label>Term</label><select id="reportTermSelect"></select></div>
@@ -1958,7 +1958,7 @@ function resetAccountScopedCommunicationState(){
  const importMsg=$('teacherMarksImportMsg');if(importMsg){importMsg.textContent='';importMsg.classList.add('hidden')}
  const excelHead=$('excelMarksHead'),excelBody=$('excelMarksBody');if(excelHead)excelHead.innerHTML='<tr><th>SN</th><th>Pupil code</th><th>Learner</th><th>Choose class and term</th></tr>';if(excelBody)excelBody.innerHTML='<tr><td colspan="4">Load the signed-in account’s permitted class sheet.</td></tr>';
  ['assessmentForm','scoreForm'].forEach(id=>{const form=$(id);if(form)form.reset()});
- ['excelMarksTerm','excelMarksClass','reportTermSelect','reportClassSelect','reportStudentSelect'].forEach(id=>{const el=$(id);if(el)el.selectedIndex=0});
+ ['excelMarksTerm','excelMarksClass','reportTermSelect','reportClassSelect','reportStudentSelect'].forEach(id=>{const el=$(id);if(el)el.selectedIndex=0});if($('excelMarksPhase'))$('excelMarksPhase').value='All';
  const app=$('app');if(app){app.dataset.activeWorkspace='dashboard';app.dataset.accountOwner=''}
  // Never let a draft, recipient, inbox preview or cached directory survive an account change.
  try{if(typeof stopStaffMediaRecording==='function'&&staffMediaRecorder)stopStaffMediaRecording()}catch(_){}
@@ -3029,6 +3029,7 @@ function renderUnebSubjectsForClass(classId){
  const subjects=isUpper?classSubjectsFor(classId).filter(x=>['english','mathematics','science','social studies'].includes(String(x.name).trim().toLowerCase())):[];
  host.innerHTML=subjects.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');
  const panel=$('unebGradeBandAdmin');if(panel)panel.classList.toggle('hidden',profile?.role!=='Admin'||!isUpper);
+ const wholePanel=$('unebGradingPanel');if(wholePanel)wholePanel.classList.toggle('hidden',profile?.role!=='Admin'||!isUpper);
  renderUnebGradeBandRows();
 }
 function renderUnebGradeBandRows(){
@@ -3474,13 +3475,21 @@ async function loadBulkMarkSheet(){
  message('bulkMarksMsg',(data||[]).length+' server mark(s) loaded. '+pending.length+' local draft(s) restored. Changes autosave on this device; drafts are not official until synchronised. Maximum score: '+ass.max_score+'.');
 }
 
-function setupExcelMarksFilters(){
+function setupExcelMarksFilters(){function setExcelPhaseOptions(classId){
+ const cls=classes.find(x=>x.id===classId),setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phase=$('excelMarksPhase'),current=phase?.value||'All';
+ if(!phase)return;
+ const periods=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'];
+ phase.innerHTML='<option value="All">All periods · full class sheet</option>'+periods.map((x,i)=>'<option value="'+x+'">'+x+' · '+(i+1)+'</option>').join('');
+ phase.value=periods.includes(current)?current:'All';
+}
+
  const term=$('excelMarksTerm'),cls=$('excelMarksClass'),classField=$('excelMarksClassField');
  if(classField)classField.classList.toggle('hidden',profile?.role==='Teacher');
  term.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');
  const allowed=profile?.role==='Teacher'?new Set(window.teacherClassIds||[]):null;
  cls.innerHTML='<option value="">Choose class</option>'+classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
  if(profile?.role==='Teacher'&&window.teacherClassId)cls.value=window.teacherClassId;
+ setExcelPhaseOptions(cls.value);
  const folders=$('excelClassFolders');if(folders)folders.innerHTML=classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<button type="button" class="module-card" data-excel-class="'+x.id+'"><strong>📁 '+esc(x.name)+'</strong><span>Open class marks folder</span><em>'+esc(curriculumGroupForClass(x.name)||'Class')+'</em></button>').join('');
 }
 function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();const cls=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);if(setBased){const m=t.match(/(?:set|assessment)\s*(iv|4|iii|3|ii|2|i|1)\b/i);if(m){const raw=m[1].toUpperCase();return 'Set '+({1:'I',2:'II',3:'III',4:'IV',I:'I',II:'II',III:'III',IV:'IV'}[raw]||'I')}if(/fourth|assessment\s*4/.test(t))return 'Set IV';if(/third|assessment\s*3|end.?of.?term|\bend\b/.test(t))return 'Set III';if(/second|assessment\s*2|mid.?term/.test(t))return 'Set II';return 'Set I'}if(/assessment\s*4|fourth assessment|fourth term/.test(t))return 'Fourth';if(/mid.?term|midterm/.test(t))return 'Midterm';if(/^end\b|end.?of.?term|end term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
@@ -3700,7 +3709,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
  confirm.disabled=true;teacherExcelImportPlan=null;
  if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using your assigned class-teacher account to import marks.',true);return}
  const classId=sessionStorage.getItem('cornhill_teacher_class_id'),termId=$('excelMarksTerm').value;
- $('excelMarksClass').value=classId||'';
+ $('excelMarksClass').value=classId||'';$('excelMarksPhase').value='All';setExcelPhaseOptions(classId);
  if(!classId){message('teacherMarksImportMsg','Your assigned class could not be verified. Sign out and sign in again.',true);return}
  if(!file){message('teacherMarksImportMsg','Choose your Excel workbook first.',true);return}
  if(!window.XLSX){message('teacherMarksImportMsg','The Excel reader is unavailable. Refresh the app while online and try again.',true);return}
@@ -3903,7 +3912,7 @@ async function autosaveExcelMarkCell(input){const ctx=window.cornhillExcelMarksC
 $('excelMarksBody').addEventListener('input',e=>{const input=e.target.closest('[data-grid-score]');if(!input)return;const key=input.dataset.assessmentId+'|'+input.dataset.studentId;clearTimeout(excelAutosaveTimers.get(key));excelAutosaveTimers.set(key,setTimeout(()=>{excelAutosaveChain=excelAutosaveChain.then(()=>autosaveExcelMarkCell(input)).catch(err=>message('excelMarksMsg','Autosave is waiting for a retry: '+(err?.message||'storage/network issue'),true))},700));});
 $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
 $('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;$('excelMarksClass').dispatchEvent(new Event('change'));document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
-$('excelMarksClass').addEventListener('change',()=>{const cls=classes.find(x=>x.id===$('excelMarksClass').value),setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phase=$('excelMarksPhase'),current=phase.value;phase.innerHTML='<option value="All">All periods · full class sheet</option>'+(setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth']).map((x,i)=>'<option value="'+x+'">'+(setBased?x+' · '+(i+1):x+' · '+(i+1))+'</option>').join('');if([...phase.options].some(x=>x.value===current))phase.value=current;else phase.value='All';document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
+$('excelMarksClass').addEventListener('change',()=>{setExcelPhaseOptions($('excelMarksClass').value);document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
 
 // Offline assessment drafts are local, account-scoped and never publish report cards.
 // Synchronisation uses a compare-before-write check; conflicting server edits are kept pending.
