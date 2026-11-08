@@ -2100,6 +2100,17 @@ function resetAccountScopedCommunicationState(){
  window.cornhillPendingStaffDirectory=[];
  contactUnreadBusy=false;unreadAlertsBusy=false;
  window.schoolNotifications=[];
+ window.bursaryReviewStudentIds=new Set();
+ window.pendingBursaryReviewStudentId=null;
+ window.pendingBursaryReviewNotificationId=null;
+ // Clear rendered notification content as well as its in-memory data. A new account
+ // must never see the previous account's alert cards, even briefly during navigation.
+ const notificationList=$('notificationList');
+ if(notificationList)notificationList.innerHTML='<div class="empty">Sign in to view this account’s notifications.</div>';
+ const notificationSummary=$('notificationSummary');
+ if(notificationSummary){notificationSummary.textContent='';notificationSummary.classList.add('hidden')}
+ const notificationBadge=$('notificationsNavBadge');
+ if(notificationBadge){notificationBadge.textContent='0';notificationBadge.classList.add('hidden')}
  // Attendance is account-private: clear rendered data and forms before another identity loads.
  window.pendingAttendanceNotificationSourceId=null;
  const attendanceMessage=$('attendanceMsg');if(attendanceMessage){attendanceMessage.textContent='';attendanceMessage.classList.add('hidden')}
