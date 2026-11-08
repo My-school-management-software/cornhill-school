@@ -4040,6 +4040,7 @@ $('excelMarksBody').addEventListener('input',e=>{
  else{const prior=ctx.savedMarks.get(key);ctx.savedMarks.set(key,{assessment_id:assessment.id,student_id:input.dataset.studentId,score:absent?0:Number(raw),teacher_comment:absent?ABSENT_MARKER:(prior?.teacher_comment??null)})}
  const gradeCell=document.querySelector('[data-grade-cell="'+key+'"]');if(gradeCell)gradeCell.textContent=excelGradeMarkup(assessment,ctx.savedMarks.get(key));
  recalculateExcelMarkSheet();
+ renderExcelClassPerformance();
 });
 $('prepareExcelAssessments').addEventListener('click',async()=>{
  const button=$('prepareExcelAssessments');if(button.dataset.busy==='1')return;
