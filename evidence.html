@@ -39,7 +39,8 @@
 <script>
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
-const authKey='cornhill-evidence-tab-'+(crypto.randomUUID?.()||Date.now());
+let evidenceTabId='';try{evidenceTabId=sessionStorage.getItem('cornhill-evidence-tab-id-v1')||'';if(!evidenceTabId){evidenceTabId=crypto.randomUUID?.()||('tab-'+Date.now().toString(36));sessionStorage.setItem('cornhill-evidence-tab-id-v1',evidenceTabId)}}catch(_){evidenceTabId=crypto.randomUUID?.()||('tab-'+Date.now().toString(36))}
+const authKey='cornhill-evidence-tab-'+evidenceTabId;
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storageKey:authKey,storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 const $=id=>document.getElementById(id), bucket='cornhill-private-evidence';
 let user=null,profile=null,devices=[],staff=[],timerHandle=null,realtimeChannel=null,selectedFiles=[];
