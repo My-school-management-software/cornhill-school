@@ -1374,11 +1374,12 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
    <h4>Import existing marks from Excel</h4>
    <p class="muted">Choose your workbook and term. CORNHILL matches the learners and subjects in your assigned class. Learner records are never changed.</p>
    <div class="notice" style="margin:10px 0">
-    <b>Simple Excel import guide — one header row and subject codes</b>
+    <b>Use your original CORNHILL Excel arrangement — do not rearrange the workbook</b>
     <ol style="margin:8px 0 8px 20px">
-     <li>Use one worksheet for your class, named <b>Middle</b>, <b>Baby</b>, <b>Top</b>, or the relevant primary class.</li>
-     <li>Use one header row only. Start with <b>Pupil Code</b>, <b>LIN</b>, <b>Learner Name</b>, then put the subject codes in separate columns. For Middle Class use <b>NU1, EN1, WR1, HH1, RE1, SD1, DR1</b> for Beginning; <b>NU2, EN2, WR2, HH2, RE2, SD2, DR2</b> for Midterm; and <b>NU3, EN3, WR3, HH3, RE3, SD3, DR3</b> for End of Term.</li>
-     <li>Use one learner per row. The code ending identifies the period: <b>1 = Beginning</b>, <b>2 = Midterm</b>, <b>3 = End</b>. Use the codes for the selected class; other classes have their own curriculum codes.</li>
+     <li>Keep one worksheet for the assigned class. The importer recognises class names such as <b>Baby</b>, <b>Middle</b>, <b>Top</b>, <b>P.1</b> through <b>P.7</b>, and <b>Primary One</b> through <b>Primary Seven</b>.</li>
+     <li>Keep the identity columns first: <b>SN, ID, PHOTO, NAME</b> (or <b>PUPIL'S NAMES</b>), <b>SEX, LINS</b>. The alternative headings <b>Pupil Code, LIN, Learner Name</b> are also accepted. ID is matched as a pupil code where possible; otherwise the importer verifies the learner using LIN or a unique name.</li>
+     <li>Keep the subject headers and their order exactly as they appear in your class workbook. Nursery and P1–P5 use three periods; <b>P6 uses Set I–III</b> and <b>P7 uses Set I–IV</b>. The importer recognises the original short subject codes, including headers without a period number when the preceding total column identifies the period.</li>
+     <li>Keep one learner per row. Summary columns such as <b>TT, AGG, DIV, PN</b> and <b>POTN</b> are calculated/review columns; they are not imported as subject marks. The ready-made template follows this same class-sheet arrangement.</li>
      <li>Enter marks as numbers. Leave a cell empty if the learner has not yet been assessed. Empty cells are skipped; they are not saved as zero.</li>
      <li>Preview the workbook first. Correct every unmatched learner or subject shown in the review before importing. Existing marks are protected unless you deliberately tick <b>Replace marks that already exist</b>.</li>
     </ol>
