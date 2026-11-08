@@ -333,8 +333,8 @@ const isTransport=()=>isAdmin()||hasJob('transport manager','transport officer',
 const isTransportManager=()=>isAdmin()||hasJob('transport manager','transport officer');
 const isWelfare=()=>isAdmin()||hasJob('matron','senior woman','senior man','school nurse');
 const isGateStaff=()=>isAdmin()||hasJob('receptionist','security officer','security guard','gatekeeper','front office','office administrator');
-const isAssetViewer=()=>isAdmin()||hasJob('store manager','store officer','stores manager','property officer','maintenance officer','ict support','ict officer');
-const isAssetCustodian=()=>isAdmin()||hasJob('store manager','store officer','stores manager');
+const isAssetViewer=()=>isAdmin()||hasJob('store manager','store managers','store officer','stores manager','property officer','maintenance officer','ict support','ict officer');
+const isAssetCustodian=()=>isAdmin()||hasJob('store manager','store managers','store officer','stores manager');
 const isMaintenanceManager=()=>isAssetViewer();
 const isActiveStaff=()=>!!profile&&profile.employment_status==='Active';
 function note(id,msg,type='info'){const el=$(id);if(!el)return;el.textContent=msg;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.classList.remove('hidden')}
