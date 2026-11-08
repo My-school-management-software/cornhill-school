@@ -54,13 +54,12 @@ The database foundation is additive and uses RLS on the new tables. Teacher lear
 
 ## Work area 9 — P.5, P.6 and P.7 workbook grading analysis
 
-The upper-primary class-mark workspace reproduces all three analysis sections shown below the marks in the original P.5, P.6 and P.7 Excel workbooks:
+The upper-primary class-mark workspace now mirrors the analysis blocks actually present beneath the marks in each original workbook:
 
-- **B.O.T:** P.5 Beginning Assessment; P.6 and P.7 Set I.
-- **M.O.T:** P.5 Midterm Assessment; P.6 and P.7 Set II.
-- **E.O.T:** P.5 End of Term Assessment; P.6 and P.7 Set III.
-- Each section reports Division I, II, III, IV, U and X counts (plus separate incomplete-mark counts), average performance in English / Mathematics / Science / Social Studies, the strongest and weakest subject averages, performance by boys and girls, and the number of learners whose division was adjusted by the English/Mathematics gateway rule.
-- P.7's additional Set IV remains in the marks table; the workbook contains only three grading-analysis sections.
+- **P.5:** B.O.T (Beginning Assessment), M.O.T (Midterm Assessment) and E.O.T (End of Term Assessment).
+- **P.6:** B.O.T (Set I), M.O.T (Set II) and E.O.T (Set III).
+- **P.7:** M.O.T (Set II) and E.O.T (Set III). The P.7 workbook has no B.O.T grading-analysis block; Set I remains available in the marks grid, but no extra analysis panel is invented for it.
+- Each workbook analysis block reports Division I, II, III, IV, U and X counts (plus separate incomplete-mark counts), average performance in English / Mathematics / Science / Social Studies, strongest and weakest subject averages, performance by boys and girls, and the number of learners whose division was adjusted by the English/Mathematics gateway rule.
 
 The class workbook grade boundaries are D1 89–100, D2 79–88, C3 74–78, C4 69–73, C5 59–68, C6 49–58, P7 44–48, P8 39–43 and F9 0–38. The four grade points are added for the aggregate. The current PLE aggregate bands used by the software are I 4–12, II 13–23, III 24–29, IV 30–34 and U 35–36.
 
