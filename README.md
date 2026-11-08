@@ -79,6 +79,21 @@ The four core subject grade-band rows in Supabase have been aligned to the sourc
 
 **Acceptance evidence:** 13/13 synthetic division-helper cases passed, including aggregate 10 with English/Mathematics P7/P8, aggregate 12 with a gateway F9, both English and Mathematics F9, absence handling, class subject aliases, and the current aggregate boundaries. The three analysis panels for each of P.5, P.6 and P.7 passed synthetic rendering checks. Real teacher sign-in and live browser acceptance with actual marks remain pending.
 
+## Work area 11 — School Services and communications applications
+
+The active App Centre now has 18 valid destinations. The combined School Services Hub includes the following separate permission-controlled workspaces:
+
+- **Visitor & Gate Register:** reception/security staff can check visitors in and out. Visitor identity, purpose and pass-code fields are not editable during check-out; authenticated updates are limited to status and check-out audit fields.
+- **School Assets & Maintenance:** active staff can submit a maintenance report and read their own reports. Administrators and approved operations/store/property/maintenance/ICT operators can view the asset register and manage work. Asset managers can update location, condition, status and notes, but not asset codes or purchase costs.
+- **Staff Communications & Events:** a separate staff-only app for administrator-authored notices and school calendar events. Teachers and staff see only published entries addressed to their own role. Inactive profiles are excluded by the database policies as well as the sign-in screen.
+- **Existing Guardian Portal:** remains separate from staff communications and administration. Guardian PIN verification, learner-scoped portal sessions and private parent-to-school text/voice messages remain in the dedicated Parent Portal. Parent portal messages and staff notices use different tables and access paths.
+
+The service worker is at shell cache v56. Public website, admissions, School Services, Staff Communications, Banking, Evidence and Guardian routes use separate cache keys. Only the main school system writes to the root application cache; opening a separate portal no longer replaces the cached main dashboard. The service worker caches the application shells only. It does not make server-backed records, sign-in, submissions or payments available offline.
+
+**Role checks:** 12 synthetic database tests passed for teacher/admin separation across visitor, asset, maintenance and staff communications records. Further synthetic role tests passed for Store Managers (asset read/update permissions and protected asset identifiers) and Security Guard (visitor read/check-out permissions and protected visitor identity). All test rows and temporary profile title changes were rolled back. No reception, security or store-manager staff accounts currently exist in the active live profile list; their first real sign-in must be tested after the administrator creates those profiles.
+
+**Page checks:** JavaScript syntax and static DOM-ID checks passed for School Services and Staff Communications, and all 18 App Centre file/anchor destinations resolve. Actual browser sign-in and device testing remain required.
+
 ## Current preview
 
 The active development branch is `fix/assessment-selection-save-preview-20261108`. The latest preview available during this work was built from an earlier service-portal commit and does not include the final admissions page, public website, payroll policy changes or latest front-end fixes. Vercel's Free daily deployment API quota returned a payment-required limit, so no new preview was confirmed for the latest commit. Do not use an older preview to accept these new pages. The production main branch has not been changed by this development branch.
