@@ -1,34 +1,19 @@
-/* CORNHILL offline application shell and safe static-asset cache.
-   Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v68';
+/* CORNHILL offline application shell.
+   Only public app shells, static assets and approved public CDN libraries are cached.
+   Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
+const CACHE_NAME = 'cornhill-shell-v69';
+const STATIC_CACHE = 'cornhill-static-v69';
 const SHELL = [
-  '/',
-  '/index.html',
-  '/parents.html',
-  '/evidence.html',
-  '/notifications.html',
-  '/records.html',
-  '/banking.html',
-  '/evidence.webmanifest',
-  '/notifications.webmanifest',
-  '/records.webmanifest',
-  '/parents.webmanifest',
-  '/school.webmanifest',
-  '/admissions.webmanifest',
-  '/school-services.webmanifest',
-  '/banking.webmanifest',
-  '/manifest.webmanifest',
-  '/service-worker.js',
-  '/assets/cornhill-school-badge.png',
-  '/assets/cornhill-design-system.css',
-  '/assets/cornhill-appearance.js',
-  '/assets/main-school-workspace-bridge.js',
-  '/school-services.html',
-  '/assets/school-services-collaboration.js',
-  '/assets/cornhill-document-pdf-ocr.js',
-  '/school-communications.html',
-  '/school.html',
-  '/admissions.html'
+  '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
+  '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
+  '/school-services.html', '/school-communications.html',
+  '/manifest.webmanifest', '/school.webmanifest', '/admissions.webmanifest',
+  '/parents.webmanifest', '/evidence.webmanifest', '/notifications.webmanifest',
+  '/records.webmanifest', '/banking.webmanifest', '/school-services.webmanifest',
+  '/service-worker.js', '/assets/cornhill-school-badge.png',
+  '/assets/cornhill-design-system.css', '/assets/cornhill-appearance.js',
+  '/assets/cornhill-offline.js', '/assets/main-school-workspace-bridge.js',
+  '/assets/school-services-collaboration.js', '/assets/cornhill-document-pdf-ocr.js'
 ];
 const STATIC_CDN = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
@@ -40,13 +25,43 @@ const STATIC_CDN = [
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v68';
-const STATIC_HOSTS = new Set(['cdn.jsdelivr.net','cdnjs.cloudflare.com']);
+const STATIC_HOSTS = new Set(['cdn.jsdelivr.net', 'cdnjs.cloudflare.com']);
+
+async function enhanceHtml(response, includeRecordsTools) {
+  const type = response.headers.get('content-type') || '';
+  if (!type.includes('text/html')) return response;
+  let html = await response.clone().text();
+  if (!html.toLowerCase().includes('</head>') || !html.toLowerCase().includes('</body>')) return response;
+
+  const offlineScript = '/assets/cornhill-offline.js';
+  if (!html.includes(offlineScript)) {
+    html = html.replace(/<\/head>/i, '<script src="' + offlineScript + '"></script></head>');
+  }
+  const recordsScript = '/assets/cornhill-document-pdf-ocr.js';
+  if (includeRecordsTools && !html.includes(recordsScript)) {
+    html = html.replace(/<\/body>/i, '<script src="' + recordsScript + '"></script></body>');
+  }
+
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+  headers.delete('etag');
+  return new Response(html, { status: response.status, statusText: response.statusText, headers });
+}
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const shell = await caches.open(CACHE_NAME);
-    await shell.addAll(SHELL);
+    await Promise.all(SHELL.map(async path => {
+      const request = new Request(new URL(path, self.location.origin), { cache: 'reload' });
+      const response = await fetch(request);
+      if (!response.ok) throw new Error('Required CORNHILL offline shell file failed: ' + path + ' (' + response.status + ')');
+      const enhanced = (path === '/' || path.endsWith('.html'))
+        ? await enhanceHtml(response, path === '/' || path === '/index.html')
+        : response;
+      await shell.put(request, enhanced);
+    }));
+
     const assets = await caches.open(STATIC_CACHE);
     await Promise.all(STATIC_CDN.map(async url => {
       try {
@@ -54,7 +69,7 @@ self.addEventListener('install', event => {
         const response = await fetch(request);
         if (response.ok || response.type === 'opaque') await assets.put(request, response);
       } catch (error) {
-        // A failed optional CDN precache must not prevent the school shell installing.
+        // Optional libraries can be added after the app shell is installed.
         console.warn('Optional offline library was not cached:', url, error);
       }
     }));
@@ -73,28 +88,13 @@ self.addEventListener('activate', event => {
   })());
 });
 
-async function addRecordsEnhancement(response){
-  const contentType=response.headers.get('content-type')||'';
-  if(!contentType.includes('text/html'))return response;
-  const html=await response.clone().text();
-  const src='/assets/cornhill-document-pdf-ocr.js';
-  if(html.includes(src)||!html.toLowerCase().includes('</body>'))return response;
-  const enhanced=html.replace(/<\/body>/i,'<script src="'+src+'"></script></body>');
-  const headers=new Headers(response.headers);
-  headers.delete('content-length');
-  headers.delete('content-encoding');
-  headers.delete('etag');
-  return new Response(enhanced,{status:response.status,statusText:response.statusText,headers});
-}
-
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) {
-    // Cache only known public JavaScript libraries. All Supabase/auth/API traffic
-    // and all other cross-origin requests remain network-only.
+    // Do not cache Supabase, authentication, uploads, payments or any unknown API.
     if (!STATIC_HOSTS.has(url.hostname) || !STATIC_CDN.some(asset => url.href.startsWith(asset))) return;
     event.respondWith((async () => {
       const cache = await caches.open(STATIC_CACHE);
@@ -112,88 +112,46 @@ self.addEventListener('fetch', event => {
   }
 
   if (request.mode === 'navigate') {
-    const isParentPortal = url.pathname === '/p' ||
-      url.pathname === '/parents.html' ||
-      url.pathname === '/parents';
-    const isEvidencePortal = url.pathname === '/evidence.html' || url.pathname === '/evidence';
-    const isBankingPortal = url.pathname === '/banking.html' || url.pathname === '/banking';
-    const isServicesPortal = url.pathname === '/school-services.html';
-    const isPublicSchoolSite = url.pathname === '/school.html';
-    const isAdmissionsPortal = url.pathname === '/admissions.html';
-    const isCommunicationsPortal = url.pathname === '/school-communications.html';
-    const isMainApp = url.pathname === '/' || url.pathname === '/index.html';
-    const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : isBankingPortal ? '/banking.html' : isServicesPortal ? '/school-services.html' : isPublicSchoolSite ? '/school.html' : isAdmissionsPortal ? '/admissions.html' : isCommunicationsPortal ? '/school-communications.html' : '/index.html';
     event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const path = url.pathname === '/' ? '/' : url.pathname;
       try {
         let response = await fetch(request);
         if (response.ok) {
-          if (isMainApp) response = await addRecordsEnhancement(response);
-          const cache = await caches.open(CACHE_NAME);
-          // Keep guardian, phone evidence, banking, and school-admin shells separate.
-          await cache.put(routeCacheKey, response.clone());
-          if (isMainApp) await cache.put('/', response.clone());
+          const includeRecordsTools = path === '/' || path === '/index.html';
+          response = await enhanceHtml(response, includeRecordsTools);
+          await cache.put(path, response.clone());
+          if (path === '/' || path === '/index.html') await cache.put('/', response.clone());
         }
         return response;
       } catch {
-        const cached = await caches.match(routeCacheKey);
+        const cached = await cache.match(path) || await cache.match(path === '/' ? '/index.html' : path);
         if (cached) return cached;
-        if (isParentPortal) {
-          return new Response('The CORNHILL Parent Portal is offline. Reconnect to verify the guardian account and load learner records.', {
-            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        }
-        if (isEvidencePortal) {
-          return new Response('CORNHILL Evidence Capture is offline. Reconnect to receive requests, verify authorisation, and upload documents.', {
-            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        }
-        if (isBankingPortal) {
-          return new Response('CORNHILL Banking is offline. Reconnect before recording deposits, requesting withdrawals, or checking verified balances.', {
-            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        }
-        if (isCommunicationsPortal) {
-          return new Response('CORNHILL Staff Communications is offline. Reconnect to authenticate staff and refresh notices and events.', {
-            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        }
-        if (isServicesPortal) {
-          return new Response('CORNHILL School Services is offline. Reconnect to verify your staff account before opening leave, library, transport, welfare or property records.', {
-            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        }
-        if (isAdmissionsPortal) {
-          return new Response('CORNHILL Admissions is offline. Reconnect before submitting an enquiry; no offline form submission is stored.', {
-            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        }
-        if (isPublicSchoolSite) {
-          return new Response('The CORNHILL public school website is unavailable offline on this device. Reconnect to load current school information.', {
-            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
-        }
-        return (await caches.match('/')) ||
-          new Response('CORNHILL is offline and its saved app shell is unavailable on this device. Reconnect once to load the application.', {
-            status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-          });
+        const root = await cache.match('/');
+        if (root) return root;
+        return new Response(
+          '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CORNHILL offline</title><body style="font:16px system-ui;padding:28px;color:#173d27"><h1>CORNHILL</h1><p>This workspace has not yet been opened on this device. Connect once to save its offline version.</p></body></html>',
+          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
       }
     })());
     return;
   }
 
-  // Same-origin app assets: cache-first so installed clients can start without internet.
+  // Cache-first for same-origin public files; revalidate in the background.
   if (SHELL.includes(url.pathname) || url.pathname.startsWith('/assets/')) {
     event.respondWith((async () => {
-      const cached = await caches.match(request);
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
       if (cached) {
         fetch(request).then(async response => {
-          if (response.ok) (await caches.open(CACHE_NAME)).put(request, response);
+          if (response.ok) await cache.put(request, response);
         }).catch(() => {});
         return cached;
       }
       try {
         const response = await fetch(request);
-        if (response.ok) (await caches.open(CACHE_NAME)).put(request, response.clone());
+        if (response.ok) await cache.put(request, response.clone());
         return response;
       } catch {
         return Response.error();
