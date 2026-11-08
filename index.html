@@ -4591,7 +4591,7 @@ $('prepareAllClassAssessments')?.addEventListener('click',async()=>{
  const classList=classes.slice();
  if(classList.length!==10){message('excelMarksMsg','Expected the ten CORNHILL class levels (Baby, Middle, Top and P1–P7), but found '+classList.length+'. Review the class setup before preparing assessments.',true);return}
  button.dataset.busy='1';button.disabled=true;button.textContent='Checking all classes…';
- let committed=false;
+ let committed=false,insertAttempted=false;
  try{
   const [{data:links,error:linksError},{data:existing,error:existingError}]=await Promise.all([
    db.from('class_subjects').select('class_id,subject_id'),
@@ -4622,6 +4622,7 @@ $('prepareAllClassAssessments')?.addEventListener('click',async()=>{
   if(!missing.length){message('excelMarksMsg','All ten class sheets already have their standard assessment columns for this term. No duplicates were created.');return}
   if(!confirm('PREVIEW · Prepare missing assessment columns for all ten classes?\n\nTerm: '+(academic.terms.find(x=>x.id===termId)?.name||termId)+'\nExpected standard columns: '+expected+'\nAlready existing: '+(expected-missing.length)+'\nTo create: '+missing.length+'\n\n'+details+'\n\nOnly missing assessment setup records will be added. Existing assessments and all learner marks will remain unchanged.'))return;
   button.textContent='Preparing '+missing.length+' columns…';
+  insertAttempted=true;
   const {data:inserted,error:insertError}=await db.from('assessments').insert(missing).select('id');
   if(insertError)throw insertError;
   committed=true;
@@ -4637,7 +4638,7 @@ $('prepareAllClassAssessments')?.addEventListener('click',async()=>{
   $('excelMarksTerm').value=termId;
   message('excelMarksMsg','Ready: '+inserted.length+' missing assessment columns were prepared across all ten classes. Existing assessments and learner marks were preserved. Teachers can now load their assigned class sheet and preview the original Excel workbook.');
  }catch(err){
-  message('excelMarksMsg',committed?'The assessment records were created, but a follow-up screen update failed. DO NOT repeat the bulk preparation until the class assessment lists are checked. '+(err?.message||''):('Bulk preparation stopped before a confirmed save. '+(err?.message||'Please review the class and subject setup.')),true);
+  message('excelMarksMsg',committed?'The assessment records were created, but a follow-up screen update failed. DO NOT repeat the bulk preparation until the class assessment lists are checked. '+(err?.message||''):insertAttempted?'The bulk assessment request was sent but its result could not be confirmed. DO NOT repeat it yet. Refresh the assessment lists and verify whether the missing columns were created. '+(err?.message||''):('Bulk preparation stopped before any insert was attempted. '+(err?.message||'Please review the class and subject setup.')),true);
  }finally{button.disabled=false;button.textContent='Prepare all class sheets';delete button.dataset.busy}
 });
 $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
