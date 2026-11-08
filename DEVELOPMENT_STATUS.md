@@ -1,6 +1,21 @@
 # CORNHILL Development Status
 
-Last updated: 2026-11-06
+Last updated: 2026-11-08
+
+## 2026-11-08 — Stable website release and installable app check
+
+- Confirmed the existing Vercel project `cornhill-school` and the active development branch `feature/cornhill-v3-foundation` still exist. No replacement project or new permanent address was created.
+- Preserved the established website address: **https://cornhill-school-swart.vercel.app**.
+- Published the reviewed branch commit `f73c7bbe1505ecf936fedf971de61cc1943b74db` as a Vercel production deployment. Deployment `dpl_G5kXDHVesot6hbtUiPa2e1RHoHwJ` reached **READY**, and the existing stable domain was confirmed as an alias of that deployment.
+- Verified that the repository already contains `manifest.webmanifest` and `service-worker.js`, and that `index.html` links the manifest and registers the service worker. The manifest names the installed app “Cornhill School”.
+- The service worker activates updates using `skipWaiting()` and `clients.claim()`, caches the app shell, and provides an in-app “Refresh App” action that checks for an update and reloads. Authentication and database traffic are deliberately not cached.
+- This is an installable web app (PWA), not a separately published Android APK. Install it from the stable address using Chrome on Android (“Add to Home screen” / “Install app”) or Edge/Chrome on Windows (“Install app”).
+- Important offline boundary: the current service worker caches the app shell only. It does not establish that admissions, payments, marks, or other live database operations work fully offline. Full offline data entry and synchronization still require separate end-to-end testing.
+- Deployment verification is based on Vercel's READY state and confirmed domain alias. A full interactive browser/device acceptance test was not completed in this release.
+- Future changes on the feature branch continue to generate preview deployments. To publish later changes on the same stable address, the production release must be updated; opening the installed app or reloading it then fetches the latest published version. Do not create a new permanent URL for routine releases.
+- No paid plan, subscription, new project, database migration, or live school record change was made as part of this release check.
+
+
 
 ## Password-security scope decision — 2026-11-07
 - Supabase Pro-only leaked-password protection is intentionally excluded from the CORNHILL plan. Do not enable it, upgrade for it, or list it as a release blocker.
