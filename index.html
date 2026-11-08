@@ -3654,7 +3654,7 @@ async function loadExcelMarksGrid(){
 }
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function isImportLearnerNameHeading(value){return ['NAME','PUPILNAME','PUPILSNAMES','PUPILFULLNAME','PUPILSFULLNAME','STUDENTNAME','STUDENTSNAME','STUDENTFULLNAME','LEARNERNAME','LEARNERSNAME','LEARNERFULLNAME','LEARNERSFULLNAME','FULLNAME','NAMEOFPUPIL','NAMEOFLEARNER'].includes(normaliseImportText(value))}
-function isImportLearnerCodeHeading(value){return /^(ID\d*|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
+function isImportLearnerCodeHeading(value){return /^(ID\d*|IDNUMBER|PUPILNO|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERNO|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGNO|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
 function isImportLinHeading(value){return /^(LIN|LINS|LINNO|LINNUMBER|LEARNERIDENTIFICATIONNUMBER|LEARNERSIDENTIFICATIONNUMBERLIN)$/.test(normaliseImportText(value))}
 function importSubjectAliases(token,group){
  const nursery=group==='Nursery',lower=group==='P1-P3';
