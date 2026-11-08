@@ -1,0 +1,19 @@
+{
+  "id": "/admissions.html",
+  "name": "CORNHILL Parent Admissions",
+  "short_name": "CORNHILL Admissions",
+  "description": "Parent account, school admission enquiries and application status tracking",
+  "start_url": "/admissions.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f2f7f3",
+  "theme_color": "#14532d",
+  "icons": [
+    {
+      "src": "/assets/cornhill-school-badge.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
