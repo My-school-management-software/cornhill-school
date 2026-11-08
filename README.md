@@ -99,10 +99,9 @@ The service worker caches the communications launcher, the School Services page 
 
 ## Current preview
 
-The active development branch is `fix/assessment-selection-save-preview-20261108`. The latest confirmed READY Vercel preview is [cornhill-school-8m53cvr1m-cypher-projects1.vercel.app](https://cornhill-school-8m53cvr1m-cypher-projects1.vercel.app/) from commit `64b9908b3613424b8c2fa4ae5d802d430f1898bf`. It is an earlier snapshot and does **not** contain the latest P.4–P.7 gateway refinements, unified School Services collaboration entry, service-worker v57, or staff collaboration foreign-key indexes.
+The latest READY Vercel preview is [cornhill-school-8m53cvr1m-cypher-projects1.vercel.app](https://cornhill-school-8m53cvr1m-cypher-projects1.vercel.app/) from commit `64b9908b3613424b8c2fa4ae5d802d430f1898bf`. It is an older build and does **not** include the latest service portal notice/calendar/feed UI module, service-worker v59, or final staff-feed reaction-policy fix. Do not use it to accept those changes.
 
-A new preview request for the active development branch was rejected by Vercel with `payment_required` because the Free daily deployment API limit has been reached; the returned retry window is 24 hours. No paid plan was enabled and production was not changed. Use the [GitHub development branch](https://github.com/My-school-management-software/cornhill-school/tree/fix/assessment-selection-save-preview-20261108) as the current source of truth. Do not use the preview above to accept these latest changes until a deployment from the active branch is READY.
-
+A new preview was requested for the active branch `fix/assessment-selection-save-preview-20261108`, but Vercel returned `payment_required` with resource `api-deployments-free-per-day` and a 24-hour retry window. No local Vercel CLI is installed here for an alternate deployment route. No paid plan was enabled and production was not changed. The current source remains available in the [GitHub development branch](https://github.com/My-school-management-software/cornhill-school/tree/fix/assessment-selection-save-preview-20261108).
 
 ## Offline limitation — important
 
