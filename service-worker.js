@@ -54,7 +54,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) {
     // Cache only known public JavaScript libraries. All Supabase/auth/API traffic
     // and all other cross-origin requests remain network-only.
-    if (!STATIC_HOSTS.has(url.hostname) || !/\.(?:js|mjs)(?:$|\?)/i.test(url.href)) return;
+    if (!STATIC_HOSTS.has(url.hostname) || !STATIC_CDN.some(asset => url.href.startsWith(asset))) return;
     event.respondWith((async () => {
       const cache = await caches.open(STATIC_CACHE);
       const cached = await cache.match(request);
