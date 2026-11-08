@@ -1,6 +1,6 @@
 /* CORNHILL offline application shell and safe static-asset cache.
    Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v66';
+const CACHE_NAME = 'cornhill-shell-v67';
 const SHELL = [
   '/',
   '/index.html',
@@ -21,6 +21,7 @@ const SHELL = [
   '/assets/main-school-workspace-bridge.js',
   '/school-services.html',
   '/assets/school-services-collaboration.js',
+  '/assets/cornhill-document-pdf-ocr.js',
   '/school-communications.html',
   '/school.html',
   '/admissions.html'
@@ -28,10 +29,15 @@ const SHELL = [
 const STATIC_CDN = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
-  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+  'https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js',
+  'https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css',
+  'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v66';
-const STATIC_HOSTS = new Set(['cdn.jsdelivr.net']);
+const STATIC_CACHE = 'cornhill-static-v67';
+const STATIC_HOSTS = new Set(['cdn.jsdelivr.net','cdnjs.cloudflare.com']);
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
@@ -62,6 +68,20 @@ self.addEventListener('activate', event => {
     await self.clients.claim();
   })());
 });
+
+async function addRecordsEnhancement(response){
+  const contentType=response.headers.get('content-type')||'';
+  if(!contentType.includes('text/html'))return response;
+  const html=await response.clone().text();
+  const src='/assets/cornhill-document-pdf-ocr.js';
+  if(html.includes(src)||!html.toLowerCase().includes('</body>'))return response;
+  const enhanced=html.replace(/<\\/body>/i,'<script src="'+src+'"></script></body>');
+  const headers=new Headers(response.headers);
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+  headers.delete('etag');
+  return new Response(enhanced,{status:response.status,statusText:response.statusText,headers});
+}
 
 self.addEventListener('fetch', event => {
   const request = event.request;
@@ -101,8 +121,9 @@ self.addEventListener('fetch', event => {
     const routeCacheKey = isParentPortal ? '/parents.html' : isEvidencePortal ? '/evidence.html' : isBankingPortal ? '/banking.html' : isServicesPortal ? '/school-services.html' : isPublicSchoolSite ? '/school.html' : isAdmissionsPortal ? '/admissions.html' : isCommunicationsPortal ? '/school-communications.html' : '/index.html';
     event.respondWith((async () => {
       try {
-        const response = await fetch(request);
+        let response = await fetch(request);
         if (response.ok) {
+          if (isMainApp) response = await addRecordsEnhancement(response);
           const cache = await caches.open(CACHE_NAME);
           // Keep guardian, phone evidence, banking, and school-admin shells separate.
           await cache.put(routeCacheKey, response.clone());
