@@ -3432,7 +3432,7 @@ $('staffInviteForm').addEventListener('submit',async e=>{
 $('staffProfileSelect').addEventListener('change',()=>{
  const x=staffProfiles.find(p=>p.id===$('staffProfileSelect').value);if(!x)return;
  const form=$('staffProfileForm');
- for(const key of ['full_name','phone','gender','staff_category','parent_contact_phone','job_title','department','responsibilities','employment_start_date','reporting_date','employment_end_date','employment_status'])form.elements[key].value=x[key]|| (key==='employment_status'?'Active':'');form.elements.parent_contact_visible.checked=x.parent_contact_visible===true;loadRecordEvidence('staff_profile',x.id,'staffEvidenceList');
+ for(const key of ['full_name','phone','gender','staff_category','parent_contact_phone','job_title','department','responsibilities','employment_start_date','reporting_date','employment_end_date','employment_status'])form.elements[key].value=x[key]|| (key==='employment_status'?'Active':'');form.elements.parent_contact_visible.checked=x.parent_contact_visible===true;loadStaffAccountEvidence(x.id,'staffEvidenceList');
 });
 $('staffProfileForm').addEventListener('submit',async e=>{
  e.preventDefault();if(profile?.role!=='Admin'){message('staffProfileMsg','Only administrators can update staff profiles.',true);return}
@@ -3445,14 +3445,8 @@ $('staffProfileForm').addEventListener('submit',async e=>{
  if(error){message('staffProfileMsg','Could not save staff profile: '+error.message,true);return}
  await loadStaffProfiles();message('staffProfileMsg','Staff profile saved successfully.');
 });
-async function loadRecordEvidence(contextType,recordId,hostId){
- const host=$(hostId);if(!host||!recordId)return;
- host.innerHTML='<p class="muted">Loading linked evidence…</p>';
- const {data:requests,error}=await db.from('evidence_capture_requests')
-  .select('id,purpose,context_label,status,created_at,submitted_at')
-  .eq('context_type',contextType).eq('context_record_id',recordId)
-  .order('created_at',{ascending:false}).limit(40);
- if(error){host.innerHTML='<p class="notice error">Linked evidence could not load: '+esc(error.message)+'</p>';return}
+async function renderEvidenceRequests(requests,hostId){
+ const host=$(hostId);if(!host)return;
  if(!requests?.length){host.innerHTML='<p class="muted">No files are linked yet. Open Evidence Capture to upload an existing file or request a phone photo.</p>';return}
  const ids=requests.map(x=>x.id);
  const {data:files,error:fileError}=await db.from('evidence_capture_files')
@@ -3470,6 +3464,36 @@ async function loadRecordEvidence(contextType,recordId,hostId){
   cards.push('<div class="panel" style="margin:8px 0;padding:10px"><strong>'+esc(request.purpose)+'</strong><span class="badge" style="margin-left:8px">'+esc(request.status)+'</span><p class="muted">'+esc(request.context_label)+' · '+esc(new Date(request.created_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}))+'</p>'+(links.length?'<p>'+links.join(' · ')+'</p>':'<p class="muted">No uploaded file has been submitted yet.</p>')+'</div>');
  }
  host.innerHTML=cards.join('');
+}
+async function loadRecordEvidence(contextType,recordId,hostId){
+ const host=$(hostId);if(!host||!recordId)return;
+ host.innerHTML='<p class="muted">Loading linked evidence…</p>';
+ const {data:requests,error}=await db.from('evidence_capture_requests')
+  .select('id,purpose,context_label,status,created_at,submitted_at')
+  .eq('context_type',contextType).eq('context_record_id',recordId)
+  .order('created_at',{ascending:false}).limit(40);
+ if(error){host.innerHTML='<p class="notice error">Linked evidence could not load: '+esc(error.message)+'</p>';return}
+ await renderEvidenceRequests(requests,hostId);
+}
+async function loadStaffAccountEvidence(userId,hostId){
+ const host=$(hostId);if(!host||!userId)return;
+ host.innerHTML='<p class="muted">Loading staff documents from linked employee and account records…</p>';
+ const [{data:employee,error:employeeError},{data:teacher,error:teacherError}]=await Promise.all([
+  db.from('school_staff_directory').select('id').eq('linked_user_id',userId).maybeSingle(),
+  db.from('academic_teacher_directory').select('id').eq('linked_user_id',userId).maybeSingle()
+ ]);
+ if(employeeError||teacherError){host.innerHTML='<p class="notice error">Linked staff identity records could not be checked.</p>';return}
+ const keys=[{type:'staff_profile',id:userId}];
+ if(employee?.id)keys.push({type:'school_staff_directory',id:employee.id});
+ if(teacher?.id)keys.push({type:'academic_teacher_directory',id:teacher.id});
+ const results=await Promise.all(keys.map(key=>db.from('evidence_capture_requests')
+  .select('id,purpose,context_label,status,created_at,submitted_at')
+  .eq('context_type',key.type).eq('context_record_id',key.id)
+  .order('created_at',{ascending:false}).limit(40)));
+ const failed=results.find(result=>result.error);
+ if(failed){host.innerHTML='<p class="notice error">Linked staff documents could not be loaded: '+esc(failed.error.message)+'</p>';return}
+ const requests=results.flatMap(result=>result.data||[]).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+ await renderEvidenceRequests(requests,hostId);
 }
 function openRecordEvidenceCapture(contextType,recordId,purpose,displayName){
  const params=new URLSearchParams({contextType,recordId,purpose,contextLabel:(purpose+' — '+displayName).slice(0,180)});
