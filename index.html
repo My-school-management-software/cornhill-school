@@ -4602,23 +4602,30 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     const headers=info.matrix[info.headerRow].map(v=>String(v??'').trim()),normal=headers.map(normaliseImportText);
     const nameIndex=normal.findIndex(isImportLearnerNameHeading),codeIndex=normal.findIndex(isImportLearnerCodeHeading),linIndex=normal.findIndex(isImportLinHeading);
     const gridColumns=codeReview.filter(x=>x.sheetName===info.name).map(x=>({header:x.header,period:x.period,status:x.status,index:headers.findIndex(h=>h===x.header),detail:x.detail}));
-    const identity=[{label:'Excel row',index:-1},{label:'Learner name (workbook)',index:nameIndex},{label:'Pupil code',index:codeIndex},{label:'LIN',index:linIndex}];
-    const gridHead=identity.map(x=>'<th>'+esc(x.label)+'</th>').join('')+gridColumns.map(x=>'<th><b>'+esc(x.header)+'</b><span class="excel-grid-period">'+esc(x.period)+' · '+esc(x.status)+'</span></th>').join('');
-    const gridRows=info.matrix.slice(info.headerRow+1).map((row,index)=>{
-     const rawName=String(row[nameIndex]??'').trim(),normName=normaliseImportText(rawName);
-     if(!rawName||/^(TOTAL|BOYS|GIRLS|CLASS TEACHER|HEAD TEACHER|SIGNATURE)$/i.test(rawName))return '';
-     const matched=ctx.students.find(student=>normaliseImportText([student.first_name,student.middle_name,student.last_name].filter(Boolean).join(' '))===normName);
-     const officialName=matched?[matched.first_name,matched.middle_name,matched.last_name].filter(Boolean).join(' '):'';
-     const cells=identity.map((item,i)=>{
-      const value=item.label==='Excel row'?String(info.headerRow+index+2):item.index<0?null:row[item.index];
-      const shown=value===null||value===undefined||String(value).trim()===''?'—':String(value);
-      return '<td class="'+(i===0?'excel-grid-rownum':'')+'">'+esc(shown)+'</td>';
+    const identity=[{label:'Excel row',index:-1},{label:'Learner name',index:nameIndex},{label:'Pupil code',index:codeIndex},{label:'LIN',index:linIndex}];
+     const allIndexes=[...identity.map(x=>x.index),...gridColumns.map(x=>x.index)];
+     const excelCol=n=>{let out='';for(n++;n>0;n=Math.floor((n-1)/26))out=String.fromCharCode(65+(n-1)%26)+out;return out};
+     const letterHead='<th class="excel-grid-corner">#</th>'+allIndexes.slice(1).map(index=>'<th class="excel-grid-letter">'+excelCol(index)+'</th>').join('');
+     const gridHead=identity.map(x=>'<th>'+esc(x.label)+'</th>').join('')+gridColumns.map(x=>'<th><b>'+esc(x.header)+'</b><span class="excel-grid-period">'+esc(x.period)+' · '+esc(x.status)+'</span></th>').join('');
+     const gridRows=info.matrix.slice(info.headerRow+1).map((row,index)=>{
+      const rawName=String(row[nameIndex]??'').trim(),normName=normaliseImportText(rawName),rawCode=codeIndex>=0?normaliseImportText(row[codeIndex]):'',rawLin=linIndex>=0?normaliseImportText(row[linIndex]):'';
+      if(!rawName||/^(TOTAL|BOYS|GIRLS|CLASS TEACHER|HEAD TEACHER|SIGNATURE)$/i.test(rawName))return '';
+      const matched=ctx.students.find(student=>{
+       const official=normaliseImportText([student.first_name,student.middle_name,student.last_name].filter(Boolean).join(' '));
+       return (normName&&official===normName)||(rawCode&&rawCode===normaliseImportText(student.pupil_code||student.admission_number))||(rawLin&&rawLin===normaliseImportText(student.lin));
+      });
+      const officialName=matched?[matched.first_name,matched.middle_name,matched.last_name].filter(Boolean).join(' '):'';
+      const cells=identity.map((item,i)=>{
+       const value=item.label==='Excel row'?String(info.headerRow+index+2):item.index<0?null:row[item.index];
+       const shown=value===null||value===undefined||String(value).trim()===''?'—':String(value);
+       return '<td class="'+(i===0?'excel-grid-rownum':'')+'">'+esc(shown)+'</td>';
+      }).join('');
+      const values=gridColumns.map(col=>{const value=col.index<0?null:row[col.index],shown=value===null||value===undefined||String(value).trim()===''?'—':String(value);return '<td class="excel-grid-score">'+esc(shown)+'</td>'}).join('');
+      const nameNote=matched?'<small class="excel-grid-match">School register: '+esc(officialName)+'</small>':'<small class="excel-grid-unmatched">No learner match</small>';
+      const markedCells=cells.replace('<td>'+esc(rawName)+'</td>','<td>'+esc(rawName)+nameNote+'</td>');
+      return '<tr>'+markedCells+values+'</tr>';
      }).join('');
-     const values=gridColumns.map(col=>{const value=col.index<0?null:row[col.index],shown=value===null||value===undefined||String(value).trim()===''?'—':String(value);return '<td class="excel-grid-score">'+esc(shown)+'</td>'}).join('');
-     const nameNote=officialName&&normaliseImportText(officialName)!==normName?'<small class="excel-grid-match">Matched: '+esc(officialName)+'</small>':matched?'<small class="excel-grid-match">Matched learner</small>':'<small class="excel-grid-unmatched">No learner match</small>';
-     return '<tr>'+cells.replace('<td class="">'+esc(rawName)+'</td>','<td>'+esc(rawName)+nameNote+'</td>')+values+'</tr>';
-    }).join('');
-    return '<section class="excel-sheet-grid"><div class="excel-sheet-grid-title"><b>'+esc(info.name)+'</b><span>'+ (info.hidden?'Hidden worksheet':'Worksheet') +' · '+Math.max(0,info.matrix.length-info.headerRow-1)+' data row(s)</span></div><div class="table-wrap excel-grid-scroll"><table class="excel-import-grid"><thead><tr>'+gridHead+'</tr></thead><tbody>'+gridRows+'</tbody></table></div></section>';
+     return '<section class="excel-sheet-grid"><div class="excel-sheet-grid-title"><b>'+esc(info.name)+'</b><span>'+(info.hidden?'Hidden worksheet':'Worksheet')+' · '+Math.max(0,info.matrix.length-info.headerRow-1)+' data row(s)</span></div><div class="table-wrap excel-grid-scroll"><table class="excel-import-grid"><thead><tr>'+letterHead+'</tr><tr>'+gridHead+'</tr></thead><tbody>'+gridRows+'</tbody></table></div></section>';;
    }).join('');
    review.innerHTML='<strong>Workbook check · '+sheetInfos.length+' worksheet(s), including hidden sheets</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Check</th><th>Example contents</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(sampleFor(x))+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div><h3 style="margin-top:18px">Excel-style learner and marks preview</h3><p class="muted">Each row is a learner from the workbook. The first columns identify the learner; each following column shows the actual subject mark. Scroll sideways to see all subjects.</p>'+workbookGrid+(mappingRows?'<div class="notice"><b>Unmatched headings — tell CORNHILL where each column belongs</b><p>Each unfamiliar heading is shown with its worksheet, detected period and up to eight actual cell values with Excel row numbers. Choose the exact destination subject AND period for that column. RR1, RR2 and RU3 are recognised as possible Local Language codes; if their period conflicts with the workbook’s grouped headings, the review asks you to choose the correct destination explicitly. You may ignore a column that contains a comment, total, position or note. Your mapping is applied only to this workbook preview; no marks are saved until every issue is resolved and you confirm the import.</p>'+mappingRows+'<button type="button" id="applyTeacherHeadingMappings" class="primary">Apply mappings and preview again</button></div>':'')+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the workbook or map unfamiliar headings above. No marks have been imported.</p></div>':'<div class="notice">All detected subjects, periods and learner identifiers match this class.</div>');
    review.querySelectorAll('[data-import-heading-map]').forEach(select=>select.addEventListener('change',()=>{const key=select.dataset.importHeadingMap;if(select.value)teacherExcelHeadingMappings[key]=select.value;else delete teacherExcelHeadingMappings[key]}));
