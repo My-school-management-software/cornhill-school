@@ -1455,7 +1455,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
 <div><label>Account role *</label><select name="role"><option value="Teacher">Teacher</option><option value="Staff">Staff</option></select></div>
 <div class="full"><button class="primary" type="submit">Send staff invitation</button></div>
 </form>
-<div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Job title</th><th>Department</th><th>Private staff phone (admin only)</th><th>Parent-facing number</th><th>Status</th><th>Start date</th></tr></thead><tbody id="staffProfileRows"></tbody></table></div><h3 style="margin-top:22px">Edit staff profile</h3><form id="staffProfileForm"><div class="full"><label>Staff account *</label><select name="id" id="staffProfileSelect" required><option value="">Choose staff member</option></select></div><div><label>Full name</label><input name="full_name"></div><div><label>Private staff phone (school records)</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Gender</label><select name="gender"><option value="">Not recorded</option><option value="Female">Female</option><option value="Male">Male</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div><div><label>Staff category</label><select name="staff_category"><option value="">Choose category</option><option value="Teaching">Teaching staff</option><option value="Non-teaching">Non-teaching staff</option></select></div><div><label>Approved parent contact number</label><input name="parent_contact_phone" type="tel" placeholder="+256..."><small class="muted">Use a school contact number, not a private number unless the staff member has agreed.</small></div><div class="full"><label><input type="checkbox" name="parent_contact_visible" value="true"> Show this number in the Parent Portal contact directory</label></div><div><label>School position</label><select name="job_title" id="staffJobTitle"><option value="">Choose position</option></select></div><div><label>Department / class assignment</label><input name="department" list="schoolDepartmentOptions" placeholder="e.g. P1 Class Teacher, Upper Primary, Boarding"><datalist id="schoolDepartmentOptions"><option value="Nursery"><option value="Baby Class"><option value="Middle Class"><option value="Top Class"><option value="P1"><option value="P2"><option value="P3"><option value="P4"><option value="P5"><option value="P6"><option value="P7"><option value="Lower Primary (P1–P4)"><option value="Upper Primary (P5–P7)"><option value="Boarding"><option value="Catering"><option value="Stores"></datalist></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment end date</label><input name="employment_end_date" type="date"></div><div class="full"><label>Responsibilities / duties</label><input name="responsibilities"></div><div class="full"><button class="primary" type="submit">Save staff profile</button></div></form><div class="card" style="margin-top:18px;padding:16px">
+<div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Category</th><th>Gender</th><th>Job title</th><th>Department</th><th>Private staff phone (admin only)</th><th>Parent-facing number</th><th>Status</th><th>Start date</th></tr></thead><tbody id="staffProfileRows"></tbody></table></div><h3 style="margin-top:22px">Edit staff profile</h3><form id="staffProfileForm"><div class="full"><label>Staff account *</label><select name="id" id="staffProfileSelect" required><option value="">Choose staff member</option></select></div><div><label>Full name</label><input name="full_name"></div><div><label>Private staff phone (school records)</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Gender</label><select name="gender"><option value="">Not recorded</option><option value="Female">Female</option><option value="Male">Male</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div><div><label>Staff category</label><select name="staff_category"><option value="">Choose category</option><option value="Teaching">Teaching staff</option><option value="Non-teaching">Non-teaching staff</option></select></div><div><label>Approved parent contact number</label><input name="parent_contact_phone" type="tel" placeholder="+256..."><small class="muted">Use a school contact number, not a private number unless the staff member has agreed.</small></div><div class="full"><label><input type="checkbox" name="parent_contact_visible" value="true"> Show this number in the Parent Portal contact directory</label></div><div><label>School position</label><select name="job_title" id="staffJobTitle"><option value="">Choose position</option></select></div><div><label>Department / class assignment</label><input name="department" list="schoolDepartmentOptions" placeholder="e.g. P1 Class Teacher, Upper Primary, Boarding"><datalist id="schoolDepartmentOptions"><option value="Nursery"><option value="Baby Class"><option value="Middle Class"><option value="Top Class"><option value="P1"><option value="P2"><option value="P3"><option value="P4"><option value="P5"><option value="P6"><option value="P7"><option value="Lower Primary (P1–P4)"><option value="Upper Primary (P5–P7)"><option value="Boarding"><option value="Catering"><option value="Stores"></datalist></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment end date</label><input name="employment_end_date" type="date"></div><div class="full"><label>Responsibilities / duties</label><input name="responsibilities"></div><div class="full"><button class="primary" type="submit">Save staff profile</button></div></form><div class="card" style="margin-top:18px;padding:16px">
 <h3>School contact details shown to parents</h3>
 <p class="muted">Enter official CORNHILL contact details when they are available. Blank fields stay hidden from parents. These details are separate from private staff records.</p>
 <form id="schoolPublicContactForm">
@@ -3011,7 +3011,7 @@ async function loadStaffProfiles(){
  staffProfiles=data||[];
  renderStaffDashboardStats(staffProfiles);
  await loadSchoolPublicContactSettings();
- $('staffProfileRows').innerHTML=staffProfiles.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">'+esc(x.role)+'</span></td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.parent_contact_visible&&x.parent_contact_phone?x.parent_contact_phone:'Not published')+'</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td></tr>').join('')||'<tr><td colspan="7">No staff accounts found.</td></tr>';
+ $('staffProfileRows').innerHTML=staffProfiles.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">'+esc(x.role)+'</span></td><td>'+esc(x.staff_category||'Not classified')+'</td><td>'+esc(x.gender||'Not recorded')+'</td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.parent_contact_visible&&x.parent_contact_phone?x.parent_contact_phone:'Not published')+'</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td></tr>').join('')||'<tr><td colspan="9">No staff accounts found.</td></tr>';
  $('staffProfileSelect').innerHTML='<option value="">Choose staff member</option>'+staffProfiles.map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed')+' ('+esc(x.role)+')</option>').join('');
 }
 $('staffInviteForm').addEventListener('submit',async e=>{
@@ -3771,9 +3771,12 @@ function recalculateExcelMarkSheet(){
  });
  ctx.phases=results;
 }
+function getAssignedTeacherClassId(){
+ return sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||window.cornhillTeacherAssignedClassRecord?.id||'';
+}
 async function loadExcelMarksGrid(){
  const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;
- const termId=$('excelMarksTerm').value,classId=profile?.role==='Teacher'?(sessionStorage.getItem('cornhill_teacher_class_id')||''):$('excelMarksClass').value;
+ const termId=$('excelMarksTerm').value,classId=profile?.role==='Teacher'?getAssignedTeacherClassId():$('excelMarksClass').value;
  if(profile?.role==='Teacher')$('excelMarksClass').value=classId;
  const head=$('excelMarksHead'),body=$('excelMarksBody'),phaseFilter=$('excelMarksPhase').value||'All';
  // Invalidate any previous class/term sheet before attempting a new load.
@@ -3782,7 +3785,7 @@ async function loadExcelMarksGrid(){
  if(!termId||!classId){message('excelMarksMsg',!classId?'Your assigned class is missing. Sign out and sign in again; if it continues, ask the administrator to verify the class assignment.':'Choose an academic term before loading marks.',true);return}
  const cls=classes.find(x=>x.id===classId)||(profile?.role==='Teacher'&&window.cornhillTeacherAssignedClassRecord?.id===classId?window.cornhillTeacherAssignedClassRecord:null),group=curriculumGroupForClass(cls?.name||'');
  if(!cls){message('excelMarksMsg','The assigned class could not be found in the loaded school records. Refresh the page and sign in again.',true);return}
- if(profile?.role==='Teacher'&&classId!==sessionStorage.getItem('cornhill_teacher_class_id')){message('excelMarksMsg','Access blocked: this class is not assigned to your account.',true);return}
+ if(profile?.role==='Teacher'&&classId!==getAssignedTeacherClassId()){message('excelMarksMsg','Access blocked: this class is not assigned to your account.',true);return}
  const classSubjectIds=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
  if(!classSubjectIds.size){message('excelMarksMsg','No subjects are linked to '+cls.name+' in the teacher workspace. Ask the administrator to check the class-subject setup.',true);return}
  const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&classSubjectIds.has(x.subject_id));
@@ -3920,7 +3923,7 @@ function importColumnPeriod(matrix,headerRow,col,header,activePeriod,sheetName){
 $('downloadTeacherMarksTemplate').addEventListener('click',async()=>{
  const button=$('downloadTeacherMarksTemplate');
  if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using your assigned class-teacher account first.',true);return}
- const classId=sessionStorage.getItem('cornhill_teacher_class_id'),termId=$('excelMarksTerm').value;
+ const classId=getAssignedTeacherClassId(),termId=$('excelMarksTerm').value;
  if(!classId||!termId){message('teacherMarksImportMsg','Your assigned class and academic term must be selected first.',true);return}
  if(!window.XLSX){message('teacherMarksImportMsg','The Excel workbook tool is still loading. Refresh while online and try again.',true);return}
  button.disabled=true;const oldPhase=$('excelMarksPhase').value;
@@ -3943,7 +3946,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
  const file=$('teacherMarksWorkbook').files?.[0],confirm=$('confirmTeacherMarksImport');
  confirm.disabled=true;teacherExcelImportPlan=null;
  if(profile?.role!=='Teacher'||demoMode){message('teacherMarksImportMsg','Sign in using your assigned class-teacher account to import marks.',true);return}
- const classId=sessionStorage.getItem('cornhill_teacher_class_id'),termId=$('excelMarksTerm').value;
+ const classId=getAssignedTeacherClassId(),termId=$('excelMarksTerm').value;
  $('excelMarksClass').value=classId||'';$('excelMarksPhase').value='All';setExcelPhaseOptions(classId);
  if(!classId){message('teacherMarksImportMsg','Your assigned class could not be verified. Sign out and sign in again.',true);return}
  if(!file){message('teacherMarksImportMsg','Choose your Excel workbook first.',true);return}
@@ -4271,8 +4274,9 @@ $('saveExcelMarks').addEventListener('click',async()=>{
  const button=$('saveExcelMarks');if(button.dataset.busy==='1')return;
  button.dataset.busy='1';button.disabled=true;button.textContent='Saving…';
  try{
-  const ctx=window.cornhillExcelMarksContext;
-  if(!ctx){message('excelMarksMsg','Load a class sheet first.',true);return}
+  let ctx=window.cornhillExcelMarksContext;
+  if(!ctx){message('excelMarksMsg','Preparing your assigned class sheet…');await loadExcelMarksGrid();ctx=window.cornhillExcelMarksContext}
+  if(!ctx){message('excelMarksMsg','The class sheet could not be loaded. Check your assigned class, term and subject assessments, then try again.',true);return}
   if(profile?.role!=='Teacher'){message('excelMarksMsg','Only assigned teachers can save marks. Administrators have read-only access.',true);return}
   const auth=navigator.onLine?await db.auth.getUser():await db.auth.getSession(),user=auth.data?.user||auth.data?.session?.user;
   if(auth.error||!user){message('excelMarksMsg','Your local sign-in session is unavailable. Reconnect and sign in before saving marks.',true);return}
