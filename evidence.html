@@ -208,6 +208,310 @@ $('adminRequests').addEventListener('click',async e=>{
 async function loadPhoneRequests(){if(!user)return;const {data:myDevices,error:deviceError}=await db.from('evidence_capture_devices').select('id,device_name,status').eq('assigned_user_id',user.id).eq('status','Active');if(deviceError){note('globalMsg','Could not check authorised phone: '+deviceError.message,'error');return}phoneDevices=myDevices||[];if(!myDevices?.length){$('phoneRequests').innerHTML='<p class="muted">This account has no active authorised phone yet. Ask an administrator to issue a pairing code.</p>';return}const deviceIds=myDevices.map(d=>d.id);const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,amount_ugx,description,status,expires_at,created_at,assigned_device_id').in('assigned_device_id',deviceIds).order('created_at',{ascending:false}).limit(30);if(error){$('phoneRequests').textContent='Could not load requests: '+error.message;return}const rows=(data||[]).filter(r=>r.status==='Submitted'||!isExpired(r));$('phoneRequests').innerHTML=rows.length?rows.map(r=>'<div class="request"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">'+esc(r.description||'Photograph the requested document clearly. You may add several pages.')+'</p>'+(r.status==='Pending'&&!isExpired(r)?'<div class="row"><span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span><span class="small">Time remaining</span></div><div class="capture"><p><strong>Capture document evidence</strong></p><p class="muted">Use the camera to take one or more clear photos, or select a PDF. Check each page before submitting.</p><input type="file" accept="image/*,application/pdf" capture="environment" multiple data-capture="'+esc(r.id)+'"><div class="preview" id="preview-'+esc(r.id)+'"></div><button class="primary" type="button" data-submit-capture="'+esc(r.id)+'">Upload evidence and finish request</button></div>':'')+'</div>').join(''):'<p class="muted">No active requests at the moment.</p>'}
 $('phoneRequests').addEventListener('change',e=>{const input=e.target.closest('[data-capture]');if(!input)return;selectedFiles=Array.from(input.files||[]);const id=input.dataset.capture,preview=$('preview-'+id);if(preview)preview.innerHTML=selectedFiles.filter(f=>f.type.startsWith('image/')).map(f=>'<img alt="Selected evidence preview" src="'+URL.createObjectURL(f)+'">').join('')+(selectedFiles.length?'<span class="small">'+selectedFiles.length+' file(s) selected</span>':'')});
 $('phoneRequests').addEventListener('click',async e=>{const b=e.target.closest('[data-submit-capture]');if(!b)return;const id=b.dataset.submitCapture,card=b.closest('.request'),input=card.querySelector('[data-capture]'),files=Array.from(input?.files||[]);if(!files.length){note('globalMsg','Take or select at least one photo or PDF first.','error');return}if(files.length>8){note('globalMsg','Please submit no more than eight pages per request.','error');return}b.disabled=true;b.textContent='Uploading…';try{for(const file of files){if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];const path=id+'/'+crypto.randomUUID()+'.'+ext;const {error:uploadError}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});if(uploadError)throw uploadError;const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:id,storage_path:path,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});if(metaError)throw metaError}const {error:updateError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',id).eq('status','Pending');if(updateError)throw updateError;note('globalMsg','Evidence uploaded and request submitted. The administrator can now review it.','success');await loadPhoneRequests()}catch(err){note('globalMsg','Upload did not finish: '+(err.message||'Unknown error')+'. Keep the selected files and try again while the request is still active.','error')}finally{b.disabled=false;b.textContent='Upload evidence and finish request'}});
+async function loadPhoneRequests(){
+ if(!user)return;
+ const {data:myDevices,error:deviceError}=await db.from('evidence_capture_devices')
+  .select('id,device_name,status').eq('assigned_user_id',user.id).eq('status','Active');
+ if(deviceError){note('globalMsg','Could not check authorised phone: '+deviceError.message,'error');return}
+ phoneDevices=myDevices||[];
+ if(!myDevices?.length){$('phoneRequests').innerHTML='<p class="muted">This account has no active authorised phone yet. Ask an administrator to issue a pairing code.</p>';return}
+ const deviceIds=myDevices.map(d=>d.id);
+ const {data,error}=await db.from('evidence_capture_requests')
+  .select('id,purpose,context_label,amount_ugx,description,status,expires_at,created_at,assigned_device_id')
+  .in('assigned_device_id',deviceIds).order('created_at',{ascending:false}).limit(30);
+ if(error){$('phoneRequests').textContent='Could not load requests: '+error.message;return}
+ const rows=(data||[]).filter(r=>r.status==='Submitted'||!isExpired(r));
+ $('phoneRequests').innerHTML=rows.length?rows.map(r=>'<div class="request" data-phone-request="'+esc(r.id)+'">'+
+  '<div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div>'+
+  '<p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p>'+
+  '<p class="muted">'+esc(r.description||'Photograph or scan the requested document clearly.')+'</p>'+
+  (r.status==='Pending'&&!isExpired(r)?
+   '<div class="row"><span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span><span class="small">Time remaining</span></div>'+
+   '<div class="capture"><p><strong>Choose how to capture this document</strong></p>'+
+   '<p class="muted">Use the scanner for a cropped, cleaned multi-page PDF; take a photo for a quick image; or attach an existing file.</p>'+
+   '<div class="scan-camera-actions">'+
+   '<button type="button" class="primary" data-open-scanner="'+esc(r.id)+'">Scan document</button>'+
+   '<label class="button" style="margin:0">Take photo<input type="file" accept="image/*" capture="environment" multiple data-capture-photos="'+esc(r.id)+'" hidden></label>'+
+   '<label class="button" style="margin:0">Choose files / PDF<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-capture-files="'+esc(r.id)+'" hidden></label>'+
+   '</div><div class="preview" data-capture-preview="'+esc(r.id)+'"></div>'+
+   '<button class="primary" type="button" data-submit-capture="'+esc(r.id)+'">Upload selected files and finish request</button></div>':'')+
+  '</div>').join(''):'<p class="muted">No active requests at the moment.</p>';
+}
+async function uploadEvidenceFiles(requestId,files,options={}){
+ if(!files.length)throw new Error('Take a photo, scan a page or choose a file first.');
+ if(files.length>8)throw new Error('Submit no more than eight files per request.');
+ const uploadedPaths=[],fileIds=[];
+ try{
+  for(const file of files){
+   if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);
+   if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');
+   const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];
+   const path=requestId+'/'+crypto.randomUUID()+'.'+ext;
+   const {error:uploadError}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+   if(uploadError)throw uploadError;
+   uploadedPaths.push(path);
+   const {data:metadata,error:metaError}=await db.from('evidence_capture_files').insert({
+    request_id:requestId,storage_path:path,original_file_name:file.name,content_type:file.type,
+    size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()
+   }).select('id').single();
+   if(metaError)throw metaError;
+   fileIds.push(metadata.id);
+  }
+  const {error:updateError}=await db.from('evidence_capture_requests').update({
+   status:'Submitted',submitted_at:new Date().toISOString()
+  }).eq('id',requestId).eq('status','Pending');
+  if(updateError)throw updateError;
+  if(options.ocrText&&fileIds[0]){
+   const {error:ocrError}=await db.rpc('save_school_record_ocr_text',{
+    p_evidence_file_id:fileIds[0],
+    p_extracted_text:options.ocrText,
+    p_extracted_fields:options.ocrFields||{review_required:true}
+   });
+   if(ocrError)throw new Error('The PDF was uploaded, but OCR text could not be indexed: '+ocrError.message);
+  }
+  return {fileIds,uploadedPaths};
+ }catch(error){
+  // Remove physical files that did not receive matching metadata rows.
+  // Existing metadata and successfully indexed evidence are never deleted here.
+  for(const path of uploadedPaths){
+   const {data:existing}=await db.from('evidence_capture_files').select('id').eq('storage_path',path).maybeSingle();
+   if(!existing)await db.storage.from(bucket).remove([path]);
+  }
+  throw error;
+ }
+}
+$('phoneRequests').addEventListener('change',e=>{
+ const input=e.target.closest('[data-capture-photos],[data-capture-files]');if(!input)return;
+ const card=input.closest('[data-phone-request]');if(!card)return;
+ const allInputs=[...card.querySelectorAll('[data-capture-photos],[data-capture-files]')];
+ const files=allInputs.flatMap(x=>Array.from(x.files||[]));
+ card._captureFiles=files;
+ const preview=card.querySelector('[data-capture-preview]');
+ if(preview){
+  preview.innerHTML=files.map(file=>file.type.startsWith('image/')
+   ?'<span class="scan-page-card"><img class="preview img" src="'+URL.createObjectURL(file)+'" alt="Selected photo preview"><small>'+esc(file.name)+'</small></span>'
+   :'<span class="scan-page-card"><span>PDF</span><small>'+esc(file.name)+'</small></span>').join('');
+ }
+});
+$('phoneRequests').addEventListener('click',async e=>{
+ const scanner=e.target.closest('[data-open-scanner]');
+ if(scanner){await startDocumentScanner(scanner.dataset.openScanner);return}
+ const b=e.target.closest('[data-submit-capture]');if(!b)return;
+ const id=b.dataset.submitCapture,card=b.closest('[data-phone-request]'),files=Array.from(card?._captureFiles||[]);
+ if(!files.length){note('globalMsg','Take a photo, scan a page or choose a file first.','error');return}
+ b.disabled=true;b.textContent='Uploading…';
+ try{
+  await uploadEvidenceFiles(id,files);
+  note('globalMsg','Evidence uploaded and request submitted. The administrator can now review it.','success');
+  await loadPhoneRequests();
+  if(profile?.role==='Admin')await loadAdminRequests();
+ }catch(err){note('globalMsg','Upload did not finish: '+(err.message||'Unknown error')+'. Keep the selected files and try again while the request is still active.','error')}
+ finally{b.disabled=false;b.textContent='Upload selected files and finish request'}
+});
+let scannerStream=null,scannerRequestId=null,scannerPages=[],scannerCropper=null,scannerImageUrl=null,scannerFacing='environment';
+function scannerStatus(text,type='info'){
+ const el=$('scannerStatus');if(!el)return;el.textContent=text;el.className='scan-progress'+(type==='error'?' error':type==='success'?' success':'');
+}
+function stopScannerCamera(){
+ if(scannerStream){scannerStream.getTracks().forEach(track=>track.stop());scannerStream=null}
+ const video=$('scannerVideo');if(video)video.srcObject=null;
+}
+async function ensureCropper(){
+ if(window.Cropper)return window.Cropper;
+ await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('Crop and rotate tools could not load. Connect to the internet or use Take photo instead.'));
+  document.head.appendChild(script);
+ });
+ if(!window.Cropper)throw new Error('Crop tools did not initialise.');
+ return window.Cropper;
+}
+async function ensureJsPdf(){
+ if(window.jspdf?.jsPDF)return window.jspdf.jsPDF;
+ await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('PDF builder could not load. Connect to the internet or attach individual photos.'));
+  document.head.appendChild(script);
+ });
+ if(!window.jspdf?.jsPDF)throw new Error('PDF builder did not initialise.');
+ return window.jspdf.jsPDF;
+}
+async function ensureTesseract(){
+ if(window.Tesseract)return window.Tesseract;
+ await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('OCR engine could not load.'));
+  document.head.appendChild(script);
+ });
+ if(!window.Tesseract)throw new Error('OCR engine did not initialise.');
+ return window.Tesseract;
+}
+async function startScannerCamera(){
+ stopScannerCamera();
+ if(!navigator.mediaDevices?.getUserMedia)throw new Error('This browser cannot open a camera. Use Take photo or Choose files instead.');
+ scannerStream=await navigator.mediaDevices.getUserMedia({
+  audio:false,
+  video:{facingMode:{ideal:scannerFacing},width:{ideal:2560},height:{ideal:1920}}
+ });
+ const video=$('scannerVideo');video.srcObject=scannerStream;
+ await video.play();
+ $('scannerCameraArea').classList.remove('hidden');
+ scannerStatus('Camera ready. Keep the page flat and fully inside the frame.');
+}
+function canvasToBlob(canvas,type='image/jpeg',quality=.9){
+ return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('The captured page could not be processed.')),type,quality));
+}
+async function openScannerImage(file){
+ if(!file||!file.type.startsWith('image/'))throw new Error('Choose a JPG, PNG or WebP image.');
+ if(scannerCropper){scannerCropper.destroy();scannerCropper=null}
+ if(scannerImageUrl)URL.revokeObjectURL(scannerImageUrl);
+ scannerImageUrl=URL.createObjectURL(file);
+ const image=$('scannerEditorImage');
+ image.src=scannerImageUrl;
+ $('scannerCameraArea').classList.add('hidden');
+ $('scannerEditor').classList.remove('hidden');
+ await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(new Error('The selected image could not be opened.'))});
+ const Cropper=await ensureCropper();
+ scannerCropper=new Cropper(image,{viewMode:1,dragMode:'crop',autoCropArea:.92,background:false,zoomable:true,rotatable:true,scalable:false, movable:true, responsive:true,restore:false});
+ scannerStatus('Adjust the crop edges. Rotate the page or choose a cleaner filter, then add this page.');
+}
+function scannerApplyFilter(canvas,mode){
+ if(mode==='original'||mode==='colour')return canvas;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true}),image=ctx.getImageData(0,0,canvas.width,canvas.height),d=image.data;
+ for(let i=0;i<d.length;i+=4){
+  const grey=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+  if(mode==='gray'){d[i]=grey;d[i+1]=grey;d[i+2]=grey}
+  else{
+   const contrast=1.65,clean=Math.max(0,Math.min(255,(grey-128)*contrast+128+8));
+   const value=clean>166?255:0;d[i]=value;d[i+1]=value;d[i+2]=value;
+  }
+ }
+ ctx.putImageData(image,0,0);return canvas;
+}
+async function renderScannerPages(){
+ $('scannerPageCount').textContent=scannerPages.length+' / 8';
+ $('finishScanPdf').disabled=scannerPages.length===0;
+ $('scannerPageList').innerHTML=scannerPages.length?scannerPages.map((page,i)=>
+  '<span class="scan-page-card"><img class="scan-page-thumb" src="'+page.previewUrl+'" alt="Scanned page '+(i+1)+'"><strong>Page '+(i+1)+'</strong><button type="button" data-remove-scan-page="'+i+'">Remove</button></span>'
+ ).join(''):'<span class="muted">No pages added yet.</span>';
+}
+$('scannerPageList').addEventListener('click',e=>{
+ const b=e.target.closest('[data-remove-scan-page]');if(!b)return;
+ const index=Number(b.dataset.removeScanPage);const page=scannerPages[index];if(page?.previewUrl)URL.revokeObjectURL(page.previewUrl);
+ scannerPages.splice(index,1);renderScannerPages();
+});
+async function startDocumentScanner(requestId){
+ if(!user||!requestId)return;
+ const card=document.querySelector('[data-phone-request="'+CSS.escape(requestId)+'"]');
+ if(!card||!card.querySelector('[data-submit-capture]')){note('globalMsg','This capture request is no longer active. Refresh the phone requests.','error');return}
+ scannerRequestId=requestId;scannerPages=[];
+ $('scannerWorkspace').classList.remove('hidden');
+ $('scannerEditor').classList.add('hidden');
+ await renderScannerPages();
+ $('scannerWorkspace').scrollIntoView({behavior:'smooth',block:'start'});
+ try{await startScannerCamera()}
+ catch(error){scannerStatus(error.message||'Camera could not start. Use the image picker below.', 'error');$('scannerCameraArea').classList.remove('hidden')}
+}
+async function addScannerPage(){
+ if(!scannerCropper)throw new Error('Capture or choose a page first.');
+ if(scannerPages.length>=8)throw new Error('A single request supports up to eight scanned pages.');
+ const canvas=scannerCropper.getCroppedCanvas({maxWidth:2600,maxHeight:3400,imageSmoothingEnabled:true,imageSmoothingQuality:'high'});
+ if(!canvas)throw new Error('The document crop could not be created.');
+ scannerApplyFilter(canvas,$('scannerFilter').value);
+ const blob=await canvasToBlob(canvas,'image/jpeg',.9);
+ const previewUrl=URL.createObjectURL(blob);
+ scannerPages.push({blob,previewUrl,ocrText:''});
+ scannerCropper.destroy();scannerCropper=null;
+ $('scannerEditor').classList.add('hidden');$('scannerCameraArea').classList.remove('hidden');
+ await renderScannerPages();
+ scannerStatus('Page '+scannerPages.length+' added. Capture the next page or finish the PDF.','success');
+}
+$('captureScanPage').addEventListener('click',async()=>{
+ const video=$('scannerVideo');if(!video.videoWidth||!video.videoHeight){scannerStatus('Wait for the camera to become ready.', 'error');return}
+ const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+ canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+ try{await openScannerImage(await canvasToBlob(canvas,'image/jpeg',.94))}
+ catch(error){scannerStatus(error.message||'Could not open captured page.','error')}
+});
+$('scannerImagePicker').addEventListener('change',async e=>{
+ const files=Array.from(e.target.files||[]);if(!files.length)return;
+ try{
+  if(scannerPages.length+files.length>8)throw new Error('A single request supports up to eight pages.');
+  for(const file of files){await openScannerImage(file);await addScannerPage()}
+  scannerStatus(files.length+' photo(s) added to the scanned document.','success');
+ }catch(error){scannerStatus(error.message||'Could not add these photos.','error')}
+ finally{e.target.value=''}
+});
+$('rotateScanLeft').addEventListener('click',()=>scannerCropper?.rotate(-90));
+$('rotateScanRight').addEventListener('click',()=>scannerCropper?.rotate(90));
+$('resetScanCrop').addEventListener('click',()=>scannerCropper?.reset());
+$('addScanPage').addEventListener('click',async()=>{
+ const b=$('addScanPage');b.disabled=true;
+ try{await addScannerPage()}catch(error){scannerStatus(error.message||'Page could not be added.','error')}
+ finally{b.disabled=false}
+});
+$('switchScanCamera').addEventListener('click',async()=>{
+ scannerFacing=scannerFacing==='environment'?'user':'environment';
+ try{await startScannerCamera()}catch(error){scannerStatus(error.message||'Could not switch camera.','error')}
+});
+$('discardScanPages').addEventListener('click',()=>{
+ if(!confirm('Discard the scanned pages? No files have been uploaded yet.'))return;
+ scannerPages.forEach(p=>URL.revokeObjectURL(p.previewUrl));scannerPages=[];
+ renderScannerPages();scannerStatus('Scanned pages discarded.');
+});
+$('closeScanner').addEventListener('click',()=>{
+ stopScannerCamera();
+ if(scannerCropper){scannerCropper.destroy();scannerCropper=null}
+ if(scannerImageUrl){URL.revokeObjectURL(scannerImageUrl);scannerImageUrl=null}
+ $('scannerWorkspace').classList.add('hidden');scannerRequestId=null;
+});
+$('finishScanPdf').addEventListener('click',async()=>{
+ const button=$('finishScanPdf');
+ if(!scannerRequestId||!scannerPages.length){scannerStatus('Add at least one scanned page before building the PDF.','error');return}
+ const card=document.querySelector('[data-phone-request="'+CSS.escape(scannerRequestId)+'"]');
+ if(!card){scannerStatus('The original request is no longer shown. Refresh and confirm that it is still active.','error');return}
+ button.disabled=true;button.textContent='Building PDF…';
+ try{
+  const JsPDF=await ensureJsPdf();
+  const first=scannerPages[0].blob,firstUrl=URL.createObjectURL(first);
+  const firstImage=new Image();firstImage.src=firstUrl;await firstImage.decode();URL.revokeObjectURL(firstUrl);
+  const firstLandscape=firstImage.naturalWidth>firstImage.naturalHeight;
+  const pdf=new JsPDF({orientation:firstLandscape?'landscape':'portrait',unit:'mm',format:'a4',compress:true});
+  for(let i=0;i<scannerPages.length;i++){
+   const imageUrl=URL.createObjectURL(scannerPages[i].blob);
+   const image=new Image();image.src=imageUrl;await image.decode();URL.revokeObjectURL(imageUrl);
+   const landscape=image.naturalWidth>image.naturalHeight;
+   if(i>0)pdf.addPage('a4',landscape?'landscape':'portrait');
+   const pageW=landscape?297:210,pageH=landscape?210:297,margin=8;
+   const scale=Math.min((pageW-2*margin)/image.naturalWidth,(pageH-2*margin)/image.naturalHeight);
+   const w=image.naturalWidth*scale,h=image.naturalHeight*scale;
+   pdf.addImage(image,'JPEG',(pageW-w)/2,(pageH-h)/2,w,h,undefined,'FAST');
+  }
+  const pdfBlob=pdf.output('blob');
+  if(pdfBlob.size>15728640)throw new Error('The combined PDF is larger than 15 MB. Reduce the number of pages or scan at a lower resolution.');
+  button.textContent='Extracting text…';
+  let ocrText='';
+  try{
+   const Tesseract=await ensureTesseract();
+   for(let i=0;i<scannerPages.length;i++){
+    const result=await Tesseract.recognize(scannerPages[i].blob,'eng');
+    const text=String(result?.data?.text||'').trim();
+    if(text)ocrText+='\n\n[Page '+(i+1)+']\n'+text;
+    scannerStatus('OCR page '+(i+1)+' of '+scannerPages.length+'…');
+   }
+  }catch(ocrError){scannerStatus('PDF is ready. OCR could not run: '+ocrError.message+' Upload will continue without OCR.','error')}
+  button.textContent='Uploading PDF…';
+  await uploadEvidenceFiles(scannerRequestId,[new File([pdfBlob],'CORNHILL-scan-'+new Date().toISOString().slice(0,10)+'.pdf',{type:'application/pdf'})],{
+   ocrText:ocrText.trim(),ocrFields:ocrText.trim()?{review_required:true,source:'evidence_capture_scanner'}:{review_required:true}
+  });
+  note('globalMsg','Scanned PDF uploaded and linked to the school record. The administrator can review it in Evidence Capture and the Records Centre.','success');
+  stopScannerCamera();
+  scannerPages.forEach(p=>URL.revokeObjectURL(p.previewUrl));scannerPages=[];
+  renderScannerPages();
+  $('scannerWorkspace').classList.add('hidden');scannerRequestId=null;
+  if(profile?.role==='Admin')await loadAdminRequests();
+  await loadPhoneRequests();
+ }catch(error){scannerStatus(error.message||'The scanner could not submit this document.','error')}
+ finally{button.disabled=scannerPages.length===0;button.textContent='Build PDF and submit evidence'}
+});
+window.addEventListener('pagehide',()=>stopScannerCamera());
 $('refreshDevices').addEventListener('click',loadDevices);$('refreshRequests').addEventListener('click',loadAdminRequests);$('refreshPhone').addEventListener('click',loadPhoneRequests);
 window.addEventListener('online',()=>{$('connectionBadge').textContent='Connected';$('connectionBadge').className='badge';if(user){loadPhoneRequests();if(profile?.role==='Admin'){loadDevices();loadAdminRequests()}}});
 window.addEventListener('offline',()=>{$('connectionBadge').textContent='Offline';$('connectionBadge').className='badge bad';note('globalMsg','You are offline. Do not assume evidence has uploaded; wait for the confirmation message before closing the page.','error')});
