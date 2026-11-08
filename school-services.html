@@ -101,25 +101,15 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
         </form>
       </div>
       <div class="card" id="payrollAdminCard">
-        <h3>Administrator payroll entry</h3>
-        <form id="payrollForm">
-          <div class="full"><label for="payrollStaff">Staff member</label><select id="payrollStaff" required><option value="">Load staff directory…</option></select></div>
-          <div><label for="payStart">Period start</label><input id="payStart" type="date" required></div>
-          <div><label for="payEnd">Period end</label><input id="payEnd" type="date" required></div>
-          <div><label for="basePay">Base pay (UGX)</label><input id="basePay" type="number" min="0" step="1" required></div>
-          <div><label for="allowances">Allowances (UGX)</label><input id="allowances" type="number" min="0" step="1" value="0" required></div>
-          <div><label for="deductions">Deductions (UGX)</label><input id="deductions" type="number" min="0" step="1" value="0" required></div>
-          <div><label for="payStatus">Status</label><select id="payStatus"><option>Draft</option><option>Approved</option></select></div>
-          <div class="full"><label for="payNotes">Notes (optional)</label><textarea id="payNotes" maxlength="800"></textarea></div>
-          <div class="full"><button class="primary" type="submit">Save payroll record</button><p id="payrollMsg" class="muted" role="status"></p></div>
-        </form>
-        <p class="muted">Payroll is stored in UGX. Payment references are recorded only after the school confirms the payment.</p>
+        <h3>Administrator payroll management</h3>
+        <p class="muted">CORNHILL already has a full salary-agreement, advance, payroll-period, approval and payment workflow in the main Finance workspace. This portal does not create a second payroll ledger.</p>
+        <a class="button primary" href="/" style="margin-top:10px">Open Main School System</a>
+        <p class="muted">After opening the main system, select Finance → Staff Salary Agreements & Payroll. Salary amounts and actual payment status are managed there only.</p>
       </div>
-    </div>
-    <h3>My leave requests / authorised requests</h3>
+        <h3>My leave requests / authorised requests</h3>
     <div class="table-wrap"><table><thead><tr><th>Submitted</th><th>Leave type</th><th>Dates</th><th>Reason</th><th>Status</th><th>Decision</th></tr></thead><tbody id="leaveRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
     <h3 style="margin-top:18px">My payslips / authorised payroll register</h3>
-    <div class="table-wrap"><table><thead><tr><th>Period</th><th>Base (UGX)</th><th>Allowances</th><th>Deductions</th><th>Net pay</th><th>Status</th></tr></thead><tbody id="payrollRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>Payroll period</th><th>Employee</th><th>Basic (UGX)</th><th>Allowances</th><th>Deductions</th><th>Advance recovery</th><th>Net pay (UGX)</th><th>Payment status</th></tr></thead><tbody id="payrollRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
     <p class="muted">Bursar accounts may read the payroll register when their active job title is correctly assigned. Payroll changes remain administrator-only.</p>
   </section>
 
@@ -375,25 +365,27 @@ $('leaveRows').addEventListener('click',async e=>{
  const btn=e.target.closest('[data-leave-decision]');if(!btn)return;
  try{requireAdmin();const {error}=await db.from('school_hr_leave_requests').update({status:btn.dataset.status,decided_by:user.id,decided_at:new Date().toISOString()}).eq('id',btn.dataset.leaveDecision);if(error)throw error;await loadLeave()}catch(err){note('globalMsg',err.message,'error')}
 });
-async function loadStaffOptions(){
- if(!isAdmin())return;
- const {data,error}=await db.from('user_profiles').select('id,full_name,job_title,role').eq('employment_status','Active').order('full_name');
- if(error){$('payrollStaff').innerHTML='<option value="">Staff directory unavailable</option>';return}
- staffOptions=data||[];$('payrollStaff').innerHTML='<option value="">Choose staff member</option>'+staffOptions.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.full_name||'Unnamed')+' · '+esc(x.job_title||x.role)+'</option>').join('');
-}
 async function loadPayroll(){
- const {data,error}=await db.from('school_payroll_records').select('*').order('period_start',{ascending:false}).limit(200);
- if(error){$('payrollRows').innerHTML='<tr><td colspan="6">Could not load payroll: '+esc(error.message)+'</td></tr>';return}
- $('payrollRows').innerHTML=(data||[]).map(x=>'<tr><td>'+dateFmt(x.period_start)+' – '+dateFmt(x.period_end)+'</td><td>'+money(x.base_pay_ugx)+'</td><td>'+money(x.allowances_ugx)+'</td><td>'+money(x.deductions_ugx)+'</td><td><strong>'+money(x.net_pay_ugx)+'</strong></td><td><span class="badge">'+esc(x.status)+'</span></td></tr>').join('')||'<tr><td colspan="6" class="empty">No payslips available for this account.</td></tr>';
+ const columns='id,payroll_period_id,staff_user_id,staff_name_snapshot,base_salary_ugx,allowances_ugx,deductions_ugx,advance_recovery_ugx,net_pay_ugx,status,payment_method,payment_reference,paid_at,created_at';
+ const {data,error}=await db.from('payroll_items').select(columns).order('created_at',{ascending:false}).limit(300);
+ if(error){$('payrollRows').innerHTML='<tr><td colspan="8">Could not load authorised payslips: '+esc(error.message)+'</td></tr>';return}
+ const items=data||[];
+ const ids=[...new Set(items.map(x=>x.payroll_period_id).filter(Boolean))];
+ let periods=[];
+ if(ids.length){
+  const response=await db.from('payroll_periods').select('id,period_name,period_start,period_end').in('id',ids);
+  if(response.error){$('payrollRows').innerHTML='<tr><td colspan="8">Payroll rows loaded, but period details could not be read: '+esc(response.error.message)+'</td></tr>';return}
+  periods=response.data||[];
+ }
+ const periodMap=Object.fromEntries(periods.map(x=>[x.id,x]));
+ $('payrollRows').innerHTML=items.map(x=>{
+  const p=periodMap[x.payroll_period_id]||{};
+  const periodName=p.period_name||'Payroll period';
+  const dateRange=(p.period_start&&p.period_end)?'<br><small>'+dateFmt(p.period_start)+' – '+dateFmt(p.period_end)+'</small>':'';
+  const person=isAdmin()?esc(x.staff_name_snapshot||'Staff member'):'Your payslip';
+  return '<tr><td><strong>'+esc(periodName)+'</strong>'+dateRange+'</td><td>'+person+'</td><td>'+money(x.base_salary_ugx)+'</td><td>'+money(x.allowances_ugx)+'</td><td>'+money(x.deductions_ugx)+'</td><td>'+money(x.advance_recovery_ugx)+'</td><td><strong>'+money(x.net_pay_ugx)+'</strong></td><td><span class="badge">'+esc(x.status)+'</span>'+(x.status==='Paid'&&x.paid_at?'<br><small>'+esc(new Date(x.paid_at).toLocaleDateString('en-GB'))+'</small>':'')+'</td></tr>';
+ }).join('')||'<tr><td colspan="8" class="empty">No approved payroll entries are available for this account.</td></tr>';
 }
-$('payrollForm').addEventListener('submit',async e=>{
- e.preventDefault();
- try{requireAdmin();const base=Number($('basePay').value),allow=Number($('allowances').value),ded=Number($('deductions').value);if(!Number.isSafeInteger(base)||!Number.isSafeInteger(allow)||!Number.isSafeInteger(ded)||base<0||allow<0||ded<0||base+allow<ded)throw new Error('Check the UGX amounts. Deductions cannot exceed base pay plus allowances.');
- const p={staff_user_id:$('payrollStaff').value,period_start:$('payStart').value,period_end:$('payEnd').value,base_pay_ugx:base,allowances_ugx:allow,deductions_ugx:ded,net_pay_ugx:base+allow-ded,status:$('payStatus').value,notes:$('payNotes').value.trim()||null,created_by:user.id};
- if(!p.staff_user_id||p.period_end<p.period_start)throw new Error('Select a staff member and a valid pay period.');
- const {error}=await db.from('school_payroll_records').insert(p);if(error)throw error;e.target.reset();inlineMsg('payrollMsg','Payroll record saved. Each employee can see only their own payslip.','success');await loadPayroll();
- }catch(err){inlineMsg('payrollMsg','Payroll not saved: '+err.message,'error')}
-});
 async function loadClasses(){
  const {data,error}=await db.from('school_classes').select('id,name,stream').order('name');
  if(error){$('resourceClass').innerHTML='<option value="">Assigned classes unavailable</option>';return}
