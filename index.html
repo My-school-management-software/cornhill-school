@@ -1003,6 +1003,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 <div class="notice" style="margin:12px 0"><strong>Immediate end-of-term priority:</strong> Finish validating the original Baby, Middle, Top and P1–P7 Excel mark sheets, enable safe import of existing marks, and verify report-card output. After initial import, teachers will use the phone-friendly all-subject class sheet for new marks; individual missed-paper entry remains available separately.</div>
 <h3>Current development and verification</h3><div class="table-wrap"><table><thead><tr><th>Work item</th><th>Status</th><th>Next verification</th></tr></thead><tbody>
 <tr><td>Original school Excel workbooks · 10 class levels</td><td><span class="badge">Format review completed · import testing</span></td><td>Check original subject headings, identity columns, period boundaries, learner matches, blank cells, absent marks and duplicate workbook protection.</td></tr>
+<tr><td>Bulk assessment preparation · all ten classes</td><td><span class="badge">Ready for administrator action</span></td><td>Preview missing subject/period columns for the selected term; create only missing records and preserve existing marks.</td></tr>
 <tr><td>End-of-term Excel imports · Baby to P7</td><td><span class="badge">Priority testing</span></td><td>Import into the correct class and term only after preview; resolve unmatched learners and subject headings before saving.</td></tr>
 <tr><td>Phone-based all-subject class mark sheet</td><td><span class="badge">Available · verification pending</span></td><td>Verify all curriculum subjects and periods together, phone scrolling, save-all, autosave and offline conflict handling.</td></tr>
 <tr><td>Individual missed-paper entry</td><td><span class="badge">Available · verification pending</span></td><td>Test a later single-subject mark without replacing other subjects or existing marks.</td></tr>
@@ -1445,6 +1446,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
    <div style="min-width:170px;flex:1"><label for="excelMarksTerm">Academic term</label><select id="excelMarksTerm"></select></div>
    <div id="excelMarksClassField" style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
    <button type="button" class="tab hidden" id="prepareExcelAssessments">Prepare class sheet</button>
+   <button type="button" class="tab hidden" id="prepareAllClassAssessments">Prepare all class sheets</button>
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
    <button type="button" id="exportExcelMarks" disabled>Export marks · Excel</button>
   </div>
@@ -3492,6 +3494,7 @@ async function loadAcademics(){
  }
  if(profile?.role==='Admin')await loadAcademicControl();
  $('prepareExcelAssessments').classList.toggle('hidden',profile?.role!=='Admin');
+ $('prepareAllClassAssessments')?.classList.toggle('hidden',profile?.role!=='Admin');
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  if(profile?.role==='Teacher'){try{const ready=await ensureTeacherAcademicClassContext();if(!ready)return}catch(contextError){message('academicMsg',contextError?.message||'Your assigned class could not be verified. Sign out and sign in again.',true);const field=$('markGridTerm')?.closest('section.panel')?.querySelector('input[readonly]');if(field)field.value='Class assignment needs administrator review';return}}
@@ -4578,6 +4581,64 @@ $('prepareExcelAssessments').addEventListener('click',async()=>{
   message('excelMarksMsg','Prepared '+missing.length+' missing assessment column(s) for '+cls.name+'. Existing assessments and learner marks were left unchanged.');
  }catch(err){message('excelMarksMsg','Could not prepare the class sheet. '+(err?.message||'Please try again.'),true)}
  finally{button.disabled=false;button.textContent='Prepare class sheet';delete button.dataset.busy}
+});
+$('prepareAllClassAssessments')?.addEventListener('click',async()=>{
+ const button=$('prepareAllClassAssessments');
+ if(button.dataset.busy==='1')return;
+ if(profile?.role!=='Admin'||demoMode){message('excelMarksMsg','Only the administrator can prepare assessment columns for all classes.',true);return}
+ const termId=$('excelMarksTerm').value||academic.terms.find(x=>x.is_current)?.id;
+ if(!termId){message('excelMarksMsg','Choose the active academic term first.',true);return}
+ const classList=classes.slice();
+ if(classList.length!==10){message('excelMarksMsg','Expected the ten CORNHILL class levels (Baby, Middle, Top and P1–P7), but found '+classList.length+'. Review the class setup before preparing assessments.',true);return}
+ button.dataset.busy='1';button.disabled=true;button.textContent='Checking all classes…';
+ let committed=false;
+ try{
+  const [{data:links,error:linksError},{data:existing,error:existingError}]=await Promise.all([
+   db.from('class_subjects').select('class_id,subject_id'),
+   db.from('assessments').select('class_id,subject_id,title').eq('term_id',termId)
+  ]);
+  if(linksError)throw linksError;if(existingError)throw existingError;
+  const auth=await db.auth.getUser(),user=auth.data?.user;
+  if(auth.error||!user||user.id!==currentUserId)throw new Error('Your administrator session has expired. Sign in again.');
+  const existingKeys=new Set((existing||[]).map(a=>a.class_id+'|'+a.subject_id+'|'+excelAssessmentPeriod(a)));
+  const missing=[],byClass=[];
+  for(const cls of classList){
+   const subjectIds=[...new Set((links||[]).filter(x=>x.class_id===cls.id).map(x=>x.subject_id).filter(Boolean))];
+   if(!subjectIds.length)throw new Error('No subjects are assigned to '+cls.name+'. No assessment records were created.');
+   const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls.name);
+   const phases=setBased?[{phase:'Set I',title:'Set I Assessment'},{phase:'Set II',title:'Set II Assessment'},{phase:'Set III',title:'Set III Assessment'}]:[{phase:'Beginning',title:'Beginning Assessment'},{phase:'Midterm',title:'Midterm Assessment'},{phase:'End',title:'End of Term Assessment'}];
+   if(/P\.?\s*7|PRIMARY\s*7/i.test(cls.name))phases.push({phase:'Set IV',title:'Set IV Assessment'});
+   let classMissing=0;
+   for(const subjectId of subjectIds)for(const phase of phases){
+    const key=cls.id+'|'+subjectId+'|'+phase.phase;
+    if(existingKeys.has(key))continue;
+    missing.push({term_id:termId,class_id:cls.id,subject_id:subjectId,title:phase.title,assessment_type:'Coursework',max_score:100,assessment_date:null,created_by:user.id});
+    existingKeys.add(key);classMissing++;
+   }
+   byClass.push({name:cls.name,subjects:subjectIds.length,missing:classMissing,periods:phases.length});
+  }
+  const expected=byClass.reduce((n,x)=>n+x.subjects*x.periods,0);
+  const details=byClass.map(x=>x.name+': '+x.subjects+' subjects, '+x.periods+' periods, '+x.missing+' missing columns').join('\n');
+  if(!missing.length){message('excelMarksMsg','All ten class sheets already have their standard assessment columns for this term. No duplicates were created.');return}
+  if(!confirm('PREVIEW · Prepare missing assessment columns for all ten classes?\n\nTerm: '+(academic.terms.find(x=>x.id===termId)?.name||termId)+'\nExpected standard columns: '+expected+'\nAlready existing: '+(expected-missing.length)+'\nTo create: '+missing.length+'\n\n'+details+'\n\nOnly missing assessment setup records will be added. Existing assessments and all learner marks will remain unchanged.'))return;
+  button.textContent='Preparing '+missing.length+' columns…';
+  const {data:inserted,error:insertError}=await db.from('assessments').insert(missing).select('id');
+  if(insertError)throw insertError;
+  committed=true;
+  if(!Array.isArray(inserted)||inserted.length!==missing.length){
+   message('excelMarksMsg','The database accepted the bulk preparation request but returned an unexpected count. DO NOT repeat it yet. Refresh assessment records and verify the missing columns before trying again.',true);
+   return;
+  }
+  try{await loadAcademics()}
+  catch(refreshError){
+   message('excelMarksMsg','Prepared '+inserted.length+' assessment columns, but the screen could not refresh. DO NOT repeat this preparation. Refresh Academics and verify all ten classes.',true);
+   return;
+  }
+  $('excelMarksTerm').value=termId;
+  message('excelMarksMsg','Ready: '+inserted.length+' missing assessment columns were prepared across all ten classes. Existing assessments and learner marks were preserved. Teachers can now load their assigned class sheet and preview the original Excel workbook.');
+ }catch(err){
+  message('excelMarksMsg',committed?'The assessment records were created, but a follow-up screen update failed. DO NOT repeat the bulk preparation until the class assessment lists are checked. '+(err?.message||''):('Bulk preparation stopped before a confirmed save. '+(err?.message||'Please review the class and subject setup.')),true);
+ }finally{button.disabled=false;button.textContent='Prepare all class sheets';delete button.dataset.busy}
 });
 $('loadExcelMarks').addEventListener('click',loadExcelMarksGrid);
 ['excelMarksTerm','excelMarksClass'].forEach(id=>$(id).addEventListener('change',()=>{
