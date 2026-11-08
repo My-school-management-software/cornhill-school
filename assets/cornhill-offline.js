@@ -336,9 +336,12 @@
   }
 
   async function setIdentity(userId) {
-    identity = userId || null;
+    const nextIdentity = userId || null;
+    const changed = nextIdentity !== identity;
+    identity = nextIdentity;
     if (document.body) {
       wireForms();
+      if (changed) Array.from(document.forms).forEach((form, index) => restoreFormDraft(form, index).catch(() => {}));
       updateIndicator();
     }
     if (navigator.onLine) syncNow().catch(() => {});
@@ -364,6 +367,10 @@
     mountIndicator();
     wireForms();
     hookSupabaseAuth();
+    if (window.MutationObserver && document.body) {
+      const observer = new MutationObserver(() => wireForms());
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
     window.addEventListener('online', () => { updateIndicator('syncing'); syncNow().catch(() => {}); });
     window.addEventListener('offline', () => updateIndicator());
     window.addEventListener('pageshow', () => { hookSupabaseAuth(); updateIndicator(); });
