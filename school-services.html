@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<meta name="description" content="CORNHILL secure school services portal">
+<link rel="icon" href="/assets/cornhill-school-badge.png" type="image/png">
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<title>CORNHILL · School Services</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--page:#f4f7f4;--ink:#17251c;--muted:#647568;--line:#dce7de;--panel:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+.top{background:#14532d;color:#fff;padding:14px clamp(14px,3vw,34px);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;font-weight:850}.brand img{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:12px;padding:4px}
+.top small{display:block;font-size:11px;color:#d8eadf;margin-top:3px}
+.wrap{max-width:1500px;margin:18px auto;padding:0 16px}.hidden{display:none!important}
+.panel,.card{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:18px;margin:0 0 15px;box-shadow:0 5px 20px #173b2108}
+.login{max-width:460px;margin:7vh auto;padding:clamp(20px,4vw,32px)}
+h1{font-size:clamp(23px,3vw,32px);margin:0 0 7px}h2{font-size:19px;margin:0 0 7px}h3{font-size:15px;margin:0 0 9px}
+p{line-height:1.5}.muted{font-size:13px;color:var(--muted);line-height:1.5}
+.kicker{font-size:10px;font-weight:900;letter-spacing:.15em;color:#287047}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.navlinks{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 14px}
+.navlinks a{display:inline-flex;padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#205632;text-decoration:none;font-size:12px;font-weight:800}
+label{display:block;font-size:12px;font-weight:800;margin:8px 0 5px;color:#46594c}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #ccd9cf;border-radius:10px;background:#fff;color:#17251c;font:inherit;margin:0 0 9px;min-width:0}
+textarea{resize:vertical;min-height:76px}
+button,.button{border:0;border-radius:10px;padding:10px 14px;background:#e7f0e8;color:#17452a;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}
+form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}form .full{grid-column:1/-1}
+.notice{padding:11px 13px;border-radius:10px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}
+.warning{background:#fff7ed;color:#9a3412}.success{background:#ecfdf3;color:#166534}.error{background:#fff1f2;color:#9f1239}
+.table-wrap{overflow:auto;-webkit-overflow-scrolling:touch}table{width:100%;min-width:680px;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-align:top}th{background:#f6faf6;color:#5c7062}
+.badge{display:inline-flex;padding:4px 8px;border-radius:99px;background:#e7f5e9;color:#166534;font-size:11px;font-weight:850}
+.empty{padding:22px;text-align:center;color:var(--muted);font-size:13px}
+.module{scroll-margin-top:90px}.module-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.stat{padding:12px;border:1px solid var(--line);border-radius:12px;background:#f8fbf8}.stat small{display:block;color:var(--muted);font-size:11px}.stat strong{display:block;font-size:21px;margin-top:5px}
+.kpi{font-variant-numeric:tabular-nums}.module .card{box-shadow:none;background:#fbfdfb}
+@media(max-width:680px){.wrap{padding:0 10px;margin:12px auto}.panel{padding:14px;border-radius:13px}.top{align-items:flex-start}.brand img{width:42px;height:42px}form{grid-template-columns:1fr}form .full{grid-column:auto}.navlinks{flex-wrap:nowrap;overflow:auto;padding-bottom:7px}.navlinks a{white-space:nowrap}.module-head{flex-direction:column}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL badge"><div>CORNHILL NURSERY AND PRIMARY SCHOOL<small>Secure School Services Portal · Uganda</small></div></div>
+  <div class="row"><span id="userLabel" style="font-size:12px;color:#e5f4e8"></span><a class="button" href="/" style="background:#fff;color:#14532d">Main School System</a><button id="signOut" class="hidden">Sign out</button></div>
+</header>
+<main class="wrap">
+<section id="loginPanel" class="panel login">
+  <span class="kicker">STAFF ACCESS</span><h1>School Services</h1>
+  <p class="muted">Sign in using your own active CORNHILL staff account. Access to each service is checked again by the database.</p>
+  <form id="loginForm">
+    <div class="full"><label for="loginEmail">School email</label><input id="loginEmail" name="email" type="email" autocomplete="username" required></div>
+    <div class="full"><label for="loginPassword">Password</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required></div>
+    <div class="full"><button class="primary" type="submit">Sign in to School Services</button><div id="loginMsg" class="notice hidden" role="status"></div></div>
+  </form>
+  <p class="muted">Parents should use the separate <a href="/parents.html">Parent & Guardian Portal</a>. Never share staff passwords.</p>
+</section>
+
+<section id="appPanel" class="hidden">
+  <div class="panel">
+    <div class="row"><div><span class="kicker">ONE PORTAL · ROLE-RESTRICTED WORKSPACES</span><h1 id="welcome">Welcome to CORNHILL Services</h1><p class="muted" id="roleInfo">Your available services are based on your active school account.</p></div><span class="badge" id="roleBadge">Verified account</span></div>
+    <div class="notice warning">Every save is checked by Supabase Row Level Security. A hidden menu is not a substitute for database permission checks. Use only the records needed for your school duty.</div>
+    <nav class="navlinks" aria-label="School services navigation">
+      <a href="#admissions" data-service="admissions">Admissions</a>
+      <a href="#hr-payroll" data-service="hr-payroll">HR & Payroll</a>
+      <a href="#learning" data-service="learning">Learning</a>
+      <a href="#library" data-service="library">Library</a>
+      <a href="#transport" data-service="transport">Transport</a>
+      <a href="#welfare" data-service="welfare">Welfare</a>
+      <a href="#integrations" data-service="integrations">Integrations</a>
+      <a href="#system-health" data-service="system-health">System Health</a>
+      <a href="#attendance-kiosk" data-service="attendance-kiosk">Attendance Kiosk</a>
+    </nav>
+    <div id="globalMsg" class="notice hidden" role="status" aria-live="polite"></div>
+  </div>
+
+  <section id="admissions" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">ADMINISTRATOR WORKSPACE</span><h2>Admissions & Enquiries</h2><p class="muted">Review public enquiries before formal admission. Approval here does not create a pupil record; complete approved admissions in the main Learner Register.</p></div><button type="button" id="refreshAdmissions">Refresh enquiries</button></div>
+    <div class="stats"><div class="stat"><small>Pending enquiries</small><strong class="kpi" id="admissionPending">—</strong></div><div class="stat"><small>Total enquiries</small><strong class="kpi" id="admissionTotal">—</strong></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Received</th><th>Prospective learner</th><th>Class</th><th>Guardian / contact</th><th>Message</th><th>Status / review</th></tr></thead><tbody id="admissionRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+    <p class="muted">Public enquiries contain only basic contact details. Do not request health information, identity documents or photographs through this public form.</p>
+  </section>
+
+  <section id="hr-payroll" class="panel module">
+    <div class="module-head"><div><span class="kicker">PRIVATE STAFF RECORDS</span><h2>HR & Payroll Self-Service</h2><p class="muted">Staff can submit and view their own leave requests and payslips. Only administrators can create or change payroll records.</p></div><button type="button" id="refreshHr">Refresh</button></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Submit a leave request</h3>
+        <form id="leaveForm">
+          <div><label for="leaveType">Leave type</label><select id="leaveType"><option>Annual</option><option>Sick</option><option>Compassionate</option><option>Maternity/Paternity</option><option>Study</option><option>Unpaid</option><option>Other</option></select></div>
+          <div><label for="leaveStart">Start date</label><input id="leaveStart" type="date" required></div>
+          <div><label for="leaveEnd">End date</label><input id="leaveEnd" type="date" required></div>
+          <div class="full"><label for="leaveReason">Reason / handover note</label><textarea id="leaveReason" maxlength="1200" required></textarea></div>
+          <div class="full"><button class="primary" type="submit">Submit leave request</button><p id="leaveMsg" class="muted" role="status"></p></div>
+        </form>
+      </div>
+      <div class="card" id="payrollAdminCard">
+        <h3>Administrator payroll entry</h3>
+        <form id="payrollForm">
+          <div class="full"><label for="payrollStaff">Staff member</label><select id="payrollStaff" required><option value="">Load staff directory…</option></select></div>
+          <div><label for="payStart">Period start</label><input id="payStart" type="date" required></div>
+          <div><label for="payEnd">Period end</label><input id="payEnd" type="date" required></div>
+          <div><label for="basePay">Base pay (UGX)</label><input id="basePay" type="number" min="0" step="1" required></div>
+          <div><label for="allowances">Allowances (UGX)</label><input id="allowances" type="number" min="0" step="1" value="0" required></div>
+          <div><label for="deductions">Deductions (UGX)</label><input id="deductions" type="number" min="0" step="1" value="0" required></div>
+          <div><label for="payStatus">Status</label><select id="payStatus"><option>Draft</option><option>Approved</option><option>Paid</option></select></div>
+          <div class="full"><label for="payNotes">Notes (optional)</label><textarea id="payNotes" maxlength="800"></textarea></div>
+          <div class="full"><button class="primary" type="submit">Save payroll record</button><p id="payrollMsg" class="muted" role="status"></p></div>
+        </form>
+        <p class="muted">Payroll is stored in UGX. Payment references are recorded only after the school confirms the payment.</p>
+      </div>
+    </div>
+    <h3>My leave requests / authorised requests</h3>
+    <div class="table-wrap"><table><thead><tr><th>Submitted</th><th>Leave type</th><th>Dates</th><th>Reason</th><th>Status</th><th>Decision</th></tr></thead><tbody id="leaveRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+    <h3 style="margin-top:18px">My payslips / authorised payroll register</h3>
+    <div class="table-wrap"><table><thead><tr><th>Period</th><th>Base (UGX)</th><th>Allowances</th><th>Deductions</th><th>Net pay</th><th>Status</th></tr></thead><tbody id="payrollRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+    <p class="muted">Bursar accounts may read the payroll register when their active job title is correctly assigned. Payroll changes remain administrator-only.</p>
+  </section>
+
+  <section id="learning" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">CLASS-SCOPED TEACHING</span><h2>Learning Resources & Homework</h2><p class="muted">Teachers can add learning materials only for classes assigned to their own account. Resources are shared as secure HTTPS links or written instructions.</p></div><button type="button" id="refreshLearning">Refresh resources</button></div>
+    <div class="card">
+      <h3>Add a class resource</h3>
+      <form id="resourceForm">
+        <div><label for="resourceClass">Assigned class</label><select id="resourceClass" required><option value="">Loading assigned classes…</option></select></div>
+        <div><label for="resourceSubject">Subject</label><input id="resourceSubject" maxlength="100" required placeholder="e.g. Mathematics"></div>
+        <div><label for="resourceTitle">Title</label><input id="resourceTitle" maxlength="160" required placeholder="e.g. Fractions revision"></div>
+        <div><label for="resourceType">Type</label><select id="resourceType"><option>Link</option><option>Lesson note</option><option>Homework</option><option>Revision</option><option>Reading</option></select></div>
+        <div class="full"><label for="resourceUrl">HTTPS resource link (optional)</label><input id="resourceUrl" type="url" placeholder="https://…"></div>
+        <div class="full"><label for="resourceInstructions">Instructions / description</label><textarea id="resourceInstructions" maxlength="2000"></textarea></div>
+        <div class="full"><button class="primary" type="submit">Publish to assigned class</button><p id="resourceMsg" class="muted" role="status"></p></div>
+      </form>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Class</th><th>Subject</th><th>Title</th><th>Type</th><th>Instructions / link</th></tr></thead><tbody id="resourceRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+  </section>
+
+  <section id="library" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">BOOK CATALOGUE & LOANS</span><h2>Library Management</h2><p class="muted">Active accounts can browse the catalogue. Only the administrator or a designated Librarian / Library Manager can add books, issue loans or process returns.</p></div><button type="button" id="refreshLibrary">Refresh library</button></div>
+    <div class="grid">
+      <div class="card" id="bookAdminCard">
+        <h3>Add book to catalogue</h3>
+        <form id="bookForm">
+          <div class="full"><label for="bookTitle">Book title</label><input id="bookTitle" maxlength="180" required></div>
+          <div><label for="bookCode">Book code</label><input id="bookCode" maxlength="50" required></div>
+          <div><label for="bookAuthor">Author</label><input id="bookAuthor" maxlength="140"></div>
+          <div><label for="bookCategory">Category</label><input id="bookCategory" maxlength="80" value="General"></div>
+          <div><label for="bookCopies">Number of copies</label><input id="bookCopies" type="number" min="0" step="1" value="1" required></div>
+          <div class="full"><label for="bookShelf">Shelf location</label><input id="bookShelf" maxlength="80"></div>
+          <div class="full"><button class="primary" type="submit">Add book</button><p id="bookMsg" class="muted" role="status"></p></div>
+        </form>
+      </div>
+      <div class="card" id="loanAdminCard">
+        <h3>Issue a book</h3>
+        <form id="loanForm">
+          <div class="full"><label for="loanBook">Book</label><select id="loanBook" required><option value="">Load catalogue…</option></select></div>
+          <div><label for="borrowerName">Borrower name</label><input id="borrowerName" maxlength="140" required></div>
+          <div><label for="borrowerCode">Pupil code / staff code</label><input id="borrowerCode" maxlength="60" required></div>
+          <div><label for="borrowerType">Borrower type</label><select id="borrowerType"><option>Learner</option><option>Staff</option></select></div>
+          <div><label for="loanDue">Return due date</label><input id="loanDue" type="date" required></div>
+          <div class="full"><button class="primary" type="submit">Issue book</button><p id="loanMsg" class="muted" role="status"></p></div>
+        </form>
+        <p class="muted">Verify every learner code against the main Learner Register before issue. This separate register does not grant access to private learner records.</p>
+      </div>
+    </div>
+    <h3>Book catalogue</h3><div class="table-wrap"><table><thead><tr><th>Book code</th><th>Title</th><th>Author</th><th>Category</th><th>Copies available</th><th>Shelf</th></tr></thead><tbody id="bookRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+    <h3 style="margin-top:18px">Loan register · library operators only</h3><div class="table-wrap"><table><thead><tr><th>Book / borrower</th><th>Code</th><th>Issue date</th><th>Due date</th><th>Status</th><th>Action</th></tr></thead><tbody id="loanRows"><tr><td colspan="6">Restricted to library operators.</td></tr></tbody></table></div>
+  </section>
+
+  <section id="transport" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">ROUTES & PICKUP REGISTER</span><h2>School Transport</h2><p class="muted">Administrator and approved transport staff only. Keep learner transport details limited to the assigned transport duty.</p></div><button type="button" id="refreshTransport">Refresh transport</button></div>
+    <div class="grid">
+      <div class="card" id="routeAdminCard">
+        <h3>Create route</h3>
+        <form id="routeForm">
+          <div><label for="routeName">Route name</label><input id="routeName" maxlength="100" required></div>
+          <div><label for="routeVehicle">Vehicle / bus label</label><input id="routeVehicle" maxlength="80"></div>
+          <div class="full"><label for="routeAreas">Pickup areas</label><textarea id="routeAreas" maxlength="1000"></textarea></div>
+          <div><label for="routeDeparture">Departure time</label><input id="routeDeparture" type="time"></div>
+          <div><label for="routeReturn">Return time</label><input id="routeReturn" type="time"></div>
+          <div class="full"><button class="primary" type="submit">Save transport route</button><p id="routeMsg" class="muted" role="status"></p></div>
+        </form>
+      </div>
+      <div class="card" id="transportAssignmentCard">
+        <h3>Assign learner to route</h3>
+        <form id="transportForm">
+          <div class="full"><label for="assignmentRoute">Route</label><select id="assignmentRoute" required><option value="">Load routes…</option></select></div>
+          <div><label for="transportLearner">Learner name</label><input id="transportLearner" maxlength="140" required></div>
+          <div><label for="transportCode">Permanent pupil code</label><input id="transportCode" maxlength="60" required></div>
+          <div><label for="transportClass">Class</label><input id="transportClass" maxlength="40"></div>
+          <div><label for="pickupPoint">Pickup point</label><input id="pickupPoint" maxlength="140" required></div>
+          <div class="full"><label for="transportGuardianPhone">Guardian phone (only for approved transport contact)</label><input id="transportGuardianPhone" type="tel" maxlength="25"></div>
+          <div class="full"><button class="primary" type="submit">Save route assignment</button><p id="transportMsg" class="muted" role="status"></p></div>
+        </form>
+      </div>
+    </div>
+    <h3>Active routes</h3><div class="table-wrap"><table><thead><tr><th>Route</th><th>Vehicle</th><th>Pickup areas</th><th>Schedule</th><th>Status</th></tr></thead><tbody id="routeRows"><tr><td colspan="5">Loading…</td></tr></tbody></table></div>
+    <h3 style="margin-top:18px">Learner route register</h3><div class="table-wrap"><table><thead><tr><th>Learner</th><th>Pupil code</th><th>Class</th><th>Route</th><th>Pickup point</th><th>Status</th></tr></thead><tbody id="transportRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+  </section>
+
+  <section id="welfare" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">STRICTLY RESTRICTED RECORDS</span><h2>Student Welfare Office</h2><p class="muted">Visible only to administrators and authorised Matron, Senior Woman, Senior Man or School Nurse accounts. Record factual follow-up, not diagnoses or unnecessary private details.</p></div><button type="button" id="refreshWelfare">Refresh welfare register</button></div>
+    <div class="card">
+      <form id="welfareForm">
+        <div><label for="welfareLearner">Learner name (optional)</label><input id="welfareLearner" maxlength="140"></div>
+        <div><label for="welfareCode">Pupil code (optional)</label><input id="welfareCode" maxlength="60"></div>
+        <div><label for="welfareCategory">Case category</label><select id="welfareCategory"><option>General welfare</option><option>Attendance concern</option><option>Safeguarding concern</option><option>Family follow-up</option><option>Other</option></select></div>
+        <div><label for="welfareFollowUp">Follow-up date</label><input id="welfareFollowUp" type="date"></div>
+        <div class="full"><label for="welfareSummary">Factual summary</label><textarea id="welfareSummary" maxlength="2000" required></textarea></div>
+        <div class="full"><label for="welfareAction">Action taken / referral (optional)</label><textarea id="welfareAction" maxlength="2000"></textarea></div>
+        <div class="full"><button class="primary" type="submit">Save restricted welfare case</button><p id="welfareMsg" class="muted" role="status"></p></div>
+      </form>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Learner / code</th><th>Category</th><th>Factual summary</th><th>Action</th><th>Follow-up</th><th>Status</th></tr></thead><tbody id="welfareRows"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
+    <p class="muted">Do not use this register as a medical diagnosis file. Any formal safeguarding or medical process must follow the school's approved procedures.</p>
+  </section>
+
+  <section id="integrations" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">ADMINISTRATOR SETUP</span><h2>Mobile Money, SMS & Backup Integrations</h2><p class="muted">Register the services the school intends to connect. This register never stores provider passwords, API tokens, private keys or PINs.</p></div><button type="button" id="refreshIntegrations">Refresh providers</button></div>
+    <div class="notice warning">MTN Mobile Money, Airtel Money and SMS are not yet connected. Live payments require merchant approval, official provider credentials, secure server-side processing, callback verification and reconciliation tests. Do not enter or paste secrets here.</div>
+    <div class="table-wrap"><table><thead><tr><th>Provider</th><th>Service</th><th>Current status</th><th>Account reference / sender</th><th>Notes</th><th>Action</th></tr></thead><tbody id="integrationRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
+  </section>
+
+  <section id="system-health" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">ADMINISTRATOR ONLY</span><h2>System Health & Recovery Centre</h2><p class="muted">Basic live connectivity checks and recovery readiness guidance. A green connection check does not prove a backup can be restored.</p></div><button type="button" class="primary" id="runHealthCheck">Run system checks</button></div>
+    <div class="stats"><div class="stat"><small>Authentication</small><strong id="healthAuth">Not checked</strong></div><div class="stat"><small>Database API</small><strong id="healthDatabase">Not checked</strong></div><div class="stat"><small>App Centre access</small><strong id="healthApps">Not checked</strong></div></div>
+    <div id="healthDetails" class="notice">Run checks to test the current staff session and read-only access.</div>
+    <div class="card"><h3>Recovery readiness checklist</h3><ol class="muted"><li>Confirm the latest encrypted export exists outside the main office computer.</li><li>Verify the encrypted file can be opened by the authorised administrator.</li><li>Confirm the separate treatment of uploaded files, authentication accounts and platform configuration.</li><li>Perform a restore rehearsal in a separate project before relying on recovery.</li><li>Record the date, operator and result of the rehearsal in the school's backup log.</li></ol><p class="muted">This page does not claim to inspect Vercel build logs, run a complete backup, or prove a database restore.</p></div>
+  </section>
+
+  <section id="attendance-kiosk" class="panel module hidden">
+    <div class="module-head"><div><span class="kicker">OFFICE DEVICE WORKSPACE</span><h2>Staff Attendance Kiosk</h2><p class="muted">Dedicated office attendance-device setup. The existing staff attendance register remains in the Main School System.</p></div><a class="button" href="/#attendance">Open staff attendance register</a></div>
+    <div class="notice warning">Fingerprint hardware is not connected yet. The USB port type, model, firmware, supported SDK/API and export format must be confirmed before enabling live biometric collection.</div>
+    <div class="grid">
+      <div class="stat"><small>Device status</small><strong>Not connected</strong></div>
+      <div class="stat"><small>Integration mode</small><strong>Pending model check</strong></div>
+      <div class="stat"><small>Attendance source</small><strong>Existing school register</strong></div>
+    </div>
+    <h3>Safe connection steps</h3>
+    <ol class="muted"><li>Record the terminal manufacturer and exact model number.</li><li>Confirm it supports a documented export or local/network API.</li><li>Map each enrolled staff reference to the correct school staff account.</li><li>Test clock-in and clock-out using designated test staff accounts.</li><li>Compare device logs with the existing attendance register before enabling routine imports.</li></ol>
+    <p class="muted">Do not purchase a device based only on a generic USB fingerprint description. Device compatibility must be verified.</p>
+  </section>
+</section>
+<footer class="muted" style="text-align:center;padding:8px 0 26px">CORNHILL NURSERY AND PRIMARY SCHOOL · Secure school services · Uganda</footer>
+</main>
+
+<script>
+const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
+const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
+const TAB_KEY='cornhill-services-tab-id-v1';
+const makeTabId=()=>window.crypto?.randomUUID?.()||('tab-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
+let authStorage=null,authStorageKey='';
+try{
+ const nav=performance.getEntriesByType('navigation')[0],reload=nav?.type==='reload';
+ const prior=sessionStorage.getItem(TAB_KEY),tabId=prior&&reload?prior:makeTabId();
+ sessionStorage.setItem(TAB_KEY,tabId);authStorage=sessionStorage;
+ authStorageKey='cornhill-services-tab-'+tabId;
+}catch(_){authStorageKey='cornhill-services-ephemeral-'+makeTabId()}
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{
+ storageKey:authStorageKey,
+ ...(authStorage?{storage:authStorage,persistSession:true}:{persistSession:false}),
+ autoRefreshToken:true,detectSessionInUrl:false
+}});
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>'UGX '+Number(v||0).toLocaleString('en-UG');
+const dateFmt=v=>v?new Date(v+'T00:00:00').toLocaleDateString('en-GB'):'—';
+let user=null,profile=null,classes=[],books=[],routes=[],staffOptions=[],integrationRows=[];
+const job=()=>String(profile?.job_title||'').trim().toLowerCase();
+const hasJob=(...names)=>names.includes(job());
+const isAdmin=()=>profile?.role==='Admin';
+const isLibrarian=()=>isAdmin()||hasJob('librarian','library manager','library officer');
+const isTransport=()=>isAdmin()||hasJob('transport manager','transport officer','driver','bus driver');
+const isTransportManager=()=>isAdmin()||hasJob('transport manager','transport officer');
+const isWelfare=()=>isAdmin()||hasJob('matron','senior woman','senior man','school nurse');
+const isActiveStaff=()=>!!profile&&profile.employment_status==='Active';
+function note(id,msg,type='info'){const el=$(id);if(!el)return;el.textContent=msg;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.classList.remove('hidden')}
+function inlineMsg(id,msg,type='info'){const el=$(id);if(!el)return;el.textContent=msg;el.style.color=type==='error'?'#9f1239':type==='success'?'#166534':'var(--muted)'}
+function show(id,ok){$(id)?.classList.toggle('hidden',!ok)}
+function requireAdmin(){if(!isAdmin())throw new Error('This action is restricted to the school administrator.')}
+function requireLibrarian(){if(!isLibrarian())throw new Error('Only the administrator or authorised library staff can perform this action.')}
+function requireTransport(){if(!isTransportManager())throw new Error('Only the administrator or transport manager can change route and learner assignments.')}
+function requireWelfare(){if(!isWelfare())throw new Error('This restricted welfare workspace is not assigned to this account.')}
+async function loadProfile(){
+ const {data,error}=await db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('id',user.id).single();
+ if(error)throw error;
+ if(!data||data.employment_status!=='Active'||!['Admin','Teacher','Staff'].includes(data.role))throw new Error('This account is not an active school staff account.');
+ profile=data;
+}
+function configureModules(){
+ const permissions={
+  admissions:isAdmin(),
+  'hr-payroll':true,
+  learning:isAdmin()||profile.role==='Teacher',
+  library:true,
+  transport:isTransport(),
+  welfare:isWelfare(),
+  integrations:isAdmin(),
+  'system-health':isAdmin(),
+  'attendance-kiosk':isAdmin()||profile.role==='Staff'
+ };
+ Object.entries(permissions).forEach(([id,allowed])=>{
+  const section=$(id);if(section)section.classList.toggle('hidden',!allowed);
+  const link=document.querySelector('[data-service="'+id+'"]');if(link)link.classList.toggle('hidden',!allowed);
+ });
+ show('payrollAdminCard',isAdmin());
+ show('bookAdminCard',isLibrarian());
+ show('loanAdminCard',isLibrarian());
+ show('routeAdminCard',isTransportManager());
+ show('transportAssignmentCard',isTransportManager());
+ $('welcome').textContent='Welcome, '+(profile.full_name||'CORNHILL staff member');
+ $('roleInfo').textContent=profile.role+(profile.job_title?' · '+profile.job_title:'')+' · Active account';
+ $('roleBadge').textContent=profile.role;
+ $('userLabel').textContent=profile.full_name||'Signed in';
+}
+async function enterApp(){
+ await loadProfile();configureModules();
+ show('loginPanel',false);show('appPanel',true);show('signOut',true);
+ await refreshAll();
+ if(location.hash)setTimeout(()=>document.querySelector(location.hash)?.scrollIntoView({behavior:'instant',block:'start'}),150);
+}
+async function refreshAll(){
+ const jobs=[loadLeave(),loadPayroll()];
+ if(isAdmin())jobs.push(loadAdmissions(),loadStaffOptions(),loadIntegrations(),runHealthCheck(false));
+ if(profile.role==='Admin'||profile.role==='Teacher')jobs.push(loadClasses(),loadResources());
+ jobs.push(loadBooks());
+ if(isLibrarian())jobs.push(loadLoans());
+ if(isTransport())jobs.push(loadTransport());
+ if(isWelfare())jobs.push(loadWelfare());
+ const results=await Promise.allSettled(jobs);
+ const failed=results.filter(x=>x.status==='rejected');
+ if(failed.length)note('globalMsg','Some panels could not refresh. Check their individual status messages; database permissions remain in force.', 'error');
+}
+$('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();const btn=e.submitter;btn.disabled=true;btn.textContent='Checking account…';
+ try{
+  const {data,error}=await db.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});
+  if(error)throw error;user=data.user;await enterApp();
+ }catch(err){await db.auth.signOut({scope:'local'});user=null;profile=null;note('loginMsg',err.message||'Sign in failed.','error')}
+ finally{btn.disabled=false;btn.textContent='Sign in to School Services'}
+});
+$('signOut').addEventListener('click',async()=>{
+ await db.auth.signOut({scope:'local'});user=null;profile=null;show('appPanel',false);show('loginPanel',true);show('signOut',false);$('userLabel').textContent='';$('loginForm').reset();
+});
+document.querySelectorAll('[data-service]').forEach(a=>a.addEventListener('click',()=>{setTimeout(()=>document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth',block:'start'}),0)}));
+async function loadAdmissions(){
+ if(!isAdmin())return;
+ const {data,error}=await db.from('school_admission_enquiries').select('*').order('created_at',{ascending:false}).limit(250);
+ if(error){$('admissionRows').innerHTML='<tr><td colspan="6">Could not load enquiries: '+esc(error.message)+'</td></tr>';return}
+ const rows=data||[];$('admissionPending').textContent=rows.filter(x=>x.status==='Pending').length;$('admissionTotal').textContent=rows.length;
+ $('admissionRows').innerHTML=rows.map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString('en-GB'))+'</td><td><strong>'+esc(x.learner_name)+'</strong></td><td>'+esc(x.class_applied)+'</td><td>'+esc(x.guardian_name)+'<br>'+esc(x.guardian_phone)+(x.guardian_email?'<br>'+esc(x.guardian_email):'')+'</td><td>'+esc(x.message)+'</td><td><select data-admission-status="'+esc(x.id)+'">'+['Pending','Contacted','Visit scheduled','Approved for admission','Not proceeding','Closed'].map(s=>'<option '+(x.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select><input data-admission-note="'+esc(x.id)+'" maxlength="1200" placeholder="Review note" value="'+esc(x.review_note||'')+'"><button type="button" data-admission-save="'+esc(x.id)+'">Save review</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">No enquiries received yet.</td></tr>';
+}
+$('refreshAdmissions').addEventListener('click',loadAdmissions);
+$('admissionRows').addEventListener('click',async e=>{
+ const id=e.target.closest('[data-admission-save]')?.dataset.admissionSave;if(!id)return;
+ try{requireAdmin();const status=$('admissionRows').querySelector('[data-admission-status="'+CSS.escape(id)+'"]').value;const review_note=$('admissionRows').querySelector('[data-admission-note="'+CSS.escape(id)+'"]').value.trim();
+  const {error}=await db.from('school_admission_enquiries').update({status,review_note,reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq('id',id);if(error)throw error;await loadAdmissions();note('globalMsg','Admission enquiry review saved. Approved enquiries still need formal learner admission in the main register.','success');
+ }catch(err){note('globalMsg',err.message,'error')}
+});
+async function loadLeave(){
+ const {data,error}=await db.from('school_hr_leave_requests').select('*').order('created_at',{ascending:false}).limit(200);
+ if(error){$('leaveRows').innerHTML='<tr><td colspan="6">Could not load leave requests: '+esc(error.message)+'</td></tr>';return}
+ $('leaveRows').innerHTML=(data||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleDateString('en-GB'))+'</td><td>'+esc(x.leave_type)+'</td><td>'+dateFmt(x.start_date)+' – '+dateFmt(x.end_date)+'</td><td>'+esc(x.reason)+'</td><td><span class="badge">'+esc(x.status)+'</span></td><td>'+(isAdmin()&&x.status==='Pending'?'<button type="button" data-leave-decision="'+esc(x.id)+'" data-status="Approved">Approve</button> <button type="button" class="danger" data-leave-decision="'+esc(x.id)+'" data-status="Rejected">Reject</button>':'—')+(x.decision_note?'<br>'+esc(x.decision_note):'')+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">No leave requests yet.</td></tr>';
+}
+$('leaveForm').addEventListener('submit',async e=>{
+ e.preventDefault();const payload={staff_user_id:user.id,leave_type:$('leaveType').value,start_date:$('leaveStart').value,end_date:$('leaveEnd').value,reason:$('leaveReason').value.trim()};
+ if(payload.end_date<payload.start_date){inlineMsg('leaveMsg','End date must be on or after the start date.','error');return}
+ try{const {error}=await db.from('school_hr_leave_requests').insert(payload);if(error)throw error;e.target.reset();inlineMsg('leaveMsg','Leave request submitted for administrator review.','success');await loadLeave()}catch(err){inlineMsg('leaveMsg','Request not saved: '+err.message,'error')}
+});
+$('leaveRows').addEventListener('click',async e=>{
+ const btn=e.target.closest('[data-leave-decision]');if(!btn)return;
+ try{requireAdmin();const {error}=await db.from('school_hr_leave_requests').update({status:btn.dataset.status,decided_by:user.id,decided_at:new Date().toISOString()}).eq('id',btn.dataset.leaveDecision);if(error)throw error;await loadLeave()}catch(err){note('globalMsg',err.message,'error')}
+});
+async function loadStaffOptions(){
+ if(!isAdmin())return;
+ const {data,error}=await db.from('user_profiles').select('id,full_name,job_title,role').eq('employment_status','Active').order('full_name');
+ if(error){$('payrollStaff').innerHTML='<option value="">Staff directory unavailable</option>';return}
+ staffOptions=data||[];$('payrollStaff').innerHTML='<option value="">Choose staff member</option>'+staffOptions.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.full_name||'Unnamed')+' · '+esc(x.job_title||x.role)+'</option>').join('');
+}
+async function loadPayroll(){
+ const {data,error}=await db.from('school_payroll_records').select('*').order('period_start',{ascending:false}).limit(200);
+ if(error){$('payrollRows').innerHTML='<tr><td colspan="6">Could not load payroll: '+esc(error.message)+'</td></tr>';return}
+ $('payrollRows').innerHTML=(data||[]).map(x=>'<tr><td>'+dateFmt(x.period_start)+' – '+dateFmt(x.period_end)+'</td><td>'+money(x.base_pay_ugx)+'</td><td>'+money(x.allowances_ugx)+'</td><td>'+money(x.deductions_ugx)+'</td><td><strong>'+money(x.net_pay_ugx)+'</strong></td><td><span class="badge">'+esc(x.status)+'</span></td></tr>').join('')||'<tr><td colspan="6" class="empty">No payslips available for this account.</td></tr>';
+}
+$('payrollForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ try{requireAdmin();const base=Number($('basePay').value),allow=Number($('allowances').value),ded=Number($('deductions').value);if(!Number.isSafeInteger(base)||!Number.isSafeInteger(allow)||!Number.isSafeInteger(ded)||base<0||allow<0||ded<0||base+allow<ded)throw new Error('Check the UGX amounts. Deductions cannot exceed base pay plus allowances.');
+ const p={staff_user_id:$('payrollStaff').value,period_start:$('payStart').value,period_end:$('payEnd').value,base_pay_ugx:base,allowances_ugx:allow,deductions_ugx:ded,net_pay_ugx:base+allow-ded,status:$('payStatus').value,notes:$('payNotes').value.trim()||null,created_by:user.id};
+ if(!p.staff_user_id||p.period_end<p.period_start)throw new Error('Select a staff member and a valid pay period.');
+ const {error}=await db.from('school_payroll_records').insert(p);if(error)throw error;e.target.reset();inlineMsg('payrollMsg','Payroll record saved. Each employee can see only their own payslip.','success');await loadPayroll();
+ }catch(err){inlineMsg('payrollMsg','Payroll not saved: '+err.message,'error')}
+});
+async function loadClasses(){
+ const {data,error}=await db.from('school_classes').select('id,name,stream').order('name');
+ if(error){$('resourceClass').innerHTML='<option value="">Assigned classes unavailable</option>';return}
+ classes=data||[];$('resourceClass').innerHTML='<option value="">Choose an assigned class</option>'+classes.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+(x.stream?' · '+esc(x.stream):'')+'</option>').join('');
+}
+async function loadResources(){
+ const {data,error}=await db.from('school_learning_resources').select('id,class_id,title,subject,resource_type,resource_url,instructions,created_at,created_by').order('created_at',{ascending:false}).limit(200);
+ if(error){$('resourceRows').innerHTML='<tr><td colspan="6">Could not load assigned learning resources: '+esc(error.message)+'</td></tr>';return}
+ const map=Object.fromEntries(classes.map(x=>[x.id,x.name+(x.stream?' · '+x.stream:'')]));
+ $('resourceRows').innerHTML=(data||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleDateString('en-GB'))+'</td><td>'+esc(map[x.class_id]||'Assigned class')+'</td><td>'+esc(x.subject)+'</td><td><strong>'+esc(x.title)+'</strong></td><td>'+esc(x.resource_type)+'</td><td>'+esc(x.instructions)+' '+(x.resource_url?'<br><a href="'+esc(x.resource_url)+'" target="_blank" rel="noopener noreferrer">Open resource</a>':'')+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">No resources available for your assigned classes.</td></tr>';
+}
+$('resourceForm').addEventListener('submit',async e=>{
+ e.preventDefault();try{if(!(isAdmin()||profile.role==='Teacher'))throw new Error('Teaching access required.');
+ const url=$('resourceUrl').value.trim();if(url&&!/^https:\/\//i.test(url))throw new Error('Only HTTPS resource links are accepted.');
+ const p={class_id:$('resourceClass').value,title:$('resourceTitle').value.trim(),subject:$('resourceSubject').value.trim(),resource_type:$('resourceType').value,resource_url:url||null,instructions:$('resourceInstructions').value.trim(),created_by:user.id};
+ const {error}=await db.from('school_learning_resources').insert(p);if(error)throw error;e.target.reset();inlineMsg('resourceMsg','Resource published to the selected class.','success');await loadResources();
+ }catch(err){inlineMsg('resourceMsg','Resource not saved: '+err.message,'error')}
+});
+async function loadBooks(){
+ const {data,error}=await db.from('school_library_books').select('id,title,author,book_code,category,total_copies,available_copies,shelf_location,is_active').eq('is_active',true).order('title').limit(500);
+ if(error){$('bookRows').innerHTML='<tr><td colspan="6">Could not load catalogue: '+esc(error.message)+'</td></tr>';return}
+ books=data||[];$('bookRows').innerHTML=books.map(x=>'<tr><td>'+esc(x.book_code)+'</td><td><strong>'+esc(x.title)+'</strong></td><td>'+esc(x.author)+'</td><td>'+esc(x.category)+'</td><td>'+x.available_copies+' / '+x.total_copies+'</td><td>'+esc(x.shelf_location)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">No books in the catalogue yet.</td></tr>';
+ $('loanBook').innerHTML='<option value="">Choose a book</option>'+books.filter(x=>x.available_copies>0).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+esc(x.book_code)+' · '+x.available_copies+' available</option>').join('');
+}
+$('bookForm').addEventListener('submit',async e=>{
+ e.preventDefault();try{requireLibrarian();const copies=Number($('bookCopies').value);if(!Number.isSafeInteger(copies)||copies<0)throw new Error('Enter a valid copy count.');
+ const p={title:$('bookTitle').value.trim(),book_code:$('bookCode').value.trim(),author:$('bookAuthor').value.trim(),category:$('bookCategory').value.trim()||'General',total_copies:copies,available_copies:copies,shelf_location:$('bookShelf').value.trim(),created_by:user.id};
+ const {error}=await db.from('school_library_books').insert(p);if(error)throw error;e.target.reset();inlineMsg('bookMsg','Book added to the catalogue.','success');await loadBooks();
+ }catch(err){inlineMsg('bookMsg','Book not saved: '+err.message,'error')}
+});
+async function loadLoans(){
+ const {data,error}=await db.from('school_library_loans').select('*').order('created_at',{ascending:false}).limit(250);
+ if(error){$('loanRows').innerHTML='<tr><td colspan="6">Loan register unavailable for this account.</td></tr>';return}
+ $('loanRows').innerHTML=(data||[]).map(x=>'<tr><td>'+esc(books.find(b=>b.id===x.book_id)?.title||'Book')+'<br>'+esc(x.borrower_name)+'</td><td>'+esc(x.borrower_code)+'</td><td>'+dateFmt(x.issue_date)+'</td><td>'+dateFmt(x.due_date)+'</td><td><span class="badge">'+esc(x.status)+'</span></td><td>'+(x.status==='Issued'?'<button type="button" data-loan-return="'+esc(x.id)+'">Mark returned</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">No loans are recorded.</td></tr>';
+}
+$('loanForm').addEventListener('submit',async e=>{
+ e.preventDefault();try{requireLibrarian();const p={book_id:$('loanBook').value,borrower_name:$('borrowerName').value.trim(),borrower_code:$('borrowerCode').value.trim(),borrower_type:$('borrowerType').value,due_date:$('loanDue').value,issued_by:user.id};
+ const {error}=await db.from('school_library_loans').insert(p);if(error)throw error;e.target.reset();inlineMsg('loanMsg','Book issued. Available copies were updated by the database.','success');await loadBooks();await loadLoans();
+ }catch(err){inlineMsg('loanMsg','Book was not issued: '+err.message,'error')}
+});
+$('loanRows').addEventListener('click',async e=>{
+ const id=e.target.closest('[data-loan-return]')?.dataset.loanReturn;if(!id)return;
+ try{requireLibrarian();const {error}=await db.from('school_library_loans').update({status:'Returned',return_date:new Date().toISOString().slice(0,10),returned_by:user.id}).eq('id',id);if(error)throw error;await loadBooks();await loadLoans()}catch(err){note('globalMsg','Return was not recorded: '+err.message,'error')}
+});
+async function loadTransport(){
+ const [r,a]=await Promise.all([
+  db.from('school_transport_routes').select('*').eq('is_active',true).order('route_name'),
+  db.from('school_transport_assignments').select('*').order('created_at',{ascending:false}).limit(300)
+ ]);
+ if(r.error){$('routeRows').innerHTML='<tr><td colspan="5">Routes restricted or unavailable.</td></tr>';return}
+ routes=r.data||[];$('assignmentRoute').innerHTML='<option value="">Choose route</option>'+routes.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.route_name)+'</option>').join('');
+ $('routeRows').innerHTML=routes.map(x=>'<tr><td><strong>'+esc(x.route_name)+'</strong></td><td>'+esc(x.vehicle_label)+'</td><td>'+esc(x.pickup_areas)+'</td><td>'+esc(x.departure_time||'—')+' / '+esc(x.return_time||'—')+'</td><td><span class="badge">Active</span></td></tr>').join('')||'<tr><td colspan="5" class="empty">No routes have been configured.</td></tr>';
+ if(a.error){$('transportRows').innerHTML='<tr><td colspan="6">Assignment register unavailable.</td></tr>';return}
+ const routeMap=Object.fromEntries(routes.map(x=>[x.id,x.route_name]));
+ $('transportRows').innerHTML=(a.data||[]).map(x=>'<tr><td>'+esc(x.learner_name)+'</td><td>'+esc(x.learner_code)+'</td><td>'+esc(x.class_name)+'</td><td>'+esc(routeMap[x.route_id]||'Route')+'</td><td>'+esc(x.pickup_point)+'</td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">No transport assignments yet.</td></tr>';
+}
+$('routeForm').addEventListener('submit',async e=>{
+ e.preventDefault();try{requireTransport();const p={route_name:$('routeName').value.trim(),vehicle_label:$('routeVehicle').value.trim(),pickup_areas:$('routeAreas').value.trim(),departure_time:$('routeDeparture').value||null,return_time:$('routeReturn').value||null,created_by:user.id};
+ const {error}=await db.from('school_transport_routes').insert(p);if(error)throw error;e.target.reset();inlineMsg('routeMsg','Transport route saved.','success');await loadTransport();
+ }catch(err){inlineMsg('routeMsg','Route not saved: '+err.message,'error')}
+});
+$('transportForm').addEventListener('submit',async e=>{
+ e.preventDefault();try{requireTransport();const p={route_id:$('assignmentRoute').value,learner_name:$('transportLearner').value.trim(),learner_code:$('transportCode').value.trim(),class_name:$('transportClass').value.trim(),pickup_point:$('pickupPoint').value.trim(),guardian_phone:$('transportGuardianPhone').value.trim()||null,created_by:user.id};
+ const {error}=await db.from('school_transport_assignments').insert(p);if(error)throw error;e.target.reset();inlineMsg('transportMsg','Learner transport assignment saved.','success');await loadTransport();
+ }catch(err){inlineMsg('transportMsg','Assignment not saved: '+err.message,'error')}
+});
+async function loadWelfare(){
+ if(!isWelfare())return;
+ const {data,error}=await db.from('school_welfare_cases').select('*').order('created_at',{ascending:false}).limit(200);
+ if(error){$('welfareRows').innerHTML='<tr><td colspan="7">Restricted welfare register could not load.</td></tr>';return}
+ $('welfareRows').innerHTML=(data||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleDateString('en-GB'))+'</td><td>'+esc(x.learner_name)+'<br>'+esc(x.learner_code)+'</td><td>'+esc(x.case_category)+'</td><td>'+esc(x.factual_summary)+'</td><td>'+esc(x.action_taken)+'</td><td>'+dateFmt(x.follow_up_date)+'</td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="7" class="empty">No welfare cases recorded.</td></tr>';
+}
+$('welfareForm').addEventListener('submit',async e=>{
+ e.preventDefault();try{requireWelfare();const p={learner_name:$('welfareLearner').value.trim(),learner_code:$('welfareCode').value.trim(),case_category:$('welfareCategory').value,factual_summary:$('welfareSummary').value.trim(),action_taken:$('welfareAction').value.trim(),follow_up_date:$('welfareFollowUp').value||null,created_by:user.id};
+ const {error}=await db.from('school_welfare_cases').insert(p);if(error)throw error;e.target.reset();inlineMsg('welfareMsg','Restricted welfare record saved.','success');await loadWelfare();
+ }catch(err){inlineMsg('welfareMsg','Welfare record not saved: '+err.message,'error')}
+});
+async function loadIntegrations(){
+ if(!isAdmin())return;const {data,error}=await db.from('school_provider_integrations').select('*').order('service_type').order('provider_name');
+ if(error){$('integrationRows').innerHTML='<tr><td colspan="6">Provider register could not load.</td></tr>';return}
+ integrationRows=data||[];$('integrationRows').innerHTML=integrationRows.map(x=>'<tr><td><strong>'+esc(x.provider_name)+'</strong></td><td>'+esc(x.service_type)+'</td><td><select data-integration-status="'+esc(x.id)+'">'+['Setup required','Credentials pending','Testing','Active','Disabled'].map(s=>'<option '+(x.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select></td><td><input data-integration-reference="'+esc(x.id)+'" maxlength="120" placeholder="Merchant / account reference" value="'+esc(x.account_reference||'')+'"><input data-integration-sender="'+esc(x.id)+'" maxlength="60" placeholder="Sender label" value="'+esc(x.sender_label||'')+'"></td><td><input data-integration-notes="'+esc(x.id)+'" maxlength="1000" value="'+esc(x.notes||'')+'"></td><td><button type="button" data-integration-save="'+esc(x.id)+'">Save</button></td></tr>').join('')||'<tr><td colspan="6">No provider records are configured.</td></tr>';
+}
+$('integrationRows').addEventListener('click',async e=>{
+ const id=e.target.closest('[data-integration-save]')?.dataset.integrationSave;if(!id)return;
+ try{requireAdmin();const get=(attr)=>$('integrationRows').querySelector('['+attr+'="'+CSS.escape(id)+'"]');
+ const p={status:get('data-integration-status').value,account_reference:get('data-integration-reference').value.trim(),sender_label:get('data-integration-sender').value.trim(),notes:get('data-integration-notes').value.trim(),updated_by:user.id,updated_at:new Date().toISOString()};
+ const {error}=await db.from('school_provider_integrations').update(p).eq('id',id);if(error)throw error;await loadIntegrations();note('globalMsg','Provider setup status saved. No credentials or secrets were stored.','success');
+ }catch(err){note('globalMsg','Provider status not saved: '+err.message,'error')}
+});
+async function runHealthCheck(display=true){
+ if(!isAdmin())return;
+ $('healthAuth').textContent='Checking…';$('healthDatabase').textContent='Checking…';$('healthApps').textContent='Checking…';
+ const [auth,apps]=await Promise.all([db.auth.getUser(),db.from('school_apps').select('app_key',{count:'exact',head:true})]);
+ const authOk=!auth.error&&!!auth.data?.user?.id;
+ const dbOk=!apps.error;
+ $('healthAuth').textContent=authOk?'Connected':'Failed';
+ $('healthDatabase').textContent=dbOk?'Reachable':'Failed';
+ $('healthApps').textContent=apps.error?'Restricted / failed':String(apps.count??'Reachable');
+ $('healthDetails').textContent=(authOk&&dbOk?'Current session and read-only database request succeeded. ':'One or more checks failed. ')+(apps.error?'App Centre query: '+apps.error.message:'App Centre read-only check completed.')+' This check does not validate the latest deployment or prove backup restoration.';
+ if(display)note('globalMsg','Live connection checks completed. Backup restoration remains a separate manual exercise.',authOk&&dbOk?'success':'error');
+}
+$('runHealthCheck').addEventListener('click',()=>runHealthCheck(true));
+$('refreshAdmissions').addEventListener('click',loadAdmissions);$('refreshHr').addEventListener('click',()=>Promise.all([loadLeave(),loadPayroll()]));
+$('refreshLearning').addEventListener('click',()=>Promise.all([loadClasses(),loadResources()]));
+$('refreshLibrary').addEventListener('click',async()=>{await loadBooks();if(isLibrarian())await loadLoans()});
+$('refreshTransport').addEventListener('click',loadTransport);$('refreshWelfare').addEventListener('click',loadWelfare);$('refreshIntegrations').addEventListener('click',loadIntegrations);
+</script>
+</body>
+</html>
