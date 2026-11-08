@@ -95,7 +95,14 @@
    ['evidence_submission','Evidence received'],
    ['document_expiry','Document expiry'],
    ['bank_transaction','Banking'],
-   ['expense_request','Expense approvals']
+   ['expense_request','Expense approvals'],
+   ['asset_maintenance','Maintenance reports'],
+   ['attendance_adjustment','Attendance corrections'],
+   ['attendance_incident','Attendance incidents'],
+   ['bursary_award','Bursary awards'],
+   ['bursary_review','Bursary reviews'],
+   ['learner_code_change','Learner code changes'],
+   ['learner_code_change_bulk','Bulk learner code updates']
   ];
   for(const [value,label] of categories){
    if(!categoryFilter.querySelector('option[value="'+value+'"]')){
