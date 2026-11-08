@@ -39,7 +39,7 @@ label{display:block;font-size:12px;font-weight:750;color:#405646;margin:8px 0 5p
 <body data-theme="warm-corporate">
 <header class="top">
  <div><div class="brand">CORNHILL · RECORDS CENTRE</div><div class="sub">Private document index · OCR · verification · expiry monitoring</div></div>
- <div class="nav"><a href="/">Main system</a><a href="/notifications.html">Notification Centre</a><a href="/evidence.html">Evidence Capture</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
+ <div class="nav"><a href="/">Main system</a><button id="installApp" type="button" class="hidden">Install app</button><a href="/notifications.html">Notification Centre</a><a href="/evidence.html">Evidence Capture</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
 </header>
 <main class="wrap">
  <div id="toast" class="notice hidden" role="status" aria-live="polite"></div>
@@ -259,6 +259,11 @@ $('loginForm').addEventListener('submit',async e=>{
  try{await enterApp(data.user)}catch(err){$('loginError').textContent=err.message}
 });
 $('signOut').addEventListener('click',async()=>{await db.auth.signOut();location.reload()});
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('installApp').classList.remove('hidden')});
+$('installApp').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installApp').classList.add('hidden')});
+window.addEventListener('appinstalled',()=>{$('installApp').classList.add('hidden');toast('Records Centre is installed on this device.')});
+
 db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(data.session.user)}catch(err){$('loginError').textContent=err.message}}});
 db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')location.reload()});
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
