@@ -1,352 +1,51 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#173d35">
-<title>Staff Communications & Events · CORNHILL</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<meta name="description" content="CORNHILL staff communications, school notices, calendar and discussion feed">
+<link rel="icon" href="/assets/cornhill-school-badge.png" type="image/png">
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<title>CORNHILL · Staff Communications & Events</title>
 <style>
-:root{color-scheme:light}
-body{margin:0;background:var(--cornhill-page,#f5f7f5);color:var(--cornhill-ink,#18231f);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
-.comm-shell{max-width:1180px;margin:0 auto;padding:20px}
-.comm-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 0 22px}
-.comm-brand{display:flex;align-items:center;gap:12px;font-weight:800}
-.comm-brand img{width:42px;height:42px;object-fit:contain}
-.comm-hero{padding:26px;border-radius:22px;background:linear-gradient(135deg,#173d35,#285b4e);color:white;margin-bottom:18px}
-.comm-hero h1{font-size:clamp(25px,4vw,38px);margin:0 0 8px}
-.comm-hero p{max-width:760px;margin:0;color:#e0eee8}
-.comm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px}
-.comm-card{background:var(--cornhill-card,#fff);border:1px solid var(--cornhill-line,#dce5df);border-radius:16px;padding:18px;box-shadow:0 5px 18px #183d3510;min-width:0}
-.comm-card h2,.comm-card h3{margin:0 0 12px}
-.comm-card label{display:block;font-weight:650;font-size:13px;margin:10px 0 5px}
-.comm-card input,.comm-card textarea,.comm-card select{width:100%;box-sizing:border-box;border:1px solid #cbd8d0;border-radius:10px;padding:11px;font:inherit;background:white;color:#17251e}
-.comm-card textarea{min-height:108px;resize:vertical}
-.comm-btn{border:0;border-radius:10px;background:#1d594a;color:white;font-weight:750;padding:11px 16px;cursor:pointer}
-.comm-btn:disabled{opacity:.55;cursor:wait}
-.comm-btn.secondary{background:#eaf1ed;color:#21473a}
-.comm-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.comm-muted{color:#63746b;font-size:13px;line-height:1.5}
-.comm-chip{display:inline-flex;padding:4px 9px;border-radius:99px;background:#edf4ef;color:#285541;font-size:11px;font-weight:750}
-.comm-chip.urgent{background:#fff0e8;color:#a4431f}
-.comm-item{padding:14px 0;border-top:1px solid #e5ece7}
-.comm-item:first-child{border-top:0}
-.comm-item h3{font-size:17px;margin:7px 0}
-.comm-item p{white-space:pre-wrap;line-height:1.55;margin:8px 0}
-.comm-date{font-size:12px;color:#65776c}
-.comm-checks{display:flex;gap:12px;flex-wrap:wrap}
-.comm-checks label{display:flex;align-items:center;gap:6px;margin:4px 0;font-weight:550}
-.comm-checks input{width:auto}
-.comm-empty{padding:22px;text-align:center;color:#697a70;background:#f6f9f6;border-radius:12px}
-.comm-feed-post{border:1px solid #e1eae3;border-radius:14px;padding:14px;margin:12px 0;background:#fff}
-.comm-feed-post:first-child{margin-top:0}
-.comm-feed-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin:10px 0}
-.comm-feed-meta{font-size:12px;color:#68796f}
-.comm-feed-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
-.comm-feed-actions button,.comm-feed-comment button{border:1px solid #d5e3d8;border-radius:999px;background:#f6faf7;color:#28553a;padding:7px 11px;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
-.comm-feed-actions button.active{background:#e2f3e7;border-color:#9bcbaa}
-.comm-feed-comments{border-top:1px solid #e6eee8;margin-top:12px;padding-top:10px}
-.comm-feed-comment{display:flex;gap:8px;margin:8px 0;align-items:flex-start}
-.comm-feed-comment-body{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
-.comm-feed-comment small{color:#76857b;font-size:11px}
-.comm-feed-comment button{padding:4px 8px}
-.comm-feed-comment-form{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
-.comm-feed-comment-form textarea{min-height:42px;max-height:120px;flex:1;margin:0}
-.comm-feed-comment-form button{white-space:nowrap}
-.comm-feed-composer{padding:14px;border:1px solid #dfe9e1;background:#f8fbf8;border-radius:14px;margin-bottom:12px}
-.comm-feed-composer textarea{min-height:110px}
-.comm-feed-composer-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.comm-warning{font-size:12px;color:#886029;background:#fff8e9;padding:9px 11px;border-radius:10px;line-height:1.5}
-.hidden{display:none!important}
-@media(max-width:600px){.comm-shell{padding:12px}.comm-hero{padding:20px;border-radius:16px}.comm-card{padding:14px}}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f8f4;color:#1b2c22;font-family:Inter,system-ui,sans-serif}
+header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #dce7de}
+nav{max-width:1100px;margin:auto;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;color:#14532d;font-weight:900;text-decoration:none}.brand img{width:48px;height:48px;object-fit:contain}
+main{max-width:1100px;margin:24px auto;padding:0 18px}
+.hero{padding:clamp(22px,5vw,48px);border-radius:24px;background:radial-gradient(circle at 95% 0%,#dceee0,transparent 35%),linear-gradient(125deg,#fff,#edf5ee);border:1px solid #dce7de}
+.kicker{font-size:11px;letter-spacing:.17em;font-weight:900;color:#287345}
+h1{font-size:clamp(30px,5vw,48px);line-height:1.05;letter-spacing:-.04em;color:#183d28;margin:12px 0}
+p{line-height:1.65;color:#65766a}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0}
+.card{padding:20px;border:1px solid #dce7de;border-radius:18px;background:#fff;box-shadow:0 8px 24px #123c200b;display:flex;flex-direction:column;min-width:0}
+.card h2{font-size:19px;margin:6px 0 8px;color:#1a3c28}.card p{font-size:13px;flex:1;margin:0 0 16px}
+.icon{font-size:25px}
+.link{display:inline-flex;align-items:center;justify-content:center;padding:11px 16px;border-radius:999px;background:#14532d;color:#fff;text-decoration:none;font-size:13px;font-weight:850}
+.link.light{background:#eaf4ec;color:#14532d}
+.note{padding:14px;border-radius:13px;background:#fff8e9;border:1px solid #f1dfba;color:#7a5a25;font-size:12px;line-height:1.55}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.card{padding:18px}main{margin:14px auto}nav{gap:8px}}
 </style>
 </head>
 <body>
-<main class="comm-shell">
-<header class="comm-top">
- <div class="comm-brand"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL badge"><div>CORNHILL<br><span class="comm-muted">Staff Communications</span></div></div>
- <div class="comm-row"><a class="comm-btn secondary" href="/">Main School System</a><button id="signOut" class="comm-btn hidden" type="button">Sign out</button></div>
-</header>
-<section class="comm-hero">
+<header><nav>
+ <a class="brand" href="/school.html"><img src="/assets/cornhill-school-badge.png" alt="">CORNHILL NURSERY AND PRIMARY SCHOOL</a>
+ <a class="link light" href="/">Main School System</a>
+</nav></header>
+<main>
+<section class="hero">
+ <span class="kicker">INTERNAL STAFF WORKSPACE</span>
  <h1>Staff Communications & Events</h1>
- <p>A secure notice board and school calendar for authorised CORNHILL staff. Notices are visible only to the staff roles selected by the administrator.</p>
+ <p>Open the shared School Services workspace to read role-targeted notices, view the school calendar, or take part in the staff discussion feed. These sections use one staff sign-in and one set of database access rules.</p>
+ <a class="link" href="/school-services.html#notices">Open Staff Communications</a>
 </section>
-<section id="loginPanel" class="comm-card" style="max-width:460px;margin:0 auto 24px">
- <h2>Staff sign in</h2>
- <p class="comm-muted">Use your own CORNHILL staff account. This portal has an independent per-tab session.</p>
- <form id="loginForm">
-  <label for="loginEmail">Staff email</label><input id="loginEmail" type="email" autocomplete="username" required maxlength="254">
-  <label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required maxlength="72">
-  <button class="comm-btn" type="submit" style="width:100%;margin-top:14px">Sign in</button>
-  <p id="loginMsg" class="comm-muted" role="status"></p>
- </form>
+<section class="grid" aria-label="Staff communications sections">
+ <article class="card"><span class="icon">📢</span><h2>Staff Notice Board</h2><p>Administrators publish notices with category, priority, intended staff audience, publication time and expiry. Staff see only notices for their account role.</p><a class="link" href="/school-services.html#notices">Open Notice Board</a></article>
+ <article class="card"><span class="icon">🗓️</span><h2>School Calendar</h2><p>View school events, dates, times, venues and descriptions. Calendar entries are shared with their selected staff audience.</p><a class="link" href="/school-services.html#calendar">Open School Calendar</a></article>
+ <article class="card"><span class="icon">💬</span><h2>Staff Discussion Feed</h2><p>Share school-related text updates, comment and react with colleagues. Posts are limited to the audiences allowed for each staff role.</p><a class="link" href="/school-services.html#staff-feed">Open Staff Feed</a></article>
 </section>
-<section id="appPanel" class="hidden">
- <div class="comm-row" style="justify-content:space-between;margin:4px 0 16px">
-  <div><strong id="welcome">Welcome</strong><div id="roleInfo" class="comm-muted"></div></div>
-  <button id="refreshAll" class="comm-btn secondary" type="button">Refresh notices</button>
- </div>
- <section id="feedCard" class="comm-card" style="margin-bottom:16px">
-  <div class="comm-row" style="justify-content:space-between"><h2>Staff feed</h2><span id="feedCount" class="comm-chip">0 posts</span></div>
-  <div class="comm-warning">Staff-only discussion. Do not post learner marks, medical or welfare details, passwords, or private guardian contact information. This first version supports text posts, comments and reactions; photos and videos are not enabled.</div>
-  <form id="feedPostForm" class="comm-feed-composer" style="margin-top:12px">
-   <label for="feedPostBody">Share a staff update</label>
-   <textarea id="feedPostBody" maxlength="5000" minlength="1" required placeholder="Share a school-related update, question or useful information with colleagues…"></textarea>
-   <div class="comm-feed-composer-row">
-    <div><label for="feedAudience">Who can see this post?</label><select id="feedAudience"></select></div>
-    <button class="comm-btn" type="submit">Share post</button>
-   </div>
-   <p id="feedPostMsg" class="comm-muted" role="status"></p>
-  </form>
-  <div id="feedList"><div class="comm-empty">Loading staff posts…</div></div>
- </section>
- <div id="adminPanel" class="comm-grid hidden" style="margin-bottom:16px">
-  <section class="comm-card">
-   <h2>Publish a staff notice</h2>
-   <form id="noticeForm">
-    <label for="noticeTitle">Notice title</label><input id="noticeTitle" required minlength="3" maxlength="140">
-    <div class="comm-grid" style="grid-template-columns:1fr 1fr;gap:10px">
-     <div><label for="noticeCategory">Category</label><select id="noticeCategory"><option>General</option><option>Academic</option><option>Operations</option><option>Urgent</option></select></div>
-     <div><label for="noticePriority">Priority</label><select id="noticePriority"><option>Normal</option><option>Important</option><option>Urgent</option></select></div>
-    </div>
-    <label for="noticeBody">Notice details</label><textarea id="noticeBody" required minlength="3" maxlength="8000"></textarea>
-    <label>Visible to</label>
-    <div class="comm-checks">
-     <label><input type="checkbox" name="noticeAudience" value="Admin" checked> Admin</label>
-     <label><input type="checkbox" name="noticeAudience" value="Teacher" checked> Teachers</label>
-     <label><input type="checkbox" name="noticeAudience" value="Staff" checked> Staff</label>
-    </div>
-    <label for="noticeExpires">Optional expiry date</label><input id="noticeExpires" type="date">
-    <button class="comm-btn" type="submit" style="margin-top:14px">Publish notice</button>
-    <p id="noticeMsg" class="comm-muted" role="status"></p>
-   </form>
-  </section>
-  <section class="comm-card">
-   <h2>Add a school event</h2>
-   <form id="eventForm">
-    <label for="eventTitle">Event title</label><input id="eventTitle" required minlength="3" maxlength="140">
-    <label for="eventDescription">Description</label><textarea id="eventDescription" maxlength="4000"></textarea>
-    <div class="comm-grid" style="grid-template-columns:1fr 1fr;gap:10px">
-     <div><label for="eventDate">Event date</label><input id="eventDate" type="date" required></div>
-     <div><label for="eventVenue">Venue</label><input id="eventVenue" maxlength="160" placeholder="School grounds, hall…"></div>
-     <div><label for="eventStart">Start time</label><input id="eventStart" type="time"></div>
-     <div><label for="eventEnd">End time</label><input id="eventEnd" type="time"></div>
-    </div>
-    <label>Visible to</label>
-    <div class="comm-checks">
-     <label><input type="checkbox" name="eventAudience" value="Admin" checked> Admin</label>
-     <label><input type="checkbox" name="eventAudience" value="Teacher" checked> Teachers</label>
-     <label><input type="checkbox" name="eventAudience" value="Staff" checked> Staff</label>
-    </div>
-    <button class="comm-btn" type="submit" style="margin-top:14px">Save event</button>
-    <p id="eventMsg" class="comm-muted" role="status"></p>
-   </form>
-  </section>
- </div>
- <div class="comm-grid">
-  <section class="comm-card"><div class="comm-row" style="justify-content:space-between"><h2>Notice board</h2><span id="noticeCount" class="comm-chip">0 notices</span></div><div id="noticeList"><div class="comm-empty">Loading notices…</div></div></section>
-  <section class="comm-card"><div class="comm-row" style="justify-content:space-between"><h2>School calendar</h2><span id="eventCount" class="comm-chip">0 events</span></div><div id="eventList"><div class="comm-empty">Loading events…</div></div></section>
- </div>
- <p id="globalMsg" class="comm-muted" role="status" style="margin:14px 0"></p>
-</section>
-<footer class="comm-muted" style="text-align:center;padding:24px 0">CORNHILL NURSERY AND PRIMARY SCHOOL · Internal staff portal · Uganda<br>Does not send SMS/WhatsApp or provide parent access. Parent communications remain in the separate guardian portal and approved messaging integrations.</footer>
+<div class="note">Staff sign-in is required in the School Services workspace. Parent/guardian messages are kept in the separate Parent Portal. SMS and WhatsApp delivery are not sent from this page; those services require approved provider integration and separate testing. Photos and videos are not enabled in the first feed version.</div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
-const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
-const TAB_KEY='cornhill-communications-tab-id-v1';
-const makeTabId=()=>window.crypto?.randomUUID?.()||('tab-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
-let authStorage=null,authStorageKey='';
-try{
- const nav=performance.getEntriesByType('navigation')[0],reload=nav?.type==='reload';
- const prior=sessionStorage.getItem(TAB_KEY),tabId=prior&&reload?prior:makeTabId();
- sessionStorage.setItem(TAB_KEY,tabId);authStorage=sessionStorage;authStorageKey='cornhill-communications-tab-'+tabId;
-}catch(_){authStorageKey='cornhill-communications-ephemeral-'+makeTabId()}
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:authStorageKey,...(authStorage?{storage:authStorage,persistSession:true}:{persistSession:false}),autoRefreshToken:true,detectSessionInUrl:false}});
-const $=id=>document.getElementById(id);
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let user=null,profile=null;
-const roles=['Admin','Teacher','Staff'];
-function audience(formName){return [...document.querySelectorAll('input[name="'+formName+'"]:checked')].map(x=>x.value).filter(x=>roles.includes(x))}
-function setMsg(id,msg,error=false){$(id).textContent=msg||'';$(id).style.color=error?'#a43b27':''}
-function localDateTime(value){return value?new Date(value).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}):'—'}
-function dateLabel(value){return value?new Date(value+'T00:00:00').toLocaleDateString('en-GB',{dateStyle:'medium'}):'—'}
-function roleAllowed(){return !!profile&&profile.employment_status==='Active'&&roles.includes(profile.role)}
-async function loadProfile(){
- const {data,error}=await db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('id',user.id).single();
- if(error)throw error;
- profile=data;
- if(!roleAllowed())throw new Error('This account is not an active CORNHILL school staff account.');
-}
-function toggle(id,show){$(id).classList.toggle('hidden',!show)}
-async function enterApp(){
- await loadProfile();
- toggle('loginPanel',false);toggle('appPanel',true);toggle('signOut',true);
- toggle('adminPanel',profile.role==='Admin');
- configureFeedComposer();
- $('welcome').textContent='Welcome, '+(profile.full_name||'CORNHILL staff member');
- $('roleInfo').textContent=profile.role+(profile.job_title?' · '+profile.job_title:'')+' · Your staff-only notice feed';
- await refreshAll();
-}
-async function loadNotices(){
- const {data,error}=await db.from('school_staff_notices').select('id,title,body,category,priority,audience_roles,publish_at,expires_at,is_published,created_at').order('publish_at',{ascending:false}).limit(100);
- if(error)throw error;
- const rows=data||[];$('noticeCount').textContent=rows.length+' notices';
- $('noticeList').innerHTML=rows.map(x=>'<article class="comm-item"><div class="comm-row"><span class="comm-chip">'+esc(x.category)+'</span><span class="comm-chip '+(x.priority==='Urgent'?'urgent':'')+'">'+esc(x.priority)+'</span>'+(profile.role==='Admin'&&!x.is_published?'<span class="comm-chip">Draft</span>':'')+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.body)+'</p><div class="comm-date">Published '+localDateTime(x.publish_at)+' · Audience: '+esc((x.audience_roles||[]).join(', '))+(x.expires_at?' · Expires '+localDateTime(x.expires_at):'')+'</div>'+(profile.role==='Admin'?'<div class="comm-row" style="margin-top:9px"><button class="comm-btn secondary" type="button" data-delete-notice="'+x.id+'">Delete notice</button></div>':'')+'</article>').join('')||'<div class="comm-empty">There are no notices for your account yet.</div>';
-}
-async function loadEvents(){
- const {data,error}=await db.from('school_calendar_events').select('id,title,description,event_date,start_time,end_time,venue,audience_roles,is_published,created_at').order('event_date',{ascending:true}).limit(100);
- if(error)throw error;
- const rows=data||[];$('eventCount').textContent=rows.length+' events';
- $('eventList').innerHTML=rows.map(x=>'<article class="comm-item"><div class="comm-date">'+dateLabel(x.event_date)+(x.start_time?' · '+esc(String(x.start_time).slice(0,5)):'')+(x.end_time?' – '+esc(String(x.end_time).slice(0,5)):'')+'</div><h3>'+esc(x.title)+'</h3>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div class="comm-date">'+(x.venue?'Venue: '+esc(x.venue)+' · ':'')+'Audience: '+esc((x.audience_roles||[]).join(', '))+'</div>'+(profile.role==='Admin'?'<div class="comm-row" style="margin-top:9px"><button class="comm-btn secondary" type="button" data-delete-event="'+x.id+'">Delete event</button></div>':'')+'</article>').join('')||'<div class="comm-empty">No school events have been added.</div>';
-}
-function configureFeedComposer(){
- const options=profile.role==='Admin'
-  ?[['all_staff','All active staff'],['teachers','Teachers only'],['admins','Administrators only']]
-  :profile.role==='Teacher'
-   ?[['all_staff','All active staff'],['teachers','Teachers only']]
-   :[['all_staff','All active staff']];
- $('feedAudience').innerHTML=options.map(([value,label])=>'<option value="'+value+'">'+label+'</option>').join('');
-}
-async function loadFeed(){
- const {data:posts,error}=await db.from('staff_communication_posts')
-  .select('id,author_user_id,body,audience,is_pinned,created_at')
-  .order('is_pinned',{ascending:false}).order('created_at',{ascending:false}).limit(50);
- if(error)throw error;
- const rows=posts||[];$('feedCount').textContent=rows.length+' posts';
- if(!rows.length){$('feedList').innerHTML='<div class="comm-empty">No staff posts are available for your account yet.</div>';return}
- const ids=rows.map(x=>x.id);
- const [commentResult,reactionResult]=await Promise.all([
-  db.from('staff_communication_comments').select('id,post_id,author_user_id,body,created_at').in('post_id',ids).order('created_at',{ascending:true}).limit(500),
-  db.from('staff_communication_reactions').select('post_id,user_id,reaction').in('post_id',ids).limit(1000)
- ]);
- if(commentResult.error)throw commentResult.error;
- if(reactionResult.error)throw reactionResult.error;
- const comments=commentResult.data||[],reactions=reactionResult.data||[];
- const commentsByPost={},reactionsByPost={};
- comments.forEach(x=>(commentsByPost[x.post_id]??=[]).push(x));
- reactions.forEach(x=>(reactionsByPost[x.post_id]??=[]).push(x));
- $('feedList').innerHTML=rows.map(post=>{
-  const postComments=commentsByPost[post.id]||[],postReactions=reactionsByPost[post.id]||[];
-  const liked=postReactions.some(x=>x.user_id===user.id&&x.reaction==='like');
-  const owns=post.author_user_id===user.id,canDelete=owns||profile.role==='Admin';
-  const audienceLabel=post.audience==='teachers'?'Teachers':post.audience==='admins'?'Administrators':'All staff';
-  const commentHtml=postComments.map(x=>'<div class="comm-feed-comment"><div class="comm-feed-comment-body"><strong>'+(x.author_user_id===user.id?'You':'Staff colleague')+'</strong> <small>· '+localDateTime(x.created_at)+'</small><div>'+esc(x.body)+'</div></div>'+(profile.role==='Admin'||x.author_user_id===user.id?'<button type="button" data-feed-comment-delete="'+x.id+'" title="Delete comment">Delete</button>':'')+'</div>').join('');
-  return '<article class="comm-feed-post">'+
-   '<div class="comm-row" style="justify-content:space-between"><div><strong>'+(owns?'You':'CORNHILL staff member')+'</strong> <span class="comm-feed-meta">· '+localDateTime(post.created_at)+'</span></div><div class="comm-row">'+(post.is_pinned?'<span class="comm-chip">Pinned</span>':'')+'<span class="comm-chip">'+audienceLabel+'</span></div></div>'+
-   '<div class="comm-feed-body">'+esc(post.body)+'</div>'+
-   '<div class="comm-feed-actions"><button type="button" class="'+(liked?'active':'')+'" data-feed-like="'+post.id+'">'+(liked?'♥ Liked':'♡ Like')+' · '+postReactions.filter(x=>x.reaction==='like').length+'</button><span class="comm-feed-meta">'+postComments.length+' comments</span>'+(profile.role==='Admin'?'<button type="button" data-feed-pin="'+post.id+'" data-pinned="'+(post.is_pinned?'1':'0')+'">'+(post.is_pinned?'Unpin':'Pin')+'</button>':'')+(canDelete?'<button type="button" data-feed-delete="'+post.id+'">Delete post</button>':'')+'</div>'+
-   '<div class="comm-feed-comments"><div>'+commentHtml+'</div><form class="comm-feed-comment-form" data-feed-comment-form="'+post.id+'"><textarea name="comment" maxlength="2000" minlength="1" required placeholder="Write a comment…"></textarea><button type="submit">Comment</button></form></div>'+
-  '</article>';
- }).join('');
-}
-async function refreshAll(){
- setMsg('globalMsg','Refreshing your notices, staff feed and school events…');
- const results=await Promise.allSettled([loadNotices(),loadEvents(),loadFeed()]);
- const errors=results.filter(x=>x.status==='rejected').map(x=>x.reason?.message||'Load failed');
- setMsg('globalMsg',errors.length?'Some information could not be loaded: '+errors.join(' · '):'All communications are up to date.',!!errors.length);
-}
-$('loginForm').addEventListener('submit',async e=>{
- e.preventDefault();const button=e.submitter;button.disabled=true;button.textContent='Checking account…';
- try{
-  const {data,error}=await db.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});
-  if(error)throw error;user=data.user;await enterApp();
- }catch(err){await db.auth.signOut({scope:'local'});user=null;profile=null;setMsg('loginMsg',err.message||'Sign in failed.',true)}
- finally{button.disabled=false;button.textContent='Sign in'}
-});
-$('signOut').addEventListener('click',async()=>{
- await db.auth.signOut({scope:'local'});user=null;profile=null;toggle('appPanel',false);toggle('loginPanel',true);toggle('signOut',false);$('loginForm').reset();setMsg('loginMsg','You have signed out.');
-});
-$('refreshAll').addEventListener('click',refreshAll);
-$('feedPostForm').addEventListener('submit',async e=>{
- e.preventDefault();
- if(!roleAllowed())return;
- const body=$('feedPostBody').value.trim(),audience=$('feedAudience').value;
- if(!body){setMsg('feedPostMsg','Write a message before sharing.',true);return}
- const allowed=profile.role==='Admin'?['all_staff','teachers','admins']:profile.role==='Teacher'?['all_staff','teachers']:['all_staff'];
- if(!allowed.includes(audience)){setMsg('feedPostMsg','This audience is not allowed for your role.',true);return}
- const button=e.submitter;button.disabled=true;
- try{
-  const {error}=await db.from('staff_communication_posts').insert({author_user_id:user.id,body,audience,is_pinned:false});
-  if(error)throw error;
-  $('feedPostBody').value='';setMsg('feedPostMsg','Post shared with '+(audience==='teachers'?'teachers':audience==='admins'?'administrators':'all active staff')+'.');
-  await loadFeed();
- }catch(err){setMsg('feedPostMsg','Post was not shared: '+(err.message||'Please try again.'),true)}
- finally{button.disabled=false}
-});
-$('noticeForm').addEventListener('submit',async e=>{
- e.preventDefault();if(profile?.role!=='Admin')return;
- const rolesSelected=audience('noticeAudience');if(!rolesSelected.length){setMsg('noticeMsg','Choose at least one staff audience.',true);return}
- const expires=$('noticeExpires').value;
- const payload={title:$('noticeTitle').value.trim(),body:$('noticeBody').value.trim(),category:$('noticeCategory').value,priority:$('noticePriority').value,audience_roles:rolesSelected,publish_at:new Date().toISOString(),expires_at:expires?new Date(expires+'T23:59:59').toISOString():null,is_published:true,created_by:user.id};
- if(payload.expires_at&&new Date(payload.expires_at)<=new Date(payload.publish_at)){setMsg('noticeMsg','Expiry must be a future date.',true);return}
- const {error}=await db.from('school_staff_notices').insert(payload);
- if(error){setMsg('noticeMsg','Notice was not published: '+error.message,true);return}
- e.target.reset();document.querySelectorAll('input[name="noticeAudience"]').forEach(x=>x.checked=true);setMsg('noticeMsg','Notice published to the selected staff roles.');await loadNotices();
-});
-$('eventForm').addEventListener('submit',async e=>{
- e.preventDefault();if(profile?.role!=='Admin')return;
- const rolesSelected=audience('eventAudience');if(!rolesSelected.length){setMsg('eventMsg','Choose at least one staff audience.',true);return}
- const start=$('eventStart').value,end=$('eventEnd').value;if(start&&end&&end<=start){setMsg('eventMsg','Event end time must be later than the start time.',true);return}
- const payload={title:$('eventTitle').value.trim(),description:$('eventDescription').value.trim()||null,event_date:$('eventDate').value,start_time:start||null,end_time:end||null,venue:$('eventVenue').value.trim()||null,audience_roles:rolesSelected,is_published:true,created_by:user.id};
- const {error}=await db.from('school_calendar_events').insert(payload);
- if(error){setMsg('eventMsg','Event was not saved: '+error.message,true);return}
- e.target.reset();document.querySelectorAll('input[name="eventAudience"]').forEach(x=>x.checked=true);setMsg('eventMsg','School event saved.');await loadEvents();
-});
-document.addEventListener('click',async e=>{
- const notice=e.target.closest('[data-delete-notice]'),event=e.target.closest('[data-delete-event]');
- if(notice&&profile?.role==='Admin'){
-  if(!confirm('Delete this staff notice?'))return;
-  const {error}=await db.from('school_staff_notices').delete().eq('id',notice.dataset.deleteNotice);
-  if(error){setMsg('globalMsg','Could not delete notice: '+error.message,true);return}await loadNotices();
- }
- if(event&&profile?.role==='Admin'){
-  if(!confirm('Delete this school event?'))return;
-  const {error}=await db.from('school_calendar_events').delete().eq('id',event.dataset.deleteEvent);
-  if(error){setMsg('globalMsg','Could not delete event: '+error.message,true);return}await loadEvents();
- }
-});
-document.addEventListener('submit',async e=>{
- const form=e.target.closest('[data-feed-comment-form]');if(!form)return;
- e.preventDefault();
- const postId=form.dataset.feedCommentForm,body=String(new FormData(form).get('comment')||'').trim();
- if(!body||!roleAllowed())return;
- const button=form.querySelector('button[type="submit"]');button.disabled=true;
- try{
-  const {error}=await db.from('staff_communication_comments').insert({post_id:postId,author_user_id:user.id,body});
-  if(error)throw error;await loadFeed();setMsg('globalMsg','Comment added.');
- }catch(err){setMsg('globalMsg','Comment was not saved: '+(err.message||'Please try again.'),true)}
- finally{button.disabled=false}
-});
-document.addEventListener('click',async e=>{
- const like=e.target.closest('[data-feed-like]'),pin=e.target.closest('[data-feed-pin]'),removePost=e.target.closest('[data-feed-delete]'),removeComment=e.target.closest('[data-feed-comment-delete]');
- if(like){
-  const postId=like.dataset.feedLike,current=like.classList.contains('active');
-  try{
-   if(current){const {error}=await db.from('staff_communication_reactions').delete().eq('post_id',postId).eq('user_id',user.id);if(error)throw error}
-   else{const {error}=await db.from('staff_communication_reactions').insert({post_id:postId,user_id:user.id,reaction:'like'});if(error)throw error}
-   await loadFeed();
-  }catch(err){setMsg('globalMsg','Reaction was not saved: '+(err.message||'Please try again.'),true)}
- }
- if(pin&&profile?.role==='Admin'){
-  const pinned=pin.dataset.pinned==='1';
-  const {error}=await db.from('staff_communication_posts').update({is_pinned:!pinned,updated_at:new Date().toISOString()}).eq('id',pin.dataset.feedPin);
-  if(error)setMsg('globalMsg','Post pin update failed: '+error.message,true);else await loadFeed();
- }
- if(removePost){
-  const postId=removePost.dataset.feedDelete;
-  if(!confirm('Delete this staff post and its comments/reactions?'))return;
-  const {error}=await db.from('staff_communication_posts').delete().eq('id',postId);
-  if(error)setMsg('globalMsg','Post could not be deleted: '+error.message,true);else await loadFeed();
- }
- if(removeComment){
-  const commentId=removeComment.dataset.feedCommentDelete;
-  if(!confirm('Delete this comment?'))return;
-  const {error}=await db.from('staff_communication_comments').delete().eq('id',commentId);
-  if(error)setMsg('globalMsg','Comment could not be deleted: '+error.message,true);else await loadFeed();
- }
-});
-</script>
 </body>
 </html>
