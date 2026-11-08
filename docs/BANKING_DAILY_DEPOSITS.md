@@ -38,6 +38,10 @@ The displayed balance is:
 
 Awaiting approval, awaiting evidence, rejected evidence and cancelled records are excluded. The system stores a transaction history and separate audit events. A photograph is evidence, not an approval by itself.
 
+## Other school record attachments
+
+The main CORNHILL app now exposes **Request receipt photo** on Posted expense rows. It passes the saved expense ID, expense number and amount to the same Evidence Capture portal. The administrator's staff-profile editor also has a **Request staff ID photo from phone** action tied to the selected staff profile ID. The requests and file metadata are recorded in the shared evidence register with their originating record context.
+
 ## Security and operating limits
 
 - Only the last four digits of the bank account number are stored. Never enter full bank credentials, PINs or passwords.
