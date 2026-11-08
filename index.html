@@ -3830,9 +3830,13 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     const cm=code?(byCode.get(code)||[]):[],lm=lin?(byLin.get(lin)||[]):[],nm=byName.get(name)||[];
     let learner=null,issue='';
     if(cm.length>1||lm.length>1)issue='Duplicate pupil code or LIN in school records';
+    else if(code&&cm.length===0)issue='Pupil code is not recognised in this class';
     else if(cm.length&&lm.length&&cm[0].id!==lm[0].id)issue='Pupil code and LIN identify different learners';
-    else if(lm.length)learner=lm[0];else if(cm.length)learner=cm[0];else if(nm.length===1)learner=nm[0];else if(nm.length>1)issue='Ambiguous learner name';
-    if(learner&&nm.length===1&&nm[0].id!==learner.id)issue='Learner name does not match the supplied code/LIN';
+    else if(cm.length)learner=cm[0];
+    else if(lin&&lm.length)learner=lm[0];
+    else if(nm.length===1)learner=nm[0];
+    else if(nm.length>1)issue='Ambiguous learner name';
+    if(learner&&(code||lin)&&name&&(nm.length!==1||nm[0].id!==learner.id))issue='Learner name does not match the supplied pupil code/LIN';
     const rowKey=info.name+'|'+(learner?.id||name);
     if(learner&&seenRows.has(rowKey))issue='Duplicate learner row on this worksheet';
     if(learner)seenRows.add(rowKey);
@@ -6358,8 +6362,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('saveSelectedLearnerMarks').addEventListener('click',saveMarks);
   renderSubjectChoices();renderLearnerChoices();
  }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(build,0),{once:true});else setTimeout(build,0);
- const observer=new MutationObserver(()=>{if(!document.querySelector('#teacherMarkEntry [data-mark-grid-v2]')){}});
+ let attempts=0;const boot=()=>{if(profile?.role==='Teacher'||profile?.role==='Admin'){build();return}if(attempts++<80)setTimeout(boot,250)};boot();
 })();
 </script>
 
