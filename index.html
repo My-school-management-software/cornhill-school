@@ -3610,9 +3610,9 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   const markColumns=[],codeReview=[],issues=[];
   headers.forEach((header,index)=>{
    const h=normaliseImportText(header);if(index<6||!h||index===nameIndex||index===codeIndex||index===linIndex)return;
-   const summary=h.match(/^(TT|PN|POTN|AGG|DIV|TOTAL|POSITION)([1-4])?$/);
+   const summary=h.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
    if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
-   if(/^(SN|PHOTO|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS)/.test(h))return;
+   if(/^(SN|PHOTO|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN)/.test(h)||/COMMENT/.test(h)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(h))return;
    const suffixMatch=h.match(/(\\d)$/),suffix=suffixMatch?Number(suffixMatch[1]):null,period=importPeriodLabel(activePeriod,clsName),match=matchImportAssessment(header,ctx,period);
    if(suffix&&suffix!==activePeriod){issues.push(header+' is in '+period+' but ends in '+suffix+'. Expected '+activePeriod+'. Correct the number in Excel.');codeReview.push({header,period,status:'Number changed',detail:'Expected ending number '+activePeriod+'. Correct this heading.'})}
    if(match.assessment){if(markColumns.some(x=>x.assessment.id===match.assessment.id)){issues.push('Duplicate column '+header+' maps to '+match.assessment.subjects?.name+' · '+period+'.');codeReview.push({header,period,status:'Duplicate',detail:'Subject/period repeated.'})}else{markColumns.push({index,header,assessment:match.assessment,period});codeReview.push({header,period,status:'Matched',detail:(match.assessment.subjects?.name||'Subject')+' · '+period})}}
