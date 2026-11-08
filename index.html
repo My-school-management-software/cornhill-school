@@ -3496,7 +3496,7 @@ async function loadAcademics(){
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  if(profile?.role==='Teacher'){try{const ready=await ensureTeacherAcademicClassContext();if(!ready)return}catch(contextError){message('academicMsg',contextError?.message||'Your assigned class could not be verified. Sign out and sign in again.',true);const field=$('markGridTerm')?.closest('section.panel')?.querySelector('input[readonly]');if(field)field.value='Class assignment needs administrator review';return}}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
- $('assessmentSetup').classList.toggle('hidden',!['Admin','Teacher'].includes(profile?.role));
+ $('assessmentSetup').classList.toggle('hidden',profile?.role!=='Admin');
  $('adminAcademicInsights')?.classList.toggle('hidden',profile?.role!=='Admin');
  $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
  $('adminTeacherMarksRegister').classList.toggle('hidden',profile?.role!=='Admin');
