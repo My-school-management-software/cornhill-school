@@ -3450,22 +3450,49 @@ function gradeFor(percent){return gradeBands.find(x=>x.is_active!==false&&percen
 function unebGradeFor(subjectId,percent){return unebSubjectGradeBands.find(x=>x.subject_id===subjectId&&x.is_active!==false&&x.min_percent!==null&&x.max_percent!==null&&percent>=Number(x.min_percent)&&percent<=Number(x.max_percent))||null}
 function unebGradePoint(gradeName){const m=String(gradeName||'').toUpperCase().match(/(?:D|C|P|F)\s*([1-9])/);return m?Number(m[1]):null}
 function unebPrimaryDivision(subjectGrades){
- // Only the four aggregate subjects determine P4–P7 aggregate/division.
- // An absence in an additional subject must not block the core aggregate.
+ // P4–P7 aggregate subjects are English, Mathematics, Science and Social Studies.
+ const subjectKey=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
  const required=['English','Mathematics','Science','Social Studies'];
- const normalized=required.map(label=>({label,grade:subjectGrades.find(x=>{const n=String(x.name||'').toLowerCase();return label==='English'?n.includes('english'):label==='Mathematics'?n.includes('mathematics')||n.includes('math'):label==='Science'?n.includes('science'):n.includes('social studies')||n==='sst'})}));
+ const normalized=required.map(label=>({label,grade:subjectGrades.find(x=>{
+  const n=subjectKey(x.name);
+  return label==='English'?n.includes('english'):
+   label==='Mathematics'?(n.includes('mathematics')||n==='math'||n==='maths'):
+   label==='Science'?n.includes('science'):
+   n.includes('socialstudies')||n==='sst';
+ })}));
  if(normalized.some(x=>!x.grade))return {ready:false,reason:'Enter marks and grades for English, Mathematics, Science and Social Studies to calculate the aggregate.'};
  const absentCore=normalized.filter(x=>x.grade?.absent).map(x=>x.label);
  if(absentCore.length)return {ready:false,reason:'Aggregate not calculated: learner was marked X (Absent) in '+absentCore.join(', ')+'.'};
  const points=normalized.map(x=>unebGradePoint(x.grade.grade));
- if(points.some(x=>x===null))return {ready:false,reason:'Configure all nine UNEB grade percentage boundaries for each of the four core subjects before calculating the aggregate.'};
+ if(points.some(x=>x===null))return {ready:false,reason:'Configure all nine grade boundaries for English, Mathematics, Science and Social Studies before calculating the aggregate.'};
  const aggregate=points.reduce((a,b)=>a+b,0);
- // Match the school's PRIMARY SEVEN.xlsx division formula exactly:
- // >=34 = U; >=29 = IV; >=25 = III; >=13 = II; otherwise I.
- // Aggregate is the sum of the final digit of the four subject grades.
- const division=aggregate>=34?'U':aggregate>=29?'IV':aggregate>=25?'III':aggregate>=13?'II':'I';
+ // Current PLE aggregate bands: I 4–12; II 13–23; III 24–29; IV 30–34; U 35–36.
+ const aggregateDivision=aggregate>=35?'U':aggregate>=30?'IV':aggregate>=24?'III':aggregate>=13?'II':'I';
  const english=points[0],math=points[1];
- return {ready:true,aggregate,division,englishGrade:english,mathGrade:math,points};
+ const severity={I:1,II:2,III:3,IV:4,U:5};
+ const gatewaySubjects=[{name:'English',point:english},{name:'Mathematics',point:math}];
+ const failedGateways=gatewaySubjects.filter(x=>x.point===9);
+ const passGateways=gatewaySubjects.filter(x=>x.point===7||x.point===8);
+ let division=aggregateDivision,divisionCap=null,gatewayRule=null,downgradeReason='';
+ if(failedGateways.length){
+  // F9 in either gateway subject rules out Division I and II.
+  divisionCap='III';gatewayRule='F9';
+  if(severity[division]<severity[divisionCap])division=divisionCap;
+  if(division!==aggregateDivision){
+   downgradeReason='Division adjusted from '+aggregateDivision+' to III: '+failedGateways.map(x=>x.name).join(' and ')+' has F9; English/Mathematics F9 cannot qualify for Division I or II.';
+  }
+ }else if(passGateways.length){
+  // P7/P8 in either gateway subject rules out Division I, but can still allow Division II.
+  divisionCap='II';gatewayRule='P7/P8';
+  if(severity[division]<severity[divisionCap])division=divisionCap;
+  if(division!==aggregateDivision){
+   downgradeReason='Division adjusted from I to II: '+passGateways.map(x=>x.name).join(' and ')+' has P7/P8; English and Mathematics must both be C6 or better for Division I.';
+  }
+ }
+ return {
+  ready:true,aggregate,division,aggregateDivision,divisionCap,gatewayRule,downgradeReason,
+  downgraded:division!==aggregateDivision,englishGrade:english,mathGrade:math,points
+ };
 }
 
 async function loadGradeBands(){
@@ -4023,7 +4050,7 @@ async function renderReportCard(options={}){
  const rowsHtml=subjectRows.map(r=>'<tr><th>'+esc(String(r.subject.name||'').replace(/\s*[\[(]?[A-Z]{1,5}\d{1,2}[\])]?\s*$/i,'').trim()||r.subject.name)+'</th>'+periods.map(p=>{const c=r.cells[p];return '<td class="report-mark">'+(c.absent?'X':c.max?money(c.got):'—')+'</td><td>'+(c.max?money(c.max):'—')+'</td>'}).join('')+(isNursery?'<td style="background:'+(endCellForSubject(r.cells)?gradeColor(endCellForSubject(r.cells).got/endCellForSubject(r.cells).max*100):'#fff')+';font-weight:800;text-align:center">'+(endCellForSubject(r.cells)?gradeBand(endCellForSubject(r.cells).got/endCellForSubject(r.cells).max*100):'—')+'</td><td>'+esc((endCellForSubject(r.cells)?.comments||[]).join('; '))+'</td>':'<td>'+esc(r.cells[remarksPeriod].comments.join('; ')||'')+'</td>')+'</tr>').join('');
  const totalRow='<tr class="report-total"><th>TOTAL</th>'+periods.map(p=>'<td>'+money(phaseTotals[p].got)+'</td><td>'+money(phaseTotals[p].max)+'</td>').join('')+'<td colspan="'+(isNursery?2:1)+'"></td></tr>';
  const positionRow='<tr class="report-total"><th>POSITION</th>'+periods.map(p=>'<td colspan="2">'+(rankFor(p)||'—')+' / '+classList.length+'</td>').join('')+'<td></td></tr>';
- const summary=isP47?'<div class="report-summary">'+periods.map(p=>{const d=divisions[p];return '<strong>'+p.toUpperCase()+' TOTAL: '+money(phaseTotals[p].got)+' / '+money(phaseTotals[p].max)+'</strong><strong>'+p.toUpperCase()+' AGGREGATE: '+(d?.ready?d.aggregate:'X')+'</strong><strong>'+p.toUpperCase()+' DIVISION: '+(d?.ready?d.division:'X')+'</strong>'+'<strong>POSITION: '+(rankFor(p)||'—')+'</strong>'}).join('')+'</div>':'<div class="report-summary">'+periods.map(p=>'<span>'+p.toUpperCase()+' POSITION: '+(rankFor(p)||'—')+'</span>').join('')+'</div>';
+ const summary=isP47?'<div class="report-summary">'+periods.map(p=>{const d=divisions[p];return '<strong>'+p.toUpperCase()+' TOTAL: '+money(phaseTotals[p].got)+' / '+money(phaseTotals[p].max)+'</strong><strong>'+p.toUpperCase()+' AGGREGATE: '+(d?.ready?d.aggregate:'X')+'</strong><strong>'+p.toUpperCase()+' DIVISION: '+(d?.ready?d.division:'X')+'</strong>'+(d?.ready&&d.downgradeReason?'<small class="report-division-note">'+esc(d.downgradeReason)+'</small>':'')+'<strong>POSITION: '+(rankFor(p)||'—')+'</strong>'}).join('')+'</div>':'<div class="report-summary">'+periods.map(p=>'<span>'+p.toUpperCase()+' POSITION: '+(rankFor(p)||'—')+'</span>').join('')+'</div>';
  const activity=isNursery?'<section class="report-grading"><strong>GRADING</strong><div class="report-colors"><span style="background:#8ccf52">EXCELLENT</span><span style="background:#4f86bd;color:white">VERY GOOD</span><span style="background:#fff000">GOOD</span><span style="background:#ef4444;color:white">FAIR</span></div><p>85–100 Excellent · 70–84 Very Good · 50–69 Good · 0–49 Fair</p></section>':'';
  const header='<header class="report-school-head"><img src="/assets/cornhill-school-badge.png" alt="Cornhill school badge" onerror="this.style.display=\'none\'"><div><h1>CORNHILL NURSERY &amp; PRIMARY SCHOOL</h1><p>P.O BOX 112 BUSHENYI</p><em>WE SHARE ONE DREAM</em><h2>PUPIL’S PROGRESSIVE REPORT CARD · '+esc($('reportTermSelect').selectedOptions[0]?.textContent||'')+'</h2></div></header>';
  const lin=learner.lin||'Not yet entered';
@@ -4334,7 +4361,7 @@ function recalculateExcelMarkSheet(){
    if(posCell)posCell.textContent=result.position||'—';
    const aggCell=document.querySelector('[data-calc-aggregate="'+phase+'|'+learner.id+'"]'),divCell=document.querySelector('[data-calc-division="'+phase+'|'+learner.id+'"]');
    if(aggCell)aggCell.textContent=result.division?.ready?result.division.aggregate:'—';
-   if(divCell)divCell.textContent=result.division?.ready?'Division '+result.division.division:'—';
+   if(divCell){divCell.textContent=result.division?.ready?'Division '+result.division.division:'—';divCell.title=result.division?.downgradeReason||'Aggregate-based division; no English/Mathematics downgrade applied.';}
   });
  });
  ctx.phases=results;
@@ -4462,7 +4489,7 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
   const subjectValues=Object.fromEntries(core.map(s=>[s.key,[]]));
   const genderValues={M:[],F:[]};
   const divisions={I:0,II:0,III:0,IV:0,U:0,X:0,Incomplete:0};
-  let completeLearners=0,learnerSubjectGrades=0;
+  let completeLearners=0,learnerSubjectGrades=0,gatewayDowngrades=0,englishMathP78=0,englishMathF9=0;
   for(const learner of ctx.students){
    const gradeRows=[],learnerPercentages=[];
    let learnerIncomplete=false,learnerAbsent=false;
@@ -4485,13 +4512,15 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
     learnerSubjectGrades++;
     gradeRows.push({name:subject.name,absent:false,grade:grade.code,point:grade.point});
    }
-   const required=core.map(s=>gradeRows.find(g=>g.name===s.name));
    if(learnerAbsent){divisions.X++;continue}
-   if(learnerIncomplete||required.some(x=>!x)){divisions.Incomplete++;continue}
-   const aggregate=required.reduce((sum,x)=>sum+Number(x.point),0);
-   const division=aggregate>=34?'U':aggregate>=29?'IV':aggregate>=25?'III':aggregate>=13?'II':'I';
-   divisions[division]=(divisions[division]||0)+1;
+   if(learnerIncomplete){divisions.Incomplete++;continue}
+   const divisionResult=unebPrimaryDivision(gradeRows);
+   if(!divisionResult.ready){divisions.Incomplete++;continue}
+   divisions[divisionResult.division]=(divisions[divisionResult.division]||0)+1;
    completeLearners++;
+   if(divisionResult.downgraded)gatewayDowngrades++;
+   if(divisionResult.downgraded&&divisionResult.gatewayRule==='P7/P8')englishMathP78++;
+   if(divisionResult.downgraded&&divisionResult.gatewayRule==='F9')englishMathF9++;
    const sex=String(learner.gender||'').trim().toUpperCase();
    const genderKey=/^(M|MALE)/.test(sex)?'M':/^(F|FEMALE)/.test(sex)?'F':'';
    if(genderKey&&learnerPercentages.length){
@@ -4521,13 +4550,14 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
     '<div class="stat"><small>Complete divisions</small><div class="num">'+completeLearners+'</div></div>'+
     '<div class="stat"><small>X / absent</small><div class="num">'+divisions.X+'</div></div>'+
     '<div class="stat"><small>Incomplete marks</small><div class="num">'+divisions.Incomplete+'</div></div>'+
+    '<div class="stat"><small>English/Math gateway downgrades</small><div class="num">'+gatewayDowngrades+'</div></div>'+
    '</div>'+
    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px">'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">DIVISION ANALYSIS</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Division</th><th>Count</th><th>%</th></tr></thead><tbody>'+divisionRows+'</tbody></table></div></div>'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY SUBJECT</h5><div class="table-wrap"><table style="min-width:205px"><thead><tr><th>Subject</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+subjectRows+'</tbody></table></div><p class="muted" style="margin:8px 0 0">Most performed: <strong>'+(best?esc(best.name)+' · '+best.average.toFixed(1)+'%':'—')+'</strong><br>Worst performed: <strong>'+(worst?esc(worst.name)+' · '+worst.average.toFixed(1)+'%':'—')+'</strong></p></div>'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY GENDER</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Group</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+genderRows+'</tbody></table></div></div>'+
    '</div>'+
-   '<p class="muted" style="margin:9px 0 0">Workbook grade bands: D1 89–100, D2 79–88, C3 74–78, C4 69–73, C5 59–68, C6 49–58, P7 44–48, P8 39–43, F9 below 39. Aggregate is the sum of the four core-subject grade points; division thresholds follow the class workbook. Blank marks and X entries are not treated as scores.</p>'+
+   '<p class="muted" style="margin:9px 0 0">Workbook grade bands: D1 89–100, D2 79–88, C3 74–78, C4 69–73, C5 59–68, C6 49–58, P7 44–48, P8 39–43, F9 below 39. Aggregate divisions: I 4–12, II 13–23, III 24–29, IV 30–34, U 35–36. English/Mathematics P7 or P8 caps Division I at Division II; F9 in either caps at Division III. Gateway downgrades in this period: '+gatewayDowngrades+' ('+englishMathP78+' due to P7/P8; '+englishMathF9+' due to F9). Blank marks and X entries are not treated as scores.</p>'+
   '</article>';
  }).join('');
  host.innerHTML=blocks;
