@@ -3652,7 +3652,7 @@ async function loadExcelMarksGrid(){
  message('excelMarksMsg',list.length+' learners loaded. '+assessments.length+' assessment columns shown'+(phaseFilter==='All'?' across all configured periods': ' for '+phaseFilter)+'. Enter marks and save; totals, aggregate and division recalculate automatically for P4–P7; positions are shown for Nursery through P5; P6 and P7 use aggregate and division.');
  await showOfflineAssessmentDraftCount();
 }
-function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
+function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function importSubjectAliases(token,group){
  const nursery=group==='Nursery',lower=group==='P1-P3';
  const common={NU:['Numbers'],NUM:['Numbers'],EN:['English'],ENG:['English'],MTC:['Mathematics'],MT:['Mathematics'],MAT:['Mathematics'],MA:['Mathematics'],MATH:['Mathematics'],SC:['Science'],SCI:['Science'],SST:['Social Studies'],SS:['Social Studies'],LI1:['Literacy I'],LIT1:['Literacy I'],LI:['Literacy I'],LIT:['Literacy I'],LIT2:['Literacy II'],LI2:['Literacy II'],LT2:['Literacy II'],L12:['Literacy II'],LL:['Local Language'],LOC:['Local Language'],RE:['Religious Education'],CRE:['Religious Education'],HH:['Health Habits'],SD:['Social Development'],WR:['Writing'],WRI:['Writing'],DR:['Drawing'],DRAW:['Drawing'],LD:['Language Development']};
