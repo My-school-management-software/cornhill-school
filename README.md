@@ -96,11 +96,11 @@ The service worker is at shell cache v56. Public website, admissions, School Ser
 
 ## Current preview
 
-The active development branch is `fix/assessment-selection-save-preview-20261108`. The latest preview available during this work was built from an earlier service-portal commit and does not include the final admissions page, public website, payroll policy changes or latest front-end fixes. Vercel's Free daily deployment API quota returned a payment-required limit, so no new preview was confirmed for the latest commit. Do not use an older preview to accept these new pages. The production main branch has not been changed by this development branch.
+The active development branch is `fix/assessment-selection-save-preview-20261108`, currently at source commit `ba7a34dc51fe1ba36fd14be498587aa578157d56`. The latest READY Vercel preview is [cornhill-school-72ezmqoan-cypher-projects1.vercel.app](https://cornhill-school-72ezmqoan-cypher-projects1.vercel.app/) from commit `02f799769c3328a0ccab165926b6cc2b6d1e0974`. That preview includes the public site, admissions page, School Services and Staff Communications pages, and the initial P4–P7 gateway/grading changes. It does **not** include the latest service-worker v56 cache isolation, asset-manager edit controls, or the final visitor/maintenance column-level permission hardening. A new preview request for the current source commit was blocked by Vercel's Free daily deployment API limit (retry window 24 hours); no paid plan was enabled and production was not changed. Use the GitHub branch to review the latest source; use the preview only with the noted commit limitation.
 
 ## Offline limitation — important
 
-Offline support currently caches the application shell only. The live Supabase database, authentication, photos/storage, payments and other server operations require internet access. The app does not yet provide a durable IndexedDB record queue, conflict resolution or automatic data synchronisation. Do not enter school records or accept payments while offline.
+The service worker (v56 on the source branch) caches each application shell independently. The main class marks workspace also supports account-scoped IndexedDB mark drafts, queued synchronisation and conflict checks. That offline mark-draft support is not a general offline mode for every application. Admission enquiries, parent/guardian API access, library loans, leave, payroll, visitor check-in/out, asset updates, staff communications, mobile-money transactions and other server-backed operations require an internet connection. Do not accept payments or make official visitor, finance or learner-record changes while offline.
 
 ## Data protection and safe updates
 
