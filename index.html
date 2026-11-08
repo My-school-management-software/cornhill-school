@@ -3988,8 +3988,21 @@ $('downloadTeacherMarksTemplate').addEventListener('click',async()=>{
   const ctx=window.cornhillExcelMarksContext;
   if(!ctx||ctx.classId!==classId||ctx.termId!==termId)throw new Error('The complete class sheet could not be loaded. Check the term and assigned class.');
   const cls=classes.find(x=>x.id===classId),term=academic.terms.find(x=>x.id===termId);
-  const headers=['Pupil Code','LIN','Learner Name',...ctx.assessments.map(a=>excelSubjectLabel(a,0,cls))];
-  const rows=[headers,...ctx.students.map(learner=>[learner.admission_number||'',learner.lin||'',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '),...ctx.assessments.map(()=>null)])];
+  const className=String(cls?.name||''),periods=assessmentPeriodsForClassName(className),isP7=/P\\.?\\s*7|PRIMARY\\s*7/i.test(className),isUpper=curriculumGroupForClass(className)==='P4-P7';
+  const headers=['SN','ID','PHOTO','NAME','SEX','LINS',...(isP7?['INDEX NUMBER']:[])];
+  const periodAssessments=new Map();
+  periods.forEach((period,index)=>{
+   const items=ctx.assessments.filter(a=>excelAssessmentPeriod(a)===period).sort((a,b)=>excelSubjectOrder(a)-excelSubjectOrder(b));
+   periodAssessments.set(period,items);
+   headers.push(...items.map(a=>excelSubjectLabel(a,0,cls)),'TT'+(index+1));
+   if(isUpper)headers.push('AGG'+(index+1),'DIV'+(index+1));
+   headers.push('PN'+(index+1));
+  });
+  const rows=[headers,...ctx.students.map((learner,index)=>{
+   const row=[index+1,learner.pupil_code||learner.admission_number||'','',[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '),learner.gender||'',learner.lin||'',...(isP7?[learner.p7_index_number||'']:[])];
+   periods.forEach(period=>{const items=periodAssessments.get(period)||[];row.push(...items.map(()=>null),null);if(isUpper)row.push(null,null);row.push(null)});
+   return row;
+  })];
   const sheet=XLSX.utils.aoa_to_sheet(rows),book=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book,sheet,String(cls?.name||'Class').slice(0,31));
   XLSX.writeFile(book,'CORNHILL_'+String(cls?.name||'Class').replace(/[^A-Za-z0-9_-]/g,'_')+'_'+String(term?.name||'Term').replace(/[^A-Za-z0-9_-]/g,'_')+'_Marks_Template.xlsx');
@@ -4025,7 +4038,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   if(!sheetInfos.length)throw new Error('No worksheet for '+clsName+' contains a learner-name heading. Hidden worksheets were also checked.');
   const byCode=new Map(),byLin=new Map(),byName=new Map();
   for(const learner of ctx.students){
-   const code=normaliseImportText(learner.admission_number),lin=normaliseImportText(learner.lin),name=normaliseImportText([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '));
+   const code=normaliseImportText(learner.pupil_code||learner.admission_number),lin=normaliseImportText(learner.lin),name=normaliseImportText([learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '));
    if(code){const a=byCode.get(code)||[];a.push(learner);byCode.set(code,a)}
    if(lin){const a=byLin.get(lin)||[];a.push(learner);byLin.set(lin,a)}
    if(name){const a=byName.get(name)||[];a.push(learner);byName.set(name,a)}
@@ -4042,7 +4055,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     const token=normal[index];if(!token||index===nameIndex||index===codeIndex||index===linIndex)return;
     const summary=token.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
     if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
-    if(/^(N|SN|ID|ID2|PHOTO|SEX|GENDER|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|FIELD\d*|COLUMN\d*|MAX|OUTOF|PERCENT|PERCENTAGE|EXCELLENT|VERYGOOD|GOOD|FAIR|WEAK|MISSED|AIMHIGHER)$/.test(token)||/^(AEN|AENG|AMT|ASC|ASS)\d*$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
+    if(/^(N|SN|ID|ID2|PHOTO|SEX|GENDER|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|FIELD\d*|COLUMN\d*|MAX|OUTOF|PERCENT|PERCENTAGE|INDEX|INDEXNUMBER|INDEXNO|P7INDEXNUMBER|EXCELLENT|VERYGOOD|GOOD|FAIR|WEAK|MISSED|AIMHIGHER)$/.test(token)||/^(AEN|AENG|AMT|ASC|ASS)\d*$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
     const phase=importColumnPeriod(info.matrix,info.headerRow,index,header,activePeriod,info.name),period=importPeriodLabel(phase.period,clsName),suffix=phase.codePeriod;
     if(!period){issues.push(info.name+' · '+header+': this period does not apply to '+clsName+'.');codeReview.push({header,period:'—',status:'Wrong class period',detail:'Remove this column or correct its period.'});return}
     if(suffix&&phase.explicit&&suffix!==phase.period){
