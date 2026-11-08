@@ -3009,9 +3009,13 @@ async function loadStaffProfiles(){
  const {data,error}=await db.from('user_profiles').select('id,full_name,role,phone,gender,staff_category,parent_contact_phone,parent_contact_visible,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').order('full_name');
  if(error){message('staffProfileMsg','Could not load staff profiles: '+error.message,true);return}
  staffProfiles=data||[];
- renderStaffDashboardStats(staffProfiles);
+ const {data:unlinkedTeachers}=await db.from('academic_teacher_directory').select('id,full_name,phone,subject_specialism,employment_status').is('linked_user_id',null).eq('employment_status','Active');
+ const directoryRows=(unlinkedTeachers||[]).map(x=>({id:'directory:'+x.id,full_name:x.full_name,role:'Teacher directory',staff_category:'Teaching',gender:null,job_title:x.subject_specialism||'Teacher',department:'Teaching staff',phone:x.phone||null,employment_status:x.employment_status||'Active',directoryOnly:true}));
+ renderStaffDashboardStats([...staffProfiles,...directoryRows]);
  await loadSchoolPublicContactSettings();
- $('staffProfileRows').innerHTML=staffProfiles.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">'+esc(x.role)+'</span></td><td>'+esc(x.staff_category||'Not classified')+'</td><td>'+esc(x.gender||'Not recorded')+'</td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.parent_contact_visible&&x.parent_contact_phone?x.parent_contact_phone:'Not published')+'</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td></tr>').join('')||'<tr><td colspan="9">No staff accounts found.</td></tr>';
+ const accountRows=staffProfiles.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">'+esc(x.role)+'</span></td><td>'+esc(x.staff_category||'Not classified')+'</td><td>'+esc(x.gender||'Not recorded')+'</td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.parent_contact_visible&&x.parent_contact_phone?x.parent_contact_phone:'Not published')+'</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td></tr>');
+ const directoryHtml=directoryRows.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">Teacher directory · account not linked</span></td><td>Teaching</td><td>Not recorded</td><td>'+esc(x.job_title||'Teacher')+'</td><td>Teaching staff</td><td>'+esc(x.phone||'—')+'</td><td>Not published</td><td>Active</td><td>—</td></tr>');
+ $('staffProfileRows').innerHTML=[...accountRows,...directoryHtml].join('')||'<tr><td colspan="9">No staff records found.</td></tr>';
  $('staffProfileSelect').innerHTML='<option value="">Choose staff member</option>'+staffProfiles.map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed')+' ('+esc(x.role)+')</option>').join('');
 }
 $('staffInviteForm').addEventListener('submit',async e=>{
