@@ -35,9 +35,25 @@ The attendance workspace is prepared for a single office fingerprint terminal an
 
 This is active development, not a declaration of production readiness. Authenticated end-to-end acceptance tests, hardware tests and final operational sign-off are still required.
 
+## Work area 8 — public website, admissions and School Services Hub
+
+The branch now contains three coordinated application entry points:
+
+- `/school.html` — public school information and navigation to the separate guardian portal and admission enquiry page. School contact details, fees and dates are intentionally not invented.
+- `/admissions.html` — basic public admission enquiry form. It submits learner name, class of interest, guardian contact and an optional question. It does not create a pupil record, issue a permanent code, accept payment, or collect identity/medical documents.
+- `/school-services.html` — isolated staff sign-in using a per-tab Supabase Auth storage key. It brings together administrator-reviewed admission enquiries, staff leave requests, own-payslip viewing, class-scoped learning resources, library catalogue/loans, restricted transport and welfare workspaces, provider setup, basic system checks and biometric-kiosk guidance.
+
+The database foundation is additive and uses RLS on the new tables. Teacher learning-resource access uses the existing class-teacher guard. Welfare access is restricted to administrators and the approved Matron / Senior Woman / Senior Man / School Nurse titles. Transport is restricted to administrators and approved transport job titles. The public admissions table accepts anonymous INSERT only for pending enquiries; anonymous SELECT is not granted.
+
+**Payroll integration:** the new portal reuses the existing `payroll_periods`, `payroll_items`, salary agreements and advance workflow. Staff can read only their own payroll items; administrators retain payroll creation, approval and payment controls in the main Finance workspace. The temporary duplicate payroll table was removed while empty.
+
+**Integration boundary:** MTN / Airtel Mobile Money, SMS and Google Drive entries are setup registers only. No provider credentials are stored in browser code and no live transactions or messages are claimed. The fingerprint kiosk is guidance only until the exact device and supported integration protocol are confirmed. Public admissions currently has client-side honeypot/cooldown checks only; add server-side abuse protection before advertising the public form widely. The welfare module is a restricted factual follow-up register, not a medical-record or diagnosis system.
+
+**Acceptance boundary:** code and simulated database-role tests do not replace real browser sign-in, guardian isolation, mobile device checks, payment provider certification, or live hardware testing.
+
 ## Current preview
 
-The active development branch is `fix/assessment-selection-save-preview-20261108`. A new preview has not yet been verified for the latest banking and evidence changes. The Vercel deployment quota previously blocked a new preview. Do not use a stale preview URL to test these features. The production main branch has not been changed by this development branch.
+The active development branch is `fix/assessment-selection-save-preview-20261108`. The latest preview available during this work was built from an earlier service-portal commit and does not include the final admissions page, public website, payroll policy changes or latest front-end fixes. Vercel's Free daily deployment API quota returned a payment-required limit, so no new preview was confirmed for the latest commit. Do not use an older preview to accept these new pages. The production main branch has not been changed by this development branch.
 
 ## Offline limitation — important
 
