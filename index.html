@@ -1564,8 +1564,8 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
 </div>
 </section>
 <section id="communication" class="panel hidden">
-<h2>VICconnect</h2>
-<p class="muted"><strong>VIC Media</strong> communication workspace for staff collaboration, parent and guardian notifications, WhatsApp and SMS preferences, and delivery history.</p>
+<div class="row" style="align-items:center;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:42px;height:42px;border-radius:14px;background:var(--accent);color:#fff;font-size:23px;font-weight:900;box-shadow:0 4px 12px #0002">✦</span><div><h2 style="margin:0">VICconnect</h2><p class="muted" style="margin:3px 0 0;font-size:12px">Communication platform</p></div></div><span class="badge">Powered by VIC Media™</span></div>
+<p class="muted">VICconnect is the VIC Media communication workspace for staff collaboration, parent and guardian notifications, WhatsApp and SMS preferences, and delivery history.</p>
 <section id="parentSchoolInboxPanel" class="panel hidden" style="margin:16px 0">
  <div class="row"><div><div class="dashboard-eyebrow">PRIVATE PARENT COMMUNICATION</div><h3 style="margin:4px 0">Parent & Guardian Messages Inbox</h3><p class="muted">Read parent text and voice messages, reply securely, and track each conversation. Staff only see messages assigned to their account; administrators can oversee the school inbox.</p></div><button type="button" class="primary" id="refreshParentSchoolInbox">Refresh inbox</button></div>
  <div id="parentSchoolInboxStatus" class="notice hidden" aria-live="polite"></div>
@@ -1717,10 +1717,11 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <h3 id="settingsNotifications" class="settings-category-heading">6. School greetings and local display preferences</h3><p class="muted">The dashboard greets staff by time of day and can show school-day messages such as Good morning, Good afternoon, Good evening, Happy Mother's Day, Happy Martyrs' Day, Independence Day and Christmas. Greetings can be reviewed and adjusted. SMS and push delivery are separate integrations and are not activated by these display settings.</p>
  <label for="customWelcomeMessage">Optional custom welcome message for this device</label><input id="customWelcomeMessage" maxlength="120" placeholder="e.g. Welcome to a successful new school term">
 
- <h3 id="settingsAbout" class="settings-category-heading">7. About this software</h3><div class="panel" style="margin:12px 0"><h3>CORNHILL School Management System</h3>
+ <h3 id="settingsVICBrand" class="settings-category-heading">7. VIC Media brand identity</h3><div class="panel" style="margin:12px 0"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:54px;height:54px;border-radius:18px;background:var(--accent);color:#fff;font-size:30px;font-weight:900;box-shadow:0 5px 16px #0002">✦</span><div><h3 style="margin:0">VIC Media™</h3><p class="muted" style="margin:4px 0">Brand identity for VIC Media products and communication tools.</p></div></div><div class="notice" style="margin-top:12px"><strong>VICconnect</strong><br>Powered by VIC Media™</div><p class="muted">The star mark is the initial in-app brand symbol. It can be refined into a complete logo and brand guide later. The ™ symbol is a brand claim; use ® only after official registration.</p><p class="muted">Brand owner name displayed in this software: VIC Media. Product name: VICconnect. AI assistant: VIC Media™ AI.</p></div>
+ <h3 id="settingsAbout" class="settings-category-heading">8. About this software</h3><div class="panel" style="margin:12px 0"><h3>CORNHILL School Management System</h3>
  <p><strong>Software name:</strong> CORNHILL School Management System (CSMS)</p><p><strong>School:</strong> CORNHILL NURSERY AND PRIMARY SCHOOL, Uganda</p><p><strong>Created by:</strong> NUWARIHO VICTOR</p><p><strong>Release date:</strong> 4 November 2026</p><p><strong>Version:</strong> 1.0.0 · Foundation release</p>
  <p><strong>Purpose:</strong> Support school administration, admissions, learner records, classes, academics, staff, attendance, finance, inventory and reporting.</p><p><strong>Platform:</strong> Web application designed for Windows computers and Android phones, with online access and limited offline app-shell support.</p><p class="muted">Release details describe this project release. Improvements will be reflected in later version notes.</p></div>
- <h3 id="settingsPrivacy" class="settings-category-heading">8. Privacy, security and acceptable-use policy</h3><div class="panel" style="margin:12px 0">
+ <h3 id="settingsPrivacy" class="settings-category-heading">9. Privacy, security and acceptable-use policy</h3><div class="panel" style="margin:12px 0">
  <p><strong>School data:</strong> Learner, guardian, staff, academic and finance information is confidential school information. Access is limited to authorised users according to assigned roles.</p>
  <p><strong>Passwords:</strong> Every staff member must use a private password. Do not share passwords or send them in ordinary messages. Use the secure reset process when access is lost.</p>
  <p><strong>Accuracy:</strong> Staff must enter accurate records and report errors to the administrator. Financial transactions and official learner records must not be changed to conceal mistakes.</p>
@@ -1729,7 +1730,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <p><strong>Notifications:</strong> Parent SMS requires guardian consent and an approved school-configured provider. No SMS or push service is promised by this release.</p>
  <p><strong>Retention and incidents:</strong> The school administrator should maintain approved backup, retention and data-breach response procedures and comply with applicable Ugandan data-protection requirements.</p>
  <p class="muted">This is an in-app policy summary for school review, not legal advice or a substitute for a formally approved school privacy notice.</p></div>
- <h3 id="settingsHardware" class="settings-category-heading">9. Hardware buying guide — recommended models</h3>
+ <h3 id="settingsHardware" class="settings-category-heading">10. Hardware buying guide — recommended models</h3>
  <div class="notice"><strong>Important:</strong> These are researched purchase candidates, not devices already physically tested with CORNHILL. Ask the seller for the exact model, connection type, original drivers, warranty and a live demonstration before paying. Hardware prices and availability change. Do not buy a fingerprint device solely because it says “USB fingerprint”.</div>
  <h4>Receipt printers — five models to consider</h4>
  <ol>
@@ -1778,7 +1779,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  </ol>
  <p><strong>Attendance hardware is not automatically biometric-ID hardware:</strong> the small USB readers above are options for enrolling/verifying fingerprints at a computer, while the K40/K50/MB20/F18/SpeedFace are attendance terminals that store staff templates and clock events. For CORNHILL's first attendance setup, I recommend the K40 terminal, not a USB reader.</p>
  <p><strong>Privacy and security:</strong> fingerprints are sensitive biometric data. The system should store a protected biometric reference/template or a device-generated staff ID—not raw fingerprint photographs in the school database. Staff must be informed and an appropriate lawful basis and access controls established before collection.</p>
- <h3 id="settingsHelp" class="settings-category-heading">10. Help and support</h3><p class="muted">For account access, incorrect records, missing permissions or technical problems, contact the CORNHILL school administrator. Never send passwords or confidential learner details through public channels.</p>
+ <h3 id="settingsHelp" class="settings-category-heading">11. Help and support</h3><p class="muted">For account access, incorrect records, missing permissions or technical problems, contact the CORNHILL school administrator. Never send passwords or confidential learner details through public channels.</p>
  </section>
 <p class="muted" style="text-align:center;margin:20px 0">Cornhill School · Student and class management · Amounts in UGX in future finance modules</p>
 </section></main>
