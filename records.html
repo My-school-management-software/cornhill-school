@@ -51,7 +51,7 @@ label{display:block;font-size:12px;font-weight:750;color:#405646;margin:8px 0 5p
   <section class="card">
    <div class="row"><div><span class="pill verified">ADMINISTRATOR ONLY</span><h1>Searchable school records</h1><p class="muted">Every uploaded or scanned evidence file is indexed here automatically. The original remains in the existing private Evidence Capture bucket; this centre stores its metadata, OCR text, source link, verification and expiry fields.</p></div><div class="links"><button id="refresh" type="button">Refresh records</button><button class="primary" id="expiryCheck" type="button">Run expiry check</button></div></div>
    <div class="stats" style="margin-top:12px">
-    <div class="stat"><b id="recordCount">0</b><span>Indexed documents</span></div>
+    <div class="stat"><b id="recordCount">0</b><span>Matching documents</span></div>
     <div class="stat"><b id="pendingCount">0</b><span>Awaiting verification</span></div>
     <div class="stat"><b id="dueCount">0</b><span>Expiring within 30 days</span></div>
     <div class="stat"><b id="expiredCount">0</b><span>Expired documents</span></div>
@@ -93,7 +93,7 @@ const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'cornhill-records-centre-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id),bucket='cornhill-private-evidence';
-let user=null,profile=null,records=[],filesById=new Map(),selected=null;
+let user=null,profile=null,records=[],filesById=new Map(),selected=null,typeOptionsLoaded=false,searchTimer=null;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(msg,error=false){$('toast').textContent=msg;$('toast').className='notice '+(error?'error':'success');$('toast').classList.remove('hidden')}
 function hideToast(){$('toast').classList.add('hidden')}
@@ -134,7 +134,10 @@ function filteredRecords(){
 }
 function renderRecords(){
  const rows=filteredRecords();
- $('typeFilter').innerHTML='<option value="">All types</option>'+[...new Set(records.map(r=>r.record_type))].sort().map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('');
+ if(!typeOptionsLoaded){
+  $('typeFilter').innerHTML='<option value="">All types</option>'+[...new Set(records.map(r=>r.record_type))].sort().map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('');
+  typeOptionsLoaded=true;
+ }
  $('recordList').innerHTML=rows.length?rows.map(r=>{
   const expiry=expiryStage(r.expires_on),status=r.verification_status.toLowerCase();
   const isSelected=selected?.id===r.id;
@@ -142,11 +145,17 @@ function renderRecords(){
    '<div class="record-meta">Source: '+esc(r.source_context_type||'General')+' · Linked record: '+esc(r.source_record_id||'Not linked')+' · Identifier: '+esc(r.record_identifier||'Not captured')+(r.expires_on?' · Expires '+esc(shortDate(r.expires_on)):'')+'</div>'+
    '<div class="record-actions"><button type="button" data-edit="'+esc(r.id)+'">Edit / verify</button><button type="button" data-open="'+esc(r.id)+'">Open original</button><button type="button" data-ocr="'+esc(r.id)+'">Run OCR</button></div></article>';
  }).join(''):'<div class="empty">No documents match those filters. Newly uploaded Evidence Capture files appear here automatically.</div>';
- $('loadStatus').textContent='Showing '+rows.length+' of '+records.length+' indexed records. Original files remain private.';
+ $('loadStatus').textContent='Showing '+rows.length+' matching documents (maximum 500 per query). Original files remain private.';
 }
 async function loadRecords(){
  hideToast();$('loadStatus').textContent='Loading records from the central index…';
- const {data,error}=await db.from('school_record_index').select('id,evidence_file_id,request_id,record_type,record_title,source_context_type,source_record_id,original_file_name,record_identifier,issuing_authority,issued_on,expires_on,extracted_text,extracted_fields,ocr_status,verification_status,notes,created_by,reviewed_by,reviewed_at,created_at,updated_at').order('updated_at',{ascending:false}).limit(500);
+ const {data,error}=await db.rpc('search_school_records',{
+  p_query:$('search').value.trim()||null,
+  p_type:$('typeFilter').value||null,
+  p_status:$('statusFilter').value||null,
+  p_expiry_filter:$('expiryFilter').value||null,
+  p_limit:500
+ });
  if(error){$('loadStatus').textContent='Records could not be loaded: '+error.message;toast('Could not load records: '+error.message,true);return}
  records=data||[];updateStats();renderRecords();
 }
@@ -255,8 +264,9 @@ $('expiryCheck').addEventListener('click',async()=>{
  finally{$('expiryCheck').disabled=false}
 });
 $('refresh').addEventListener('click',loadRecords);
-$('clearFilters').addEventListener('click',()=>{$('search').value='';$('typeFilter').value='';$('statusFilter').value='';$('expiryFilter').value='';renderRecords()});
-$('search').addEventListener('input',renderRecords);$('typeFilter').addEventListener('change',renderRecords);$('statusFilter').addEventListener('change',renderRecords);$('expiryFilter').addEventListener('change',renderRecords);
+$('clearFilters').addEventListener('click',()=>{$('search').value='';$('typeFilter').value='';$('statusFilter').value='';$('expiryFilter').value='';loadRecords()});
+$('search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(loadRecords,300)});
+$('typeFilter').addEventListener('change',loadRecords);$('statusFilter').addEventListener('change',loadRecords);$('expiryFilter').addEventListener('change',loadRecords);
 $('closeEditor').addEventListener('click',()=>{$('editorCard').classList.add('hidden');selected=null;renderRecords()});
 $('loginForm').addEventListener('submit',async e=>{
  e.preventDefault();const form=Object.fromEntries(new FormData(e.currentTarget));
