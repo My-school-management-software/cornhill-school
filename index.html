@@ -1299,8 +1299,8 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <h3 style="margin-top:20px">Teacher mark entry · assigned class only</h3>
  <form id="scoreForm"><div class="full"><label>Assessment *</label><select name="assessment_id" id="scoreAssessmentSelect" required></select></div><div><label>Learner *</label><select name="student_id" id="scoreStudentSelect" required></select></div><div><label>Score or X (Absent) *</label><input name="score" type="text" inputmode="decimal" placeholder="Enter a mark or X if absent" required></div><div class="full"><label>Teacher comment</label><input name="teacher_comment"></div><div class="full"><button class="primary">Save learner mark</button></div></form><div style="margin-top:18px"><h4>Class mark sheet</h4><p class="muted">Choose an assessment above to load its learners. Enter marks in one list and save together. Existing marks are shown so you can safely update them.</p><div id="bulkMarksMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Learner / school code</th><th>LIN</th><th>P7 index</th><th>Score</th><th>Comment</th></tr></thead><tbody id="bulkMarkRows"><tr><td colspan="5">Choose an assessment to load the class mark sheet.</td></tr></tbody></table></div><div class="row" style="margin-top:12px;justify-content:flex-start"><button type="button" class="primary" id="saveBulkMarks">Save all entered marks</button><button type="button" id="syncBulkMarks">Synchronise pending drafts</button></div><p class="muted">Like Excel autosave, changes are first saved on this device. When internet is available, the system attempts conflict-checked synchronisation. A pending draft is not an official mark until the server accepts it.</p></div>
  <div class="excel-marks-panel" style="margin-top:24px">
-  <h3>Class marks folders · Excel-style entry</h3>
-  <p class="muted">Open your assigned class folder and enter all subject marks beside each admitted learner. Nursery and P1–P5 use Beginning, Midterm and End of term; P6 and P7 use Set I–IV. All marks and assessment columns remain visible to teachers. Choose “All periods · full class sheet” to view Beginning, Midterm and End-of-Term marks together. On a phone, swipe horizontally across the sheet to reach every subject and calculation.</p>
+  <h3>Class Mark Sheet · one simple register</h3>
+  <p class="muted">Your assigned class and learners are loaded together. Choose the term and assessment period, then enter marks directly in the subject columns. You do not need to select learners or tick subjects one by one. Choose “All periods · full class sheet” to review every assessment together. On a phone, swipe sideways across the table to reach the remaining subjects.</p>
   <div id="excelClassFolders" class="module-grid" style="margin:12px 0"></div>
   <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
    <div style="min-width:170px;flex:1"><label for="excelMarksPhase">Assessment period</label><select id="excelMarksPhase"><option value="All">All periods · full class sheet</option><option value="Beginning">Beginning · 1</option><option value="Midterm">Midterm · 2</option><option value="End">End of term · 3</option><option value="Fourth">Fourth assessment · 4 (where used)</option></select></div>
@@ -1326,15 +1326,15 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
    <h4>Import existing marks from Excel</h4>
    <p class="muted">Choose your workbook and term. CORNHILL matches the learners and subjects in your assigned class. Learner records are never changed.</p>
    <div class="notice" style="margin:10px 0">
-    <b>Simple Excel import guide — no subject codes required</b>
+    <b>Simple Excel import guide — one header row and subject codes</b>
     <ol style="margin:8px 0 8px 20px">
-     <li>Use one worksheet for your class. Put <b>Pupil Code</b>, <b>LIN</b> and <b>Learner Name</b> in the first columns.</li>
-     <li>Use two heading rows: on the first row write <b>Beginning</b> above the Beginning subject columns and <b>Midterm</b> above the Midterm subject columns. You may merge each period heading across its subject columns.</li>
-     <li>On the second heading row, write full subject names, for example <b>Number Development</b>, <b>Language Development</b>, <b>Reading</b>, <b>Health Habits</b>, <b>Social Development</b>, <b>Writing</b> and <b>Drawing</b>. Do not type short codes such as NU1 or EN2.</li>
-     <li>Enter marks as numbers. If a learner has not yet done a subject, <b>leave that cell empty</b>. CORNHILL skips it and shows a dash (—) on the report; it does not save zero.</li>
-     <li>If the learner later does the missed subject, enter the mark in that empty cell and import again. Keep <b>Replace marks that already exist</b> unticked unless you deliberately need to replace a saved mark.</li>
+     <li>Use one worksheet for your class, named <b>Middle</b>, <b>Baby</b>, <b>Top</b>, or the relevant primary class.</li>
+     <li>Use one header row only. Start with <b>Pupil Code</b>, <b>LIN</b>, <b>Learner Name</b>, then put the subject codes in separate columns. For Middle Class use <b>NU1, EN1, WR1, HH1, RE1, SD1, DR1</b> for Beginning; <b>NU2, EN2, WR2, HH2, RE2, SD2, DR2</b> for Midterm; and <b>NU3, EN3, WR3, HH3, RE3, SD3, DR3</b> for End of Term.</li>
+     <li>Use one learner per row. The code ending identifies the period: <b>1 = Beginning</b>, <b>2 = Midterm</b>, <b>3 = End</b>. Use the codes for the selected class; other classes have their own curriculum codes.</li>
+     <li>Enter marks as numbers. Leave a cell empty if the learner has not yet been assessed. Empty cells are skipped; they are not saved as zero.</li>
+     <li>Preview the workbook first. Correct every unmatched learner or subject shown in the review before importing. Existing marks are protected unless you deliberately tick <b>Replace marks that already exist</b>.</li>
     </ol>
-    <p><b>Important:</b> A real score of 0 is entered as <b>0</b>. Do not type a dash or X for a missed Nursery subject; leave the cell blank. For now, when importing only Beginning and Midterm, include those two heading groups and leave End out of the workbook.</p>
+    <p><b>Important:</b> A real score of 0 is entered as <b>0</b>. Do not type a dash for a missing mark. For P4–P7 only, X means absent where the school uses the absent-mark option.</p>
    </div>
    <input id="teacherMarksWorkbook" type="file" accept=".xlsx,.xls,.xlsm" />
    <label><input id="replaceExistingImportedMarks" type="checkbox"> Replace marks that already exist (leave unticked to protect saved marks)</label>
@@ -3108,7 +3108,7 @@ async function loadAcademics(){
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
- $('assessmentSetup').classList.toggle('hidden',!['Admin','Teacher'].includes(profile?.role));
+ $('assessmentSetup').classList.toggle('hidden',profile?.role!=='Admin');
  $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
  $('adminTeacherMarksRegister').classList.toggle('hidden',profile?.role!=='Admin');
  $('adminReportActions').classList.toggle('hidden',profile?.role!=='Admin');
@@ -3401,7 +3401,7 @@ $('downloadBlankReportTemplates')?.addEventListener('click',downloadBlankClassRe
 async function getTermScores(){
  const termId=$('reportTermSelect').value,classId=$('reportClassSelect').value;
  if(!termId||!classId){message('academicMsg','Choose both a term and a class to view results.',true);return null}
- const {data:allRows,error}=await db.from('assessments').select('id,title,max_score,subject_id,subjects(name)').eq('term_id',termId).eq('class_id',classId);
+ const {data:allRows,error}=await db.from('assessments').select('id,title,max_score,subject_id,term_id,class_id,subjects(name)').eq('term_id',termId).eq('class_id',classId);
  if(error){message('academicMsg','Could not load term assessments: '+error.message,true);return null}
  const classSubjectIds=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
  const data=(allRows||[]).filter(x=>classSubjectIds.has(x.subject_id));
@@ -6418,8 +6418,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const root=$('teacherMarkEntry');if(!root||root.dataset.markGridV2==='yes')return;
   if(profile?.role!=='Teacher')return;
   root.dataset.markGridV2='yes';
-  $('scoreForm')?.classList.add('hidden');
-  const panel=document.createElement('section');panel.className='panel';panel.style.marginTop='14px';
+  $('scoreForm')?.classList.add('hidden');$('bulkMarkRows')?.closest('div[style]')?.classList.add('hidden');
+  const panel=document.createElement('section');panel.className='panel hidden';panel.style.marginTop='14px';
   panel.innerHTML='<h3>Teacher mark entry · assigned class only</h3><p class="muted">Your assigned class is loaded automatically. Choose the term, assessment periods, subjects and learners yourself. Nothing is preselected.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><div><label>Assigned class</label><input readonly value="'+escV(cls()?.name||'Loading assigned class…')+'"></div><div><label>Academic term</label><select id="markGridTerm"><option value="">Choose term</option>'+termOptions()+'</select></div></div><div><b>1. Assessment periods</b><div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0"><label><input type="checkbox" data-mark-period value="Beginning"> Beginning</label><label><input type="checkbox" data-mark-period value="Midterm"> Midterm</label><label><input type="checkbox" data-mark-period value="End"> End assessment</label></div></div><div style="margin-top:14px"><b>2. Select subjects</b><div id="markGridSubjects" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>3. Choose learners</b><div id="markGridLearners" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>4. Enter marks</b><div id="markGridTableHost" style="margin-top:8px"><p class="muted">Choose a term, subjects and learners.</p></div></div><div id="markGridStatus" class="notice hidden"></div><button type="button" class="primary" id="saveSelectedLearnerMarks">Save learner marks</button>';
   root.prepend(panel);
   $('markGridTerm').value=academic.terms.find(t=>t.is_current&&!t.is_closed)?.id||academic.terms.find(t=>!t.is_closed)?.id||academic.terms[0]?.id||'';
