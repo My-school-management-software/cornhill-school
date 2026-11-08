@@ -1168,6 +1168,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-top:12px">
   <div class="stat"><small>Non-archived learners</small><div id="identityTotalLearners" class="num">—</div></div>
   <div class="stat"><small>Missing Ministry LIN</small><div id="identityMissingLin" class="num">—</div></div>
+  <div class="stat"><small>Missing P7 index number</small><div id="identityMissingP7Index" class="num">—</div></div>
   <div class="stat"><small>Temporary pupil codes</small><div id="identityTemporaryCodes" class="num">—</div></div>
   <div class="stat"><small>Incomplete admissions</small><div id="identityIncompleteAdmissions" class="num">—</div></div>
  </div>
@@ -2624,13 +2625,15 @@ async function loadLearnerIdentityQualitySummary(){
  const rows=Array.isArray(data)?data:[];
  const total=rows.reduce((n,x)=>n+Number(x.total_learners||0),0);
  const missing=rows.reduce((n,x)=>n+Number(x.missing_lin||0),0);
+ const missingP7Index=rows.reduce((n,x)=>n+Number(x.missing_p7_index||0),0);
  const temporary=rows.reduce((n,x)=>n+Number(x.temporary_pupil_codes||0),0);
  const incomplete=rows.reduce((n,x)=>n+Number(x.incomplete_admissions||0),0);
  $('identityTotalLearners').textContent=String(total);
  $('identityMissingLin').textContent=String(missing);
+ $('identityMissingP7Index').textContent=String(missingP7Index);
  $('identityTemporaryCodes').textContent=String(temporary);
  $('identityIncompleteAdmissions').textContent=String(incomplete);
- host.innerHTML=rows.map(x=>'<div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)"><strong>'+esc(x.class_name||'Unassigned')+'</strong><span>'+Number(x.total_learners||0)+' learners · '+Number(x.missing_lin||0)+' missing LIN · '+Number(x.temporary_pupil_codes||0)+' temporary codes · '+Number(x.incomplete_admissions||0)+' incomplete</span></div>').join('')||'No learner identity records were found.';
+ host.innerHTML=rows.map(x=>'<div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)"><strong>'+esc(x.class_name||'Unassigned')+'</strong><span>'+Number(x.total_learners||0)+' learners · '+Number(x.missing_lin||0)+' missing LIN · '+Number(x.missing_p7_index||0)+' missing P7 index · '+Number(x.temporary_pupil_codes||0)+' temporary codes · '+Number(x.incomplete_admissions||0)+' incomplete</span></div>').join('')||'No learner identity records were found.';
 }
 $('refreshLearnerIdentityQuality')?.addEventListener('click',loadLearnerIdentityQualitySummary);
 
