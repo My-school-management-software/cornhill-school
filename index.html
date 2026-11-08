@@ -1125,7 +1125,24 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 </div>
 </div></section>
 <section id="modulePreview" class="panel hidden"><h2 id="moduleTitle">Module</h2><p id="moduleDescription" class="muted"></p><div class="notice">This module is visible in the dashboard, but its full working features have not been built yet. We will implement it in stages and update the progress tracker.</div><button class="tab" data-tab="dashboard">← Back to dashboard</button></section>
-<section id="students" class="panel hidden"><div class="row"><h2>Student register</h2><input id="search" style="max-width:300px" placeholder="Search name, pupil code or LIN"></div><div id="studentRegisterClassCards" aria-label="Filter student register by class" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin:14px 0 18px"></div><p id="studentRegisterFilterLabel" class="muted" style="margin:0 0 10px">Showing learners from all classes.</p><div class="table-wrap"><table><thead><tr><th class="learner-row-actions">Actions</th><th>School learner code</th><th>LIN (Ministry)</th><th>P7 index no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Day / Boarding</th><th>Bursary (Admin only)</th><th>Guardian / Phone (Admin only)</th><th>Status</th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="noStudents" class="empty hidden">No learners match this class and search. Try another class or clear the search.</div></section>
+<section id="students" class="panel hidden"><div class="row"><h2>Student register</h2><input id="search" style="max-width:300px" placeholder="Search name, pupil code or LIN"></div><div id="studentRegisterClassCards" aria-label="Filter student register by class" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin:14px 0 18px"></div><p id="studentRegisterFilterLabel" class="muted" style="margin:0 0 10px">Showing learners from all classes.</p>
+<div id="bulkPromotionPanel" class="panel hidden" style="margin:12px 0 16px;border:1px solid var(--line);border-left:4px solid var(--cornhill-accent,#176b48)">
+ <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+  <div><span class="dashboard-eyebrow">ADMINISTRATOR ACTION</span><h3 style="margin:4px 0">Bulk learner promotion</h3><p class="muted" style="margin:0">Select active learners from one or more classes, then move the whole selection to one destination class. All selected learners will be processed together.</p></div>
+  <strong id="bulkPromotionSelectedCount" aria-live="polite">0 learners selected</strong>
+ </div>
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:12px">
+  <div><label for="bulkPromotionDestination">Destination class *</label><select id="bulkPromotionDestination" style="margin-bottom:0"><option value="">Choose destination class</option></select></div>
+  <div><label for="bulkPromotionEffectiveDate">Effective date *</label><input id="bulkPromotionEffectiveDate" type="date" style="margin-bottom:0" required></div>
+  <div style="grid-column:1/-1"><label for="bulkPromotionNotes">Reason / notes (optional)</label><input id="bulkPromotionNotes" maxlength="500" placeholder="e.g. End-of-year promotion to the next class" style="margin-bottom:0"></div>
+ </div>
+ <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button type="button" class="primary" id="runBulkPromotion" disabled>Review and promote selected</button>
+  <button type="button" id="clearBulkPromotionSelection">Clear selection</button>
+  <span class="muted">Use the checkboxes in the first column. “Select all” applies to the learners currently shown by the class filter and search.</span>
+ </div>
+ <div id="bulkPromotionMessage" class="notice" role="status" aria-live="polite">Choose active learners using the first-column checkboxes.</div>
+</div><div class="table-wrap"><table><thead><tr><th class="bulk-promotion-select-column" style="width:48px"><input id="selectAllFilteredPromotion" type="checkbox" aria-label="Select all active learners currently shown"></th><th class="learner-row-actions">Actions</th><th>School learner code</th><th>LIN (Ministry)</th><th>P7 index no.</th><th>Student</th><th>Gender</th><th>Class</th><th>Day / Boarding</th><th>Bursary (Admin only)</th><th>Guardian / Phone (Admin only)</th><th>Status</th></tr></thead><tbody id="studentRows"></tbody></table></div><div id="noStudents" class="empty hidden">No learners match this class and search. Try another class or clear the search.</div></section>
 <section id="achievedLearners" class="panel hidden">
  <div class="row"><div><h2>Achieved Learners</h2><p class="muted">Learners achieved within the last 60 days. They are excluded from active registers and notifications.</p></div><span class="badge">Administrator only</span></div>
  <div class="table-wrap"><table><thead><tr><th>Pupil code</th><th>Learner</th><th>Class</th><th>Achieved on</th><th>Time remaining</th><th>Action</th></tr></thead><tbody id="achievedLearnersRows" class="archivedLearnersRows"></tbody></table></div>
@@ -2459,7 +2476,31 @@ const registerClasses=[...classes].filter(cl=>profile?.role!=='Teacher'||cl.id==
  const selectedClass=registerClasses.find(cl=>cl.id===studentRegisterClassFilter);
  $('studentRegisterFilterLabel').textContent=studentRegisterClassFilter==='all'?'Showing learners from all classes.':studentRegisterClassFilter==='unassigned'?'Showing learners not yet assigned to a class.':'Showing learners in '+(selectedClass?(selectedClass.name+(selectedClass.stream?' · '+selectedClass.stream:'')):'selected class')+'.';
  const q=$('search').value.toLowerCase();const filtered=visibleStudents.filter(s=>(studentRegisterClassFilter==='all'||(studentRegisterClassFilter==='unassigned'?!s.class_id:s.class_id===studentRegisterClassFilter))&&((s.first_name+' '+(s.middle_name||'')+' '+s.last_name+' '+s.admission_number+' '+(s.lin||'')+' '+(s.p7_index_number||'')).toLowerCase().includes(q)||financeCodeAliases.some(a=>a.student_id===s.id&&String(a.old_code||'').toLowerCase().includes(q))));
-$('studentRows').innerHTML=filtered.map(s=>'<tr><td><strong>'+esc(s.admission_number)+'</strong>'+(window.bursaryReviewStudentIds?.has(s.id)?'<br><span class="badge" style="background:#fee2e2;color:#991b1b">BURSARY REVIEW</span>':'')+'</td><td>'+esc(s.lin||'Not entered')+'</td><td>'+esc(s.p7_index_number||'—')+'</td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.gender)+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(s.learner_type||'Day')+'</td><td>'+(profile?.role==='Admin'?(s.is_bursary?'<span class="badge">'+esc(s.bursary_category||'Bursary')+' · UGX '+money(s.bursary_fee_ugx)+'</span>':'Regular'):'Restricted')+'</td><td>'+(profile?.role==='Admin'?esc(s.guardian_name||'—')+'<br><span class="muted">'+esc(s.guardian_phone||'')+'</span>':'Restricted')+'</td><td><span class="badge">'+esc(s.status)+'</span>'+(s.admission_number?.startsWith('TMP')?'<br><span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800">TEMPORARY CODE · PERMANENT CODE PENDING</span>':'')+(s.admission_complete===false?'<br><span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800">ADMISSION INCOMPLETE · COMPLETE REQUIRED DETAILS</span>':'')+'</td><td class="learner-row-actions"><div class="learner-action-stack"><button type="button" class="viewLearner" data-id="'+esc(s.id)+'">View</button> '+(profile?.role==='Admin'?'<button type="button" class="editLearner" data-id="'+esc(s.id)+'">Edit</button> <button type="button" class="archiveLearner" data-id="'+esc(s.id)+'">Remove</button>':'')+'</div></td></tr>').join('');
+$('studentRows').innerHTML=filtered.map(s=>'<tr><td class="bulk-promotion-select-column">'+(profile?.role==='Admin'&&s.status==='Active'&&s.class_id?'<input type="checkbox" class="bulkPromotionLearner" data-id="'+esc(s.id)+'" aria-label="Select '+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+' for bulk promotion" '+(window.cornhillBulkPromotionSelectedIds?.has(s.id)?'checked':'')+'>':'—')+'</td><td><strong>'+esc(s.admission_number)+'</strong>'+(window.bursaryReviewStudentIds?.has(s.id)?'<br><span class="badge" style="background:#fee2e2;color:#991b1b">BURSARY REVIEW</span>':'')+'</td><td>'+esc(s.lin||'Not entered')+'</td><td>'+esc(s.p7_index_number||'—')+'</td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.gender)+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(s.learner_type||'Day')+'</td><td>'+(profile?.role==='Admin'?(s.is_bursary?'<span class="badge">'+esc(s.bursary_category||'Bursary')+' · UGX '+money(s.bursary_fee_ugx)+'</span>':'Regular'):'Restricted')+'</td><td>'+(profile?.role==='Admin'?esc(s.guardian_name||'—')+'<br><span class="muted">'+esc(s.guardian_phone||'')+'</span>':'Restricted')+'</td><td><span class="badge">'+esc(s.status)+'</span>'+(s.admission_number?.startsWith('TMP')?'<br><span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800">TEMPORARY CODE · PERMANENT CODE PENDING</span>':'')+(s.admission_complete===false?'<br><span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800">ADMISSION INCOMPLETE · COMPLETE REQUIRED DETAILS</span>':'')+'</td><td class="learner-row-actions"><div class="learner-action-stack"><button type="button" class="viewLearner" data-id="'+esc(s.id)+'">View</button> '+(profile?.role==='Admin'?'<button type="button" class="editLearner" data-id="'+esc(s.id)+'">Edit</button> <button type="button" class="archiveLearner" data-id="'+esc(s.id)+'">Remove</button>':'')+'</div></td></tr>').join('');
+// Keep promotion choices stable across normal register refreshes.
+window.cornhillBulkPromotionSelectedIds=window.cornhillBulkPromotionSelectedIds||new Set();
+const selectedPromotionIds=window.cornhillBulkPromotionSelectedIds;
+const validPromotionIds=new Set(students.filter(x=>x.status==='Active'&&x.class_id).map(x=>x.id));
+for(const id of [...selectedPromotionIds])if(!validPromotionIds.has(id))selectedPromotionIds.delete(id);
+const bulkPanel=$('bulkPromotionPanel'),bulkDestination=$('bulkPromotionDestination');
+if(profile?.role==='Admin'){
+ bulkPanel?.classList.remove('hidden');
+ const savedDestination=bulkDestination?.value||'';
+ if(bulkDestination)bulkDestination.innerHTML='<option value="">Choose destination class</option>'+registerClasses.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name+(c.stream?' · '+c.stream:''))+'</option>').join('');
+ if(bulkDestination&&registerClasses.some(c=>c.id===savedDestination))bulkDestination.value=savedDestination;
+ if($('bulkPromotionEffectiveDate')&&!$('bulkPromotionEffectiveDate').value)$('bulkPromotionEffectiveDate').value=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Kampala'});
+ document.querySelectorAll('.bulk-promotion-select-column').forEach(el=>el.classList.remove('hidden'));
+ const count=selectedPromotionIds.size;
+ $('bulkPromotionSelectedCount').textContent=count+' learner'+(count===1?'':'s')+' selected';
+ const selectAll=$('selectAllFilteredPromotion');
+ const selectable=filtered.filter(x=>x.status==='Active'&&x.class_id);
+ const selectedVisible=selectable.filter(x=>selectedPromotionIds.has(x.id)).length;
+ if(selectAll){selectAll.checked=selectable.length>0&&selectedVisible===selectable.length;selectAll.indeterminate=selectedVisible>0&&selectedVisible<selectable.length;selectAll.disabled=selectable.length===0}
+ if($('runBulkPromotion'))$('runBulkPromotion').disabled=count===0||!bulkDestination?.value;
+}else{
+ bulkPanel?.classList.add('hidden');
+ document.querySelectorAll('.bulk-promotion-select-column').forEach(el=>el.classList.add('hidden'));
+}
 $('noStudents').textContent=filtered.length?'':'No learners match this class and search. Try another class or clear the search.';const archived=students.filter(s=>s.status==='Archived');const archiveNow=Date.now(),archiveDays=s=>Math.max(0,Math.floor((archiveNow-new Date(s.archived_at||s.created_at).getTime())/86400000)),archiveDate=s=>new Date(s.archived_at||s.created_at);const achieved=archived.filter(s=>archiveDays(s)<60),trash=archived.filter(s=>archiveDays(s)>=60);const retentionStage=s=>{const start=archiveDate(s),two=new Date(start),four=new Date(start),five=new Date(start);two.setFullYear(two.getFullYear()+2);four.setFullYear(four.getFullYear()+4);five.setFullYear(five.getFullYear()+5);if(archiveNow<two.getTime())return 'Before 2-year review';if(archiveNow<four.getTime())return '2-year review passed';if(archiveNow<five.getTime())return '4-year review passed';return '5-year retention review due'};const restoreButton=s=>'<button type="button" class="restoreLearner" data-id="'+esc(s.id)+'">Restore</button>';const achievedRows=achieved.map(s=>'<tr><td>'+esc(s.admission_number)+'</td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(archiveDate(s).toLocaleDateString('en-UG'))+'</td><td>'+Math.max(0,60-archiveDays(s))+' days</td><td>'+restoreButton(s)+'</td></tr>').join('');const trashRows=trash.map(s=>'<tr><td>'+esc(s.admission_number)+'</td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(s.archive_reason||'—')+'</td><td>'+esc(archiveDate(s).toLocaleDateString('en-UG'))+'</td><td>'+esc(retentionStage(s))+'</td><td>'+restoreButton(s)+'</td></tr>').join('');$('achievedLearnersRows').innerHTML=achievedRows;$('trashBinLearnersRows').innerHTML=trashRows;$('noAchievedLearners').classList.toggle('hidden',achieved.length>0);$('noTrashBinLearners').classList.toggle('hidden',trash.length>0);$('archivedLearnersPanel')?.classList.toggle('hidden',profile?.role!=='Admin');$('noStudents').classList.toggle('hidden',filtered.length>0);$('classSelect').innerHTML='<option value="">Unassigned</option>'+classes.map(c=>'<option value="'+c.id+'">'+esc(c.name+(c.stream?' - '+c.stream:''))+'</option>').join('');$('bulkImportClass').innerHTML='<option value="">Choose class fallback</option>'+classes.map(c=>'<option value="'+c.id+'">'+esc(c.name+(c.stream?' - '+c.stream:''))+'</option>').join('');
 const classOrder=['Baby','Middle','Top','P1','P2','P3','P4','P5','P6','P7'];const orderedClasses=[...classes].filter(c=>profile?.role!=='Teacher'||c.id===sessionStorage.getItem('cornhill_teacher_class_id')).sort((a,b)=>{const ai=classOrder.indexOf(String(a.name).trim()),bi=classOrder.indexOf(String(b.name).trim());return (ai<0?99:ai)-(bi<0?99:bi)||String(a.name).localeCompare(String(b.name))||String(a.stream||'').localeCompare(String(b.stream||''))});$('classList').innerHTML=orderedClasses.length?'<div class="panel" style="margin:12px 0 4px;padding:16px;border:1px solid var(--cornhill-line);border-radius:14px"><div class="row" style="align-items:center;gap:12px"><div style="min-width:0;flex:1"><h3 style="margin:0 0 4px">Class registers</h3><p class="muted" style="margin:0">Choose a class to open its live learner register. '+orderedClasses.length+' class'+(orderedClasses.length===1?'':'es')+' available.</p></div><span class="badge">Registers</span></div><div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:14px"><div style="flex:1;min-width:190px"><label for="classRegisterSelect">Select class / stream</label><select id="classRegisterSelect" style="margin-bottom:0">'+orderedClasses.map(c=>{const all=visibleStudents.filter(st=>st.class_id===c.id),active=all.filter(st=>st.status==='Active').length;return '<option value="'+esc(c.id)+'">'+esc(c.name)+(c.stream?' · '+esc(c.stream):'')+' — '+all.length+' learners ('+active+' active)</option>'}).join('')+'</select></div><button type="button" class="primary" id="openClassRegister" data-class-roster="'+esc(orderedClasses[0].id)+'">View class register</button></div></div>':'<div class="notice">No classes have been created yet. Use “Set up standard classes” to add Baby, Middle, Top and P1–P7.</div>'};$('classRosterPrint').classList.add('hidden');$('classRosterSearch').value='';$('classRosterStatus').value='all';
 function applyRoleNavigation(){
@@ -5677,6 +5718,63 @@ $('admissionMatchActions').addEventListener('click',e=>{
 });
 $('cancelLearnerEdit').addEventListener('click',async()=>{const draftKey=editingStudentId?'learner-edit-'+editingStudentId:null;editingStudentId=null;if(draftKey)await clearLocalFormDraft(currentUserId,draftKey);$('studentForm').reset();$('studentForm').elements.admission_prorate.disabled=false;$('studentForm').elements.admission_date.disabled=false;$('studentFormTitle').textContent='Register a student';$('studentForm').querySelector('button[type="submit"]').textContent='Save student record';$('cancelLearnerEdit').classList.add('hidden');$('bursaryStatus').value='false';syncBursaryAdmissionFields();message('appMsg','Learner edit cancelled. No changes were saved.');});
 $('backToLearners').addEventListener('click',()=>{if(window.returnToNotificationsAfterLearnerReview){window.returnToNotificationsAfterLearnerReview=false;$('backToLearners').textContent='Back to register';tab('notifications')}else tab('students')});
+$('studentRows').addEventListener('change',e=>{
+ const input=e.target.closest('.bulkPromotionLearner');if(!input||profile?.role!=='Admin')return;
+ window.cornhillBulkPromotionSelectedIds=window.cornhillBulkPromotionSelectedIds||new Set();
+ if(input.checked)window.cornhillBulkPromotionSelectedIds.add(input.dataset.id);
+ else window.cornhillBulkPromotionSelectedIds.delete(input.dataset.id);
+ render();
+});
+$('selectAllFilteredPromotion')?.addEventListener('change',()=>{
+ if(profile?.role!=='Admin')return;
+ window.cornhillBulkPromotionSelectedIds=window.cornhillBulkPromotionSelectedIds||new Set();
+ const set=window.cornhillBulkPromotionSelectedIds;
+ const q=$('search').value.toLowerCase();
+ const list=visibleStudents.filter(s=>(studentRegisterClassFilter==='all'||(studentRegisterClassFilter==='unassigned'?!s.class_id:s.class_id===studentRegisterClassFilter))&&((s.first_name+' '+(s.middle_name||'')+' '+s.last_name+' '+s.admission_number+' '+(s.lin||'')+' '+(s.p7_index_number||'')).toLowerCase().includes(q)||financeCodeAliases.some(a=>a.student_id===s.id&&String(a.old_code||'').toLowerCase().includes(q)))&&s.status==='Active'&&s.class_id);
+ if($('selectAllFilteredPromotion').checked)for(const learner of list)set.add(learner.id);
+ else for(const learner of list)set.delete(learner.id);
+ render();
+});
+$('bulkPromotionDestination')?.addEventListener('change',()=>{const selected=window.cornhillBulkPromotionSelectedIds||new Set();$('runBulkPromotion').disabled=selected.size===0||!$('bulkPromotionDestination').value});
+$('clearBulkPromotionSelection')?.addEventListener('click',()=>{
+ window.cornhillBulkPromotionSelectedIds=new Set();
+ if($('bulkPromotionMessage')){$('bulkPromotionMessage').className='notice';$('bulkPromotionMessage').textContent='Selection cleared. Choose active learners using the first-column checkboxes.'}
+ render();
+});
+$('runBulkPromotion')?.addEventListener('click',async()=>{
+ if(profile?.role!=='Admin'||demoMode)return;
+ const ids=[...(window.cornhillBulkPromotionSelectedIds||new Set())];
+ const destinationId=$('bulkPromotionDestination').value;
+ const effectiveDate=$('bulkPromotionEffectiveDate').value;
+ const notes=$('bulkPromotionNotes').value.trim();
+ const chosen=students.filter(x=>ids.includes(x.id));
+ const destination=classes.find(x=>x.id===destinationId);
+ const status=$('bulkPromotionMessage'),button=$('runBulkPromotion');
+ const showError=msg=>{status.className='notice error';status.textContent=msg};
+ if(!ids.length){showError('Select at least one active learner first.');return}
+ if(ids.length>500){showError('Select no more than 500 learners per promotion.');return}
+ if(chosen.length!==ids.length||chosen.some(x=>x.status!=='Active'||!x.class_id)){showError('One or more selected learners are no longer eligible. Refresh the register and select them again.');return}
+ if(!destination){showError('Choose a valid destination class.');return}
+ if(chosen.some(x=>x.class_id===destinationId)){showError('The destination is already the current class for one or more selected learners. Remove those learners or choose another destination.');return}
+ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(effectiveDate)||Number.isNaN(Date.parse(effectiveDate))){showError('Choose a valid effective date.');return}
+ const sourceNames=[...new Set(chosen.map(x=>{const c=classes.find(y=>y.id===x.class_id);return c?(c.name+(c.stream?' · '+c.stream:'')):'Unassigned'}))];
+ const sample=chosen.slice(0,12).map(x=>[x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' ')).join(', ');
+ const more=chosen.length>12?' and '+(chosen.length-12)+' more':'';
+ const targetName=destination.name+(destination.stream?' · '+destination.stream:'');
+ if(!confirm('Confirm this BULK class promotion?\\n\\nLearners selected: '+chosen.length+'\\nFrom class(es): '+sourceNames.join(', ')+'\\nTo: '+targetName+'\\nEffective date: '+effectiveDate+'\\nReason: '+(notes||'Bulk class promotion')+'\\n\\nLearners: '+sample+more+'\\n\\nThe system will save one class-history record per learner and update their active enrolment class. Existing fees, receipts, marks, LINs and pupil codes will remain unchanged. All learners are processed together; a validation failure stops the whole batch.'))return;
+ button.disabled=true;button.textContent='Promoting learners…';status.className='notice';status.textContent='Saving '+chosen.length+' learner promotion(s) together…';
+ try{
+  const {data,error}=await db.rpc('promote_learners_bulk',{p_student_ids:ids,p_new_class_id:destinationId,p_effective_date:effectiveDate,p_notes:notes||null});
+  if(error)throw error;
+  const result=Array.isArray(data)?data[0]:data;
+  const promoted=Number(result?.promoted_count||chosen.length),history=Number(result?.history_count||promoted);
+  window.cornhillBulkPromotionSelectedIds=new Set();
+  await refresh();
+  if($('bulkPromotionMessage')){$('bulkPromotionMessage').className='notice success';$('bulkPromotionMessage').textContent='Successfully promoted '+promoted+' learner(s) to '+targetName+'. '+history+' class-history record(s) saved. Existing financial and academic history was preserved.'}
+  message('appMsg','Bulk promotion completed: '+promoted+' learner(s) moved to '+targetName+'.');
+ }catch(err){showError('Bulk promotion was not saved. No learners were moved. '+(err?.message||'Please review the selection and try again.'))}
+ finally{button.disabled=false;button.textContent='Review and promote selected';render()}
+});
 $('studentRows').addEventListener('click',async e=>{
  const archive=e.target.closest('.archiveLearner');if(archive){if(demoMode||profile?.role!=='Admin')return;const learner=students.find(x=>x.id===archive.dataset.id);if(!learner)return;const reason=prompt('Why are you removing this learner from the active register? Enter a reason (at least 5 characters).');if(reason===null)return;if(reason.trim().length<5){message('appMsg','Please enter a reason of at least 5 characters.',true);return}if(!confirm('Remove '+[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')+' ('+learner.admission_number+') from active registers?\n\nThis is a reversible archive, not permanent deletion. Payments, receipts, marks and learner history will be preserved.'))return;archive.disabled=true;try{const {error}=await db.rpc('admin_set_learner_archived',{p_student_id:learner.id,p_archived:true,p_reason:reason.trim()});if(error)throw error;await refresh();message('appMsg','Learner removed from active registers. The record and history are safely archived and can be restored.')}catch(err){message('appMsg','Learner was not removed: '+(err.message||'Please try again.'),true)}finally{archive.disabled=false}return}
  const view=e.target.closest('.viewLearner');if(!view)return;
