@@ -14,6 +14,7 @@
   let syncPromise = null;
   let indicator = null;
   const draftTimers = new WeakMap();
+  const wiredForms = new WeakSet();
 
   function openDb() {
     if (dbPromise) return dbPromise;
@@ -207,7 +208,8 @@
 
   function wireForms() {
     Array.from(document.forms).forEach((form, index) => {
-      if (!eligibleForm(form)) return;
+      if (!eligibleForm(form) || wiredForms.has(form)) return;
+      wiredForms.add(form);
       formKey(form, index);
       restoreFormDraft(form, index).catch(() => {});
       const save = () => {
