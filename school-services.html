@@ -109,7 +109,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
           <div><label for="basePay">Base pay (UGX)</label><input id="basePay" type="number" min="0" step="1" required></div>
           <div><label for="allowances">Allowances (UGX)</label><input id="allowances" type="number" min="0" step="1" value="0" required></div>
           <div><label for="deductions">Deductions (UGX)</label><input id="deductions" type="number" min="0" step="1" value="0" required></div>
-          <div><label for="payStatus">Status</label><select id="payStatus"><option>Draft</option><option>Approved</option><option>Paid</option></select></div>
+          <div><label for="payStatus">Status</label><select id="payStatus"><option>Draft</option><option>Approved</option></select></div>
           <div class="full"><label for="payNotes">Notes (optional)</label><textarea id="payNotes" maxlength="800"></textarea></div>
           <div class="full"><button class="primary" type="submit">Save payroll record</button><p id="payrollMsg" class="muted" role="status"></p></div>
         </form>
@@ -327,9 +327,8 @@ async function enterApp(){
 async function refreshAll(){
  const jobs=[loadLeave(),loadPayroll()];
  if(isAdmin())jobs.push(loadAdmissions(),loadStaffOptions(),loadIntegrations(),runHealthCheck(false));
- if(profile.role==='Admin'||profile.role==='Teacher')jobs.push(loadClasses(),loadResources());
- jobs.push(loadBooks());
- if(isLibrarian())jobs.push(loadLoans());
+ if(profile.role==='Admin'||profile.role==='Teacher')jobs.push((async()=>{await loadClasses();await loadResources()})());
+ jobs.push((async()=>{await loadBooks();if(isLibrarian())await loadLoans()})());
  if(isTransport())jobs.push(loadTransport());
  if(isWelfare())jobs.push(loadWelfare());
  const results=await Promise.allSettled(jobs);
@@ -497,8 +496,8 @@ async function runHealthCheck(display=true){
  if(display)note('globalMsg','Live connection checks completed. Backup restoration remains a separate manual exercise.',authOk&&dbOk?'success':'error');
 }
 $('runHealthCheck').addEventListener('click',()=>runHealthCheck(true));
-$('refreshAdmissions').addEventListener('click',loadAdmissions);$('refreshHr').addEventListener('click',()=>Promise.all([loadLeave(),loadPayroll()]));
-$('refreshLearning').addEventListener('click',()=>Promise.all([loadClasses(),loadResources()]));
+$('refreshHr').addEventListener('click',()=>Promise.all([loadLeave(),loadPayroll()]));
+$('refreshLearning').addEventListener('click',async()=>{await loadClasses();await loadResources()});
 $('refreshLibrary').addEventListener('click',async()=>{await loadBooks();if(isLibrarian())await loadLoans()});
 $('refreshTransport').addEventListener('click',loadTransport);$('refreshWelfare').addEventListener('click',loadWelfare);$('refreshIntegrations').addEventListener('click',loadIntegrations);
 </script>
