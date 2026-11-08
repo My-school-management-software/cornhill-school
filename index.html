@@ -2266,31 +2266,44 @@ async function refresh(){
   // Recover the active workspace from the authenticated teacher's database assignment
   // when a browser/PWA session has lost its tab-scoped selection. Never guess a class.
   let selectedClassId=sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||null;
+  try{selectedClassId=selectedClassId||localStorage.getItem('cornhill_teacher_class_id:'+refreshOwner)||null}catch(_){}
   if(!selectedClassId){
-   window.cornhillStartupStage='recovering assigned teacher class';
-   const recovery=await db.from('class_teacher_access').select('class_id').eq('user_id',refreshOwner);if(!refreshIsCurrent())return;
-   if(recovery?.error){message('appMsg','Could not recover your assigned class: '+recovery.error.message+'. Contact the administrator if this continues.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
-   const recoveredIds=[...new Set((recovery?.data||[]).map(x=>x.class_id).filter(Boolean))];
-   if(recoveredIds.length!==1){message('appMsg','This teacher account must have exactly one assigned class before opening the class workspace. Please ask the administrator to check the teacher assignment.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
+   window.cornhillStartupStage='recovering assigned teaching classes';
+   const [classRecovery,subjectRecovery]=await Promise.all([
+    db.from('class_teacher_access').select('class_id').eq('user_id',refreshOwner),
+    db.from('class_subjects').select('class_id').eq('teacher_user_id',refreshOwner)
+   ]);if(!refreshIsCurrent())return;
+   const recoveryError=classRecovery.error||subjectRecovery.error;
+   if(recoveryError){message('appMsg','Could not recover your teaching assignments: '+recoveryError.message+'. Contact the administrator.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
+   const recoveredIds=[...new Set([...(classRecovery.data||[]),...(subjectRecovery.data||[])].map(x=>x.class_id).filter(Boolean))];
+   if(recoveredIds.length!==1){message('appMsg',recoveredIds.length?'This teaching account has several assigned classes. Sign in again and choose the class you are working on.':'No active class or subject assignment was found for this teaching account. Ask the administrator to assign your classes and subjects.',true);window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];return}
    selectedClassId=recoveredIds[0];
    sessionStorage.setItem('cornhill_teacher_class_id',selectedClassId);
    sessionStorage.setItem('cornhill_login_mode','Teacher');
+   try{localStorage.setItem('cornhill_teacher_class_id:'+refreshOwner,selectedClassId)}catch(_){}
    window.teacherClassId=selectedClassId;
   }
-  window.cornhillStartupStage='checking teacher class access';
-  const access=await db.from('class_teacher_access').select('class_id,school_classes(id,name,stream)').eq('user_id',refreshOwner);if(!refreshIsCurrent())return;
-  if(access?.error){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not verify your class access: '+access.error.message,true);return}
-  const assignedClassIds=[...new Set((access?.data||[]).map(x=>x.class_id).filter(Boolean))];
-  const assignedClassRecord=(access?.data||[]).find(x=>x.class_id===selectedClassId)?.school_classes;
+  window.cornhillStartupStage='checking teaching class and subject access';
+  const [access,subjectAccess]=await Promise.all([
+   db.from('class_teacher_access').select('class_id,school_classes(id,name,stream)').eq('user_id',refreshOwner),
+   db.from('class_subjects').select('class_id,subject_id,teacher_user_id,subjects(name),school_classes(id,name,stream)').eq('teacher_user_id',refreshOwner)
+  ]);if(!refreshIsCurrent())return;
+  const accessError=access.error||subjectAccess.error;
+  if(accessError){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not verify your teaching assignments: '+accessError.message,true);return}
+  const classTeacherIds=[...new Set((access.data||[]).map(x=>x.class_id).filter(Boolean))];
+  const subjectTeacherIds=[...new Set((subjectAccess.data||[]).map(x=>x.class_id).filter(Boolean))];
+  const assignedClassIds=[...new Set([...classTeacherIds,...subjectTeacherIds])];
+  const isAssigned=assignedClassIds.includes(selectedClassId);
+  const assignedClassRecord=(access.data||[]).find(x=>x.class_id===selectedClassId)?.school_classes||(subjectAccess.data||[]).find(x=>x.class_id===selectedClassId)?.school_classes;
   window.cornhillTeacherAssignedClassRecord=assignedClassRecord?.id===selectedClassId?{id:assignedClassRecord.id,name:assignedClassRecord.name,stream:assignedClassRecord.stream||null}:null;
-  if(assignedClassIds.length!==1||assignedClassIds[0]!==selectedClassId){
-   await db.auth.signOut();sessionStorage.removeItem('cornhill_teacher_class_id');
-   message('loginMsg','Access blocked. This teacher account must belong to exactly one class, and it must match the selected class. Contact the administrator.',true);
+  if(!isAssigned){
+   await db.auth.signOut({scope:'local'});sessionStorage.removeItem('cornhill_teacher_class_id');
+   message('loginMsg','Access blocked. This account is not assigned to the selected class or any subject in it. Contact the administrator.',true);
    await startSession(null);return;
   }
-  window.cornhillStartupStage='loading assigned teacher subjects';
-  const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('class_id',selectedClassId);if(!refreshIsCurrent())return;
-  if(a?.error){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not load your class subjects: '+a.error.message,true);return}
+  window.cornhillStartupStage='loading permitted teaching subjects';
+  const a=await db.from('class_subjects').select('class_id,subject_id,teacher_user_id,subjects(name)').eq('class_id',selectedClassId);if(!refreshIsCurrent())return;
+  if(a?.error){const restoredOffline=await restoreOfflineSchoolSnapshot(refreshOwner);if(!refreshIsCurrent())return;if(restoredOffline)return;message('appMsg','Could not load your assigned subjects: '+a.error.message,true);return}
   window.teacherAssignments=a?.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];
   window.teacherClassIds=allowedClassIds;window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id).filter(Boolean))];
  }else{window.teacherAssignments=[];window.teacherClassIds=null;window.teacherSubjectIds=null}
@@ -2394,7 +2407,7 @@ function renderTeacherPortal(){
  const themeOptions=APPEARANCE_THEMES.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
  const fontOptions=APPEARANCE_FONTS.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
  const prefs=readAppearance();
- $('teacherPortalSummary').innerHTML='<div class="teacher-workspace-head"><div><span class="teacher-kicker">MY CORNHILL WORKSPACE</span><h2>'+esc(profile?.full_name||'Class teacher')+'</h2><p>'+esc(cls?.name||'Class assignment pending')+' · Class teacher account</p></div><span class="teacher-avatar">'+esc((profile?.full_name||'T').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase())+'</span></div><div class="teacher-workspace-stats"><div><small>Active learners</small><strong>'+active+'</strong></div><div><small>Assigned subjects</small><strong>'+subjects.length+'</strong></div><div><small>My class</small><strong>'+(cls?1:0)+'</strong></div></div><section class="panel" id="teacherVisitingSearch" style="margin:14px 0;padding:16px;background:var(--panel);border:1px solid var(--line)">  <div class="dashboard-eyebrow">VISITING DAY · PRIVATE CLASS SEARCH</div><h3 style="margin:4px 0">Quick learner performance search</h3>  <p class="muted">Enter a pupil code to bring up this learner&#39;s assessment history and conduct reports. Search is limited to your assigned class.</p>  <div class="row" style="gap:8px;align-items:end;flex-wrap:wrap"><div style="flex:1;min-width:190px"><label for="teacherVisitingPupilCode">Learner pupil code</label><input id="teacherVisitingPupilCode" autocomplete="off" placeholder="Enter pupil code" maxlength="60"></div><button type="button" class="primary" id="teacherVisitingSearchButton">Find learner</button></div>  <div id="teacherVisitingSearchStatus" class="notice hidden" role="status" aria-live="polite"></div><div id="teacherVisitingSearchResult" style="margin-top:12px"></div>  <p class="muted" style="font-size:12px;margin-bottom:0">For privacy, this view does not show other learners or school financial records. Parent access remains separately verified.</p> </section><div class="teacher-workspace-subjects"><strong>My teaching subjects</strong><p>'+(subjects.length?subjects.map(esc).join(' · '):'No subjects assigned. Ask the administrator to create or reset your class teacher code.')+'</p></div><p class="muted" style="margin:12px 0">Use the school navigation panel to open your class, learners, marks, communications and parent-access tools. Each workspace is listed once.</p><div class="panel" style="margin-top:14px"><h3>Guardian PIN status · My class</h3><p class="muted">See whether guardian access is set up for learners in your assigned class. PIN values and recovery codes are never shown to teachers.</p><button type="button" id="refreshTeacherGuardianPinStatus">Refresh guardian status</button><div id="teacherGuardianPinStatus" class="muted" style="margin-top:10px">Select refresh to view guardian access status.</div></div><div class="teacher-personalize"><strong>Personalize my workspace</strong><div><label>Theme<select id="teacherThemeChoice">'+themeOptions+'</select></label><label>Font<select id="teacherFontChoice">'+fontOptions+'</select></label><label>Text size<select id="teacherFontSize"><option value="14">Compact</option><option value="16">Standard</option><option value="18">Large</option><option value="20">Extra large</option></select></label></div><small>These appearance choices are saved on this device.</small></div>';
+ $('teacherPortalSummary').innerHTML='<div class="teacher-workspace-head"><div><span class="teacher-kicker">MY CORNHILL WORKSPACE</span><h2>'+esc(profile?.full_name||'Class teacher')+'</h2><p>'+esc(cls?.name||'Class assignment pending')+' · Teaching account</p></div><span class="teacher-avatar">'+esc((profile?.full_name||'T').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase())+'</span></div><div class="teacher-workspace-stats"><div><small>Active learners</small><strong>'+active+'</strong></div><div><small>Assigned subjects</small><strong>'+subjects.length+'</strong></div><div><small>My class</small><strong>'+(cls?1:0)+'</strong></div></div><section class="panel" id="teacherVisitingSearch" style="margin:14px 0;padding:16px;background:var(--panel);border:1px solid var(--line)">  <div class="dashboard-eyebrow">VISITING DAY · PRIVATE CLASS SEARCH</div><h3 style="margin:4px 0">Quick learner performance search</h3>  <p class="muted">Enter a pupil code to bring up this learner&#39;s assessment history and conduct reports. Search is limited to your assigned class.</p>  <div class="row" style="gap:8px;align-items:end;flex-wrap:wrap"><div style="flex:1;min-width:190px"><label for="teacherVisitingPupilCode">Learner pupil code</label><input id="teacherVisitingPupilCode" autocomplete="off" placeholder="Enter pupil code" maxlength="60"></div><button type="button" class="primary" id="teacherVisitingSearchButton">Find learner</button></div>  <div id="teacherVisitingSearchStatus" class="notice hidden" role="status" aria-live="polite"></div><div id="teacherVisitingSearchResult" style="margin-top:12px"></div>  <p class="muted" style="font-size:12px;margin-bottom:0">For privacy, this view does not show other learners or school financial records. Parent access remains separately verified.</p> </section><div class="teacher-workspace-subjects"><strong>My teaching subjects</strong><p>'+(subjects.length?subjects.map(esc).join(' · '):'No subjects assigned. Ask the administrator to create or reset your class teacher code.')+'</p></div><p class="muted" style="margin:12px 0">Use the school navigation panel to open your class, learners, marks, communications and parent-access tools. Each workspace is listed once.</p><div class="panel" style="margin-top:14px"><h3>Guardian PIN status · My class</h3><p class="muted">See whether guardian access is set up for learners in your assigned class. PIN values and recovery codes are never shown to teachers.</p><button type="button" id="refreshTeacherGuardianPinStatus">Refresh guardian status</button><div id="teacherGuardianPinStatus" class="muted" style="margin-top:10px">Select refresh to view guardian access status.</div></div><div class="teacher-personalize"><strong>Personalize my workspace</strong><div><label>Theme<select id="teacherThemeChoice">'+themeOptions+'</select></label><label>Font<select id="teacherFontChoice">'+fontOptions+'</select></label><label>Text size<select id="teacherFontSize"><option value="14">Compact</option><option value="16">Standard</option><option value="18">Large</option><option value="20">Extra large</option></select></label></div><small>These appearance choices are saved on this device.</small></div>';
  $('teacherThemeChoice').value=prefs.theme||'forest';$('teacherFontChoice').value=prefs.font||'system';$('teacherFontSize').value=prefs.fontSize||'16';
  $('teacherPortalSummary').classList.remove('hidden');$('refreshTeacherGuardianPinStatus')?.addEventListener('click',loadTeacherGuardianPinStatus);
 }
@@ -5393,13 +5406,19 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
   if(mode==='Admin'&&account.role!=='Admin'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not an administrator account.',true);return}
   if(mode==='Teacher'){
    if(account.role!=='Teacher'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as a class teacher.',true);return}
-   const {data:assigned,error:assignmentError}=await db.from('class_teacher_access').select('class_id,school_classes(name)').eq('user_id',userId);
-   if(assignmentError){await db.auth.signOut({scope:'local'});message('loginMsg','Could not verify your class access. Contact the administrator.',true);return}
-   const matches=(assigned||[]).filter(x=>String(x.school_classes?.name||'').trim().toLowerCase()===selectedClass.toLowerCase());
-   const ids=[...new Set(matches.map(x=>x.class_id))];
-   const allAssignedClassIds=[...new Set((assigned||[]).map(x=>x.class_id))];
-   if(ids.length!==1||allAssignedClassIds.length!==1){await db.auth.signOut({scope:'local'});message('loginMsg','This code is not authorised for '+selectedClass+'. Check the class selected or contact the administrator.',true);return}
-   sessionStorage.setItem('cornhill_teacher_class_id',ids[0]);sessionStorage.setItem('cornhill_login_mode','Teacher');window.teacherClassId=ids[0];
+   const [classAccess,subjectAccess]=await Promise.all([
+    db.from('class_teacher_access').select('class_id,school_classes(name)').eq('user_id',userId),
+    db.from('class_subjects').select('class_id,school_classes(name)').eq('teacher_user_id',userId)
+   ]);
+   const assignmentError=classAccess.error||subjectAccess.error;
+   if(assignmentError){await db.auth.signOut({scope:'local'});message('loginMsg','Could not verify your teaching assignments. Contact the administrator.',true);return}
+   const allAssignments=[...(classAccess.data||[]),...(subjectAccess.data||[])];
+   const matches=allAssignments.filter(x=>String(x.school_classes?.name||'').trim().toLowerCase()===selectedClass.toLowerCase());
+   const ids=[...new Set(matches.map(x=>x.class_id).filter(Boolean))];
+   if(ids.length!==1){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not assigned to '+selectedClass+'. Ask the administrator to assign this class or a subject in it.',true);return}
+   sessionStorage.setItem('cornhill_teacher_class_id',ids[0]);sessionStorage.setItem('cornhill_login_mode','Teacher');
+   try{localStorage.setItem('cornhill_teacher_class_id:'+userId,ids[0])}catch(_){}
+   window.teacherClassId=ids[0];
   }else{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.setItem('cornhill_login_mode','Admin')}
   // Hold the automatic SIGNED_IN callback until the selected teacher class has been verified and stored.
   window.cornhillLastAuthSessionId=userId;await startSession(data.session);
