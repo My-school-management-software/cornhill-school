@@ -51,6 +51,19 @@ The database foundation is additive and uses RLS on the new tables. Teacher lear
 
 **Acceptance boundary:** code and simulated database-role tests do not replace real browser sign-in, guardian isolation, mobile device checks, payment provider certification, or live hardware testing.
 
+
+## Work area 9 — P.5, P.6 and P.7 workbook grading analysis
+
+The upper-primary class-mark workspace now adds two analysis panels for the selected P.5, P.6 or P.7 class, based on the original Excel sections beneath the marks:
+
+- M.O.T analysis: P.5 Midterm, P.6 Set II, P.7 Set II.
+- E.O.T analysis: P.5 End, P.6 Set III, P.7 Set III.
+- Each panel reports Division I, II, III, IV, U and X counts, average performance by English / Mathematics / Science / Social Studies, the strongest and weakest subject averages, and performance by boys and girls.
+
+Averages are normalized against each assessment's maximum mark and exclude blank and X (Absent) marks. Division and aggregate calculations reuse the same configured subject grade bands and four-subject aggregate rule used in the learner report card, so the class analysis does not introduce a second grading standard. P.7's additional Set IV remains in the class marks table; the workbook's two grading-analysis panels are still M.O.T (Set II) and E.O.T (Set III).
+
+**Acceptance boundary:** the P.5, P.6 and P.7 class-subject links and all nine active grade bands for each core subject were verified. No P.5, P.6 or P.7 assessment records currently exist in the live database, so the new class analysis will display after the administrator prepares the relevant term assessments and teachers enter marks. JavaScript and UI-reference checks passed; live browser acceptance with actual marks remains required.
+
 ## Current preview
 
 The active development branch is `fix/assessment-selection-save-preview-20261108`. The latest preview available during this work was built from an earlier service-portal commit and does not include the final admissions page, public website, payroll policy changes or latest front-end fixes. Vercel's Free daily deployment API quota returned a payment-required limit, so no new preview was confirmed for the latest commit. Do not use an older preview to accept these new pages. The production main branch has not been changed by this development branch.
