@@ -6637,10 +6637,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(profile?.role!=='Teacher'||demoMode){showMessage('Only the assigned class teacher can save marks. Administrator access is read-only.',true);return}
   const classId=assignedClass(),termId=$('markGridTerm').value;
   const verifiedClassId=window.teacherClassId||sessionStorage.getItem('cornhill_teacher_class_id');const permittedClasses=Array.isArray(window.teacherClassIds)?window.teacherClassIds:[];if(!classId||classId!==verifiedClassId||!permittedClasses.includes(classId)){showMessage('Assigned class could not be verified against your active teacher assignment. Sign out and sign in again.',true);return}
-  selectedPairs=[...document.querySelectorAll('[data-mark-pair]:checked')].map(x=>x.dataset.markPair);
-  selectedLearners=new Set([...document.querySelectorAll('[data-mark-learner]:checked')].map(x=>x.dataset.markLearner));
+  selectedPairs=[...$('markGridSubjects').querySelectorAll('[data-mark-pair]:checked')].map(x=>x.dataset.markPair);
+  selectedLearners=new Set([...$('markGridLearners').querySelectorAll('[data-mark-learner]:checked')].map(x=>x.dataset.markLearner));
   const ass=classAssessments().filter(a=>selectedPairs.includes(a.id)),learners=currentLearners().filter(l=>selectedLearners.has(l.id));
-  if(!ass.length||!learners.length){showMessage('Select subjects and learners first.',true);return}
+  if(!ass.length){showMessage('No subject assessments are selected. Choose a period that has prepared assessments, then select at least one subject.',true);return}
+  if(!learners.length){showMessage('No learners are selected. Choose one or more learners, or select all learners.',true);return}
   const auth=await db.auth.getUser(),user=auth.data?.user;if(auth.error||!user||user.id!==currentUserId){showMessage('Your sign-in session expired. Sign in again.',true);return}
   const payload=[];
   for(const input of document.querySelectorAll('[data-mark-cell]')){
