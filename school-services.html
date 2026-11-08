@@ -141,7 +141,8 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
     <div class="module-head"><div><span class="kicker">ADMINISTRATOR WORKSPACE</span><h2>Admissions & Enquiries</h2><p class="muted">Review public enquiries before formal admission. Approval here does not create a pupil record; complete approved admissions in the main Learner Register.</p></div><button type="button" id="refreshAdmissions">Refresh enquiries</button></div>
     <div class="stats"><div class="stat"><small>Pending enquiries</small><strong class="kpi" id="admissionPending">—</strong></div><div class="stat"><small>Total enquiries</small><strong class="kpi" id="admissionTotal">—</strong></div></div>
     <div class="table-wrap"><table><thead><tr><th>Received</th><th>Learner / requested class</th><th>Parent / guardian</th><th>Enquiry</th><th>Approval status</th><th>Actions</th></tr></thead><tbody id="admissionRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
-    <p class="muted">Public enquiries contain only basic contact details. Do not request health information, identity documents or photographs through this public form.</p>
+    <p class="muted">Once an enquiry is marked <strong>Approved for admission</strong>, use <strong>Complete learner registration</strong> to open the main Learner Register with this enquiry prefilled. The administrator must verify every required learner field and save through the existing admission checks; approval alone never creates a pupil record.</p>
+ <p class="muted">Public enquiries contain only basic contact details. Identity documents and photographs must be attached later through the private Evidence Capture workflow.</p>
   </section>
 
   <section id="hr-payroll" class="panel module">
@@ -489,18 +490,26 @@ async function loadAdmissions(){
   .select('id,learner_name,class_applied,guardian_name,guardian_phone,guardian_email,message,status,review_note,reviewed_by,reviewed_at,created_at,student_id,registered_at')
   .order('created_at',{ascending:false}).limit(250);
  if(error){$('admissionRows').innerHTML='<tr><td colspan="6">Could not load the central admissions queue: '+esc(error.message)+'</td></tr>';return}
- const rows=data||[];
+ const rows=data||[],linkedIds=rows.map(x=>x.student_id).filter(Boolean);
+ let linkedLearners=[];
+ if(linkedIds.length){
+  const result=await db.from('students').select('id,admission_number').in('id',linkedIds);
+  if(result.error){$('admissionRows').innerHTML='<tr><td colspan="6">Enquiries loaded, but linked learner codes could not be checked: '+esc(result.error.message)+'</td></tr>';return}
+  linkedLearners=result.data||[];
+ }
+ const codeById=Object.fromEntries(linkedLearners.map(x=>[x.id,x.admission_number]));
  $('admissionPending').textContent=rows.filter(x=>['Pending','Contacted','Visit scheduled'].includes(x.status)).length;
  $('admissionTotal').textContent=rows.length;
  const statusOptions=['Pending','Contacted','Visit scheduled','Approved for admission','Not proceeding','Closed'];
  $('admissionRows').innerHTML=rows.map(x=>{
   const registered=!!x.student_id||x.status==='Registered';
   const statusCell=registered
-   ?'<span class="badge">Registered</span><small class="muted">Linked to learner record</small>'
+   ?'<span class="badge">Registered</span><small class="muted">Pupil code: '+esc(codeById[x.student_id]||'Linked record')+'</small>'
    :'<select data-admission-status="'+esc(x.id)+'">'+statusOptions.map(s=>'<option'+(s===x.status?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select><small class="muted">'+esc(x.review_note||'No review note')+'</small>';
   const action=registered
    ?'<span class="muted">Registration complete</span>'
-   :'<button type="button" class="primary" data-save-admission="'+esc(x.id)+'">Save decision</button>';
+   :'<button type="button" class="primary" data-save-admission="'+esc(x.id)+'">Save decision</button>'+
+    (x.status==='Approved for admission'?'<a class="button" target="_blank" rel="noopener noreferrer" href="/?admissionEnquiry='+encodeURIComponent(x.id)+'">Complete learner registration ↗</a>':'');
   return '<tr><td>'+esc(new Date(x.created_at).toLocaleString('en-GB',{timeZone:'Africa/Kampala'}))+'</td>'+
    '<td><strong>'+esc(x.learner_name)+'</strong><br>'+esc(x.class_applied)+'</td>'+
    '<td>'+esc(x.guardian_name)+'<br>'+esc(x.guardian_phone)+(x.guardian_email?'<br>'+esc(x.guardian_email):'')+'</td>'+
@@ -514,15 +523,13 @@ $('admissionRows').addEventListener('click',async event=>{
  const id=button.dataset.saveAdmission,row=button.closest('tr'),select=row?.querySelector('[data-admission-status]');
  const status=select?.value;
  if(!status)return;
- const old=['Pending','Contacted','Visit scheduled','Approved for admission','Not proceeding','Closed'];
- if(!old.includes(status)){note('globalMsg','Choose a valid admission decision.','error');return}
+ const valid=['Pending','Contacted','Visit scheduled','Approved for admission','Not proceeding','Closed'];
+ if(!valid.includes(status)){note('globalMsg','Choose a valid admission decision.','error');return}
  let reviewNote='';
  if(status==='Not proceeding'){
   reviewNote=prompt('Enter the reason this admission enquiry will not proceed:')?.trim()||'';
   if(!reviewNote){note('globalMsg','A reason is required when closing an enquiry as Not proceeding.','error');return}
- }else{
-  reviewNote=prompt('Optional administrator review note:')?.trim()||'';
- }
+ }else reviewNote=prompt('Optional administrator review note:')?.trim()||'';
  button.disabled=true;button.textContent='Saving…';
  try{
   const {data,error}=await db.from('school_admission_enquiries').update({
@@ -530,7 +537,7 @@ $('admissionRows').addEventListener('click',async event=>{
   }).eq('id',id).is('student_id',null).select('id,status').maybeSingle();
   if(error)throw error;
   if(!data)throw new Error('The enquiry was changed or registered by another administrator. Refresh the queue.');
-  note('globalMsg','Admission enquiry updated to '+status+'. A notification was added to the school attention centre. The learner register has not been changed.','success');
+  note('globalMsg','Admission enquiry updated to '+status+'. A notification was added to the school attention centre. '+(status==='Approved for admission'?'Use Complete learner registration to finish admission in the main learner register.':'The learner register has not been changed.'),'success');
   await loadAdmissions();
  }catch(error){note('globalMsg','Admission decision was not saved: '+error.message,'error');button.disabled=false;button.textContent='Save decision'}
 });
