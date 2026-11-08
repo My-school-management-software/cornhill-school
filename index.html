@@ -3787,7 +3787,7 @@ function excelGradeMarkup(assessment,mark){
 }
 function recalculateExcelMarkSheet(){
  const ctx=window.cornhillExcelMarksContext;if(!ctx)return;
- const {assessments,students:list}=ctx,className=String(classes.find(c=>c.id===ctx.classId)?.name||''),setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(className),phases=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'],saved=ctx.savedMarks||new Map();
+ const {assessments,students:list}=ctx,className=String(classes.find(c=>c.id===ctx.classId)?.name||''),setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(className),phases=assessmentPeriodsForClassName(className),saved=ctx.savedMarks||new Map();
  const results=new Map();
  phases.forEach(phase=>{
   const phaseAssessments=assessments.filter(a=>excelAssessmentPeriod(a)===phase);
