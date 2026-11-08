@@ -89,6 +89,12 @@ Use designated test accounts, a test phone and a test bank account only. No fake
 48. A staff member cannot attach a file to another bank transaction by altering the request or record ID.
 49. An expired request cannot be submitted even if the phone page remains open.
 50. A closed or backgrounded browser is not assumed to receive reliable push notification; foreground polling and Realtime require connectivity.
+51. The **Request receipt photo** action is shown only for a Posted school expense and opens Evidence Capture with the exact expense record ID, expense number and amount.
+52. A Voided expense does not expose the receipt-photo action.
+53. The administrator's staff-profile editor provides a **Request staff ID photo from phone** action after a staff account is selected.
+54. The staff ID request carries the selected staff profile ID and does not use a different staff member's ID.
+55. Banking navigation is visible to administrators and active Bursar/Deputy Bursar staff, and hidden for other staff roles.
+56. A user who opens `/banking.html` directly without a permitted finance role is refused by the banking page's own role check.
 
 ## Current limitations
 
