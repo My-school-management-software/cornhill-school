@@ -1287,8 +1287,8 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <form id="assessmentForm">
  <div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div>
  <div id="assessmentClassField"><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div>
- <div class="full"><label>Assessment periods</label><div id="assessmentPeriodChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px"></div><p class="muted">Beginning and Midterm start selected. End is left unticked unless you are preparing it now. You can change these selections at any time.</p></div>
- <div class="full"><label>Subjects</label><div id="assessmentSubjectChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"><span class="muted">Class subjects will appear here.</span></div><p class="muted">All subjects start selected. Untick any subject you are not preparing.</p></div>
+ <div class="full"><label>Assessment periods</label><div id="assessmentPeriodChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px"></div><p class="muted">All assessment periods start unticked. Select only the period you intend to prepare. You can change these selections at any time.</p></div>
+ <div class="full"><label>Subjects</label><div id="assessmentSubjectChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"><span class="muted">Class subjects will appear here.</span></div><p class="muted">All subjects start unticked. Select only the subjects you intend to prepare.</p></div>
  <div><label>Assessment title / note</label><input name="title" placeholder="Optional note"></div>
  <div><label>Maximum score *</label><input name="max_score" type="number" min="1" max="100" step="0.01" value="100" required></div>
  <div><label>Assessment date</label><input name="assessment_date" type="date"></div>
@@ -3048,13 +3048,13 @@ function classSubjectsFor(classId){
 }
 function renderAssessmentPeriodChoices(classId){
  const host=$('assessmentPeriodChoices');if(!host)return;
- host.innerHTML=assessmentPeriodsForClass(classId).map(p=>'<label style="display:flex;gap:8px;align-items:center;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px"><input type="checkbox" name="assessment_periods" value="'+esc(p)+'" '+(p==='End'?'':'checked')+'><span>'+esc(p)+'</span></label>').join('');
+ host.innerHTML=assessmentPeriodsForClass(classId).map(p=>'<label style="display:flex;gap:8px;align-items:center;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px"><input type="checkbox" name="assessment_periods" value="'+esc(p)+'" '+''+'><span>'+esc(p)+'</span></label>').join('');
 }
 function renderAssessmentSubjectChoices(classId){
  const host=$('assessmentSubjectChoices');if(!host)return;
  const subjects=classSubjectsFor(classId);
  if(!subjects.length){host.innerHTML='<span class="muted">No subjects assigned to this class. Ask the administrator to check Class Subjects.</span>';return}
- host.innerHTML=subjects.map(subject=>'<label style="display:flex;gap:8px;align-items:center;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px"><input type="checkbox" name="assessment_subject_ids" value="'+esc(subject.id)+'" checked><span>'+esc(subject.name)+'</span></label>').join('');
+ host.innerHTML=subjects.map(subject=>'<label style="display:flex;gap:8px;align-items:center;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px"><input type="checkbox" name="assessment_subject_ids" value="'+esc(subject.id)+'"><span>'+esc(subject.name)+'</span></label>').join('');
 }
 function renderUnebSubjectsForClass(classId){
  const host=$('unebGradeSubject');if(!host)return;
@@ -6305,7 +6305,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 (()=>{
  const $=id=>document.getElementById(id);
  const escV=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let selectedPairs=[],selectedLearners=new Set(),saved=new Map(),loading=false,subjectSelectionTouched=false;
+ let selectedPairs=[],selectedLearners=new Set(),saved=new Map(),loading=false,subjectSelectionTouched=true,markGridRenderVersion=0;
  const periods=['Beginning','Midterm','End'];
  function assignedClass(){
   if(profile?.role!=='Teacher')return null;
@@ -6327,7 +6327,6 @@ document.addEventListener('DOMContentLoaded',()=>{
    const preferred=academic.terms.find(t=>t.is_current&&!t.is_closed)||academic.terms.find(t=>!t.is_closed)||academic.terms[0];
    term.value=academic.terms.some(t=>t.id===previous)?previous:(preferred?.id||'');
   }
-  defaultSelectSubjects();
   const validAssessments=new Set(classAssessments().map(a=>a.id));
   selectedPairs=selectedPairs.filter(id=>validAssessments.has(id));
   const validLearners=new Set(currentLearners().map(l=>l.id));
@@ -6369,10 +6368,12 @@ document.addEventListener('DOMContentLoaded',()=>{
  }
  async function renderMarkGrid(){
   const host=$('markGridTableHost');if(!host)return;
+  const renderVersion=++markGridRenderVersion;
   const ass=classAssessments().filter(a=>selectedPairs.includes(a.id)),learners=currentLearners().filter(l=>selectedLearners.has(l.id));
   if(!ass.length||!learners.length){host.innerHTML='<p class="muted">Select at least one subject/assessment and one learner to enter marks.</p>';return}
   host.innerHTML='<p class="muted">Loading saved marks…</p>';
   const ids=ass.map(a=>a.id),{data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);
+  if(renderVersion!==markGridRenderVersion)return;
   if(error){host.textContent='Could not load existing marks: '+error.message;return}
   saved=new Map((data||[]).map(x=>[x.assessment_id+'|'+x.student_id,x]));
   const header=ass.map(a=>'<th><b>'+escV(excelSubjectLabel(a,0,cls()))+'</b><small style="display:block">'+escV(a.subjects?.name||a.title)+' · '+escV(periodFor(a))+'</small></th>').join('');
@@ -6400,8 +6401,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   try{
    const {error}=await db.from('assessment_scores').upsert(payload,{onConflict:'assessment_id,student_id'});
    if(error)throw error;
-   showMessage(payload.length+' learner mark(s) saved successfully. Blank cells were not changed.');
-   await loadAcademics();await renderMarkGrid();
+   selectedPairs=[];selectedLearners.clear();subjectSelectionTouched=true;
+   showMessage(payload.length+' learner mark(s) saved successfully. The entry list has been cleared. Saved marks remain safely stored.');
+   await loadAcademics();
+   renderSubjectChoices();renderLearnerChoices();
+   const host=$('markGridTableHost');if(host)host.innerHTML='<p class="muted">Entry list cleared after saving. Select the subjects and learners you want to work on next.</p>';
   }catch(e){showMessage('Marks were not saved: '+(e?.message||'Please retry.'),true)}
   finally{button.disabled=false}
  }
@@ -6411,11 +6415,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   root.dataset.markGridV2='yes';
   $('scoreForm')?.classList.add('hidden');
   const panel=document.createElement('section');panel.className='panel';panel.style.marginTop='14px';
-  panel.innerHTML='<h3>Teacher mark entry · assigned class only</h3><p class="muted">Your assigned class and Term 3 are loaded automatically. Beginning and Midterm are selected, and all available subject assessments are selected by default. Choose the learners you want to enter marks for below. These selections are separate from the Create Assessment form.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><div><label>Assigned class</label><input readonly value="'+escV(cls()?.name||'Loading assigned class…')+'"></div><div><label>Academic term</label><select id="markGridTerm"><option value="">Choose term</option>'+termOptions()+'</select></div></div><div><b>1. Assessment periods</b><div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0"><label><input type="checkbox" data-mark-period value="Beginning" checked> Beginning</label><label><input type="checkbox" data-mark-period value="Midterm" checked> Midterm</label><label><input type="checkbox" data-mark-period value="End"> End assessment</label></div></div><div style="margin-top:14px"><b>2. Select subjects</b><div id="markGridSubjects" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>3. Choose learners</b><div id="markGridLearners" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>4. Enter marks</b><div id="markGridTableHost" style="margin-top:8px"><p class="muted">Choose a term, subjects and learners.</p></div></div><div id="markGridStatus" class="notice hidden"></div><button type="button" class="primary" id="saveSelectedLearnerMarks">Save learner marks</button>';
+  panel.innerHTML='<h3>Teacher mark entry · assigned class only</h3><p class="muted">Your assigned class is loaded automatically. Choose the term, assessment periods, subjects and learners yourself. Nothing is preselected.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><div><label>Assigned class</label><input readonly value="'+escV(cls()?.name||'Loading assigned class…')+'"></div><div><label>Academic term</label><select id="markGridTerm"><option value="">Choose term</option>'+termOptions()+'</select></div></div><div><b>1. Assessment periods</b><div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0"><label><input type="checkbox" data-mark-period value="Beginning"> Beginning</label><label><input type="checkbox" data-mark-period value="Midterm"> Midterm</label><label><input type="checkbox" data-mark-period value="End"> End assessment</label></div></div><div style="margin-top:14px"><b>2. Select subjects</b><div id="markGridSubjects" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>3. Choose learners</b><div id="markGridLearners" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>4. Enter marks</b><div id="markGridTableHost" style="margin-top:8px"><p class="muted">Choose a term, subjects and learners.</p></div></div><div id="markGridStatus" class="notice hidden"></div><button type="button" class="primary" id="saveSelectedLearnerMarks">Save learner marks</button>';
   root.prepend(panel);
   $('markGridTerm').value=academic.terms.find(t=>t.is_current&&!t.is_closed)?.id||academic.terms.find(t=>!t.is_closed)?.id||academic.terms[0]?.id||'';
-  $('markGridTerm').addEventListener('change',()=>{subjectSelectionTouched=false;selectedPairs=[];defaultSelectSubjects();renderSubjectChoices();renderMarkGrid()});
-  document.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',()=>{subjectSelectionTouched=false;selectedPairs=[];defaultSelectSubjects();renderSubjectChoices();renderMarkGrid()}));
+  $('markGridTerm').addEventListener('change',()=>{subjectSelectionTouched=true;selectedPairs=[];renderSubjectChoices();renderMarkGrid()});
+  document.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',()=>{subjectSelectionTouched=true;selectedPairs=[];renderSubjectChoices();renderMarkGrid()}));
   $('saveSelectedLearnerMarks').addEventListener('click',saveMarks);
   renderSubjectChoices();renderLearnerChoices();
   syncAcademicControls();
