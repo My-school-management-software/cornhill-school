@@ -4189,7 +4189,7 @@ $('prepareExcelAssessments').addEventListener('click',async()=>{
   if(existingError)throw existingError;
   const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls.name);
   const phases=setBased?[{phase:'Set I',title:'Set I Assessment'},{phase:'Set II',title:'Set II Assessment'},{phase:'Set III',title:'Set III Assessment'}]:[{phase:'Beginning',title:'Beginning Assessment'},{phase:'Midterm',title:'Midterm Assessment'},{phase:'End',title:'End of Term Assessment'}];
-  if(/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls.name))phases.push({phase:'Set IV',title:'Set IV Assessment'});
+  if(/P\.?\s*7|PRIMARY\s*7/i.test(cls.name))phases.push({phase:'Set IV',title:'Set IV Assessment'});
   const present=new Set((existing||[]).map(x=>x.subject_id+'|'+excelAssessmentPeriod(x)));
   const userResult=await db.auth.getUser();if(userResult.error||!userResult.data?.user)throw new Error('Your administrator session has expired. Sign in again.');
   const missing=[];
@@ -4461,7 +4461,7 @@ async function submitAcademic(formId,table,transform,success){
     const selectedPeriods=[...document.querySelectorAll('#assessmentPeriodChoices input[name="assessment_periods"]:checked')].map(x=>x.value);
     if(!selectedSubjectIds.length)throw new Error('Select at least one subject.');
     if(!selectedPeriods.length)throw new Error('Select at least one assessment period.');
-    const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls.name),validPeriods=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End'];
+    const validPeriods=assessmentPeriodsForClassName(cls.name);
     if(selectedPeriods.some(p=>!validPeriods.includes(p)))throw new Error('A selected period does not apply to '+cls.name+'.');
     const {data:classSubjectRows,error:classSubjectError}=await db.from('class_subjects').select('subject_id,subjects(id,name,code)').eq('class_id',classId);
     if(classSubjectError)throw classSubjectError;
@@ -6550,6 +6550,14 @@ document.addEventListener('DOMContentLoaded',()=>{
    const preferred=academic.terms.find(t=>t.is_current&&!t.is_closed)||academic.terms.find(t=>!t.is_closed)||academic.terms[0];
    term.value=academic.terms.some(t=>t.id===previous)?previous:(preferred?.id||'');
   }
+  const periodHost=panel?.querySelector('[data-mark-period]')?.parentElement?.parentElement;
+  const periodClass=classRecord?.name||'';
+  if(periodHost&&periodHost.dataset.periodClass!==periodClass){
+   const selected=new Set(chosenPeriods()),options=currentPeriods(),kept=options.filter(p=>selected.has(p)),active=kept.length?kept:options;
+   periodHost.innerHTML=options.map(p=>'<label><input type="checkbox" data-mark-period value="'+escV(p)+'" '+(active.includes(p)?'checked':'')+'> '+escV(p)+'</label>').join('');
+   periodHost.dataset.periodClass=periodClass;
+   periodHost.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',onPeriodChoiceChange));
+  }
   const validAssessments=new Set(classAssessments().map(a=>a.id));
   selectedPairs=selectedPairs.filter(id=>validAssessments.has(id));
   const validLearners=new Set(currentLearners().map(l=>l.id));
@@ -6557,6 +6565,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderSubjectChoices();renderLearnerChoices();renderMarkGrid();
  }
  function chosenPeriods(){return [...document.querySelectorAll('[data-mark-period]:checked')].map(x=>x.value)}
+ function onPeriodChoiceChange(){subjectSelectionTouched=false;selectedPairs=[];renderSubjectChoices();renderMarkGrid()}
  function defaultSelectSubjects(){
   if(subjectSelectionTouched)return;
   selectedPairs=classAssessments().filter(a=>chosenPeriods().includes(periodFor(a))).map(a=>a.id);
@@ -6648,8 +6657,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   root.prepend(panel);
   $('markGridTerm').value=academic.terms.find(t=>t.is_current&&!t.is_closed)?.id||academic.terms.find(t=>!t.is_closed)?.id||academic.terms[0]?.id||'';
   panel.querySelectorAll('[data-mark-period]').forEach(x=>{x.checked=true});
+  const initialPeriodHost=panel.querySelector('[data-mark-period]')?.parentElement?.parentElement;if(initialPeriodHost)initialPeriodHost.dataset.periodClass=cls()?.name||'';
   $('markGridTerm').addEventListener('change',()=>{subjectSelectionTouched=false;selectedPairs=[];renderSubjectChoices();renderMarkGrid()});
-  panel.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',()=>{subjectSelectionTouched=false;selectedPairs=[];renderSubjectChoices();renderMarkGrid()}));
+  panel.querySelectorAll('[data-mark-period]').forEach(x=>x.addEventListener('change',onPeriodChoiceChange));
   $('saveSelectedLearnerMarks').addEventListener('click',saveMarks);
   renderSubjectChoices();renderLearnerChoices();
   syncAcademicControls();
