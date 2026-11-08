@@ -197,10 +197,7 @@ $('signOut').addEventListener('click',async()=>{if(pollTimer)clearInterval(pollT
 db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(data.session.user)}catch(e){$('loginError').textContent=e.message}}});
 db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(pollTimer)clearInterval(pollTimer);user=null;profile=null;$('app').classList.add('hidden');$('loginCard').classList.remove('hidden')}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user)loadNotifications({quiet:true})});
-let installPrompt=null;
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('installApp').classList.remove('hidden')});
-$('installApp').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installApp').classList.add('hidden')});
-window.addEventListener('appinstalled',()=>{$('installApp').classList.add('hidden');toast('Notification Centre is installed on this device.')});
+toast('Notification Centre is installed on this device.')});
 
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
