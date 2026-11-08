@@ -3293,8 +3293,8 @@ async function getTermScores(){
  }
  return {assessments:data||[],scores};
 }
-async function reportSubjectDisplayName(value){const raw=String(value||'').trim();return raw.replace(/[A-Z]{1,5}[0-9]{1,2}$/i,'').trim()||raw||'Subject'}
-function renderReportCard(options={}){
+function reportSubjectDisplayName(value){const raw=String(value||'').trim();return raw.replace(/[A-Z]{1,5}[0-9]{1,2}$/i,'').trim()||raw||'Subject'}
+async function renderReportCard(options={}){
  const reportOwner=currentUserId,reportGeneration=window.cornhillSessionGeneration||0;
  const data=options.data||await getTermScores();if(!data||reportOwner!==currentUserId||reportGeneration!==(window.cornhillSessionGeneration||0))return;
  const studentId=options.studentId||$('reportStudentSelect').value;if(!studentId){message('academicMsg','Choose a learner for the individual report card.',true);return}
