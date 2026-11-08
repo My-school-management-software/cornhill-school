@@ -137,8 +137,15 @@
  function routeRequestedWorkspace(){
   const key=new URLSearchParams(location.search).get('workspace');if(!key)return;
   const map={attendance:'attendance',communications:'communication',communication:'communication',notices:'communication',calendar:'communication',finance:'finance',apps:'appCentre',appcentre:'appCentre',register:'register'};
-  if(key==='admissions'){if(profile?.role==='Admin'){tab('dashboard');setTimeout(loadDashboardAdmissionEnquiries,0)}return}
-  if(map[key])tab(map[key]);
+  if(key==='admissions'){
+   if(profile?.role==='Admin')setTimeout(()=>{loadDashboardAdmissionEnquiries();$('dashboardAdmissionEnquiriesPanel')?.scrollIntoView({behavior:'instant',block:'start'})},40);
+   return;
+  }
+  const target=map[key];
+  if(target&&typeof originalTab==='function'){
+   originalTab(target);
+   if(target==='communication'){loadMainStaffNotices();loadMainCalendarEvents();}
+  }
  }
  function openSharedWorkspaceLink(app){
   const link=new URL(app.app_url,location.origin).href;
