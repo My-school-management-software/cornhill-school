@@ -3854,7 +3854,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     const token=normal[index];if(!token||index===nameIndex||index===codeIndex||index===linIndex)return;
     const summary=token.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
     if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
-    if(/^(SN|PHOTO|SEX|GENDER|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN\d*|MAX|OUTOF|PERCENT|PERCENTAGE)$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
+    if(/^(SN|ID|PHOTO|SEX|GENDER|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|AEN|AMT|ASC|ASS|FIELD|COLUMN\d*|MAX|OUTOF|PERCENT|PERCENTAGE)$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
     const phase=importColumnPeriod(info.matrix,info.headerRow,index,header,activePeriod,info.name),period=importPeriodLabel(phase.period,clsName),suffix=phase.codePeriod;
     if(!period){issues.push(info.name+' · '+header+': this period does not apply to '+clsName+'.');codeReview.push({header,period:'—',status:'Wrong class period',detail:'Remove this column or correct its period.'});return}
     if(suffix&&phase.explicit&&suffix!==phase.period){
