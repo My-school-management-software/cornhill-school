@@ -5756,12 +5756,12 @@ $('runBulkPromotion')?.addEventListener('click',async()=>{
  if(chosen.length!==ids.length||chosen.some(x=>x.status!=='Active'||!x.class_id)){showError('One or more selected learners are no longer eligible. Refresh the register and select them again.');return}
  if(!destination){showError('Choose a valid destination class.');return}
  if(chosen.some(x=>x.class_id===destinationId)){showError('The destination is already the current class for one or more selected learners. Remove those learners or choose another destination.');return}
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(effectiveDate)||Number.isNaN(Date.parse(effectiveDate))){showError('Choose a valid effective date.');return}
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)||Number.isNaN(Date.parse(effectiveDate))){showError('Choose a valid effective date.');return}
  const sourceNames=[...new Set(chosen.map(x=>{const c=classes.find(y=>y.id===x.class_id);return c?(c.name+(c.stream?' · '+c.stream:'')):'Unassigned'}))];
  const sample=chosen.slice(0,12).map(x=>[x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' ')).join(', ');
  const more=chosen.length>12?' and '+(chosen.length-12)+' more':'';
  const targetName=destination.name+(destination.stream?' · '+destination.stream:'');
- if(!confirm('Confirm this BULK class promotion?\\n\\nLearners selected: '+chosen.length+'\\nFrom class(es): '+sourceNames.join(', ')+'\\nTo: '+targetName+'\\nEffective date: '+effectiveDate+'\\nReason: '+(notes||'Bulk class promotion')+'\\n\\nLearners: '+sample+more+'\\n\\nThe system will save one class-history record per learner and update their active enrolment class. Existing fees, receipts, marks, LINs and pupil codes will remain unchanged. All learners are processed together; a validation failure stops the whole batch.'))return;
+ if(!confirm('Confirm this BULK class promotion?\n\nLearners selected: '+chosen.length+'\\nFrom class(es): '+sourceNames.join(', ')+'\\nTo: '+targetName+'\\nEffective date: '+effectiveDate+'\\nReason: '+(notes||'Bulk class promotion')+'\\n\\nLearners: '+sample+more+'\\n\\nThe system will save one class-history record per learner and update their active enrolment class. Existing fees, receipts, marks, LINs and pupil codes will remain unchanged. All learners are processed together; a validation failure stops the whole batch.'))return;
  button.disabled=true;button.textContent='Promoting learners…';status.className='notice';status.textContent='Saving '+chosen.length+' learner promotion(s) together…';
  try{
   const {data,error}=await db.rpc('promote_learners_bulk',{p_student_ids:ids,p_new_class_id:destinationId,p_effective_date:effectiveDate,p_notes:notes||null});
