@@ -81,3 +81,5 @@ On supported Windows browsers, users open the assigned HTTPS page and choose the
 - See [NOTIFICATION_RECORDS_BULK_TEST_PLAN_20261109.md](NOTIFICATION_RECORDS_BULK_TEST_PLAN_20261109.md) for the 44 automated checks and remaining manual tests.
 
 - Corrected and re-applied the report-publication trigger's academic-term lookup after schema verification: the actual `academic_terms` display column is `name`, not `term_name`. The source migration and a follow-up corrective migration now use the verified column.
+
+- Added and verified an Admin-only `search_school_records` RPC. It searches indexed titles, file names, identifiers, source references and extracted OCR text, with expiry/type/verification filters and a bounded result limit. Anonymous execution is denied; authenticated execution is checked by an active Admin session. The existing GIN OCR search index is reused.
