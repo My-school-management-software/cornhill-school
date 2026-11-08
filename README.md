@@ -15,9 +15,16 @@ The active development branch includes these application areas:
 
 ## Work area 6 — secure phone evidence capture
 
-The branch now includes a first implementation of the shared CORNHILL Evidence Capture portal at `/evidence.html`. It supports administrator-issued one-time phone pairing, ten-minute evidence requests, phone camera/file uploads, private evidence storage and administrator review records. See [Evidence Capture Test Plan](docs/EVIDENCE_CAPTURE_TEST_PLAN.md).
+The branch includes the shared CORNHILL Evidence Capture portal at `/evidence.html`, linked from the school navigation and installable on an authorised phone. An administrator can pair a device to a specific active staff account, revoke it, select it for a ten-minute request, and review multiple uploaded photos or PDFs. Files are stored in a private Storage bucket and administrators receive short-lived signed links. See [Phone Evidence Capture](docs/PHONE_EVIDENCE_CAPTURE.md) and the [Evidence Capture Test Plan](docs/EVIDENCE_CAPTURE_TEST_PLAN.md).
 
-**Completion boundary:** the additive database migration has been applied and its tables, RLS, private bucket and policies have been verified. The portal still requires authenticated manual tests on designated staff accounts and Android devices. Browser notifications work while the portal is open and connected; background push delivery is not yet implemented. Evidence requests currently store a context label and optional amount; direct attachment to the saved Banking, Expenses, Staff ID and other module records is the next integration phase. The latest branch changes have not yet been deployed to a new Vercel preview.
+**Completion boundary:** the database tables, row-level security, private bucket and policy hardening are applied and schema-checked. The portal still requires authenticated manual tests on designated accounts and Android devices. Realtime and browser notifications work while the page is open and connected; reliable background push after the browser is closed is not implemented. Real uploads, account isolation and ten-minute expiry still need end-to-end acceptance testing.
+
+## Work area 7 — Banking & Daily Deposits
+
+A dedicated `/banking.html` workspace is linked from the main school navigation. It includes administrator registration of school bank accounts (only the last four account digits are stored), daily deposits entered by an authorised bursary operator, withdrawal requests, phone evidence selection, bank transaction history and a verified bank-balance view. Deposits remain pending until their slip evidence is separately reviewed and approved. Withdrawals require administrator approval before evidence is requested; verified withdrawals alone reduce the displayed balance. The banking tables, role helper, transaction RPCs, approval/rejection functions, evidence-review trigger and database policies are present in the connected Supabase project.
+
+**Completion boundary:** the banking screen and connected database workflow are implemented on this branch, but no school bank accounts, transactions or capture devices have been registered in the new banking/evidence registers. Do not enter live bank transactions until the school has configured an account, authorised the Deputy Bursar's phone and completed controlled acceptance tests. Evidence review is linked to a bank transaction; requesting a clearer bank slip reissues evidence through the bank audit workflow. See [Banking & Daily Deposits](docs/BANKING_DAILY_DEPOSITS.md).
+
 
 ## Work area 5 — staff fingerprint attendance
 
@@ -30,7 +37,7 @@ This is active development, not a declaration of production readiness. Authentic
 
 ## Current preview
 
-The feature/cornhill-v3-foundation branch has a Vercel preview deployment. Use the latest preview link supplied in the project delivery notes; preview deployments may change after each commit. The production main branch has not been changed by this development branch.
+The active development branch is `fix/assessment-selection-save-preview-20261108`. A new preview has not yet been verified for the latest banking and evidence changes. The Vercel deployment quota previously blocked a new preview. Do not use a stale preview URL to test these features. The production main branch has not been changed by this development branch.
 
 ## Offline limitation — important
 
@@ -62,4 +69,4 @@ Before daily use, complete the authenticated test checklist in [docs/ACCEPTANCE_
 
 ## Repository workflow
 
-Work is on feature/cornhill-v3-foundation. Review the branch and acceptance evidence before creating/merging a pull request into main. A successful Vercel preview build does not by itself prove that database permissions, school workflows, printers, biometrics or offline synchronisation work.
+Work is on fix/assessment-selection-save-preview-20261108. Review the branch and acceptance evidence before creating/merging a pull request into main. A successful Vercel preview build does not by itself prove that database permissions, school workflows, printers, biometrics or offline synchronisation work.
