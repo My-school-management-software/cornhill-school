@@ -3604,6 +3604,13 @@ $('reportTermSelect').addEventListener('change',()=>{renderClassPerformance();$(
 $('buildReportCard').addEventListener('click',async()=>{
  const button=$('buildReportCard'),preview=$('reportCardPreview'),owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  if(button.dataset.busy==='1')return;
+ const classId=$('reportClassSelect').value,termId=$('reportTermSelect').value,studentId=$('reportStudentSelect').value;
+ const learner=students.find(x=>x.id===studentId);
+ if(!classId||!termId||!studentId||!learner||learner.class_id!==classId){
+  const problem=!termId?'Choose an academic term.':!classId?'Choose a class.':!studentId?'Choose a learner.':'The selected learner is not in this class. Refresh the learner list and select a learner from the chosen class.';
+  if(preview)preview.innerHTML='<div class="notice error">'+esc(problem)+'</div>';
+  message('academicMsg',problem,true);return;
+ }
  button.dataset.busy='1';button.disabled=true;button.textContent='Preparing preview…';
  if(preview)preview.innerHTML='<div class="notice">Loading the selected learner, class curriculum and saved marks…</div>';
  try{
@@ -3615,7 +3622,7 @@ $('buildReportCard').addEventListener('click',async()=>{
    if(preview)preview.innerHTML='<div class="notice error">Report-card preview failed: '+esc(err?.message||'Unknown error')+'. Your saved marks have not been changed.</div>';
    message('academicMsg','Report-card preview failed: '+(err?.message||'Unknown error')+'. Saved marks were not changed.',true);
   }
- }finally{if(owner===currentUserId&&generation===(window.cornhillSessionGeneration||0)){button.disabled=false;button.textContent='Preview report card';delete button.dataset.busy}}
+ }finally{if(owner===currentUserId&&generation===(window.cornhillSessionGeneration||0)){button.disabled=false;button.textContent='Preview report';delete button.dataset.busy}}
 });
 let generatedReportBatch={html:'',className:'',termName:'',count:0};
 $('buildClassReportCards').addEventListener('click',async()=>{
