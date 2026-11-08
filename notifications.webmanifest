@@ -1,0 +1,19 @@
+{
+  "id": "/notifications.html",
+  "name": "CORNHILL Notification Centre",
+  "short_name": "CORNHILL Alerts",
+  "description": "Central school notifications, admissions, approvals and actions",
+  "start_url": "/notifications.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f7f3",
+  "theme_color": "#14532d",
+  "icons": [
+    {
+      "src": "/assets/cornhill-school-badge.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
