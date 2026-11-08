@@ -2089,7 +2089,7 @@ function setOfflineReadOnly(enabled){
  const allowedIds=new Set(['logout','exportClassRoster','printClassRoster','search','classRosterSearch','classRosterStatus']);
  const allowedTabs=new Set(['dashboard','students','classes']);
  document.querySelectorAll('#app button,#app input,#app select,#app textarea').forEach(el=>{
-  const allowed=allowedIds.has(el.id)||(el.matches('[data-tab]')&&allowedTabs.has(el.dataset.tab))||el.hasAttribute('data-class-roster');
+  const allowed=allowedIds.has(el.id)||el.id==='cancelTeacherMarksImport'||el.hasAttribute('data-cancel-unsaved')||(el.matches('[data-tab]')&&allowedTabs.has(el.dataset.tab))||el.hasAttribute('data-class-roster');
   if(enabled&&!allowed){
    if(!el.hasAttribute('data-offline-disabled'))el.dataset.offlineWasDisabled=el.disabled?'1':'0';
    el.dataset.offlineDisabled='1';el.disabled=true;
@@ -4453,7 +4453,7 @@ addUnsavedEntryCancel('schoolPaymentForm','Cancel payment entry','Payment entry 
 addUnsavedEntryCancel('expenseForm','Cancel expense entry','Expense entry cleared. No expense was posted.','expenseMsg');
 addUnsavedEntryCancel('inventoryMovementForm','Cancel stock movement','Stock movement entry cleared. No stock was received or issued.','inventoryMsg');
 const teacherImportCancel=document.createElement('button');
-teacherImportCancel.type='button';teacherImportCancel.className='tab';teacherImportCancel.id='cancelTeacherMarksImport';teacherImportCancel.textContent='Cancel preview / clear workbook';teacherImportCancel.disabled=true;
+teacherImportCancel.type='button';teacherImportCancel.className='tab';teacherImportCancel.id='cancelTeacherMarksImport';teacherImportCancel.textContent='Cancel preview / clear workbook';teacherImportCancel.disabled=true;teacherImportCancel.setAttribute('data-cancel-unsaved','');
 $('previewTeacherMarksImport').after(teacherImportCancel);
 $('teacherMarksWorkbook')?.addEventListener('change',()=>{teacherImportCancel.disabled=!$('teacherMarksWorkbook').files?.length});
 teacherImportCancel.addEventListener('click',()=>{
@@ -6093,7 +6093,7 @@ $('studentRows').addEventListener('click',async e=>{
     bindLocalAutosaveDynamicForm($('learnerPromotionForm'),()=> 'learner-promotion-'+learner.id,'learnerPromotionMsg',()=>profile?.role==='Admin');
     await restoreLocalAutosaveForm($('learnerPromotionForm'),'learner-promotion-'+learner.id,'learnerPromotionMsg');
     const promotionCancelWrap=document.createElement('div');promotionCancelWrap.className='full';promotionCancelWrap.style.display='flex';promotionCancelWrap.style.justifyContent='flex-end';
-    const promotionCancel=document.createElement('button');promotionCancel.type='button';promotionCancel.className='tab';promotionCancel.textContent='Cancel promotion entry';promotionCancelWrap.append(promotionCancel);$('learnerPromotionForm').append(promotionCancelWrap);
+    const promotionCancel=document.createElement('button');promotionCancel.type='button';promotionCancel.className='tab';promotionCancel.textContent='Cancel promotion entry';promotionCancel.setAttribute('data-cancel-unsaved','');promotionCancelWrap.append(promotionCancel);$('learnerPromotionForm').append(promotionCancelWrap);
     promotionCancel.addEventListener('click',async()=>{const form=$('learnerPromotionForm');form.reset();if(currentUserId)await clearLocalFormDraft(currentUserId,'learner-promotion-'+learner.id);message('learnerPromotionMsg','Promotion entry cancelled. The learner remains in the current class; no promotion was saved.');});
     $('learnerPromotionForm').addEventListener('submit',async ev=>{
      ev.preventDefault();const values=Object.fromEntries(new FormData(ev.currentTarget).entries());const submit=ev.currentTarget.querySelector('button[type="submit"]');
