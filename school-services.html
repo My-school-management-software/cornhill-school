@@ -207,13 +207,15 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
         <h3>Issue a book</h3>
         <form id="loanForm">
           <div class="full"><label for="loanBook">Book</label><select id="loanBook" required><option value="">Load catalogue…</option></select></div>
-          <div><label for="borrowerName">Borrower name</label><input id="borrowerName" maxlength="140" required></div>
-          <div><label for="borrowerCode">Pupil code / staff code</label><input id="borrowerCode" maxlength="60" required></div>
           <div><label for="borrowerType">Borrower type</label><select id="borrowerType"><option>Learner</option><option>Staff</option></select></div>
+          <div class="full" id="learnerBorrowerGroup"><label for="loanLearner">Learner from the main register *</label><select id="loanLearner" required><option value="">Loading active learners…</option></select></div>
+          <div class="full hidden" id="staffBorrowerGroup"><label for="loanStaffBorrower">Staff account / borrower</label><select id="loanStaffBorrower"><option value="">Load active staff…</option></select>
+            <div id="manualStaffBorrowerGroup" class="hidden"><label for="borrowerName">Name of non-login staff member</label><input id="borrowerName" maxlength="140"><label for="borrowerCode">Staff reference (optional)</label><input id="borrowerCode" maxlength="60"></div>
+          </div>
           <div><label for="loanDue">Return due date</label><input id="loanDue" type="date" required></div>
           <div class="full"><button class="primary" type="submit">Issue book</button><p id="loanMsg" class="muted" role="status"></p></div>
         </form>
-        <p class="muted">Verify every learner code against the main Learner Register before issue. This separate register does not grant access to private learner records.</p>
+        <p class="muted">Learner loans are selected from the central learner register and retain the permanent pupil ID. Staff loans use an active CORNHILL staff account where available; manual entry is reserved for non-login employees.</p>
       </div>
     </div>
     <h3>Book catalogue</h3><div class="table-wrap"><table><thead><tr><th>Book code</th><th>Title</th><th>Author</th><th>Category</th><th>Copies available</th><th>Shelf</th></tr></thead><tbody id="bookRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
@@ -238,9 +240,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
         <h3>Assign learner to route</h3>
         <form id="transportForm">
           <div class="full"><label for="assignmentRoute">Route</label><select id="assignmentRoute" required><option value="">Load routes…</option></select></div>
-          <div><label for="transportLearner">Learner name</label><input id="transportLearner" maxlength="140" required></div>
-          <div><label for="transportCode">Permanent pupil code</label><input id="transportCode" maxlength="60" required></div>
-          <div><label for="transportClass">Class</label><input id="transportClass" maxlength="40"></div>
+          <div class="full"><label for="transportStudent">Learner from the main register *</label><select id="transportStudent" required><option value="">Loading active learners…</option></select></div>
           <div><label for="pickupPoint">Pickup point</label><input id="pickupPoint" maxlength="140" required></div>
           <div class="full"><label for="transportGuardianPhone">Guardian phone (only for approved transport contact)</label><input id="transportGuardianPhone" type="tel" maxlength="25"></div>
           <div class="full"><button class="primary" type="submit">Save route assignment</button><p id="transportMsg" class="muted" role="status"></p></div>
@@ -255,8 +255,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
     <div class="module-head"><div><span class="kicker">STRICTLY RESTRICTED RECORDS</span><h2>Student Welfare Office</h2><p class="muted">Visible only to administrators and authorised Matron, Senior Woman, Senior Man or School Nurse accounts. Record factual follow-up, not diagnoses or unnecessary private details.</p></div><button type="button" id="refreshWelfare">Refresh welfare register</button></div>
     <div class="card">
       <form id="welfareForm">
-        <div><label for="welfareLearner">Learner name (optional)</label><input id="welfareLearner" maxlength="140"></div>
-        <div><label for="welfareCode">Pupil code (optional)</label><input id="welfareCode" maxlength="60"></div>
+        <div class="full"><label for="welfareStudent">Link to learner register (optional)</label><select id="welfareStudent"><option value="">General case — no learner selected</option></select><small class="muted">When the case concerns a learner, select the learner once. The name and permanent pupil code will be taken from the main register.</small></div>
         <div><label for="welfareCategory">Case category</label><select id="welfareCategory"><option>General welfare</option><option>Attendance concern</option><option>Safeguarding concern</option><option>Family follow-up</option><option>Other</option></select></div>
         <div><label for="welfareFollowUp">Follow-up date</label><input id="welfareFollowUp" type="date"></div>
         <div class="full"><label for="welfareSummary">Factual summary</label><textarea id="welfareSummary" maxlength="2000" required></textarea></div>
@@ -389,7 +388,7 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>'UGX '+Number(v||0).toLocaleString('en-UG');
 const dateFmt=v=>v?new Date(v+'T00:00:00').toLocaleDateString('en-GB'):'—';
-let user=null,profile=null,classes=[],books=[],routes=[],staffOptions=[],integrationRows=[];
+let user=null,profile=null,classes=[],books=[],routes=[],staffOptions=[],serviceLearners=[],integrationRows=[];
 const job=()=>String(profile?.job_title||'').trim().toLowerCase();
 const hasJob=(...names)=>names.includes(job());
 const isAdmin=()=>profile?.role==='Admin';
@@ -461,6 +460,7 @@ async function refreshAll(){
  const jobs=[loadLeave(),loadPayroll(),loadStaffNotices(),loadSchoolCalendar(),loadStaffFeed()];
  if(isAdmin())jobs.push(loadAdmissions(),loadIntegrations(),runHealthCheck(false));
  if(profile.role==='Admin'||profile.role==='Teacher')jobs.push((async()=>{await loadClasses();await loadResources()})());
+ if(isLibrarian()||isTransport()||isWelfare())jobs.push(loadServiceLearners());
  jobs.push((async()=>{await loadBooks();if(isLibrarian())await loadLoans()})());
  if(isTransport())jobs.push(loadTransport());
  if(isWelfare())jobs.push(loadWelfare());
@@ -548,6 +548,53 @@ $('resourceForm').addEventListener('submit',async e=>{
  const {error}=await db.from('school_learning_resources').insert(p);if(error)throw error;e.target.reset();inlineMsg('resourceMsg','Resource published to the selected class.','success');await loadResources();
  }catch(err){inlineMsg('resourceMsg','Resource not saved: '+err.message,'error')}
 });
+async function loadServiceLearners(){
+ const {data,error}=await db.from('school_service_learners')
+  .select('id,admission_number,first_name,middle_name,last_name,class_id,class_name,status')
+  .eq('status','Active').order('first_name').limit(1000);
+ if(error){
+  serviceLearners=[];
+  const msg='Central learner register lookup unavailable: '+error.message;
+  if($('loanLearner'))$('loanLearner').innerHTML='<option value="">'+esc(msg)+'</option>';
+  if($('transportStudent'))$('transportStudent').innerHTML='<option value="">'+esc(msg)+'</option>';
+  if($('welfareStudent'))$('welfareStudent').innerHTML='<option value="">General case — no learner selected</option>';
+  return;
+ }
+ serviceLearners=data||[];
+ const selectedLoan=$('loanLearner')?.value,selectedTransport=$('transportStudent')?.value,selectedWelfare=$('welfareStudent')?.value;
+ const learnerLabel=s=>[s.admission_number,[s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '),s.class_name||'Unassigned'].filter(Boolean).join(' · ');
+ const options='<option value="">Choose learner from the main register</option>'+serviceLearners.map(s=>'<option value="'+esc(s.id)+'">'+esc(learnerLabel(s))+'</option>').join('');
+ if($('loanLearner')){$('loanLearner').innerHTML=options;if(serviceLearners.some(s=>s.id===selectedLoan))$('loanLearner').value=selectedLoan}
+ if($('transportStudent')){$('transportStudent').innerHTML=options;if(serviceLearners.some(s=>s.id===selectedTransport))$('transportStudent').value=selectedTransport}
+ if($('welfareStudent')){
+  $('welfareStudent').innerHTML='<option value="">General case — no learner selected</option>'+serviceLearners.map(s=>'<option value="'+esc(s.id)+'">'+esc(learnerLabel(s))+'</option>').join('');
+  if(serviceLearners.some(s=>s.id===selectedWelfare))$('welfareStudent').value=selectedWelfare;
+ }
+ if(isLibrarian()){
+  const {data:directory,error:directoryError}=await db.rpc('list_staff_directory');
+  staffOptions=directory||[];
+  if(profile&&!staffOptions.some(x=>x.id===profile.id))staffOptions.unshift({id:profile.id,full_name:profile.full_name||'My staff account',role:profile.role});
+  const staffSelect=$('loanStaffBorrower');
+  if(staffSelect){
+   staffSelect.innerHTML='<option value="">Choose an active staff account</option>'+staffOptions.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.full_name)+' · '+esc(x.role)+'</option>').join('')+'<option value="__manual__">Non-login staff member — enter details manually</option>';
+   if(directoryError){staffSelect.innerHTML='<option value="__manual__">Staff directory unavailable — use manual entry only</option>'}
+  }
+ }
+ syncLibraryBorrowerFields();
+}
+function syncLibraryBorrowerFields(){
+ const type=$('borrowerType')?.value||'Learner',learner=type==='Learner';
+ $('learnerBorrowerGroup')?.classList.toggle('hidden',!learner);
+ $('staffBorrowerGroup')?.classList.toggle('hidden',learner);
+ if($('loanLearner'))$('loanLearner').required=learner;
+ if($('loanStaffBorrower'))$('loanStaffBorrower').required=!learner;
+ const manual=$('loanStaffBorrower')?.value==='__manual__';
+ $('manualStaffBorrowerGroup')?.classList.toggle('hidden',!manual);
+ if($('borrowerName'))$('borrowerName').required=manual;
+ if($('borrowerCode'))$('borrowerCode').required=manual;
+}
+$('borrowerType').addEventListener('change',syncLibraryBorrowerFields);
+$('loanStaffBorrower').addEventListener('change',syncLibraryBorrowerFields);
 async function loadBooks(){
  const {data,error}=await db.from('school_library_books').select('id,title,author,book_code,category,total_copies,available_copies,shelf_location,is_active').eq('is_active',true).order('title').limit(500);
  if(error){$('bookRows').innerHTML='<tr><td colspan="6">Could not load catalogue: '+esc(error.message)+'</td></tr>';return}
@@ -566,8 +613,33 @@ async function loadLoans(){
  $('loanRows').innerHTML=(data||[]).map(x=>'<tr><td>'+esc(books.find(b=>b.id===x.book_id)?.title||'Book')+'<br>'+esc(x.borrower_name)+'</td><td>'+esc(x.borrower_code)+'</td><td>'+dateFmt(x.issue_date)+'</td><td>'+dateFmt(x.due_date)+'</td><td><span class="badge">'+esc(x.status)+'</span></td><td>'+(x.status==='Issued'?'<button type="button" data-loan-return="'+esc(x.id)+'">Mark returned</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">No loans are recorded.</td></tr>';
 }
 $('loanForm').addEventListener('submit',async e=>{
- e.preventDefault();try{requireLibrarian();const p={book_id:$('loanBook').value,borrower_name:$('borrowerName').value.trim(),borrower_code:$('borrowerCode').value.trim(),borrower_type:$('borrowerType').value,due_date:$('loanDue').value,issued_by:user.id};
- const {error}=await db.from('school_library_loans').insert(p);if(error)throw error;e.target.reset();inlineMsg('loanMsg','Book issued. Available copies were updated by the database.','success');await loadBooks();await loadLoans();
+ e.preventDefault();try{
+  requireLibrarian();
+  const type=$('borrowerType').value;
+  let student=null,staffBorrower=null,borrowerName='',borrowerCode='',studentId=null,borrowerUserId=null;
+  if(type==='Learner'){
+   student=serviceLearners.find(x=>x.id===$('loanLearner').value);
+   if(!student)throw new Error('Choose a learner from the central register.');
+   studentId=student.id;
+   borrowerName=[student.first_name,student.middle_name,student.last_name].filter(Boolean).join(' ');
+   borrowerCode=student.admission_number;
+  }else{
+   const staffId=$('loanStaffBorrower').value;
+   if(!staffId)throw new Error('Choose a staff account or the non-login staff option.');
+   if(staffId==='__manual__'){
+    borrowerName=$('borrowerName').value.trim();borrowerCode=$('borrowerCode').value.trim()||'NON-LOGIN';
+    if(!borrowerName)throw new Error('Enter the non-login employee name.');
+   }else{
+    staffBorrower=staffOptions.find(x=>x.id===staffId);
+    if(!staffBorrower)throw new Error('Choose an active staff account from CORNHILL.');
+    borrowerUserId=staffBorrower.id;borrowerName=staffBorrower.full_name;borrowerCode='STAFF-'+staffBorrower.id.slice(0,8);
+   }
+  }
+  const p={book_id:$('loanBook').value,borrower_name:borrowerName,borrower_code:borrowerCode,borrower_type:type,due_date:$('loanDue').value,issued_by:user.id,student_id:studentId,borrower_user_id:borrowerUserId};
+  const {error}=await db.from('school_library_loans').insert(p);if(error)throw error;
+  e.target.reset();syncLibraryBorrowerFields();
+  inlineMsg('loanMsg','Book issued and linked to the '+(type==='Learner'?'main learner register.':'staff account or identified non-login employee.'),'success');
+  await loadBooks();await loadLoans();await loadServiceLearners();
  }catch(err){inlineMsg('loanMsg','Book was not issued: '+err.message,'error')}
 });
 $('loanRows').addEventListener('click',async e=>{
@@ -592,8 +664,13 @@ $('routeForm').addEventListener('submit',async e=>{
  }catch(err){inlineMsg('routeMsg','Route not saved: '+err.message,'error')}
 });
 $('transportForm').addEventListener('submit',async e=>{
- e.preventDefault();try{requireTransport();const p={route_id:$('assignmentRoute').value,learner_name:$('transportLearner').value.trim(),learner_code:$('transportCode').value.trim(),class_name:$('transportClass').value.trim(),pickup_point:$('pickupPoint').value.trim(),guardian_phone:$('transportGuardianPhone').value.trim()||null,created_by:user.id};
- const {error}=await db.from('school_transport_assignments').insert(p);if(error)throw error;e.target.reset();inlineMsg('transportMsg','Learner transport assignment saved.','success');await loadTransport();
+ e.preventDefault();try{
+  requireTransport();
+  const learner=serviceLearners.find(s=>s.id===$('transportStudent').value);
+  if(!learner)throw new Error('Choose an active learner from the central learner register.');
+  const p={route_id:$('assignmentRoute').value,student_id:learner.id,learner_name:'',learner_code:'',class_name:'',pickup_point:$('pickupPoint').value.trim(),guardian_phone:$('transportGuardianPhone').value.trim()||null,created_by:user.id};
+  const {error}=await db.from('school_transport_assignments').insert(p);if(error)throw error;
+  e.target.reset();inlineMsg('transportMsg','Transport assignment saved and linked to the central learner record.','success');await loadTransport();
  }catch(err){inlineMsg('transportMsg','Assignment not saved: '+err.message,'error')}
 });
 async function loadWelfare(){
@@ -603,8 +680,12 @@ async function loadWelfare(){
  $('welfareRows').innerHTML=(data||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleDateString('en-GB'))+'</td><td>'+esc(x.learner_name)+'<br>'+esc(x.learner_code)+'</td><td>'+esc(x.case_category)+'</td><td>'+esc(x.factual_summary)+'</td><td>'+esc(x.action_taken)+'</td><td>'+dateFmt(x.follow_up_date)+'</td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="7" class="empty">No welfare cases recorded.</td></tr>';
 }
 $('welfareForm').addEventListener('submit',async e=>{
- e.preventDefault();try{requireWelfare();const p={learner_name:$('welfareLearner').value.trim(),learner_code:$('welfareCode').value.trim(),case_category:$('welfareCategory').value,factual_summary:$('welfareSummary').value.trim(),action_taken:$('welfareAction').value.trim(),follow_up_date:$('welfareFollowUp').value||null,created_by:user.id};
- const {error}=await db.from('school_welfare_cases').insert(p);if(error)throw error;e.target.reset();inlineMsg('welfareMsg','Restricted welfare record saved.','success');await loadWelfare();
+ e.preventDefault();try{
+  requireWelfare();
+  const studentId=$('welfareStudent').value||null;
+  const p={student_id:studentId,learner_name:'',learner_code:'',case_category:$('welfareCategory').value,factual_summary:$('welfareSummary').value.trim(),action_taken:$('welfareAction').value.trim(),follow_up_date:$('welfareFollowUp').value||null,created_by:user.id};
+  const {error}=await db.from('school_welfare_cases').insert(p);if(error)throw error;
+  e.target.reset();inlineMsg('welfareMsg',studentId?'Restricted welfare case saved and linked to the central learner register.':'General welfare case saved without a learner link.','success');await loadWelfare();await loadServiceLearners();
  }catch(err){inlineMsg('welfareMsg','Welfare record not saved: '+err.message,'error')}
 });
 function gatePassCode(){
