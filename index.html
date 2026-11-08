@@ -1532,6 +1532,14 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
    <div id="excelClassPerformanceSummary" class="grid" style="margin-top:12px"></div>
    <div class="table-wrap" style="overflow:auto"><table style="min-width:650px"><thead><tr><th>Assessment period</th><th>Subject</th><th>Learners assessed</th><th>Class average</th><th>Highest</th><th>Lowest</th><th>Average %</th></tr></thead><tbody id="excelClassPerformanceRows"><tr><td colspan="7">Load the class sheet first.</td></tr></tbody></table></div>
    <p class="muted" style="margin-bottom:0">This is a read-only class summary calculated from the marks currently shown in the class sheet. Blank marks and absence entries are not counted. It does not change learner marks.</p>
+   <section id="excelUpperPrimaryGradingAnalysis" class="hidden" style="margin-top:18px">
+    <div class="row" style="align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+     <div><h3 style="margin:0">Upper Primary · Grading Analysis</h3><p id="excelUpperPrimaryGradingMeta" class="muted" style="margin:5px 0 0">Workbook-style class analysis for P.5, P.6 and P.7.</p></div>
+     <span class="badge">Read-only analysis</span>
+    </div>
+    <div id="excelUpperPrimaryGradingBlocks" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px"></div>
+    <p class="muted" style="margin:8px 0 0">Subject and gender averages are percentages of available marks. Blank marks and X (Absent) entries are excluded. Division analysis uses the same configured subject grade bands and aggregate rule as the learner report card.</p>
+   </section>
   </section>
   <div id="excelMarksCodeKey" class="muted" style="margin-top:9px;padding:10px 12px;border:1px solid var(--cornhill-line);border-radius:10px;background:var(--cornhill-panel)">Subject code key will appear when the class sheet loads.</div>
   <div class="table-wrap" style="margin-top:12px;max-height:65vh;overflow:auto">
@@ -4385,10 +4393,145 @@ async function loadExcelMarksGrid(){
  let localDraftCount=0;try{localDraftCount=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>!x.expires_at||x.expires_at>Date.now()).filter(x=>assessments.some(a=>a.id===x.assessment_id)).length}catch(_){}
  message('excelMarksMsg',list.length+' active learners loaded · '+assessments.length+' assessment columns · '+(data||[]).length+' saved server marks loaded · '+localDraftCount+' pending offline drafts. Enter marks in the table and press Save all marks. Totals, aggregate and division recalculate automatically for P4–P7; positions are shown for every class; P4–P7 also show aggregate and division.');
 }
+function upperPrimaryGradingPhases(className){
+ const name=String(className||'');
+ if(/P\.?\s*5|PRIMARY\s*5/i.test(name))return [
+  {phase:'Midterm',label:'M.O.T',description:'Mid-Term'},
+  {phase:'End',label:'E.O.T',description:'End-of-Term'}
+ ];
+ if(/P\.?\s*6|PRIMARY\s*6/i.test(name))return [
+  {phase:'Set II',label:'M.O.T',description:'Set II'},
+  {phase:'Set III',label:'E.O.T',description:'Set III'}
+ ];
+ if(/P\.?\s*7|PRIMARY\s*7/i.test(name))return [
+  {phase:'Set II',label:'M.O.T',description:'Set II'},
+  {phase:'Set III',label:'E.O.T',description:'Set III'}
+ ];
+ return null;
+}
+function readExcelMark(ctx,assessment,learnerId){
+ const selector='[data-grid-score][data-assessment-id="'+CSS.escape(assessment.id)+'"][data-student-id="'+CSS.escape(learnerId)+'"]';
+ const input=document.querySelector(selector);
+ if(input)return String(input.value??'').trim();
+ const saved=ctx.savedMarks?.get(assessment.id+'|'+learnerId);
+ if(!saved)return '';
+ return isAbsentMark(saved)?'X':String(saved.score??'').trim();
+}
+function renderUpperPrimaryGradingAnalysis(ctx,className){
+ const section=$('excelUpperPrimaryGradingAnalysis');
+ const host=$('excelUpperPrimaryGradingBlocks');
+ const meta=$('excelUpperPrimaryGradingMeta');
+ if(!section||!host||!meta)return;
+ const phases=upperPrimaryGradingPhases(className);
+ if(!phases){section.classList.add('hidden');host.innerHTML='';return}
+ const core=[
+  {name:'English',key:'english'},
+  {name:'Mathematics',key:'mathematics'},
+  {name:'Science',key:'science'},
+  {name:'Social Studies',key:'socialstudies'}
+ ];
+ meta.textContent=className+' · four core subjects · M.O.T and E.O.T match the lower analysis panels in the class Excel workbook.';
+ const blocks=phases.map(config=>{
+  const phaseAssessments=ctx.assessments.filter(a=>excelAssessmentPeriod(a)===config.phase);
+  const groups=core.map(subject=>({
+   ...subject,
+   assessments:phaseAssessments.filter(a=>excelSubjectKey(a.subjects?.name||a.title||'')===subject.key)
+  }));
+  const missing=groups.filter(x=>!x.assessments.length).map(x=>x.name);
+  if(!phaseAssessments.length){
+   return '<article class="panel" style="padding:14px;margin:0;min-width:0"><div class="row"><h4 style="margin:0">GRADING ANALYSIS · '+config.label+'</h4><span class="badge">'+config.description+'</span></div><p class="muted">This period is not in the currently loaded sheet. Choose “All periods · full class sheet” and reload to display both analysis panels.</p></article>';
+  }
+  if(missing.length){
+   return '<article class="panel" style="padding:14px;margin:0;min-width:0"><div class="row"><h4 style="margin:0">GRADING ANALYSIS · '+config.label+'</h4><span class="badge">'+config.description+'</span></div><div class="notice warning">Analysis is waiting for the '+config.description+' assessment columns for: '+missing.map(esc).join(', ')+'. Prepare the missing subject assessments first.</div></article>';
+  }
+
+  const subjectValues=Object.fromEntries(core.map(s=>[s.key,[]]));
+  const genderValues={M:[],F:[]};
+  const divisions={I:0,II:0,III:0,IV:0,U:0,X:0,Pending:0};
+  let completeLearners=0,learnerSubjectGrades=0;
+
+  for(const learner of ctx.students){
+   const gradeRows=[],learnerPercentages=[];
+   for(const subject of groups){
+    let scoreTotal=0,maxTotal=0,validCount=0,absent=false,invalid=false;
+    for(const assessment of subject.assessments){
+     const raw=readExcelMark(ctx,assessment,learner.id);
+     if(!raw){invalid=true;continue}
+     if(/^x$/i.test(raw)){absent=true;continue}
+     const value=Number(raw),max=Number(assessment.max_score||100);
+     if(!Number.isFinite(value)||value<0||value>max){invalid=true;continue}
+     scoreTotal+=value;maxTotal+=max;validCount++;
+    }
+    if(absent){
+     gradeRows.push({name:subject.name,absent:true,grade:null});
+     continue;
+    }
+    if(invalid||validCount!==subject.assessments.length||maxTotal<=0)continue;
+    const percent=scoreTotal/maxTotal*100;
+    const grade=unebGradeFor(subject.assessments[0].subject_id,percent);
+    subjectValues[subject.key].push(percent);
+    learnerPercentages.push(percent);
+    learnerSubjectGrades++;
+    gradeRows.push({name:subject.name,absent:false,grade:grade?.grade_code||null});
+   }
+   const result=unebPrimaryDivision(gradeRows);
+   if(result.ready){
+    divisions[result.division]=(divisions[result.division]||0)+1;
+    completeLearners++;
+   }else if(String(result.reason||'').toLowerCase().includes('configure')){
+    divisions.Pending++;
+   }else{
+    divisions.X++;
+   }
+   const sex=String(learner.gender||'').trim().toUpperCase();
+   const genderKey=/^(M|MALE)/.test(sex)?'M':/^(F|FEMALE)/.test(sex)?'F':'';
+   if(genderKey&&learnerPercentages.length){
+    genderValues[genderKey].push(learnerPercentages.reduce((a,b)=>a+b,0)/learnerPercentages.length);
+   }
+  }
+
+  const subjectStats=core.map(s=>{
+   const values=subjectValues[s.key];
+   return {name:s.name,count:values.length,average:values.length?values.reduce((a,b)=>a+b,0)/values.length:null};
+  });
+  const ranked=subjectStats.filter(x=>x.average!==null).sort((a,b)=>b.average-a.average);
+  const best=ranked[0]||null;
+  const worst=ranked.length?ranked[ranked.length-1]:null;
+  const divisionRows=['I','II','III','IV','U','X','Pending'].map(code=>{
+   const count=divisions[code]||0;
+   const label=code==='Pending'?'Grade setup pending':code==='U'?'U (Ungraded)':code;
+   return '<tr><td><strong>'+label+'</strong></td><td class="kpi">'+count+'</td><td>'+(ctx.students.length?(count/ctx.students.length*100).toFixed(1)+'%':'—')+'</td></tr>';
+  }).join('');
+  const subjectRows=subjectStats.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.count+' / '+ctx.students.length+'</td><td><strong>'+(x.average===null?'—':x.average.toFixed(1)+'%')+'</strong></td></tr>').join('');
+  const genderRows=['M','F'].map(code=>{
+   const values=genderValues[code],label=code==='M'?'Boys':'Girls';
+   const average=values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
+   return '<tr><td>'+label+'</td><td>'+values.length+'</td><td><strong>'+(average===null?'—':average.toFixed(1)+'%')+'</strong></td></tr>';
+  }).join('');
+
+  return '<article class="panel" style="padding:14px;margin:0;min-width:0">'+
+   '<div class="row" style="align-items:center"><h4 style="margin:0">GRADING ANALYSIS · '+config.label+'</h4><span class="badge">'+config.description+'</span></div>'+
+   '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin:12px 0">'+
+    '<div class="stat"><small>Class learners</small><div class="num">'+ctx.students.length+'</div></div>'+
+    '<div class="stat"><small>Complete divisions</small><div class="num">'+completeLearners+'</div></div>'+
+    '<div class="stat"><small>X / incomplete</small><div class="num">'+divisions.X+'</div></div>'+
+    '<div class="stat"><small>Subject results</small><div class="num">'+learnerSubjectGrades+'</div></div>'+
+   '</div>'+
+   '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px">'+
+    '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">DIVISION ANALYSIS</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Division</th><th>Count</th><th>%</th></tr></thead><tbody>'+divisionRows+'</tbody></table></div></div>'+
+    '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY SUBJECT</h5><div class="table-wrap"><table style="min-width:205px"><thead><tr><th>Subject</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+subjectRows+'</tbody></table></div><p class="muted" style="margin:8px 0 0">Most performed: <strong>'+(best?esc(best.name)+' · '+best.average.toFixed(1)+'%':'—')+'</strong><br>Worst performed: <strong>'+(worst?esc(worst.name)+' · '+worst.average.toFixed(1)+'%':'—')+'</strong></p></div>'+
+    '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY GENDER</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Group</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+genderRows+'</tbody></table></div></div>'+
+   '</div>'+
+   '<p class="muted" style="margin:9px 0 0">'+(divisions.Pending?'Some learners show “Grade setup pending” because a core-subject percentage band is not configured.':'Division counts use the configured four-subject grade bands and aggregate rule used by the learner report card.')+' Blank and X marks are excluded from subject and gender averages.</p>'+
+  '</article>';
+ }).join('');
+ host.innerHTML=blocks;
+ section.classList.remove('hidden');
+}
 function renderExcelClassPerformance(){
  const ctx=window.cornhillExcelMarksContext,panel=$('excelClassPerformance');
  if(!panel)return;
- if(!ctx){panel.classList.add('hidden');return}
+ if(!ctx){panel.classList.add('hidden');$('excelUpperPrimaryGradingAnalysis')?.classList.add('hidden');return}
  const rows=[];
  let allScores=[],assessedCells=0;
  for(const assessment of ctx.assessments){
@@ -4401,11 +4544,12 @@ function renderExcelClassPerformance(){
    if(!Number.isFinite(value))continue;
    values.push(value);allScores.push(value);assessedCells++;
   }
-  const sum=values.reduce((a,b)=>a+b,0),avg=values.length?sum/values.length:null;
+  const avg=values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
   rows.push({period:excelAssessmentPeriod(assessment),subject:assessment.subjects?.name||assessment.title||'Subject',count:values.length,avg,high:values.length?Math.max(...values):null,low:values.length?Math.min(...values):null,pct:avg===null?null:(avg/Number(assessment.max_score||100))*100});
  }
  const average=allScores.length?allScores.reduce((a,b)=>a+b,0)/allScores.length:null;
- $('excelClassPerformanceMeta').textContent=(classes.find(x=>x.id===ctx.classId)?.name||'Class')+' · '+(academic.terms.find(x=>x.id===ctx.termId)?.name||'Selected term')+' · '+ctx.students.length+' active learners';
+ const className=classes.find(x=>x.id===ctx.classId)?.name||'Class';
+ $('excelClassPerformanceMeta').textContent=className+' · '+(academic.terms.find(x=>x.id===ctx.termId)?.name||'Selected term')+' · '+ctx.students.length+' active learners';
  $('excelClassPerformanceSummary').innerHTML=[
   ['Active learners',ctx.students.length],
   ['Assessment columns',ctx.assessments.length],
@@ -4413,9 +4557,11 @@ function renderExcelClassPerformance(){
   ['Overall average',average===null?'—':average.toFixed(1)]
  ].map(([label,value])=>'<div class="stat"><small>'+label+'</small><div class="num">'+value+'</div></div>').join('');
  $('excelClassPerformanceRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.period)+'</td><td>'+esc(x.subject)+'</td><td>'+x.count+' / '+ctx.students.length+'</td><td>'+(x.avg===null?'—':x.avg.toFixed(1))+'</td><td>'+(x.high===null?'—':x.high)+'</td><td>'+(x.low===null?'—':x.low)+'</td><td>'+(x.pct===null?'—':x.pct.toFixed(1)+'%')+'</td></tr>').join('')||'<tr><td colspan="7">No assessment columns are available.</td></tr>';
+ renderUpperPrimaryGradingAnalysis(ctx,className);
  panel.classList.remove('hidden');
 }
 $('refreshExcelClassPerformance')?.addEventListener('click',renderExcelClassPerformance);
+$('excelMarksBody')?.addEventListener('input',()=>renderExcelClassPerformance());
 function normaliseImportText(value){return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
 function isImportLearnerNameHeading(value){return ['NAME','PUPILNAME','PUPILSNAMES','PUPILFULLNAME','PUPILSFULLNAME','STUDENTNAME','STUDENTSNAME','STUDENTFULLNAME','LEARNERNAME','LEARNERSNAME','LEARNERFULLNAME','LEARNERSFULLNAME','FULLNAME','NAMEOFPUPIL','NAMEOFLEARNER'].includes(normaliseImportText(value))}
 function isImportLearnerCodeHeading(value){return /^(ID|ID2|SCHOOLID|IDNUMBER|PUPILNO|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERNO|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGNO|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
