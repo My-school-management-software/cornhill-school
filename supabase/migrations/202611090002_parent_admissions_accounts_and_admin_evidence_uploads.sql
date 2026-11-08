@@ -43,3 +43,28 @@ with check (
 alter table public.evidence_capture_requests
   alter column assigned_device_id drop not null,
   alter column assigned_user_id drop not null;
+
+-- Align the database purpose allow-list with the additional evidence types
+-- offered in the main learner/staff registration workflows.
+alter table public.evidence_capture_requests
+  drop constraint if exists evidence_capture_requests_purpose_check;
+alter table public.evidence_capture_requests
+  add constraint evidence_capture_requests_purpose_check
+  check (purpose = any (array[
+    'Bank deposit slip',
+    'Expense receipt',
+    'Withdrawal evidence',
+    'Staff ID',
+    'Staff application letter',
+    'Staff national ID',
+    'Staff academic certificates',
+    'Staff appointment letter',
+    'Academic qualification',
+    'Birth certificate',
+    'Previous report',
+    'Transfer letter',
+    'Learner document',
+    'Parent / guardian document',
+    'General document',
+    'Other'
+  ]::text[]));
