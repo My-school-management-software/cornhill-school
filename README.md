@@ -54,16 +54,19 @@ The database foundation is additive and uses RLS on the new tables. Teacher lear
 
 ## Work area 9 — P.5, P.6 and P.7 workbook grading analysis
 
-The upper-primary class-mark workspace now adds two analysis panels for the selected P.5, P.6 or P.7 class, based on the original Excel sections beneath the marks:
+The upper-primary class-mark workspace now reproduces all three analysis sections shown below the marks in the original P.5, P.6 and P.7 Excel workbooks:
 
-- M.O.T analysis: P.5 Midterm, P.6 Set II, P.7 Set II.
-- E.O.T analysis: P.5 End, P.6 Set III, P.7 Set III.
-- Each panel reports Division I, II, III, IV, U and X counts, average performance by English / Mathematics / Science / Social Studies, the strongest and weakest subject averages, and performance by boys and girls.
+- **B.O.T:** P.5 Beginning Assessment; P.6 and P.7 Set I.
+- **M.O.T:** P.5 Midterm Assessment; P.6 and P.7 Set II.
+- **E.O.T:** P.5 End of Term Assessment; P.6 and P.7 Set III.
+- Each section reports Division I, II, III, IV, U and X counts (plus separate incomplete-mark counts), average performance in English / Mathematics / Science / Social Studies, the strongest and weakest subject averages, and performance by boys and girls.
+- P.7's additional Set IV remains in the marks table as in the workbook; the workbook has three grading-analysis sections, so Set IV is not given an extra analysis panel.
 
-Averages are normalized against each assessment's maximum mark and exclude blank and X (Absent) marks. Division and aggregate calculations reuse the same configured subject grade bands and four-subject aggregate rule used in the learner report card, so the class analysis does not introduce a second grading standard. P.7's additional Set IV remains in the class marks table; the workbook's two grading-analysis panels are still M.O.T (Set II) and E.O.T (Set III).
+The analysis uses the Excel workbook's grade boundaries: D1 89–100, D2 79–88, C3 74–78, C4 69–73, C5 59–68, C6 49–58, P7 44–48, P8 39–43, and F9 below 39. It totals the four core-subject grade points and applies the workbook's aggregate division thresholds: 34+ = U, 29–33 = IV, 25–28 = III, 13–24 = II, and 4–12 = I. These workbook-specific rules are used only for this class analysis; the school's separate grade-band configuration is not changed. Subject and gender averages are normalized to percentages and exclude blank and X (Absent) marks. A teacher may view one marks period while the analysis still reads all three periods for the selected class and term.
 
-**Acceptance boundary:** the P.5, P.6 and P.7 class-subject links and all nine active grade bands for each core subject were verified. No P.5, P.6 or P.7 assessment records currently exist in the live database, so the new class analysis will display after the administrator prepares the relevant term assessments and teachers enter marks. JavaScript and UI-reference checks passed; live browser acceptance with actual marks remains required.
+For the active 2026 Term 3, the database now has 12 assessment columns for P.5, 12 for P.6 and 16 for P.7 (including P.7 Set IV). These are empty assessment columns ready for teachers to enter marks; no marks were fabricated or imported from the example workbook. The current live database has four core subject links in each of these three classes.
 
+**Acceptance boundary:** JavaScript period mapping, three-panel rendering, workbook grade boundaries, division thresholds, absent/blank handling, and subject/gender analysis were tested with synthetic marks. Real teacher sign-in and live browser acceptance with actual marks are still pending.
 ## Current preview
 
 The active development branch is `fix/assessment-selection-save-preview-20261108`. The latest preview available during this work was built from an earlier service-portal commit and does not include the final admissions page, public website, payroll policy changes or latest front-end fixes. Vercel's Free daily deployment API quota returned a payment-required limit, so no new preview was confirmed for the latest commit. Do not use an older preview to accept these new pages. The production main branch has not been changed by this development branch.
