@@ -83,4 +83,24 @@
    if(button){button.disabled=false;setButton(button,'Extract text')}
   }
  };
+
+ // Keep new event-driven workflows available in the central notification filter.
+ const categoryFilter=document.getElementById('notificationCategoryFilter');
+ if(categoryFilter){
+  const categories=[
+   ['staff_leave_request','Staff leave requests'],
+   ['staff_leave_decision','Staff leave decisions'],
+   ['admission_enquiry','New admission enquiries'],
+   ['admission_status','Admission decisions'],
+   ['evidence_submission','Evidence received'],
+   ['document_expiry','Document expiry'],
+   ['bank_transaction','Banking'],
+   ['expense_request','Expense approvals']
+  ];
+  for(const [value,label] of categories){
+   if(!categoryFilter.querySelector('option[value="'+value+'"]')){
+    const option=document.createElement('option');option.value=value;option.textContent=label;categoryFilter.appendChild(option);
+   }
+  }
+ }
 })();
