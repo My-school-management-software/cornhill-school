@@ -1284,7 +1284,16 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
   <h3>Assessment preparation · complete class marks sheet</h3>
   <p class="muted">The class teacher prepares one assessment period for the whole class. Every subject is created together in the school’s existing Excel order and code format. The class is automatic for class teachers.</p>
   <h3>Create assessment</h3>
- <form id="assessmentForm"><div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div><div id="assessmentClassField"><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div><div><label>Assessment period *</label><select name="period" required><option value="Beginning">Beginning (1)</option><option value="Midterm">Midterm (2)</option><option value="End">End of term (3)</option></select></div><div><label>Assessment title / note</label><input name="title" placeholder="Optional note for all subjects"></div><div><label>Type</label><select name="assessment_type"><option>Coursework</option><option>Test</option><option>Examination</option><option>Project</option><option>Practical</option></select></div><div><label>Maximum score *</label><input name="max_score" type="number" min="1" max="100" step="0.01" value="100" required></div><div><label>Assessment date</label><input name="assessment_date" type="date"></div><div class="full"><p class="muted">One preparation creates the full class sheet for every subject in the class curriculum. Your class-teacher account automatically uses its assigned class.</p><button class="primary">Create all subject columns</button></div></form>
+ <form id="assessmentForm">
+ <div><label>Term *</label><select name="term_id" id="assessmentTermSelect" required></select></div>
+ <div id="assessmentClassField"><label>Class *</label><select name="class_id" id="assessmentClassSelect" required></select></div>
+ <div class="full"><label>Assessment periods</label><div id="assessmentPeriodChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px"></div><p class="muted">All periods start selected. Untick any period you are not preparing.</p></div>
+ <div class="full"><label>Subjects</label><div id="assessmentSubjectChoices" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"><span class="muted">Class subjects will appear here.</span></div><p class="muted">All subjects start selected. Untick any subject you are not preparing.</p></div>
+ <div><label>Assessment title / note</label><input name="title" placeholder="Optional note"></div>
+ <div><label>Maximum score *</label><input name="max_score" type="number" min="1" max="100" step="0.01" value="100" required></div>
+ <div><label>Assessment date</label><input name="assessment_date" type="date"></div>
+ <div class="full"><button class="primary">Prepare selected subjects and periods</button></div>
+ </form>
  </section>
  <div id="teacherMarkEntry">
  <h3 style="margin-top:20px">Teacher mark entry · assigned class only</h3>
@@ -1296,7 +1305,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
   <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap">
    <div style="min-width:170px;flex:1"><label for="excelMarksPhase">Assessment period</label><select id="excelMarksPhase"><option value="All">All periods · full class sheet</option><option value="Beginning">Beginning · 1</option><option value="Midterm">Midterm · 2</option><option value="End">End of term · 3</option><option value="Fourth">Fourth assessment · 4 (where used)</option></select></div>
    <div style="min-width:170px;flex:1"><label for="excelMarksTerm">Academic term</label><select id="excelMarksTerm"></select></div>
-   <div style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
+   <div id="excelMarksClassField" style="min-width:170px;flex:1"><label for="excelMarksClass">Class</label><select id="excelMarksClass"></select></div>
    <button type="button" class="tab hidden" id="prepareExcelAssessments">Prepare class sheet</button>
    <button type="button" class="primary" id="loadExcelMarks">Load class sheet</button>
    <button type="button" id="exportExcelMarks" disabled>Export marks · Excel</button>
@@ -1315,7 +1324,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  </div>
    <div id="teacherExcelTransfer" style="margin:12px 0;padding:12px;border:1px solid #dce7de;border-radius:10px">
    <h4>Import existing marks from Excel</h4>
-   <p class="muted">Assigned teacher only · Select the matching class and term above, then choose your original workbook and preview it. The system will load the selected class sheet automatically. Learners are matched to existing school records; names and learner records are never created or changed by this import.</p>
+   <p class="muted">Choose the workbook and term. CORNHILL scans visible and hidden worksheets and columns, including Beginning, Mid and End marks. Only this class's learners and subjects are matched; learner records are never changed.</p>
    <input id="teacherMarksWorkbook" type="file" accept=".xlsx,.xls,.xlsm" />
    <label><input id="replaceExistingImportedMarks" type="checkbox"> Replace marks that already exist (leave unticked to protect saved marks)</label>
    <button type="button" id="previewTeacherMarksImport">Preview Excel marks</button>
@@ -1325,7 +1334,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
   </div>
 
  </div>
- <h3 style="margin-top:20px">Grading bands</h3>
+ <section id="academicGradingPanel"><h3 style="margin-top:20px">Grading bands</h3>
  <p class="muted">Active grading bands are applied to individual draft reports. Only administrators can add bands.</p>
  <div id="gradeBandAdmin" class="hidden"><form id="gradeBandForm"><div><label>Grade *</label><input name="name" required maxlength="12"></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="1" inputmode="numeric" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="1" inputmode="numeric" required></div><div><label>Comment</label><input name="comment"></div><div class="full"><button class="primary">Add general grading band</button></div></form></div>
  <div class="table-wrap"><table><thead><tr><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Comment</th></tr></thead><tbody id="gradeBandRows"></tbody></table></div>
@@ -1333,7 +1342,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  <p class="muted">Use these nine grade codes for internal tests and mock estimates. UNEB determines final examination subject grades through national standardisation, so percentage cut-offs here must be approved by the school for its own assessments and must not be presented as official UNEB cut-offs. Set the range separately for each core subject; aggregate remains unavailable until all required boundaries are configured.</p>
  <div id="unebGradeBandAdmin" class="hidden"><form id="unebGradeBandForm"><div><label>Core subject *</label><select name="subject_id" id="unebGradeSubject" required></select></div><div><label>Grade code *</label><select name="grade_code" required><option>D1</option><option>D2</option><option>C3</option><option>C4</option><option>C5</option><option>C6</option><option>P7</option><option>P8</option><option>F9</option></select></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div class="full"><button class="primary">Save UNEB subject boundary</button></div></form></div>
  <div class="table-wrap"><table><thead><tr><th>Subject</th><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Status</th></tr></thead><tbody id="unebGradeBandRows"></tbody></table></div>
- <h3 style="margin-top:24px">7. Term report cards and class performance</h3>
+ </section><h3 style="margin-top:24px">7. Term report cards and class performance</h3>
  <p class="muted">Preview individual learner results by term and review class averages. These are draft results for checking; official publication and grading bands require administrator approval.</p>
  <div class="row" style="align-items:end">
   <div style="flex:1;min-width:160px"><label>Term</label><select id="reportTermSelect"></select></div>
@@ -1937,6 +1946,8 @@ async function restoreOfflineSchoolSnapshot(owner){
 
 function resetAccountScopedCommunicationState(){
  window.cornhillSessionGeneration=(window.cornhillSessionGeneration||0)+1;
+ profile=null;students=[];classes=[];financeCodeAliases=[];
+ const appRoot=$('app');if(appRoot){appRoot.classList.add('hidden');appRoot.dataset.activeWorkspace='dashboard';appRoot.dataset.accountOwner=''}
  // Clear every account-bound academic workspace before another identity is loaded.
  window.cornhillExcelMarksContext=null;window.cornhillBulkMarkContext=null;window.cornhillOfflineReadOnly=false;
  if(typeof teacherExcelImportPlan!=='undefined')teacherExcelImportPlan=null;
@@ -1976,12 +1987,13 @@ async function startSession(session){
  window.cornhillStartupStage='resetting account state';
  resetAccountScopedCommunicationState();
  demoMode=false;currentUserId=session?.user?.id||null;$('demoBanner').style.display='none';
- if(!session){profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;financeCodeAliases=[];setOfflineReadOnly(false);sessionStorage.removeItem('cornhill_teacher_class_id');$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
-$('login').classList.add('hidden');$('app').classList.remove('hidden');$('logout').classList.remove('hidden');
+ if(!session){profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;financeCodeAliases=[];setOfflineReadOnly(false);sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');$('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');return}
+$('login').classList.add('hidden');$('app').classList.add('hidden');$('logout').classList.remove('hidden');
 window.cornhillStartupStage='loading signed-in user profile';
 const {data:p,error}=await db.from('user_profiles').select('full_name,role,phone,job_title,department,responsibilities,employment_start_date,reporting_date,employment_end_date,employment_status').eq('id',session.user.id).single();
 if(error){
- if(await restoreOfflineSchoolSnapshot(session.user.id))return;
+ if(await restoreOfflineSchoolSnapshot(session.user.id)){$('app').classList.remove('hidden');return}
+ $('app').classList.remove('hidden');
  message('appMsg','Your account profile could not be loaded, and no valid offline class-list snapshot is available. Reconnect to the internet and sign in again.',true);return
 }
 if(p.employment_status&&p.employment_status!=='Active'){
@@ -1998,7 +2010,7 @@ if(p.employment_status&&p.employment_status!=='Active'){
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
 window.cornhillStartupStage='loading permitted school records';
 await refresh();
- // Never inherit the previous account's open page, tab, or populated workspace.
+ $('app').classList.remove('hidden');
  $('app').dataset.accountOwner=session.user.id;
  applyRoleNavigation();tab('dashboard');
  if(!window.cornhillOfflineReadOnly){window.cornhillStartupStage='loading academic year and term controls';await loadAcademicControl();}
@@ -2109,7 +2121,7 @@ async function refresh(){
    await startSession(null);return;
   }
   window.cornhillStartupStage='loading assigned teacher subjects';
-  const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',selectedClassId);
+  const a=await db.from('class_subjects').select('class_id,subject_id,subjects(name)').eq('class_id',selectedClassId);
   if(a?.error){if(await restoreOfflineSchoolSnapshot(currentUserId))return;message('appMsg','Could not load your class subjects: '+a.error.message,true);return}
   window.teacherAssignments=a?.data||[];window.teacherClassId=selectedClassId;allowedClassIds=[selectedClassId];
   window.teacherClassIds=allowedClassIds;window.teacherSubjectIds=[...new Set(window.teacherAssignments.map(x=>x.subject_id).filter(Boolean))];
@@ -2957,8 +2969,7 @@ async function loadGradeBands(){
 async function loadUnebSubjectGradeBands(){
  const {data,error}=await db.from('uneb_subject_grade_bands').select('id,subject_id,grade_code,grade_point,min_percent,max_percent,is_active,subjects(name)').order('grade_point');
  if(error){message('academicMsg','UNEB subject grading unavailable: '+error.message,true);return}
- unebSubjectGradeBands=data||[];
- $('unebGradeBandRows').innerHTML=unebSubjectGradeBands.map(x=>'<tr><td>'+esc(x.subjects?.name||'—')+'</td><td><strong>'+esc(x.grade_code)+'</strong></td><td>'+(x.min_percent===null?'Not configured':Number(x.min_percent)+'%')+'</td><td>'+(x.max_percent===null?'Not configured':Number(x.max_percent)+'%')+'</td><td>'+(x.min_percent===null?'Awaiting cut-off':'Configured')+'</td></tr>').join('')||'<tr><td colspan="5">No UNEB subject grades found.</td></tr>';
+ unebSubjectGradeBands=data||[];renderUnebGradeBandRows();
 }
 $('unebGradeBandForm').addEventListener('submit',async e=>{
  e.preventDefault();if(profile?.role!=='Admin')return;
@@ -2991,6 +3002,43 @@ function curriculumGroupForClass(name){
  if(/P[4567]/.test(n)||/PRIMARY[4567]/.test(n))return 'P4-P7';
  return null;
 }
+function assessmentPeriodsForClass(classId){
+ const cls=classes.find(x=>x.id===classId),name=String(cls?.name||'');
+ return /P\.?\s*[67]|PRIMARY\s*[67]/i.test(name)?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End'];
+}
+function classSubjectsFor(classId){
+ const rows=(academic.classSubjects||[]).filter(x=>x.class_id===classId);
+ const byId=new Map((academic.subjects||[]).map(x=>[x.id,x]));
+ return rows.map(row=>byId.get(row.subject_id)||row.subjects).filter(x=>x&&x.id&&x.name)
+  .filter((x,i,all)=>all.findIndex(y=>y.id===x.id)===i)
+  .sort((a,b)=>excelSubjectOrder({subjects:a,class_id:classId})-excelSubjectOrder({subjects:b,class_id:classId})||String(a.name).localeCompare(String(b.name)));
+}
+function renderAssessmentPeriodChoices(classId){
+ const host=$('assessmentPeriodChoices');if(!host)return;
+ host.innerHTML=assessmentPeriodsForClass(classId).map(p=>'<label style="display:flex;gap:8px;align-items:center;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px"><input type="checkbox" name="assessment_periods" value="'+esc(p)+'" checked><span>'+esc(p)+'</span></label>').join('');
+}
+function renderAssessmentSubjectChoices(classId){
+ const host=$('assessmentSubjectChoices');if(!host)return;
+ const subjects=classSubjectsFor(classId);
+ if(!subjects.length){host.innerHTML='<span class="muted">No subjects assigned to this class. Ask the administrator to check Class Subjects.</span>';return}
+ host.innerHTML=subjects.map(subject=>'<label style="display:flex;gap:8px;align-items:center;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px"><input type="checkbox" name="assessment_subject_ids" value="'+esc(subject.id)+'" checked><span>'+esc(subject.name)+'</span></label>').join('');
+}
+function renderUnebSubjectsForClass(classId){
+ const host=$('unebGradeSubject');if(!host)return;
+ const cls=classes.find(x=>x.id===classId),isUpper=/P\.?\s*[4-7]|PRIMARY\s*[4-7]/i.test(cls?.name||'');
+ const subjects=isUpper?classSubjectsFor(classId).filter(x=>['english','mathematics','science','social studies'].includes(String(x.name).trim().toLowerCase())):[];
+ host.innerHTML=subjects.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');
+ const panel=$('unebGradeBandAdmin');if(panel)panel.classList.toggle('hidden',profile?.role!=='Admin'||!isUpper);
+ renderUnebGradeBandRows();
+}
+function renderUnebGradeBandRows(){
+ const host=$('unebGradeBandRows');if(!host)return;
+ const classId=profile?.role==='Teacher'?sessionStorage.getItem('cornhill_teacher_class_id'):$('assessmentClassSelect')?.value;
+ const ids=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
+ const rows=(unebSubjectGradeBands||[]).filter(x=>ids.has(x.subject_id));
+ host.innerHTML=rows.map(x=>'<tr><td>'+esc(x.subjects?.name||'—')+'</td><td><strong>'+esc(x.grade_code)+'</strong></td><td>'+(x.min_percent===null?'Not configured':Number(x.min_percent)+'%')+'</td><td>'+(x.max_percent===null?'Not configured':Number(x.max_percent)+'%')+'</td><td>'+(x.min_percent===null?'Awaiting cut-off':'Configured')+'</td></tr>').join('')||'<tr><td colspan="5">No UNEB grade boundaries for this class yet.</td></tr>';
+}
+
 
 async function loadAllTeacherMarksRegister(){
  const pageSize=1000;let offset=0,rows=[];
@@ -3020,6 +3068,7 @@ async function loadAcademics(){
  $('downloadBlankReportTemplates').classList.toggle('hidden',profile?.role!=='Admin');
  $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
+ $('academicGradingPanel')?.classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic administration · marks read-only':'Assigned teacher · assessment and mark entry';
@@ -3031,7 +3080,7 @@ async function loadAcademics(){
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('role','Teacher').order('full_name'):Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?db.from('academic_teacher_directory').select('*').order('full_name'):Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?loadAllTeacherMarksRegister():Promise.resolve({data:[],error:null}),
-  profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,teacher_directory_id,school_classes(name),subjects(name),academic_teacher_directory(full_name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('teacher_user_id',currentUserId).eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')),
+  profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,teacher_directory_id,school_classes(name),subjects(name),academic_teacher_directory(full_name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')),
   profile?.role==='Admin'?db.from('class_teacher_directory_assignments').select('class_id,teacher_directory_id,updated_at,academic_teacher_directory(full_name,employment_status,linked_user_id)'):Promise.resolve({data:[],error:null})
  ]);
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
@@ -3043,7 +3092,7 @@ async function loadAcademics(){
  const opts=(items,label)=>items.map(x=>'<option value="'+x.id+'">'+esc(label(x))+'</option>').join('');
  $('academicYearSelect').innerHTML=opts(academic.years,x=>x.name);
  $('academicClassSelect').innerHTML=opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));
- const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');$('assessmentClassSelect').innerHTML=profile?.role==='Teacher'?opts(classes.filter(x=>x.id===teacherClassId),x=>x.name+(x.stream?' - '+x.stream:'')):opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));$('assessmentClassField').classList.toggle('hidden',profile?.role==='Teacher');if(profile?.role==='Teacher')$('assessmentClassSelect').value=teacherClassId||'';const initialAssessmentClass=String(classes.find(x=>x.id===$('assessmentClassSelect').value)?.name||'').toUpperCase(),initialAssessmentSets=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(initialAssessmentClass),initialAssessmentPeriod=$('#assessmentForm select[name="period"]');if(initialAssessmentPeriod)initialAssessmentPeriod.innerHTML=(initialAssessmentSets?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End']).map((p,i)=>'<option value="'+p+'">'+p+(initialAssessmentSets?'':' ('+(i+1)+')')+'</option>').join('');
+ const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');$('assessmentClassSelect').innerHTML=profile?.role==='Teacher'?opts(classes.filter(x=>x.id===teacherClassId),x=>x.name+(x.stream?' - '+x.stream:'')):opts(classes,x=>x.name+(x.stream?' - '+x.stream:''));$('assessmentClassField').classList.toggle('hidden',profile?.role==='Teacher');if(profile?.role==='Teacher')$('assessmentClassSelect').value=teacherClassId||'';const initialAssessmentClass=String(classes.find(x=>x.id===$('assessmentClassSelect').value)?.name||'').toUpperCase(),initialAssessmentSets=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(initialAssessmentClass),initialAssessmentPeriod=$('#assessmentForm select[name="period"]');if(initialAssessmentPeriod)initialAssessmentPeriod.innerHTML=(initialAssessmentSets?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End']).map((p,i)=>'<option value="'+p+'">'+p+(initialAssessmentSets?'':' ('+(i+1)+')')+'</option>').join('');renderAssessmentPeriodChoices($('assessmentClassSelect').value);renderAssessmentSubjectChoices($('assessmentClassSelect').value);renderUnebSubjectsForClass($('assessmentClassSelect').value);
  $('academicSubjectSelect').innerHTML=opts(academic.subjects,x=>x.name);
  $('academicTeacherSelect').innerHTML='<option value="">Not assigned</option>'+opts((teacherDirectory.data||[]).filter(x=>x.employment_status==='Active'),x=>x.full_name);
  const availableTeacherAccounts=(staff.data||[]).filter(p=>!(teacherDirectory.data||[]).some(t=>t.linked_user_id===p.id));
@@ -3426,10 +3475,12 @@ async function loadBulkMarkSheet(){
 }
 
 function setupExcelMarksFilters(){
- const term=$('excelMarksTerm'),cls=$('excelMarksClass');
+ const term=$('excelMarksTerm'),cls=$('excelMarksClass'),classField=$('excelMarksClassField');
+ if(classField)classField.classList.toggle('hidden',profile?.role==='Teacher');
  term.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');
  const allowed=profile?.role==='Teacher'?new Set(window.teacherClassIds||[]):null;
  cls.innerHTML='<option value="">Choose class</option>'+classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
+ if(profile?.role==='Teacher'&&window.teacherClassId)cls.value=window.teacherClassId;
  const folders=$('excelClassFolders');if(folders)folders.innerHTML=classes.filter(x=>!allowed||allowed.has(x.id)).map(x=>'<button type="button" class="module-card" data-excel-class="'+x.id+'"><strong>📁 '+esc(x.name)+'</strong><span>Open class marks folder</span><em>'+esc(curriculumGroupForClass(x.name)||'Class')+'</em></button>').join('');
 }
 function excelAssessmentPeriod(a){const t=(a.title||'').toLowerCase();const cls=String(classes.find(c=>c.id===a.class_id)?.name||'').toUpperCase();const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);if(setBased){const m=t.match(/(?:set|assessment)\s*(iv|4|iii|3|ii|2|i|1)\b/i);if(m){const raw=m[1].toUpperCase();return 'Set '+({1:'I',2:'II',3:'III',4:'IV',I:'I',II:'II',III:'III',IV:'IV'}[raw]||'I')}if(/fourth|assessment\s*4/.test(t))return 'Set IV';if(/third|assessment\s*3|end.?of.?term|\bend\b/.test(t))return 'Set III';if(/second|assessment\s*2|mid.?term/.test(t))return 'Set II';return 'Set I'}if(/assessment\s*4|fourth assessment|fourth term/.test(t))return 'Fourth';if(/mid.?term|midterm/.test(t))return 'Midterm';if(/^end\b|end.?of.?term|end term/.test(t))return 'End';if(/beginning|start.?of.?term|beginning of term/.test(t))return 'Beginning';return 'Beginning';}
@@ -3538,7 +3589,8 @@ function recalculateExcelMarkSheet(){
 }
 async function loadExcelMarksGrid(){
  const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;
- const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value;
+ const termId=$('excelMarksTerm').value,classId=profile?.role==='Teacher'?(sessionStorage.getItem('cornhill_teacher_class_id')||''):$('excelMarksClass').value;
+ if(profile?.role==='Teacher')$('excelMarksClass').value=classId;
  const head=$('excelMarksHead'),body=$('excelMarksBody'),phaseFilter=$('excelMarksPhase').value||'All';
  // Invalidate any previous class/term sheet before attempting a new load.
  window.cornhillExcelMarksContext=null;
@@ -3546,7 +3598,8 @@ async function loadExcelMarksGrid(){
  if(!termId||!classId){message('excelMarksMsg','Choose both an academic term and a class.',true);return}
  const cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
  if(profile?.role==='Teacher'&&classId!==sessionStorage.getItem('cornhill_teacher_class_id')){message('excelMarksMsg','Access blocked: this class is not assigned to your account.',true);return}
- const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId);
+ const classSubjectIds=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
+ const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&classSubjectIds.has(x.subject_id));
  const setBasedClass=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phaseOrder=setBasedClass?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'];
  const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>phaseOrder.indexOf(excelAssessmentPeriod(a))-phaseOrder.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b));
  if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments exist for this class and term. Create the subject assessments for Beginning, Midterm and End of term first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
@@ -3605,8 +3658,9 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
  if(profile?.role==='Teacher'&&!sessionStorage.getItem('cornhill_teacher_class_id')){message('teacherMarksImportMsg','Your assigned class could not be verified. Sign out and sign in again.',true);return}
  if(!file){message('teacherMarksImportMsg','Choose your Excel workbook first.',true);return}
  if(!window.XLSX){message('teacherMarksImportMsg','The Excel reader is unavailable. Reconnect and reload the page before importing.',true);return}
- const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value;
- if(!termId||!classId){message('teacherMarksImportMsg','Choose the academic term and class first.',true);return}
+ const termId=$('excelMarksTerm').value,classId=profile?.role==='Teacher'?(sessionStorage.getItem('cornhill_teacher_class_id')||''):$('excelMarksClass').value;
+ if(profile?.role==='Teacher')$('excelMarksClass').value=classId;
+ if(!termId||!classId){message('teacherMarksImportMsg','Choose the academic term first.',true);return}
  if(profile?.role==='Teacher'&&classId!==sessionStorage.getItem('cornhill_teacher_class_id')){message('teacherMarksImportMsg','Access blocked: this class is not assigned to your account.',true);return}
  let ctx=window.cornhillExcelMarksContext;if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Loading the selected class and term…');await loadExcelMarksGrid();ctx=window.cornhillExcelMarksContext}
  if(!ctx||ctx.termId!==termId||ctx.classId!==classId){message('teacherMarksImportMsg','Could not load the selected class sheet.',true);return}
@@ -3712,14 +3766,14 @@ $('excelMarksBody').addEventListener('input',e=>{
 $('prepareExcelAssessments').addEventListener('click',async()=>{
  const button=$('prepareExcelAssessments');if(button.dataset.busy==='1')return;
  if(profile?.role!=='Admin'||demoMode){message('excelMarksMsg','Only the administrator can prepare class assessment columns.',true);return}
- const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value,cls=classes.find(x=>x.id===classId),group=curriculumGroupForClass(cls?.name||'');
- if(!termId||!classId||!group){message('excelMarksMsg','Choose a valid academic term and class first.',true);return}
+ const termId=$('excelMarksTerm').value,classId=$('excelMarksClass').value,cls=classes.find(x=>x.id===classId);
+ if(!termId||!classId||!cls){message('excelMarksMsg','Choose a valid term and class.',true);return}
  button.dataset.busy='1';button.disabled=true;button.textContent='Preparing…';
  try{
-  const {data:curriculum,error:curriculumError}=await db.from('school_curriculum_subjects').select('subject_id').eq('school_level_group',group);
-  if(curriculumError)throw curriculumError;
-  const subjectIds=[...new Set((curriculum||[]).map(x=>x.subject_id))];
-  if(!subjectIds.length)throw new Error('No active curriculum subjects are configured for '+group+'.');
+  const {data:classSubjectRows,error:classSubjectError}=await db.from('class_subjects').select('subject_id').eq('class_id',classId);
+  if(classSubjectError)throw classSubjectError;
+  const subjectIds=[...new Set((classSubjectRows||[]).map(x=>x.subject_id).filter(Boolean))];
+  if(!subjectIds.length)throw new Error('No subjects are assigned to '+cls.name+'. Check Class Subjects first.');
   const {data:existing,error:existingError}=await db.from('assessments').select('subject_id,title').eq('class_id',classId).eq('term_id',termId);
   if(existingError)throw existingError;
   const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls.name);
@@ -3896,7 +3950,7 @@ $('saveExcelMarks').addEventListener('click',async()=>{
  }catch(err){message('excelMarksMsg','Mark sheet save stopped unexpectedly. Check the saved marks before retrying: '+(err?.message||'Unknown error'),true)}
  finally{button.disabled=false;button.textContent='Save all marks';delete button.dataset.busy}
 });
-$('assessmentClassSelect').addEventListener('change',()=>{const cls=String(classes.find(c=>c.id===$('assessmentClassSelect').value)?.name||'').toUpperCase();const sets=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls);const sel=document.querySelector('#assessmentForm select[name="period"]');if(sel)sel.innerHTML=(sets?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End']).map((p,i)=>'<option value="'+p+'">'+p+(sets?'':' ('+(i+1)+')')+'</option>').join('')});
+$('assessmentClassSelect').addEventListener('change',()=>{const id=$('assessmentClassSelect').value;renderAssessmentPeriodChoices(id);renderAssessmentSubjectChoices(id);renderUnebSubjectsForClass(id)});
 $('scoreAssessmentSelect').addEventListener('change',updateScoreLearners);
 let bulkMarksAutosaveTimer=null;
 async function autosaveBulkMarkDrafts(){
@@ -3989,66 +4043,44 @@ async function submitAcademic(formId,table,transform,success){
    }
    let payload=transform(values);
    if(table==='assessments'){
-    const term=academic.terms.find(x=>x.id===values.term_id);
-    const classId=profile?.role==='Teacher'?sessionStorage.getItem('cornhill_teacher_class_id'):values.class_id;
-    const cls=classes.find(x=>x.id===classId);
-    if(!term||!cls){message('academicMsg','Choose a valid academic term. Your teacher account must have an assigned class.',true);return}
-    const group=curriculumGroupForClass(cls.name);
-    if(!group)throw new Error('No curriculum group is configured for '+cls.name+'.');
-    const {data:curriculum,error:curriculumError}=await db.from('school_curriculum_subjects').select('subject_id').eq('school_level_group',group);
-    if(curriculumError)throw curriculumError;
-    const subjectIds=[...new Set((curriculum||[]).map(x=>x.subject_id).filter(Boolean))];
-    if(!subjectIds.length)throw new Error('No subjects are configured in the '+group+' curriculum.');
-    const {data:subjectRows,error:subjectError}=await db.from('subjects').select('id,name,code').eq('is_active',true).in('id',subjectIds);
-    if(subjectError)throw subjectError;
-    const subjects=subjectRows||[];
-    if(!subjects.length)throw new Error('No active subjects were found for '+cls.name+'.');
-    const maximum=Number(values.max_score||100);
-    if(!Number.isFinite(maximum)||maximum<=0||maximum>100)throw new Error('Maximum score must be a valid number greater than zero.');
-    if(values.assessment_date&&(values.assessment_date<term.starts_on||values.assessment_date>term.ends_on))throw new Error('Assessment date must fall within the selected term ('+term.starts_on+' to '+term.ends_on+').');
-    const period=String(values.period||'').trim(),note=String(values.title||'').trim();
-    const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls.name);
-    const validPeriods=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End'];
-    if(!validPeriods.includes(period))throw new Error('Choose a valid assessment period for '+cls.name+'.');
-    const finalTitle=period+(note?' · '+note:' Assessment');
-    const auth=await db.auth.getUser(),user=auth.data?.user;
-    if(auth.error||!user)throw new Error('Your session has expired. Sign in again before preparing assessments.');
-    const {data:existingRows,error:existingError}=await db.from('assessments')
-      .select('id,subject_id,title,assessment_type,max_score,assessment_date')
-      .eq('term_id',values.term_id).eq('class_id',classId).in('subject_id',subjectIds);
+    const term=academic.terms.find(x=>x.id===values.term_id),classId=profile?.role==='Teacher'?sessionStorage.getItem('cornhill_teacher_class_id'):values.class_id,cls=classes.find(x=>x.id===classId);
+    if(!term||!cls)throw new Error('Choose a valid term. Your teacher account uses its assigned class automatically.');
+    const selectedSubjectIds=[...document.querySelectorAll('#assessmentSubjectChoices input[name="assessment_subject_ids"]:checked')].map(x=>x.value);
+    const selectedPeriods=[...document.querySelectorAll('#assessmentPeriodChoices input[name="assessment_periods"]:checked')].map(x=>x.value);
+    if(!selectedSubjectIds.length)throw new Error('Select at least one subject.');
+    if(!selectedPeriods.length)throw new Error('Select at least one assessment period.');
+    const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls.name),validPeriods=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End'];
+    if(selectedPeriods.some(p=>!validPeriods.includes(p)))throw new Error('A selected period does not apply to '+cls.name+'.');
+    const {data:classSubjectRows,error:classSubjectError}=await db.from('class_subjects').select('subject_id,subjects(id,name,code)').eq('class_id',classId);
+    if(classSubjectError)throw classSubjectError;
+    const classSubjectMap=new Map((classSubjectRows||[]).map(x=>[x.subject_id,x.subjects]).filter(x=>x[1]?.id));
+    if(!classSubjectMap.size)throw new Error('No subjects are assigned to '+cls.name+'. Ask the administrator to check Class Subjects.');
+    if(selectedSubjectIds.some(id=>!classSubjectMap.has(id)))throw new Error('A selected subject is not assigned to '+cls.name+'. Nothing was saved.');
+    const subjects=selectedSubjectIds.map(id=>classSubjectMap.get(id)).filter(Boolean),maximum=Number(values.max_score||100);
+    if(!Number.isFinite(maximum)||maximum<=0||maximum>100)throw new Error('Maximum score must be between 1 and 100.');
+    if(values.assessment_date&&(values.assessment_date<term.starts_on||values.assessment_date>term.ends_on))throw new Error('Assessment date must fall within '+term.name+'.');
+    const auth=await db.auth.getUser(),user=auth.data?.user;if(auth.error||!user)throw new Error('Your session has expired. Sign in again.');
+    const {data:existingRows,error:existingError}=await db.from('assessments').select('id,subject_id,title,assessment_type,max_score,assessment_date').eq('term_id',values.term_id).eq('class_id',classId).in('subject_id',selectedSubjectIds);
     if(existingError)throw existingError;
-    const matching=(existingRows||[]).filter(x=>excelAssessmentPeriod(x)===period);
-    const present=new Set(matching.map(x=>x.subject_id));
-    const existingIds=matching.map(x=>x.id).filter(Boolean);
-    // Existing blank columns may have been created by "Prepare class sheet".
-    // Apply the form's metadata to those columns too, without discarding marks.
-    if(existingIds.length&&profile?.role==='Admin'){
-      const {data:recordedMarks,error:marksError}=await db.from('assessment_scores')
-        .select('assessment_id,score').in('assessment_id',existingIds);
-      if(marksError)throw new Error('Could not verify marks already entered for this assessment period. Nothing was changed. '+marksError.message);
-      const invalidExisting=(recordedMarks||[]).filter(x=>x.score!==null&&x.score!==undefined&&Number(x.score)>maximum);
-      if(invalidExisting.length)throw new Error('Some existing marks are higher than the new maximum score of '+maximum+'. No assessment details were changed. Review those marks or keep the existing maximum score.');
-      const {error:updateError}=await db.from('assessments').update({
-        title:finalTitle,assessment_type:values.assessment_type||'Coursework',
-        max_score:maximum,assessment_date:values.assessment_date||null
-      }).in('id',existingIds);
-      if(updateError)throw updateError;
+    let created=0,updated=0,kept=0;const missing=[];
+    for(const period of selectedPeriods){
+     const matching=(existingRows||[]).filter(x=>excelAssessmentPeriod(x)===period),present=new Set(matching.map(x=>x.subject_id));
+     const finalTitle=period+(String(values.title||'').trim()?' · '+String(values.title).trim():' Assessment');
+     if(matching.length&&profile?.role==='Admin'){
+      const ids=matching.map(x=>x.id),{data:recordedMarks,error:marksError}=await db.from('assessment_scores').select('assessment_id,score').in('assessment_id',ids);
+      if(marksError)throw new Error('Could not check saved marks. Nothing was changed. '+marksError.message);
+      if((recordedMarks||[]).some(x=>x.score!==null&&x.score!==undefined&&Number(x.score)>maximum))throw new Error('Some saved marks exceed '+maximum+'. Keep the current maximum or review those marks first.');
+      const {error:updateError}=await db.from('assessments').update({title:finalTitle,assessment_type:'Coursework',max_score:maximum,assessment_date:values.assessment_date||null}).in('id',ids);
+      if(updateError)throw updateError;updated+=ids.length;
+     }else kept+=matching.length;
+     for(const subject of subjects)if(!present.has(subject.id))missing.push({term_id:values.term_id,class_id:classId,subject_id:subject.id,title:finalTitle,assessment_type:'Coursework',max_score:maximum,assessment_date:values.assessment_date||null,created_by:user.id});
     }
-    const missing=subjects.filter(x=>!present.has(x.id)).map(subject=>({
-      term_id:values.term_id,class_id:classId,subject_id:subject.id,title:finalTitle,
-      assessment_type:values.assessment_type||'Coursework',max_score:maximum,
-      assessment_date:values.assessment_date||null,created_by:user.id
-    }));
-    if(missing.length){
-      const {error:insertError}=await db.from('assessments').insert(missing);
-      if(insertError)throw insertError;
-    }
-    await clearLocalFormDraft(currentUserId,'academic-assessment');
-    e.target.reset();
+    if(missing.length){const {error:insertError}=await db.from('assessments').insert(missing);if(insertError)throw insertError;created=missing.length;}
+    await clearLocalFormDraft(currentUserId,'academic-assessment');e.target.reset();
     if(profile?.role==='Teacher')$('assessmentClassSelect').value=classId;
+    renderAssessmentPeriodChoices(classId);renderAssessmentSubjectChoices(classId);renderUnebSubjectsForClass(classId);
     await loadAcademics();
-    const created=missing.length,updated=profile?.role==='Admin'?existingIds.length:0,kept=existingIds.length-updated;
-    message('academicMsg','Assessment period ready for '+cls.name+' · '+period+'. '+created+' new subject column(s) created; '+updated+' existing column(s) updated; '+kept+' existing column(s) left unchanged. Existing learner marks were preserved. '+(kept&&profile?.role==='Teacher'?'An administrator must adjust metadata on already-prepared columns. ':'')+'Maximum score: '+maximum+'.');
+    message('academicMsg','Ready for '+cls.name+': '+created+' subject-period column(s) created, '+updated+' updated, '+kept+' existing column(s) kept. Saved marks were preserved.');
     return;
    }
    const {error}=await db.from(table).insert(payload);
@@ -4743,7 +4775,7 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
    if(ids.length!==1||allAssignedClassIds.length!==1){await db.auth.signOut();message('loginMsg','This code is not authorised for '+selectedClass+'. Check the class selected or contact the administrator.',true);return}
    sessionStorage.setItem('cornhill_teacher_class_id',ids[0]);sessionStorage.setItem('cornhill_login_mode','Teacher');window.teacherClassId=ids[0];
   }else{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.setItem('cornhill_login_mode','Admin')}
-  await startSession(data.session);
+  // Supabase SIGNED_IN event loads this account once; avoid a second competing startup.
  }catch(err){message('loginMsg','Could not complete sign-in. Check your connection and try again. '+(err?.message||''),true)}
  finally{button.disabled=false;button.textContent=mode==='Admin'?'Administrator sign in':'Sign in to this class'}
 }
@@ -4758,7 +4790,7 @@ $('logout').addEventListener('click',async()=>{
  await db.auth.signOut();await offlineSchoolDelete(owner);
  sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode');
  profile=null;students=[];classes=[];window.teacherAssignments=[];window.teacherClassIds=[];window.teacherSubjectIds=[];window.teacherClassId=null;
- setOfflineReadOnly(false);await startSession(null)
+ setOfflineReadOnly(false);
 });
 function syncBursaryAdmissionFields(){
  const enabled=$('bursaryStatus').value==='true';
@@ -5297,7 +5329,16 @@ $('passwordRecoveryForm').addEventListener('submit',async e=>{
  }catch(error){message('passwordRecoveryMsg','Password was not changed. '+(error?.message||'Please request a fresh recovery link and try again.'),true)}
  finally{button.disabled=false;button.textContent='Save new password'}
 });
-if(db)db.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'&&session){$('login').classList.add('hidden');$('app').classList.add('hidden');$('passwordRecoveryPanel').classList.remove('hidden');return}if(event==='SIGNED_OUT')$('passwordRecoveryPanel').classList.add('hidden');startSession(session).catch(err=>{console.error('CORNHILL startup failure at '+(window.cornhillStartupStage||'unknown stage'),err);if(session)message('appMsg','Your account signed in, but the school dashboard could not finish loading. Stage: '+(window.cornhillStartupStage||'unknown')+'. '+(err?.message||''),true)})});
+window.cornhillLastAuthSessionId=window.cornhillLastAuthSessionId||null;
+if(db)db.auth.onAuthStateChange((event,session)=>{
+ if(event==='PASSWORD_RECOVERY'&&session){$('login').classList.add('hidden');$('app').classList.add('hidden');$('passwordRecoveryPanel').classList.remove('hidden');return}
+ if(event==='SIGNED_OUT')$('passwordRecoveryPanel').classList.add('hidden');
+ if(!['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event))return;
+ const sessionId=session?.user?.id||null;
+ if(event!=='SIGNED_OUT'&&sessionId===window.cornhillLastAuthSessionId)return;
+ window.cornhillLastAuthSessionId=sessionId;
+ startSession(session).catch(err=>{console.error('CORNHILL startup failure at '+(window.cornhillStartupStage||'unknown stage'),err);$('app').classList.remove('hidden');if(session)message('appMsg','Your account signed in, but the school dashboard could not finish loading. Stage: '+(window.cornhillStartupStage||'unknown')+'. '+(err?.message||''),true)})
+});
 const refreshAppButton=$('refreshApp');
 if(refreshAppButton)refreshAppButton.addEventListener('click',async()=>{
  const original=refreshAppButton.textContent;
