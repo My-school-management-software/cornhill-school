@@ -1564,7 +1564,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
 </div>
 </section>
 <section id="communication" class="panel hidden">
-<div class="row" style="align-items:center;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:42px;height:42px;border-radius:14px;background:var(--accent);color:#fff;font-size:23px;font-weight:900;box-shadow:0 4px 12px #0002">✦</span><div><h2 style="margin:0">VICconnect</h2><p class="muted" style="margin:3px 0 0;font-size:12px">Communication platform</p></div></div><span class="badge">Powered by VIC Media™</span></div>
+<div class="row" style="align-items:center;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="display:inline-grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#e8eee9;color:#52645a;font-size:16px;font-weight:900">VC</span><div><h2 style="margin:0">VICconnect</h2><p class="muted" style="margin:3px 0 0;font-size:12px">Communication platform</p></div></div><span class="badge">Powered by VIC Media™</span></div>
 <p class="muted">VICconnect is the VIC Media communication workspace for staff collaboration, parent and guardian notifications, WhatsApp and SMS preferences, and delivery history.</p>
 <section id="parentSchoolInboxPanel" class="panel hidden" style="margin:16px 0">
  <div class="row"><div><div class="dashboard-eyebrow">PRIVATE PARENT COMMUNICATION</div><h3 style="margin:4px 0">Parent & Guardian Messages Inbox</h3><p class="muted">Read parent text and voice messages, reply securely, and track each conversation. Staff only see messages assigned to their account; administrators can oversee the school inbox.</p></div><button type="button" class="primary" id="refreshParentSchoolInbox">Refresh inbox</button></div>
@@ -2056,6 +2056,7 @@ function resetAccountScopedCommunicationState(){
  const parentPanel=$('parentSchoolInboxPanel');if(parentPanel)parentPanel.classList.add('hidden');
  const parentStatus=$('parentSchoolInboxStatus');if(parentStatus){parentStatus.textContent='';parentStatus.classList.add('hidden')}
  staffDirectoryCache=[];
+ window.cornhillPendingStaffDirectory=[];
  contactUnreadBusy=false;unreadAlertsBusy=false;
  window.schoolNotifications=[];
 }
@@ -6045,11 +6046,16 @@ async function renderDirectMessageContacts(){
   if(error){host.innerHTML='<p class="muted">Could not refresh unread counts: '+esc(error.message)+'</p>';return}
   const counts={};
   [...(textUnread.data||[]),...(mediaUnread.data||[])].forEach(m=>counts[m.sender_user_id]=(counts[m.sender_user_id]||0)+1);
-  host.innerHTML=staffDirectoryCache.map(person=>{
+  const activeContacts=staffDirectoryCache.map(person=>{
    const active=select.value===person.id,count=counts[person.id]||0;
    const initials=(person.full_name||'C').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
    return '<button type="button" class="direct-message-contact '+(active?'active':'')+'" data-staff-contact="'+esc(person.id)+'"><span class="direct-message-contact-avatar">'+esc(initials)+'</span><span class="direct-message-contact-copy"><strong>'+esc(person.full_name)+'</strong><small>'+esc(person.role||'Staff')+'</small></span>'+(count?'<span class="direct-message-contact-unread">'+count+'</span>':'')+'</button>';
-  }).join('')||'<p class="muted">No other staff members are available yet.</p>';
+  }).join('');
+  const pendingContacts=(window.cornhillPendingStaffDirectory||[]).map(person=>{
+   const initials=(person.full_name||'S').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
+   return '<div class="direct-message-contact" aria-disabled="true" style="opacity:.62;cursor:not-allowed"><span class="direct-message-contact-avatar">'+esc(initials)+'</span><span class="direct-message-contact-copy"><strong>'+esc(person.full_name)+'</strong><small>'+esc(person.subject_specialism||'Teacher')+' · Messaging account not linked</small></span></div>';
+  }).join('');
+  host.innerHTML=(activeContacts||'<p class="muted">No other staff accounts are available yet.</p>')+(pendingContacts?'<div class="muted" style="padding:12px 8px 4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em">Staff awaiting account link</div>'+pendingContacts:'');
  }catch(error){host.innerHTML='<p class="muted">Could not refresh unread counts: '+esc(error.message||'Please retry.')+'</p>'}
  finally{contactUnreadBusy=false}
 }
@@ -6061,10 +6067,15 @@ $('directMessageContactList').addEventListener('click',async e=>{
 async function loadDirectMessageDirectory(){
  const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  const select=$('directMessageRecipient');if(!select||!owner)return;
- const {data,error}=await db.rpc('list_staff_directory');
+ const [{data,error},{data:pendingData,error:pendingError}]=await Promise.all([
+  db.rpc('list_staff_directory'),
+  db.from('academic_teacher_directory').select('full_name,subject_specialism,linked_user_id,employment_status').is('linked_user_id',null).eq('employment_status','Active').order('full_name')
+ ]);
  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
  if(error){message('directMessageMsg','Could not load staff directory: '+error.message,true);return}
- staffDirectoryCache=data||[];await loadUnreadMessageAlerts();
+ staffDirectoryCache=data||[];
+ window.cornhillPendingStaffDirectory=pendingError?[]:(pendingData||[]);
+ await loadUnreadMessageAlerts();
  // Always start with no recipient selected. The previous account's selection is never reused.
  select.innerHTML='<option value="">Choose a colleague</option>'+staffDirectoryCache.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.full_name)+' · '+esc(x.role)+'</option>').join('');
  select.value='';
