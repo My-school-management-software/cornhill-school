@@ -4359,7 +4359,7 @@ function importPhaseNumber(raw){
  if(/SETII|SET2|SECOND/.test(n))return 2;
  if(/SETI|SET1|FIRST/.test(n))return 1;
  if(/BOT|BEGINNING|STARTOFTERM/.test(n))return 1;
- if(/MIDTERM|MID/.test(n))return 2;
+ if(/MIDTERM/.test(n)||/\\bMID\\b/i.test(String(raw??'')))return 2;
  if(/EOT|ENDOFTERM|ENDTERM/.test(n))return 3;
  return null;
 }
