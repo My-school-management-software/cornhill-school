@@ -337,6 +337,16 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
     <div class="module-head"><div><span class="kicker">ADMINISTRATOR ONLY</span><h2>System Health & Recovery Centre</h2><p class="muted">Basic live connectivity checks and recovery readiness guidance. A green connection check does not prove a backup can be restored.</p></div><button type="button" class="primary" id="runHealthCheck">Run system checks</button></div>
     <div class="stats"><div class="stat"><small>Authentication</small><strong id="healthAuth">Not checked</strong></div><div class="stat"><small>Database API</small><strong id="healthDatabase">Not checked</strong></div><div class="stat"><small>App Centre access</small><strong id="healthApps">Not checked</strong></div></div>
     <div id="healthDetails" class="notice">Run checks to test the current staff session and read-only access.</div>
+    <div class="card" id="backupActivityCard">
+      <div class="module-head"><div><h3>Encrypted backup activity</h3><p class="muted">Administrator-only backup schedule, recent runs and validation summaries. This view never exposes Drive tokens, scheduler secrets or private backup credentials.</p></div><button type="button" id="refreshBackupActivity">Refresh backup activity</button></div>
+      <div class="stats">
+        <div class="stat"><small>Automatic schedule</small><strong id="backupScheduleStatus">Not checked</strong></div>
+        <div class="stat"><small>Schedule frequency</small><strong id="backupScheduleFrequency">—</strong></div>
+        <div class="stat"><small>Last backup activity</small><strong id="backupLastActivity">—</strong></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Started</th><th>Backup file</th><th>Status</th><th>Records</th><th>Validation</th></tr></thead><tbody id="backupActivityRows"><tr><td colspan="5">Run system checks to inspect backup activity.</td></tr></tbody></table></div>
+      <p class="muted" id="backupActivityNote">A completed backup is not proof that restoration works. Restore validation must be performed separately in an isolated environment.</p>
+    </div>
     <div class="card"><h3>Recovery readiness checklist</h3><ol class="muted"><li>Confirm the latest encrypted export exists outside the main office computer.</li><li>Verify the encrypted file can be opened by the authorised administrator.</li><li>Confirm the separate treatment of uploaded files, authentication accounts and platform configuration.</li><li>Perform a restore rehearsal in a separate project before relying on recovery.</li><li>Record the date, operator and result of the rehearsal in the school's backup log.</li></ol><p class="muted">This page does not claim to inspect Vercel build logs, run a complete backup, or prove a database restore.</p></div>
   </section>
 
@@ -700,18 +710,53 @@ $('integrationRows').addEventListener('click',async e=>{
  const {error}=await db.from('school_provider_integrations').update(p).eq('id',id);if(error)throw error;await loadIntegrations();note('globalMsg','Provider setup status saved. No credentials or secrets were stored.','success');
  }catch(err){note('globalMsg','Provider status not saved: '+err.message,'error')}
 });
+function healthTime(value){
+ if(!value)return '—';
+ const date=new Date(value);
+ return Number.isNaN(date.getTime())?'—':date.toLocaleString('en-GB',{timeZone:'Africa/Kampala'});
+}
+async function loadBackupDashboard(){
+ if(!isAdmin())return;
+ const body=$('backupActivityRows');
+ const {data,error}=await db.rpc('get_school_backup_dashboard');
+ if(error){
+  $('backupScheduleStatus').textContent='Unavailable';
+  $('backupScheduleFrequency').textContent='—';
+  $('backupLastActivity').textContent='—';
+  body.innerHTML='<tr><td colspan="5">Backup activity could not be loaded. Check the administrator database function and retry.</td></tr>';
+  $('backupActivityNote').textContent='Backup credentials remain protected. The summary service did not return backup metadata.';
+  return false;
+ }
+ const payload=data&&typeof data==='object'?data:{};
+ const settings=payload.settings||null,runs=Array.isArray(payload.runs)?payload.runs:[];
+ $('backupScheduleStatus').textContent=settings?(settings.enabled?'Enabled':'Paused'):'Not configured';
+ $('backupScheduleFrequency').textContent=settings?.frequency||'—';
+ $('backupLastActivity').textContent=runs.length?healthTime(runs[0].completed_at||runs[0].created_at):'No runs recorded';
+ body.innerHTML=runs.map(run=>{
+  const validation=run.validation?.validation_status||'Not validated';
+  const records=Number.isFinite(Number(run.total_records))?Number(run.total_records).toLocaleString('en-UG'):'—';
+  return '<tr><td>'+esc(healthTime(run.created_at))+'</td><td>'+esc(run.file_name||'Encrypted backup')+'</td><td><span class="badge">'+esc(run.status||'Unknown')+'</span></td><td>'+records+'</td><td>'+esc(validation)+(run.validation?.validated_at?'<br><small>'+esc(healthTime(run.validation.validated_at))+'</small>':'')+'</td></tr>';
+ }).join('')||'<tr><td colspan="5" class="empty">No backup runs have been recorded yet.</td></tr>';
+ $('backupActivityNote').textContent='Showing up to 10 recent backup records. '+(runs.some(x=>x.validation?.validation_status)?'Validation metadata is available for some backups. ':'No completed restore validation is recorded in the displayed runs. ')+'A metadata summary does not prove a full restore.';
+ return true;
+}
 async function runHealthCheck(display=true){
  if(!isAdmin())return;
  $('healthAuth').textContent='Checking…';$('healthDatabase').textContent='Checking…';$('healthApps').textContent='Checking…';
- const [auth,apps]=await Promise.all([db.auth.getUser(),db.from('school_apps').select('app_key',{count:'exact',head:true})]);
+ const [auth,apps,backupOk]=await Promise.all([
+  db.auth.getUser(),
+  db.from('school_apps').select('app_key',{count:'exact',head:true}),
+  loadBackupDashboard()
+ ]);
  const authOk=!auth.error&&!!auth.data?.user?.id;
  const dbOk=!apps.error;
  $('healthAuth').textContent=authOk?'Connected':'Failed';
  $('healthDatabase').textContent=dbOk?'Reachable':'Failed';
  $('healthApps').textContent=apps.error?'Restricted / failed':String(apps.count??'Reachable');
- $('healthDetails').textContent=(authOk&&dbOk?'Current session and read-only database request succeeded. ':'One or more checks failed. ')+(apps.error?'App Centre query: '+apps.error.message:'App Centre read-only check completed.')+' This check does not validate the latest deployment or prove backup restoration.';
- if(display)note('globalMsg','Live connection checks completed. Backup restoration remains a separate manual exercise.',authOk&&dbOk?'success':'error');
+ $('healthDetails').textContent=(authOk&&dbOk?'Current session and read-only database request succeeded. ':'One or more connection checks failed. ')+(apps.error?'App Centre query: '+apps.error.message:'App Centre read-only check completed.')+(backupOk?' Backup metadata is available.':' Backup metadata is unavailable; credentials were not exposed.')+' This check does not validate the latest deployment or prove backup restoration.';
+ if(display)note('globalMsg','Live connection and backup metadata checks completed. Restore testing remains separate.',authOk&&dbOk?'success':'error');
 }
+$('refreshBackupActivity').addEventListener('click',loadBackupDashboard);
 $('runHealthCheck').addEventListener('click',()=>runHealthCheck(true));
 $('refreshHr').addEventListener('click',()=>Promise.all([loadLeave(),loadPayroll()]));
 $('refreshLearning').addEventListener('click',async()=>{await loadClasses();await loadResources()});
