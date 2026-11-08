@@ -5,7 +5,7 @@
   "description": "Staff services, attendance, notices, calendar, HR and school operations",
   "start_url": "/school-services.html",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#f4f7f4",
   "theme_color": "#14532d",
   "icons": [
@@ -15,5 +15,9 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "display_override": [
+    "fullscreen",
+    "standalone"
   ]
 }
