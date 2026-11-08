@@ -129,3 +129,15 @@ Before daily use, complete the authenticated test checklist in [docs/ACCEPTANCE_
 ## Repository workflow
 
 Work is on fix/assessment-selection-save-preview-20261108. Review the branch and acceptance evidence before creating/merging a pull request into main. A successful Vercel preview build does not by itself prove that database permissions, school workflows, printers, biometrics or offline synchronisation work.
+
+## Work area 10 — staff notice board, calendar and communications
+
+The School Services portal now includes three additional internal workspaces:
+
+- `/school-services.html#notices` — Staff Notice Board. Administrators create/publish or unpublish notices, choose Admin/Teacher/Staff audience, schedule publication, set an expiry, and assign category and priority. Active staff can see only published, in-date notices targeted to their role under the existing RLS policy.
+- `/school-services.html#calendar` — School Calendar & Events. Administrators create events with dates, times, venue, description and staff audience. Published events are role-targeted; the portal keeps this internal calendar separate from the public website.
+- `/school-services.html#staff-feed` — Staff Communication Feed. Active staff can post text updates, comment and react within the existing role-filtered feed. The first version deliberately does not support learner photos/videos or direct learner/parent messaging.
+
+The three entries are registered in App Centre. The notice, calendar and staff feed tables already existed and already had RLS policies; this work reuses them rather than introducing duplicate record stores. The staff feed uses the existing post/comment/reaction policies. The Service Worker now precaches the collaboration module and uses cache version v57.
+
+**Acceptance boundary:** front-end syntax and DOM-reference checks plus simulated database-role tests are required before accepting the preview. Actual staff login in a browser, scheduled-notice timing, notification delivery and realtime refresh need separate live acceptance. No push/SMS notifications are claimed in this version.
