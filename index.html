@@ -4459,7 +4459,7 @@ $('teacherMarksWorkbook')?.addEventListener('change',()=>{teacherImportCancel.di
 teacherImportCancel.addEventListener('click',()=>{
  teacherExcelImportPreviewRun++;const selectedFile=$('teacherMarksWorkbook').files?.[0];
  const ctx=window.cornhillExcelMarksContext;
- if(selectedFile&&ctx){const prefix=teacherExcelMappingKey(selectedFile,ctx.classId,ctx.termId,'','').replace(/\\|\\|$/,'');for(const key of Object.keys(teacherExcelHeadingMappings))if(key.startsWith(prefix.slice(0,prefix.lastIndexOf('|')+1)))delete teacherExcelHeadingMappings[key];}
+ if(selectedFile&&ctx){const prefix=[ctx.classId,ctx.termId,selectedFile.name,selectedFile.size,selectedFile.lastModified].join('|')+'|';for(const key of Object.keys(teacherExcelHeadingMappings))if(key.startsWith(prefix))delete teacherExcelHeadingMappings[key];}
  teacherExcelImportPlan=null;$('teacherMarksWorkbook').value='';$('replaceExistingImportedMarks').checked=false;
  $('confirmTeacherMarksImport').disabled=true;$('previewTeacherMarksImport').disabled=false;$('previewTeacherMarksImport').textContent='Preview Excel marks';
  $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">Choose a workbook to preview its marks.</td></tr>';
@@ -6092,6 +6092,9 @@ $('studentRows').addEventListener('click',async e=>{
     $('learnerProfileContent').innerHTML+='<div class="panel" style="margin-top:14px"><h3>Promote / transfer learner to another class</h3><p class="muted">This records the previous and new class in the learner history before changing the current class.</p><form id="learnerPromotionForm"><div><label>Destination class *</label><select name="new_class_id" required>'+destinations.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name+(c.stream?' · '+c.stream:''))+'</option>').join('')+'</select></div><div><label>Effective date *</label><input name="effective_date" type="date" value="'+new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Kampala'})+'" required></div><div class="full"><label>Reason / notes (optional)</label><input name="notes" maxlength="500" placeholder="e.g. Promoted at start of new term"></div><div class="full"><button class="primary" type="submit" '+(!destinations.length?'disabled':'')+'>Save class promotion</button></div></form><div id="learnerPromotionMsg" class="muted"></div></div>';
     bindLocalAutosaveDynamicForm($('learnerPromotionForm'),()=> 'learner-promotion-'+learner.id,'learnerPromotionMsg',()=>profile?.role==='Admin');
     await restoreLocalAutosaveForm($('learnerPromotionForm'),'learner-promotion-'+learner.id,'learnerPromotionMsg');
+    const promotionCancelWrap=document.createElement('div');promotionCancelWrap.className='full';promotionCancelWrap.style.display='flex';promotionCancelWrap.style.justifyContent='flex-end';
+    const promotionCancel=document.createElement('button');promotionCancel.type='button';promotionCancel.className='tab';promotionCancel.textContent='Cancel promotion entry';promotionCancelWrap.append(promotionCancel);$('learnerPromotionForm').append(promotionCancelWrap);
+    promotionCancel.addEventListener('click',async()=>{const form=$('learnerPromotionForm');form.reset();if(currentUserId)await clearLocalFormDraft(currentUserId,'learner-promotion-'+learner.id);message('learnerPromotionMsg','Promotion entry cancelled. The learner remains in the current class; no promotion was saved.');});
     $('learnerPromotionForm').addEventListener('submit',async ev=>{
      ev.preventDefault();const values=Object.fromEntries(new FormData(ev.currentTarget).entries());const submit=ev.currentTarget.querySelector('button[type="submit"]');
      const destination=classes.find(x=>x.id===values.new_class_id),source=classes.find(x=>x.id===learner.class_id);
