@@ -5,7 +5,7 @@
   "description": "Private learner results and guardian information portal",
   "start_url": "/parents.html",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#f2f7f3",
   "theme_color": "#14532d",
   "icons": [
@@ -15,5 +15,9 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "display_override": [
+    "fullscreen",
+    "standalone"
   ]
 }
