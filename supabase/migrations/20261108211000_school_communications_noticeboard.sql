@@ -97,7 +97,7 @@ insert into public.school_apps(app_key,name,description,category,icon,app_url,ap
 values (
  'school-communications','Staff Communications & Events',
  'Internal school notices, announcements and event calendar for authorised staff.',
- 'School','message-square-text','/school-communications.html','Internal',
+ 'School','messages-square','/school-communications.html','Internal',
  array['Admin','Teacher','Staff']::text[],array[]::text[],180,true,
  'f9aa5308-eebd-45a3-b4b1-22dbd29e834a'::uuid,'f9aa5308-eebd-45a3-b4b1-22dbd29e834a'::uuid
 )
