@@ -1046,7 +1046,23 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 <div id="appMsg" class="notice hidden" role="status" aria-live="polite"></div><div id="staffAttendanceNotice" class="notice hidden" role="status" aria-live="polite" style="background:#fff7ed;color:#9a3412;border-left:4px solid #d97706"></div><div id="demoBanner" class="notice" style="display:none;background:#fff7ed;color:#9a3412">DEMO MODE · Sample records only · Changes are disabled · No real school data is being shown.</div>
 
 <nav class="tabs cornhill-sidebar" aria-label="Main school navigation"><div class="sidebar-brand"><span class="sidebar-brand-mark">CN</span><span><strong>School menu</strong><small>Management workspace</small></span></div><div class="sidebar-section-label">OVERVIEW</div><button class="tab active" data-tab="dashboard"><span class="nav-icon">⌂</span><span>Dashboard</span></button><button class="tab" data-tab="notifications" id="notificationsTab"><span class="nav-icon">♢</span><span>Notifications</span><span id="notificationsNavBadge" class="badge hidden" style="margin-left:auto;background:#dc2626;color:#fff">0</span></button><button class="tab" data-tab="helpAssistant" id="helpAssistantTab"><span class="nav-icon">✦</span><span>VIC Media AI</span></button><div class="sidebar-section-label">LEARNERS & ACADEMICS</div><button class="tab" data-tab="students"><span class="nav-icon">♧</span><span>Learner register</span></button><button class="tab" data-tab="achievedLearners" id="achievedLearnersTab"><span class="nav-icon">✓</span><span>Achieved Learners</span></button><button class="tab" data-tab="trashBin" id="trashBinTab"><span class="nav-icon">▤</span><span>Trash Bin</span></button><button class="tab" data-tab="parentAccess" id="parentAccessTab"><span class="nav-icon">↗</span><span>Parent Access Links</span></button><button class="tab" data-tab="register"><span class="nav-icon">＋</span><span>Register learner</span></button><button class="tab" data-tab="classes"><span class="nav-icon">▦</span><span>Classes</span></button><button class="tab" data-tab="academics"><span class="nav-icon">▤</span><span>Academics & results</span></button><div class="sidebar-section-label">SCHOOL OPERATIONS</div><button class="tab" data-tab="finance" id="financeTab"><span class="nav-icon">▣</span><span>Finance</span></button><a class="tab" id="bankingLink" href="/banking.html" style="display:flex;align-items:center;gap:10px;text-decoration:none"><span class="nav-icon">🏦</span><span>Banking & Daily Deposits</span></a><a class="tab" id="evidenceCaptureLink" href="/evidence.html" style="display:flex;align-items:center;gap:10px;text-decoration:none"><span class="nav-icon">📷</span><span>Evidence Capture</span></a><button class="tab" data-tab="midtermAdmissions" id="midtermAdmissionsTab"><span class="nav-icon">◷</span><span>Mid-term admissions</span></button><button class="tab" data-tab="staffProfiles" id="staffProfilesTab"><span class="nav-icon">♙</span><span>Staff profiles</span></button><button class="tab" data-tab="attendance" id="attendanceTab"><span class="nav-icon">◷</span><span>Staff attendance</span></button><button class="tab" data-tab="inventory" id="inventoryTab"><span class="nav-icon">▧</span><span>Inventory</span></button><div class="sidebar-section-label">COMMUNICATION & REPORTS</div><button class="tab" data-tab="communication" id="communicationTab" aria-label="VIC Connect messages"><span class="nav-icon" aria-hidden="true">💬</span><span>VIC Connect</span><span id="incomingMessagesBadge" class="incoming-message-badge hidden" role="status" aria-label="Unread messages"><span id="incomingMessagesCount">0</span></span></button><button class="tab" data-tab="reports" id="reportsTab"><span class="nav-icon">▥</span><span>Records centre</span></button><div class="sidebar-section-label">APPLICATIONS & LINKS</div><button class="tab" data-tab="appCentre" id="appCentreTab"><span class="nav-icon">▣</span><span>App Centre</span></button><div class="sidebar-section-label">ADMINISTRATION</div><button class="tab" data-tab="settings" id="settingsTab"><span class="nav-icon">⚙</span><span>Settings & themes</span></button><button class="tab" data-tab="workPlan" id="workPlanTab"><span class="nav-icon">☷</span><span>Work Plan · Private</span></button></nav>
-<section id="notifications" class="panel hidden"><div class="row"><div><span class="dashboard-eyebrow">SCHOOL ATTENTION CENTRE</span><h2>Notifications</h2><p class="muted">Important school events and items that need review. Archive a notice to clear it from this list; the original learner, finance or attendance record is retained.</p></div><button type="button" id="refreshNotifications">Refresh</button></div><div id="notificationSummary" class="notice hidden" aria-live="polite"></div><div id="notificationList" class="notification-list"><div class="empty">Loading notifications…</div></div></section>
+<section id="notifications" class="panel hidden">
+<div class="row" style="align-items:flex-start"><div><span class="dashboard-eyebrow">SCHOOL ATTENTION & APPROVAL CENTRE</span><h2>Notifications & Approvals</h2><p class="muted">One account-scoped queue for admissions, evidence, finance approvals, expiring records, attendance and other school events. Reviewing a notice opens its source record; archiving never deletes the source record.</p></div><button type="button" id="refreshNotifications">Refresh</button></div>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0">
+ <div class="stat"><small>Unread</small><div class="num" id="notificationUnreadMetric">—</div></div>
+ <div class="stat"><small>Urgent</small><div class="num" id="notificationUrgentMetric">—</div></div>
+ <div class="stat"><small>Needs review</small><div class="num" id="notificationActionMetric">—</div></div>
+ <div class="stat"><small>Visible notices</small><div class="num" id="notificationTotalMetric">—</div></div>
+</div>
+<div class="row" style="gap:10px;align-items:end;margin:12px 0;flex-wrap:wrap">
+ <div style="flex:2;min-width:190px"><label for="notificationSearch">Search notifications</label><input id="notificationSearch" type="search" placeholder="Learner, application, record, amount or message…"></div>
+ <div style="flex:1;min-width:145px"><label for="notificationCategoryFilter">Category</label><select id="notificationCategoryFilter"><option value="all">All categories</option><option value="admission_enquiry">New admissions</option><option value="admission_status">Admission decisions</option><option value="evidence_submission">Evidence received</option><option value="document_expiry">Document expiry</option><option value="bank_transaction">Banking</option><option value="expense_request">Expense approvals</option><option value="attendance">Attendance</option><option value="bursary_review">Bursary reviews</option></select></div>
+ <div style="flex:1;min-width:130px"><label for="notificationSeverityFilter">Priority</label><select id="notificationSeverityFilter"><option value="all">All priorities</option><option value="urgent">Urgent</option><option value="warning">Needs attention</option><option value="info">Information</option></select></div>
+ <div style="flex:1;min-width:125px"><label for="notificationReadFilter">Read status</label><select id="notificationReadFilter"><option value="all">All notices</option><option value="unread">Unread only</option><option value="read">Read only</option></select></div>
+</div>
+<div id="notificationSummary" class="notice hidden" aria-live="polite"></div>
+<div id="notificationList" class="notification-list"><div class="empty">Loading notifications…</div></div>
+</section>
 <section id="workPlan" class="panel hidden"><div class="row" style="align-items:flex-start;gap:12px;flex-wrap:wrap"><div><span class="dashboard-eyebrow">PRIVATE ADMINISTRATOR WORKSPACE</span><h2>Software Work Plan</h2><p class="muted">Internal CORNHILL development tracker. Only administrators can open this page. Items marked inactive are deliberately unavailable until approved or the required hardware/service is ready.</p></div><span class="badge">Administrator only</span></div>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0"><div class="stat"><small>Completed foundations</small><div class="num">3</div></div><div class="stat"><small>In progress / verification</small><div class="num">4</div></div><div class="stat"><small>Pending / inactive</small><div class="num">8</div></div></div>
 <h3>Completed foundations</h3><ul><li>Permanent pupil-code rule: CH + birth year (YY) + gender letter (M/F) + four-digit sequence + two random letters. A permanent code is issued only after gender and birth year are verified.</li><li>Administrator-only individual and bulk learner promotion with class-history and active-enrolment safeguards.</li><li>Original Excel workbook importer and all-subject class mark-sheet foundation in the application.</li></ul>
@@ -2332,6 +2348,44 @@ await refresh();if(!sessionIsCurrent())return;
  if(profile?.role==='Teacher')await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg');if(!sessionIsCurrent())return;
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
 }
+function renderNotificationCards(){
+ const rows=Array.isArray(window.schoolNotifications)?window.schoolNotifications:[];
+ const q=String($('notificationSearch')?.value||'').trim().toLowerCase();
+ const category=$('notificationCategoryFilter')?.value||'all';
+ const severity=$('notificationSeverityFilter')?.value||'all';
+ const read=$('notificationReadFilter')?.value||'all';
+ const filtered=rows.filter(n=>{
+  if(category!=='all'&&n.category!==category)return false;
+  if(severity!=='all'&&n.severity!==severity)return false;
+  if(read==='unread'&&n.read_at)return false;
+  if(read==='read'&&!n.read_at)return false;
+  if(q&&!([n.title,n.message,n.category,n.source_key,n.created_by_name].join(' ').toLowerCase().includes(q)))return false;
+  return true;
+ });
+ const unread=rows.filter(n=>!n.read_at).length;
+ const urgent=rows.filter(n=>n.severity==='urgent'&&!n.read_at).length;
+ const actions=rows.filter(n=>n.is_actionable&&!n.read_at).length;
+ $('notificationUnreadMetric').textContent=String(unread);
+ $('notificationUrgentMetric').textContent=String(urgent);
+ $('notificationActionMetric').textContent=String(actions);
+ $('notificationTotalMetric').textContent=String(rows.length);
+ const badge=$('notificationsNavBadge');
+ if(badge){badge.textContent=String(unread);badge.classList.toggle('hidden',unread===0);badge.setAttribute('aria-label',unread+' unread notifications')}
+ const summary=$('notificationSummary');
+ if(summary){summary.textContent=filtered.length+' shown · '+unread+' unread · '+urgent+' urgent · '+actions+' awaiting action';summary.classList.remove('hidden')}
+ $('notificationList').innerHTML=filtered.map(n=>{
+  const payload=n.action_payload&&typeof n.action_payload==='object'?n.action_payload:{};
+  const source=payload.record_title||payload.request_no||payload.transaction_no||'';
+  return '<article class="school-notification '+esc(n.severity||'info')+(n.read_at?' is-read':'')+'" data-notification-card="'+esc(n.id)+'">'+
+   '<div class="notification-copy"><div class="notification-meta"><span class="badge '+esc(n.severity||'info')+'">'+esc(String(n.severity||'info').toUpperCase())+'</span><span>'+esc(String(n.category||'notice').replace(/_/g,' '))+'</span>'+
+   (n.read_at?'<span class="muted">Read</span>':'<span class="muted">Unread</span>')+'<time>'+esc(new Date(n.created_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}))+'</time></div>'+
+   '<strong>'+esc(n.title)+'</strong><p>'+esc(n.message)+'</p>'+
+   (source?'<small class="muted">Related record: '+esc(source)+'</small>':'')+
+   (n.created_by_name?'<small class="muted"> · From '+esc(n.created_by_name)+'</small>':'')+
+   (n.student_id?'<small class="muted">Learner: '+esc([students.find(x=>x.id===n.student_id)?.first_name,students.find(x=>x.id===n.student_id)?.middle_name,students.find(x=>x.id===n.student_id)?.last_name].filter(Boolean).join(' ')||'Name unavailable')+' · Pupil code: '+esc(students.find(x=>x.id===n.student_id)?.admission_number||'Not recorded')+'</small>':'')+
+   '</div><div class="notification-actions"><button type="button" class="primary" data-open-notification="'+esc(n.id)+'">'+(n.is_actionable?'Review':'Open')+'</button><button type="button" class="danger" aria-label="Archive notification" title="Archive notification" data-archive-notification="'+esc(n.id)+'">×</button></div></article>';
+ }).join('')||'<div class="empty">No notifications match these filters.</div>';
+}
 async function loadNotifications(){
  const host=$('notificationList'),badge=$('notificationsNavBadge');
  const notificationOwner=currentUserId,notificationGeneration=window.cornhillSessionGeneration||0;
@@ -2342,13 +2396,13 @@ async function loadNotifications(){
  const {data,error}=await db.rpc('list_school_notifications');
  if(!notificationIsCurrent())return;
  if(error){host.innerHTML='<div class="notice error">Could not load notifications: '+esc(error.message)+'</div>';if(badge)badge.classList.add('hidden');return}
- const rows=Array.isArray(data)?data:[];window.schoolNotifications=rows;
- if(profile?.role==='Admin'){const {data:reviewRows}=await db.rpc('list_school_bursary_review_ids');if(!notificationIsCurrent())return;window.bursaryReviewStudentIds=new Set((reviewRows||[]).map(x=>x.student_id).filter(Boolean));}else window.bursaryReviewStudentIds=new Set();
- const unreadCount=rows.filter(n=>!n.read_at).length;
- if(badge){badge.textContent=String(unreadCount);badge.classList.toggle('hidden',unreadCount===0);badge.setAttribute('aria-label',unreadCount+' unread notifications')}
- const summary=$('notificationSummary');
- if(summary){summary.textContent=rows.length?unreadCount+' unread of '+rows.length+' notification'+(rows.length===1?'':'s')+'.':'No active notifications. You are up to date.';summary.classList.remove('hidden')}
- host.innerHTML=rows.map(n=>'<article class="school-notification '+esc(n.severity||'info')+(n.read_at?' is-read':'')+'" data-notification-card="'+esc(n.id)+'"><div class="notification-copy"><div class="notification-meta"><span class="badge '+esc(n.severity||'info')+'">'+esc(String(n.severity||'info').toUpperCase())+'</span><span>'+esc(String(n.category||'notice').replace(/_/g,' '))+'</span>'+(n.read_at?'<span class="muted">Read</span>':'<span class="muted">Unread</span>')+'<time>'+esc(new Date(n.created_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}))+'</time></div><strong>'+esc(n.title)+'</strong><p>'+esc(n.message)+'</p>'+(n.student_id?'<small class="muted">Learner: '+esc([students.find(x=>x.id===n.student_id)?.first_name,students.find(x=>x.id===n.student_id)?.middle_name,students.find(x=>x.id===n.student_id)?.last_name].filter(Boolean).join(' ')||'Name unavailable')+' · Pupil code: '+esc(students.find(x=>x.id===n.student_id)?.pupil_code||students.find(x=>x.id===n.student_id)?.admission_number||'Not recorded')+'</small>':'')+'</div><div class="notification-actions"><button type="button" class="primary" data-open-notification="'+esc(n.id)+'">Review</button><button type="button" class="danger" aria-label="Archive notification" title="Archive notification" data-archive-notification="'+esc(n.id)+'">×</button></div></article>').join('')||'<div class="empty">No notifications need attention right now.</div>';
+ window.schoolNotifications=Array.isArray(data)?data:[];
+ if(profile?.role==='Admin'){
+  const {data:reviewRows}=await db.rpc('list_school_bursary_review_ids');
+  if(!notificationIsCurrent())return;
+  window.bursaryReviewStudentIds=new Set((reviewRows||[]).map(x=>x.student_id).filter(Boolean));
+ }else window.bursaryReviewStudentIds=new Set();
+ renderNotificationCards();
  if($('studentRows')&&profile?.role==='Admin')render();
 }
 async function archiveSchoolNotification(id){
@@ -2379,6 +2433,16 @@ $('notificationList')?.addEventListener('click',async e=>{
  const unreadNow=(window.schoolNotifications||[]).filter(item=>!item.read_at).length;
  const navBadge=$('notificationsNavBadge');if(navBadge){navBadge.textContent=String(unreadNow);navBadge.classList.toggle('hidden',unreadNow===0)}
  const currentCard=open.closest('[data-notification-card]');if(currentCard){currentCard.classList.add('is-read');const status=currentCard.querySelector('.notification-meta .muted');if(status)status.textContent='Read'}
+ const notificationUrl=payload.url;
+  if(typeof notificationUrl==='string'){
+   try{
+    const targetUrl=new URL(notificationUrl,window.location.origin);
+    const allowedPaths=new Set(['/school-services.html','/evidence.html','/banking.html','/index.html','/']);
+    if(targetUrl.origin===window.location.origin&&allowedPaths.has(targetUrl.pathname)){
+     window.location.href=targetUrl.pathname+targetUrl.search+targetUrl.hash;return;
+    }
+   }catch(_){}
+  }
  if(n.student_id){
   const learner=students.find(x=>x.id===n.student_id);
   if(!learner){message('appMsg','The linked learner is not in this account’s permitted register. Refresh the learner records or ask an administrator to verify access.',true);return}
@@ -2433,7 +2497,15 @@ $('notificationList')?.addEventListener('touchend',e=>{
  if(Math.abs(dx)>90)archiveSchoolNotification(card.dataset.notificationCard);
  delete card.dataset.touchStartX;
 },{passive:true});
+for(const id of ['notificationSearch','notificationCategoryFilter','notificationSeverityFilter','notificationReadFilter']){
+ $(id)?.addEventListener('input',renderNotificationCards);
+ $(id)?.addEventListener('change',renderNotificationCards);
+}
 $('refreshNotifications')?.addEventListener('click',loadNotifications);
+if(!window.cornhillNotificationPollStarted){
+ window.cornhillNotificationPollStarted=true;
+ setInterval(()=>{if(document.visibilityState==='visible'&&currentUserId&&profile&&!demoMode)loadNotifications()},60000);
+}
 
 async function loadStaffAttendanceNotice(){
  const box=$('staffAttendanceNotice'),owner=currentUserId,generation=window.cornhillSessionGeneration||0;
