@@ -2222,7 +2222,8 @@ $('notificationList')?.addEventListener('click',async e=>{
   if(!assessment){message('appMsg','This academic review points to an assessment that is not loaded or is no longer available to this account. Refresh Academics or ask the administrator to verify the assignment.',true);return}
   if(profile?.role==='Teacher'){
    const allowedClasses=new Set(window.teacherClassIds||[]);
-   const hasSubject=(academic.classSubjects||[]).some(x=>x.class_id===assessment.class_id&&x.subject_id===assessment.subject_id&&(x.teacher_user_id===owner||allowedClasses.has(assessment.class_id)));
+   const permittedSubjectRows=Array.isArray(window.teacherAssignments)?window.teacherAssignments:(academic.classSubjects||[]);
+   const hasSubject=permittedSubjectRows.some(x=>x.class_id===assessment.class_id&&x.subject_id===assessment.subject_id);
    if(!allowedClasses.has(assessment.class_id)||!hasSubject){message('appMsg','This assessment is outside your assigned teaching access.',true);return}
   }
   tab('academics');
