@@ -317,7 +317,7 @@ async function enterApp(){
 }
 async function refreshAll(){
  const jobs=[loadLeave(),loadPayroll()];
- if(isAdmin())jobs.push(loadAdmissions(),loadStaffOptions(),loadIntegrations(),runHealthCheck(false));
+ if(isAdmin())jobs.push(loadAdmissions(),loadIntegrations(),runHealthCheck(false));
  if(profile.role==='Admin'||profile.role==='Teacher')jobs.push((async()=>{await loadClasses();await loadResources()})());
  jobs.push((async()=>{await loadBooks();if(isLibrarian())await loadLoans()})());
  if(isTransport())jobs.push(loadTransport());
