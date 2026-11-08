@@ -4396,14 +4396,17 @@ async function loadExcelMarksGrid(){
 function upperPrimaryGradingPhases(className){
  const name=String(className||'');
  if(/P\.?\s*5|PRIMARY\s*5/i.test(name))return [
+  {phase:'Beginning',label:'B.O.T',description:'Beginning of Term'},
   {phase:'Midterm',label:'M.O.T',description:'Mid-Term'},
   {phase:'End',label:'E.O.T',description:'End-of-Term'}
  ];
  if(/P\.?\s*6|PRIMARY\s*6/i.test(name))return [
+  {phase:'Set I',label:'B.O.T',description:'Set I'},
   {phase:'Set II',label:'M.O.T',description:'Set II'},
   {phase:'Set III',label:'E.O.T',description:'Set III'}
  ];
  if(/P\.?\s*7|PRIMARY\s*7/i.test(name))return [
+  {phase:'Set I',label:'B.O.T',description:'Set I'},
   {phase:'Set II',label:'M.O.T',description:'Set II'},
   {phase:'Set III',label:'E.O.T',description:'Set III'}
  ];
@@ -4430,7 +4433,18 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
   {name:'Science',key:'science'},
   {name:'Social Studies',key:'socialstudies'}
  ];
- meta.textContent=className+' · four core subjects · M.O.T and E.O.T match the lower analysis panels in the class Excel workbook.';
+ const workbookGradePoint=percent=>{
+  if(percent>=89)return {code:'D1',point:1};
+  if(percent>=79)return {code:'D2',point:2};
+  if(percent>=74)return {code:'C3',point:3};
+  if(percent>=69)return {code:'C4',point:4};
+  if(percent>=59)return {code:'C5',point:5};
+  if(percent>=49)return {code:'C6',point:6};
+  if(percent>=44)return {code:'P7',point:7};
+  if(percent>=39)return {code:'P8',point:8};
+  return {code:'F9',point:9};
+ };
+ meta.textContent=className+' · B.O.T, M.O.T and E.O.T · workbook grading bands and four-subject aggregate.';
  const blocks=phases.map(config=>{
   const phaseAssessments=ctx.assessments.filter(a=>excelAssessmentPeriod(a)===config.phase);
   const groups=core.map(subject=>({
@@ -4438,20 +4452,19 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
    assessments:phaseAssessments.filter(a=>excelSubjectKey(a.subjects?.name||a.title||'')===subject.key)
   }));
   const missing=groups.filter(x=>!x.assessments.length).map(x=>x.name);
-  if(!phaseAssessments.length){
-   return '<article class="panel" style="padding:14px;margin:0;min-width:0"><div class="row"><h4 style="margin:0">GRADING ANALYSIS · '+config.label+'</h4><span class="badge">'+config.description+'</span></div><p class="muted">This period is not in the currently loaded sheet. Choose “All periods · full class sheet” and reload to display both analysis panels.</p></article>';
+  if(!phaseAssessments.length||missing.length){
+   const message=!phaseAssessments.length
+    ?'This assessment period is not in the currently loaded class sheet.'
+    :'Analysis is waiting for assessment columns for: '+missing.join(', ')+'.';
+   return '<article class="panel" style="padding:14px;margin:0;min-width:0"><div class="row"><h4 style="margin:0">GRADING ANALYSIS · '+config.label+'</h4><span class="badge">'+config.description+'</span></div><div class="notice warning">'+esc(message)+' Choose “All periods · full class sheet” and reload if this period is not loaded.</div></article>';
   }
-  if(missing.length){
-   return '<article class="panel" style="padding:14px;margin:0;min-width:0"><div class="row"><h4 style="margin:0">GRADING ANALYSIS · '+config.label+'</h4><span class="badge">'+config.description+'</span></div><div class="notice warning">Analysis is waiting for the '+config.description+' assessment columns for: '+missing.map(esc).join(', ')+'. Prepare the missing subject assessments first.</div></article>';
-  }
-
   const subjectValues=Object.fromEntries(core.map(s=>[s.key,[]]));
   const genderValues={M:[],F:[]};
-  const divisions={I:0,II:0,III:0,IV:0,U:0,X:0,Pending:0};
+  const divisions={I:0,II:0,III:0,IV:0,U:0,X:0,Incomplete:0};
   let completeLearners=0,learnerSubjectGrades=0;
-
   for(const learner of ctx.students){
    const gradeRows=[],learnerPercentages=[];
+   let learnerIncomplete=false,learnerAbsent=false;
    for(const subject of groups){
     let scoreTotal=0,maxTotal=0,validCount=0,absent=false,invalid=false;
     for(const assessment of subject.assessments){
@@ -4462,44 +4475,36 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
      if(!Number.isFinite(value)||value<0||value>max){invalid=true;continue}
      scoreTotal+=value;maxTotal+=max;validCount++;
     }
-    if(absent){
-     gradeRows.push({name:subject.name,absent:true,grade:null});
-     continue;
-    }
-    if(invalid||validCount!==subject.assessments.length||maxTotal<=0)continue;
+    if(absent){gradeRows.push({name:subject.name,absent:true,grade:null});learnerAbsent=true;continue}
+    if(invalid||validCount!==subject.assessments.length||maxTotal<=0){learnerIncomplete=true;continue}
     const percent=scoreTotal/maxTotal*100;
-    const grade=unebGradeFor(subject.assessments[0].subject_id,percent);
+    const grade=workbookGradePoint(percent);
     subjectValues[subject.key].push(percent);
     learnerPercentages.push(percent);
     learnerSubjectGrades++;
-    gradeRows.push({name:subject.name,absent:false,grade:grade?.grade_code||null});
+    gradeRows.push({name:subject.name,absent:false,grade:grade.code,point:grade.point});
    }
-   const result=unebPrimaryDivision(gradeRows);
-   if(result.ready){
-    divisions[result.division]=(divisions[result.division]||0)+1;
-    completeLearners++;
-   }else if(String(result.reason||'').toLowerCase().includes('configure')){
-    divisions.Pending++;
-   }else{
-    divisions.X++;
-   }
+   const required=core.map(s=>gradeRows.find(g=>g.name===s.name));
+   if(learnerAbsent){divisions.X++;continue}
+   if(learnerIncomplete||required.some(x=>!x)){divisions.Incomplete++;continue}
+   const aggregate=required.reduce((sum,x)=>sum+Number(x.point),0);
+   const division=aggregate>=34?'U':aggregate>=29?'IV':aggregate>=25?'III':aggregate>=13?'II':'I';
+   divisions[division]=(divisions[division]||0)+1;
+   completeLearners++;
    const sex=String(learner.gender||'').trim().toUpperCase();
    const genderKey=/^(M|MALE)/.test(sex)?'M':/^(F|FEMALE)/.test(sex)?'F':'';
    if(genderKey&&learnerPercentages.length){
     genderValues[genderKey].push(learnerPercentages.reduce((a,b)=>a+b,0)/learnerPercentages.length);
    }
   }
-
   const subjectStats=core.map(s=>{
    const values=subjectValues[s.key];
    return {name:s.name,count:values.length,average:values.length?values.reduce((a,b)=>a+b,0)/values.length:null};
   });
   const ranked=subjectStats.filter(x=>x.average!==null).sort((a,b)=>b.average-a.average);
-  const best=ranked[0]||null;
-  const worst=ranked.length?ranked[ranked.length-1]:null;
-  const divisionRows=['I','II','III','IV','U','X','Pending'].map(code=>{
-   const count=divisions[code]||0;
-   const label=code==='Pending'?'Grade setup pending':code==='U'?'U (Ungraded)':code;
+  const best=ranked[0]||null,worst=ranked.length?ranked[ranked.length-1]:null;
+  const divisionRows=['I','II','III','IV','U','X','Incomplete'].map(code=>{
+   const count=divisions[code]||0,label=code==='Incomplete'?'Incomplete marks':code==='X'?'X (Absent)':code==='U'?'U (Ungraded)':code;
    return '<tr><td><strong>'+label+'</strong></td><td class="kpi">'+count+'</td><td>'+(ctx.students.length?(count/ctx.students.length*100).toFixed(1)+'%':'—')+'</td></tr>';
   }).join('');
   const subjectRows=subjectStats.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.count+' / '+ctx.students.length+'</td><td><strong>'+(x.average===null?'—':x.average.toFixed(1)+'%')+'</strong></td></tr>').join('');
@@ -4508,21 +4513,20 @@ function renderUpperPrimaryGradingAnalysis(ctx,className){
    const average=values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
    return '<tr><td>'+label+'</td><td>'+values.length+'</td><td><strong>'+(average===null?'—':average.toFixed(1)+'%')+'</strong></td></tr>';
   }).join('');
-
   return '<article class="panel" style="padding:14px;margin:0;min-width:0">'+
    '<div class="row" style="align-items:center"><h4 style="margin:0">GRADING ANALYSIS · '+config.label+'</h4><span class="badge">'+config.description+'</span></div>'+
    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin:12px 0">'+
     '<div class="stat"><small>Class learners</small><div class="num">'+ctx.students.length+'</div></div>'+
     '<div class="stat"><small>Complete divisions</small><div class="num">'+completeLearners+'</div></div>'+
-    '<div class="stat"><small>X / incomplete</small><div class="num">'+divisions.X+'</div></div>'+
-    '<div class="stat"><small>Subject results</small><div class="num">'+learnerSubjectGrades+'</div></div>'+
+    '<div class="stat"><small>X / absent</small><div class="num">'+divisions.X+'</div></div>'+
+    '<div class="stat"><small>Incomplete marks</small><div class="num">'+divisions.Incomplete+'</div></div>'+
    '</div>'+
    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px">'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">DIVISION ANALYSIS</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Division</th><th>Count</th><th>%</th></tr></thead><tbody>'+divisionRows+'</tbody></table></div></div>'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY SUBJECT</h5><div class="table-wrap"><table style="min-width:205px"><thead><tr><th>Subject</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+subjectRows+'</tbody></table></div><p class="muted" style="margin:8px 0 0">Most performed: <strong>'+(best?esc(best.name)+' · '+best.average.toFixed(1)+'%':'—')+'</strong><br>Worst performed: <strong>'+(worst?esc(worst.name)+' · '+worst.average.toFixed(1)+'%':'—')+'</strong></p></div>'+
     '<div class="card" style="padding:10px;margin:0"><h5 style="margin:3px 0 8px">PERFORMANCE BY GENDER</h5><div class="table-wrap"><table style="min-width:185px"><thead><tr><th>Group</th><th>Assessed</th><th>Average</th></tr></thead><tbody>'+genderRows+'</tbody></table></div></div>'+
    '</div>'+
-   '<p class="muted" style="margin:9px 0 0">'+(divisions.Pending?'Some learners show “Grade setup pending” because a core-subject percentage band is not configured.':'Division counts use the configured four-subject grade bands and aggregate rule used by the learner report card.')+' Blank and X marks are excluded from subject and gender averages.</p>'+
+   '<p class="muted" style="margin:9px 0 0">Workbook grade bands: D1 89–100, D2 79–88, C3 74–78, C4 69–73, C5 59–68, C6 49–58, P7 44–48, P8 39–43, F9 below 39. Aggregate is the sum of the four core-subject grade points; division thresholds follow the class workbook. Blank marks and X entries are not treated as scores.</p>'+
   '</article>';
  }).join('');
  host.innerHTML=blocks;
