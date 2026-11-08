@@ -1,13 +1,17 @@
 /* CORNHILL offline application shell and safe static-asset cache.
    Never cache Supabase API/auth traffic, Edge Functions, guardian data, or payments. */
-const CACHE_NAME = 'cornhill-shell-v67';
+const CACHE_NAME = 'cornhill-shell-v68';
 const SHELL = [
   '/',
   '/index.html',
   '/parents.html',
   '/evidence.html',
+  '/notifications.html',
+  '/records.html',
   '/banking.html',
   '/evidence.webmanifest',
+  '/notifications.webmanifest',
+  '/records.webmanifest',
   '/parents.webmanifest',
   '/school.webmanifest',
   '/admissions.webmanifest',
@@ -36,7 +40,7 @@ const STATIC_CDN = [
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];
-const STATIC_CACHE = 'cornhill-static-v67';
+const STATIC_CACHE = 'cornhill-static-v68';
 const STATIC_HOSTS = new Set(['cdn.jsdelivr.net','cdnjs.cloudflare.com']);
 
 self.addEventListener('install', event => {
