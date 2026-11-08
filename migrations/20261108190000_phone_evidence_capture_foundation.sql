@@ -184,3 +184,29 @@ begin
   alter publication supabase_realtime add table public.evidence_capture_requests;
  end if;
 end $$;
+
+-- Restrict phone-side request updates to the two submission fields only.
+revoke update on public.evidence_capture_requests from authenticated;
+grant update(status,submitted_at) on public.evidence_capture_requests to authenticated;
+drop policy if exists "Evidence requests assigned user submit" on public.evidence_capture_requests;
+create policy "Evidence requests assigned user submit" on public.evidence_capture_requests
+ for update to authenticated using(
+  assigned_user_id=(select auth.uid()) and status='Pending' and expires_at>now()
+ ) with check(
+  assigned_user_id=(select auth.uid()) and status='Submitted' and submitted_at is not null
+  and expires_at>now()
+  and exists(select 1 from public.evidence_capture_files f
+   where f.request_id=id and f.uploaded_by=(select auth.uid()))
+ );
+drop policy if exists "Evidence files assigned user add" on public.evidence_capture_files;
+create policy "Evidence files assigned user add" on public.evidence_capture_files
+ for insert to authenticated with check(
+  uploaded_by=(select auth.uid()) and storage_path like request_id::text||'/%'
+  and exists(
+   select 1 from public.evidence_capture_requests r
+   join public.evidence_capture_devices d on d.id=r.assigned_device_id
+   where r.id=request_id and r.assigned_user_id=(select auth.uid())
+    and r.status='Pending' and r.expires_at>now()
+    and d.status='Active' and d.assigned_user_id=(select auth.uid())
+  )
+ );
