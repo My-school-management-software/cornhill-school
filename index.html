@@ -3139,9 +3139,15 @@ function curriculumGroupForClass(name){
  if(/P[4567]/.test(n)||/PRIMARY[4567]/.test(n))return 'P4-P7';
  return null;
 }
+function assessmentPeriodsForClassName(name){
+ const value=String(name||'');
+ if(/P\.?\s*7|PRIMARY\s*7/i.test(value))return ['Set I','Set II','Set III','Set IV'];
+ if(/P\.?\s*6|PRIMARY\s*6/i.test(value))return ['Set I','Set II','Set III'];
+ return ['Beginning','Midterm','End'];
+}
 function assessmentPeriodsForClass(classId){
- const cls=classes.find(x=>x.id===classId),name=String(cls?.name||'');
- return /P\.?\s*[67]|PRIMARY\s*[67]/i.test(name)?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End'];
+ const cls=classes.find(x=>x.id===classId);
+ return assessmentPeriodsForClassName(cls?.name||'');
 }
 function classSubjectsFor(classId){
  const rows=(academic.classSubjects||[]).filter(x=>x.class_id===classId);
@@ -3509,10 +3515,10 @@ $('printClassReportCards').addEventListener('click',()=>{
 
 function blankReportTemplateHtml(className,subjects,group){
  const max=subjects.length*100,isSetBased=/P\.?\s*[67]|PRIMARY\s*(?:SIX|SEVEN|6|7)/i.test(className);
- const periods=isSetBased?['SET I','SET II','SET III','SET IV']:['B.O.T','MID','E.O.T'];
+ const periods=assessmentPeriodsForClassName(className).map(x=>x.startsWith('Set ')?x.toUpperCase():({'Beginning':'B.O.T','Midterm':'MID','End':'E.O.T'}[x]||x));
  const subjectRows=subjects.map((subject,i)=>'<tr class="br-subject"><td>'+String(i+1).padStart(2,'0')+'. '+esc(subject)+'</td>'+periods.map(()=>'<td></td><td>100</td>').join('')+'<td></td><td></td></tr>').join('');
  const nursery=group==='Nursery';
- const positionRow=isSetBased?'':'<tr class="br-position"><td>POSITION</td><td colspan="2"></td><td colspan="2"></td><td colspan="2"></td><td></td><td></td></tr>';
+ const positionRow='<tr class="br-position"><td>POSITION</td>'+periods.map(()=>'<td colspan="2"></td>').join('')+'<td></td><td></td></tr>';
  const totalRow='<tr class="br-total"><td>TOTAL</td>'+periods.map(()=>'<td></td><td>'+max+'</td>').join('')+'<td></td><td></td></tr>';
  const indexLine=/P\.?\s*7|PRIMARY\s*SEVEN/i.test(className)?'<p><b>INDEX NUMBER:</b> <span class="br-line"></span></p>':'';
  const nurseryExtras=nursery?'<section class="br-nursery-grading"><b>GRADING:</b><div class="br-colors"><span style="background:#8ccf52">EXCELLENT</span><span style="background:#4f86bd;color:white">VERY GOOD</span><span style="background:#fff000">GOOD</span><span style="background:#ef4444;color:white">FAIR</span></div><b>GRADING ANALYSIS:</b><table class="br-table"><tr><th>SCORE</th><td>100–85</td><td>84–70</td><td>69–50</td><td>49–0</td></tr><tr><th>GRADE</th><td>A (V.Good)</td><td>B (Good)</td><td>C (Fair)</td><td>D (Weak)</td></tr></table><table class="br-table" style="margin-top:3mm"><tr><th>ACTIVITY</th><th>Singing</th><th>P.E</th><th>Sharing</th><th>Cleaning</th><th>Intelligence</th><th>Attendance</th><th>Time Keeping</th><th>Latrine Habits</th></tr><tr><th>GRADE</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table></section>':'';
@@ -3547,10 +3553,9 @@ $('downloadBlankReportTemplates')?.addEventListener('click',downloadBlankClassRe
 async function getTermScores(){
  const termId=$('reportTermSelect').value,classId=$('reportClassSelect').value;
  if(!termId||!classId){message('academicMsg','Choose both a term and a class to view results.',true);return null}
- const {data:allRows,error}=await db.from('assessments').select('id,title,max_score,subject_id,term_id,class_id,subjects(name)').eq('term_id',termId).eq('class_id',classId);
+ const {data:allRows,error}=await db.from('assessments').select('id,title,max_score,subject_id,term_id,class_id,subjects(id,name)').eq('term_id',termId).eq('class_id',classId);
  if(error){message('academicMsg','Could not load term assessments: '+error.message,true);return null}
- const classSubjectIds=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
- const data=(allRows||[]).filter(x=>classSubjectIds.has(x.subject_id));
+ const data=allRows||[];
  const ids=data.map(x=>x.id);
  if(!ids.length)return {assessments:[],scores:[]};
  let scores=[],offset=0;
@@ -3573,8 +3578,9 @@ async function renderReportCard(options={}){
  if((data.assessments||[]).some(a=>a.term_id!==$('reportTermSelect').value||a.class_id!==selectedClassId)){message('academicMsg','The report data does not match the selected class and term. Reload the report before continuing.',true);return}
  const className=learner.school_classes?.name||classes.find(c=>c.id===learner.class_id)?.name||'';
  const classGroup=curriculumGroupForClass(className),isP47=classGroup==='P4-P7',isNursery=classGroup==='Nursery',isP6=/P\.?\s*6|PRIMARY\s*6/i.test(className),isP7=/P\.?\s*7|PRIMARY\s*7/i.test(className),isSetBased=isP6||isP7;
- const periods=isSetBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End'];
- const subjects=academic.subjects.filter(sub=>data.assessments.some(a=>a.subject_id===sub.id));
+ const periods=assessmentPeriodsForClassName(className);
+ const subjectMap=new Map((data.assessments||[]).map(a=>a.subjects).filter(sub=>sub?.id).map(sub=>[sub.id,academic.subjects.find(x=>x.id===sub.id)||sub]));
+ const subjects=[...subjectMap.values()];
  const ordered=subjects.sort((a,b)=>{const aa=data.assessments.find(x=>x.subject_id===a.id),bb=data.assessments.find(x=>x.subject_id===b.id);return excelSubjectOrder(aa)-excelSubjectOrder(bb)});
  const classList=students.filter(x=>x.class_id===learner.class_id&&x.status==='Active');
  const subjectRows=ordered.map(sub=>{
@@ -3593,11 +3599,11 @@ async function renderReportCard(options={}){
  const approveButton=!options.batch&&profile?.role==='Admin'&&!approved&&Object.values(phaseTotals).some(p=>Number(p.max||0)>0)?'<button class="primary" type="button" id="approveReportButton">Approve official report</button>':'';
  const gradeColor=pct=>pct>=85?'#8ccf52':pct>=70?'#4f86bd':pct>=50?'#fff000':'#ef4444';
  const gradeBand=pct=>pct>=85?'Excellent':pct>=70?'Very Good':pct>=50?'Good':'Fair';
- const remarksPeriod=isSetBased?'Set IV':'End';
+ const remarksPeriod=periods[periods.length-1];
  const commentChoices=selectedReportComments(studentId);
- const performancePeriod=(isSetBased?['Set IV','Set III','Set II','Set I']:['End','Midterm','Beginning']).find(p=>Number(phaseTotals[p]?.max||0)>0)||null;
+ const performancePeriod=[...periods].reverse().find(p=>Number(phaseTotals[p]?.max||0)>0)||null;
  const performancePercent=performancePeriod?phaseTotals[performancePeriod].got/phaseTotals[performancePeriod].max*100:null;
- const endCellForSubject=cells=>{const c=cells.End;return Number(c?.max||0)>0?c:null;};
+ const endCellForSubject=cells=>{const c=cells[periods[periods.length-1]];return Number(c?.max||0)>0?c:null;};
  const teacherComment=commentChoices.teacher||'';
  const classTeacherComment=commentChoices.classTeacher==='auto'||!commentChoices.classTeacher?(performancePercent===null?'Progress is being monitored.':autoClassTeacherComment(performancePercent)):commentChoices.classTeacher;
  const conductComment=commentChoices.conduct||'';
@@ -3702,7 +3708,7 @@ async function loadBulkMarkSheet(){
 function setupExcelMarksFilters(){function setExcelPhaseOptions(classId){
  const cls=classes.find(x=>x.id===classId),setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phase=$('excelMarksPhase'),current=phase?.value||'All';
  if(!phase)return;
- const periods=setBased?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'];
+ const periods=assessmentPeriodsForClassName(cls?.name||'');
  phase.innerHTML='<option value="All">All periods · full class sheet</option>'+periods.map((x,i)=>'<option value="'+x+'">'+x+' · '+(i+1)+'</option>').join('');
  phase.value=periods.includes(current)?current:'All';
 }
@@ -3812,7 +3818,7 @@ function recalculateExcelMarkSheet(){
    const code=excelPhaseCode(phase),totalCell=document.querySelector('[data-calc-total="'+phase+'|'+learner.id+'"]'),posCell=document.querySelector('[data-calc-position="'+phase+'|'+learner.id+'"]');
    if(totalCell)totalCell.textContent=result.entered?result.total:'—';
    const className=String(classes.find(c=>c.id===ctx.classId)?.name||'').trim();
-   if(posCell)posCell.textContent=(/P\.?\s*[67]|PRIMARY\s*[67]/i.test(className)?'—':(result.position||'—'));
+   if(posCell)posCell.textContent=result.position||'—';
    const aggCell=document.querySelector('[data-calc-aggregate="'+phase+'|'+learner.id+'"]'),divCell=document.querySelector('[data-calc-division="'+phase+'|'+learner.id+'"]');
    if(aggCell)aggCell.textContent=result.division?.ready?result.division.aggregate:'—';
    if(divCell)divCell.textContent=result.division?.ready?'Division '+result.division.division:'—';
@@ -3838,7 +3844,7 @@ async function loadExcelMarksGrid(){
  const classSubjectIds=new Set((academic.classSubjects||[]).filter(x=>x.class_id===classId).map(x=>x.subject_id));
  if(!classSubjectIds.size){message('excelMarksMsg','No subjects are linked to '+cls.name+' in the teacher workspace. Ask the administrator to check the class-subject setup.',true);return}
  const allAssessments=academic.assessments.filter(x=>x.term_id===termId&&x.class_id===classId&&classSubjectIds.has(x.subject_id));
- const setBasedClass=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phaseOrder=setBasedClass?['Set I','Set II','Set III','Set IV']:['Beginning','Midterm','End','Fourth'];
+ const setBasedClass=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(cls?.name||''),phaseOrder=assessmentPeriodsForClassName(cls?.name||'');
  const assessments=allAssessments.filter(x=>phaseFilter==='All'||excelAssessmentPeriod(x)===phaseFilter).sort((a,b)=>phaseOrder.indexOf(excelAssessmentPeriod(a))-phaseOrder.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b));
  if(!assessments.length){head.innerHTML='<tr><th>SN</th><th>ID</th><th>PHOTO</th><th>NAME</th><th>No assessments</th></tr>';body.innerHTML='<tr><td colspan="5">No assessments exist for this class and term. Create the subject assessments for Beginning, Midterm and End of term first.</td></tr>';message('excelMarksMsg','No assessments found for '+(cls?.name||'this class')+'.',true);return}
  const list=students.filter(x=>x.class_id===classId&&x.status==='Active').sort((a,b)=>(a.admission_number||'').localeCompare(b.admission_number||'')||String(a.first_name||'').localeCompare(String(b.first_name||'')));
@@ -3846,7 +3852,7 @@ async function loadExcelMarksGrid(){
  const keyItems=[...new Map(assessments.map(a=>{const full=excelSubjectLabel(a,0,cls),code=full.replace(/\d+$/,'');return [code,{code,name:code==='D'?'Drawing / Art':(a.subjects?.name||a.title||'Subject')}]})).values()];
  $('excelMarksCodeKey').innerHTML='<strong>Subject code key:</strong> '+keyItems.map(x=>'<span style="display:inline-block;margin:3px 8px 3px 0"><b>'+esc(x.code)+'</b> = '+esc(x.name)+'</span>').join('');
  const ids=assessments.map(x=>x.id);
- const showPosition=!setBasedClass;
+ const showPosition=true;
  const {data,error}=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  if(error){message('excelMarksMsg','Could not load marks: '+error.message,true);return}
@@ -6523,7 +6529,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  const $=id=>document.getElementById(id);
  const escV=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let selectedPairs=[],selectedLearners=new Set(),saved=new Map(),loading=false,subjectSelectionTouched=false,markGridRenderVersion=0;
- const periods=['Beginning','Midterm','End'];
+ function currentPeriods(){return assessmentPeriodsForClassName(cls()?.name||'')}
  function assignedClass(){
   if(profile?.role!=='Teacher')return null;
   return sessionStorage.getItem('cornhill_teacher_class_id')||window.teacherClassId||null;
@@ -6563,14 +6569,14 @@ document.addEventListener('DOMContentLoaded',()=>{
  function renderSubjectChoices(){
   const host=$('markGridSubjects');if(!host)return;
   defaultSelectSubjects();
-  const ps=chosenPeriods(),ass=classAssessments().filter(a=>ps.includes(periodFor(a)));
+  const ps=chosenPeriods(),ass=classAssessments().filter(a=>ps.includes(periodFor(a))),periods=currentPeriods();
   const groups=periods.filter(p=>ps.includes(p)).map(period=>{
    const ordered=ass.filter(a=>periodFor(a)===period).sort((a,b)=>excelSubjectOrder(a)-excelSubjectOrder(b));
    const unique=[...new Map(ordered.map(a=>[a.id,{a,code:excelSubjectLabel(a,0,cls())}])).values()];
    return {period,items:unique};
   }).filter(group=>group.items.length);
   const total=groups.reduce((n,g)=>n+g.items.length,0);
-  host.innerHTML=total?groups.map(group=>'<section style="margin:10px 0 14px;padding:12px;border:1px solid var(--cornhill-line);border-radius:12px;background:var(--cornhill-page)"><div class="row" style="justify-content:space-between;gap:8px;margin-bottom:9px"><strong>'+escV(group.period==='End'?'End of Term':group.period==='Midterm'?'Midterm':'Beginning of Term')+'</strong><span class="muted">'+group.items.filter(x=>selectedPairs.includes(x.a.id)).length+' / '+group.items.length+' selected</span></div><div class="row" style="justify-content:flex-start;margin-bottom:8px"><button type="button" data-mark-select-period="'+escV(group.period)+'">Select all in this period</button><button type="button" data-mark-clear-period="'+escV(group.period)+'">Clear this period</button></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px">'+group.items.map(({a,code})=>'<label style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--cornhill-line);border-radius:9px;background:var(--cornhill-panel);margin:0"><input type="checkbox" data-mark-pair="'+escV(a.id)+'" '+(selectedPairs.includes(a.id)?'checked':'')+'><span><b>'+escV(code)+'</b> · '+escV(a.subjects?.name||a.title)+'<small style="display:block;color:var(--cornhill-muted)">'+escV(group.period==='End'?'End of Term':group.period==='Midterm'?'Midterm':'Beginning of Term')+' · Maximum '+escV(a.max_score)+'</small></span></label>').join('')+'</div></section>').join(''):'<p class="muted">Select a period above. Its prepared subject assessments will appear here as individual checkboxes. If a subject is missing, ask the administrator to prepare that assessment first.</p>';
+  host.innerHTML=total?groups.map(group=>'<section style="margin:10px 0 14px;padding:12px;border:1px solid var(--cornhill-line);border-radius:12px;background:var(--cornhill-page)"><div class="row" style="justify-content:space-between;gap:8px;margin-bottom:9px"><strong>'+escV(group.period)+'</strong><span class="muted">'+group.items.filter(x=>selectedPairs.includes(x.a.id)).length+' / '+group.items.length+' selected</span></div><div class="row" style="justify-content:flex-start;margin-bottom:8px"><button type="button" data-mark-select-period="'+escV(group.period)+'">Select all in this period</button><button type="button" data-mark-clear-period="'+escV(group.period)+'">Clear this period</button></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px">'+group.items.map(({a,code})=>'<label style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--cornhill-line);border-radius:9px;background:var(--cornhill-panel);margin:0"><input type="checkbox" data-mark-pair="'+escV(a.id)+'" '+(selectedPairs.includes(a.id)?'checked':'')+'><span><b>'+escV(code)+'</b> · '+escV(a.subjects?.name||a.title)+'<small style="display:block;color:var(--cornhill-muted)">'+escV(group.period)+' · Maximum '+escV(a.max_score)+'</small></span></label>').join('')+'</div></section>').join(''):'<p class="muted">Select a period above. Its prepared subject assessments will appear here as individual checkboxes. If a subject is missing, ask the administrator to prepare that assessment first.</p>';
   const selected=groups.reduce((n,g)=>n+g.items.filter(x=>selectedPairs.includes(x.a.id)).length,0);
   const count=document.createElement('p');count.className='muted';count.textContent=selected+' of '+total+' subject assessments selected';host.appendChild(count);
   host.querySelectorAll('[data-mark-select-period]').forEach(button=>button.addEventListener('click',()=>{subjectSelectionTouched=true;const ids=groups.find(g=>g.period===button.dataset.markSelectPeriod)?.items.map(x=>x.a.id)||[];selectedPairs=[...new Set([...selectedPairs,...ids])];renderSubjectChoices();renderLearnerChoices();renderMarkGrid()}));
@@ -6638,7 +6644,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   root.dataset.markGridV2='yes';
   $('scoreForm')?.classList.add('hidden');$('bulkMarkRows')?.closest('div[style]')?.classList.add('hidden');
   const panel=document.createElement('section');panel.className='panel';panel.style.marginTop='14px';
-  panel.innerHTML='<h3>Teacher mark entry · assigned class only</h3><p class="muted">Your assigned class is loaded automatically. Choose the term, assessment periods, subjects and learners yourself. Nothing is preselected.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><div><label>Assigned class</label><input readonly value="'+escV(cls()?.name||'Loading assigned class…')+'"></div><div><label>Academic term</label><select id="markGridTerm"><option value="">Choose term</option>'+termOptions()+'</select></div></div><div><b>1. Assessment periods</b><div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0"><label><input type="checkbox" data-mark-period value="Beginning"> Beginning</label><label><input type="checkbox" data-mark-period value="Midterm"> Midterm</label><label><input type="checkbox" data-mark-period value="End"> End assessment</label></div></div><div style="margin-top:14px"><b>2. Select subjects</b><div id="markGridSubjects" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>3. Choose learners</b><div id="markGridLearners" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>4. Enter marks</b><div id="markGridTableHost" style="margin-top:8px"><p class="muted">Choose a term, subjects and learners.</p></div></div><div id="markGridStatus" class="notice hidden"></div><button type="button" class="primary" id="saveSelectedLearnerMarks">Save learner marks</button>';
+  panel.innerHTML='<h3>Teacher mark entry · assigned class only</h3><p class="muted">Your assigned class is loaded automatically. Choose the term, assessment periods, subjects and learners yourself. Nothing is preselected.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><div><label>Assigned class</label><input readonly value="'+escV(cls()?.name||'Loading assigned class…')+'"></div><div><label>Academic term</label><select id="markGridTerm"><option value="">Choose term</option>'+termOptions()+'</select></div></div><div><b>1. Assessment periods</b><div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0">'+currentPeriods().map(p=>'<label><input type="checkbox" data-mark-period value="'+escV(p)+'"> '+escV(p)+'</label>').join('')+'</div></div><div style="margin-top:14px"><b>2. Select subjects</b><div id="markGridSubjects" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>3. Choose learners</b><div id="markGridLearners" style="margin-top:8px"></div></div><div style="margin-top:14px"><b>4. Enter marks</b><div id="markGridTableHost" style="margin-top:8px"><p class="muted">Choose a term, subjects and learners.</p></div></div><div id="markGridStatus" class="notice hidden"></div><button type="button" class="primary" id="saveSelectedLearnerMarks">Save learner marks</button>';
   root.prepend(panel);
   $('markGridTerm').value=academic.terms.find(t=>t.is_current&&!t.is_closed)?.id||academic.terms.find(t=>!t.is_closed)?.id||academic.terms[0]?.id||'';
   panel.querySelectorAll('[data-mark-period]').forEach(x=>{x.checked=true});
