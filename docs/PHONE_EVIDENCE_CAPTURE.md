@@ -28,6 +28,10 @@ Realtime updates and a 25-second foreground refresh are used while the portal is
 ## Important deployment status
 The database foundation and its policy hardening have been applied to the connected CORNHILL Supabase project. The web application files are committed on the feature branch, but this does not mean the latest Vercel preview is live. The Vercel deployment quota previously blocked a new preview. Do not use an old preview URL to test this release until a fresh deployment is confirmed.
 
+## Linked school records
+
+The administrator can start phone capture from a Posted expense row using **Request receipt photo**. The request opens with the expense record ID, expense number and amount pre-filled. The administrator can also select a staff account in the staff-profile editor and choose **Request staff ID photo from phone**; that request carries the selected staff profile ID. Both actions use the same private capture service and the same ten-minute request policy.
+
 ## Banking connection
 
 The banking workspace is available at `/banking.html`. Deposit and withdrawal requests store `context_type='bank_transaction'` and the exact bank transaction ID in the evidence request. The administrator reviews the related photos in this portal; the database trigger updates the linked bank transaction to Verified or Evidence rejected. A Needs clearer photo action uses the bank's audited reissue function, preserving the bank record and event history.
