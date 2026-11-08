@@ -490,7 +490,7 @@ async function loadAdmissions(){
  const rows=data||[];
  $('admissionPending').textContent=rows.filter(x=>x.status==='Pending').length;
  $('admissionTotal').textContent=rows.length;
- $('admissionRows').innerHTML=rows.map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString('en-GB'))+'</td><td><strong>'+esc(x.learner_name)+'</strong><br><small>'+esc(x.class_applied)+'</small></td><td>'+esc(x.guardian_name)+'<br>'+esc(x.guardian_phone)+'</td><td>'+esc(x.student_id?'Registered in main learner register':x.status)+'</td><td>'+(x.student_id?'Linked learner record':'Awaiting central review')+'</td><td><a class="button" href="/?workspace=admissions">Open main admissions queue ↗</a></td></tr>').join('')||'<tr><td colspan="6">No public enquiries received yet.</td></tr>';
+ $('admissionRows').innerHTML=rows.map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString('en-GB'))+'</td><td><strong>'+esc(x.learner_name)+'</strong><br><small>'+esc(x.class_applied)+'</small></td><td>'+esc(x.guardian_name)+'<br>'+esc(x.guardian_phone)+'</td><td>'+esc(x.student_id?'Registered in main learner register':x.status)+'</td><td>'+(x.student_id?'Linked learner record':'Awaiting central review')+'</td><td><a class="button" href="/">Open main admissions queue ↗</a></td></tr>').join('')||'<tr><td colspan="6">No public enquiries received yet.</td></tr>';
 }
 $('refreshAdmissions').addEventListener('click',loadAdmissions);
 async function loadLeave(){
