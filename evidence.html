@@ -267,7 +267,7 @@ async function uploadEvidenceFiles(requestId,files,options={}){
     p_extracted_text:options.ocrText,
     p_extracted_fields:options.ocrFields||{review_required:true}
    });
-   if(ocrError)throw new Error('The PDF was uploaded, but OCR text could not be indexed: '+ocrError.message);
+   if(ocrError)note('globalMsg','PDF was uploaded successfully. OCR text could not be indexed yet: '+ocrError.message,'error');
   }
   return {fileIds,uploadedPaths};
  }catch(error){
