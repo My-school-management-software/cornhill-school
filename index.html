@@ -3293,7 +3293,7 @@ async function getTermScores(){
  }
  return {assessments:data||[],scores};
 }
-async function reportSubjectDisplayName(value){return String(value||'').replace(/\\s*[\\[(]?[A-Z]{1,5}\\d{1,2}[\\])]?[\\s]*$/i,'').trim()||String(value||'Subject')}
+async function reportSubjectDisplayName(value){const raw=String(value||'').trim();return raw.replace(/[A-Z]{1,5}[0-9]{1,2}$/i,'').trim()||raw||'Subject'}
 function renderReportCard(options={}){
  const reportOwner=currentUserId,reportGeneration=window.cornhillSessionGeneration||0;
  const data=options.data||await getTermScores();if(!data||reportOwner!==currentUserId||reportGeneration!==(window.cornhillSessionGeneration||0))return;
