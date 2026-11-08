@@ -1,0 +1,187 @@
+/* CORNHILL shared visual system — school, finance, guardian and evidence workspaces.
+   Presentation only: no authentication, data, route or permission logic lives here. */
+:root{
+  --cornhill-focus: color-mix(in srgb,var(--cornhill-accent,#166534) 28%,white);
+  --cornhill-radius:18px;
+}
+html{scroll-behavior:smooth}
+body:not([data-theme]){
+  --cornhill-accent:#166534;--cornhill-accent-dark:#14532d;
+  --cornhill-page:#f4f7f4;--cornhill-panel:#fff;--cornhill-ink:#17251c;
+  --cornhill-muted:#607265;--cornhill-line:#dce7de;
+}
+body{background:var(--cornhill-page,#f4f7f4);color:var(--cornhill-ink,#17251c)}
+.top{
+  position:sticky;top:0;z-index:60;
+  box-shadow:0 5px 22px rgba(18,45,29,.10);
+  -webkit-backdrop-filter:saturate(140%) blur(12px);
+  backdrop-filter:saturate(140%) blur(12px);
+}
+.wrap{max-width:1480px}
+.panel,.stat,.card,.account,.txn,.device,.request,.tile{
+  border-color:var(--cornhill-line,#dce7de);
+  border-radius:var(--cornhill-radius);
+}
+.panel,.stat,.card,.account,.txn,.device,.request,.tile{
+  box-shadow:0 5px 20px rgba(22,48,31,.045);
+}
+button,.button,a{transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+button:focus-visible,.button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:3px solid var(--cornhill-focus,#9bc8a7);outline-offset:2px
+}
+input,select,textarea{border-radius:11px}
+th{background:color-mix(in srgb,var(--cornhill-accent,#166534) 7%,var(--cornhill-panel,#fff))}
+.badge,.pill{border-radius:999px}
+.muted,.small,.sub{color:var(--cornhill-muted,#607265)}
+/* School-friendly, calm Bento dashboard. The lead panel becomes the visual anchor. */
+body[data-dashboard-layout="bento-grid"] #dashboard .module-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));gap:15px!important;align-items:stretch
+}
+body[data-dashboard-layout="bento-grid"] #dashboard .module-grid>.panel:first-child{
+  grid-column:span 2;grid-row:span 2;border-radius:22px;padding:22px;
+  background:linear-gradient(145deg,var(--cornhill-panel),color-mix(in srgb,var(--cornhill-accent) 5%,var(--cornhill-panel)));
+}
+body[data-dashboard-layout="bento-grid"] #dashboard .module-grid>.module-card{
+  min-height:154px!important;height:auto!important;border-radius:20px!important;
+  padding:18px!important;box-shadow:0 9px 24px rgba(20,49,31,.065)
+}
+body[data-dashboard-layout="bento-grid"] #dashboard .dashboard-summary-only>.stat{
+  border-radius:20px;box-shadow:0 9px 24px rgba(20,49,31,.055)
+}
+/* Expressive floating minimalism: softer surfaces, space and quiet borders. */
+body[data-dashboard-layout="floating-minimal"] #dashboard{
+  background:transparent;border:0;box-shadow:none
+}
+body[data-dashboard-layout="floating-minimal"] #dashboard .dashboard-intro{
+  background:transparent;border:0;border-bottom:1px solid var(--cornhill-line);
+  border-radius:0;padding:30px 8px
+}
+body[data-dashboard-layout="floating-minimal"] #dashboard .module-grid>.panel:first-child{
+  border:0;border-radius:24px;box-shadow:0 16px 38px rgba(20,42,31,.075)
+}
+body[data-dashboard-layout="floating-minimal"] #dashboard .module-grid>.module-card{
+  border:1px solid color-mix(in srgb,var(--cornhill-line) 72%,transparent);
+  border-radius:24px!important;min-height:164px!important;height:auto!important;
+  padding:22px!important;box-shadow:0 16px 38px rgba(20,42,31,.065);
+  background:var(--cornhill-panel)
+}
+/* Split-screen storytelling translated into an operations workspace:
+   a persistent school overview on the left and task content on the right. */
+@media(min-width:1000px){
+ body[data-dashboard-layout="split-screen"] #dashboard{
+  display:grid;grid-template-columns:minmax(250px,.72fr) minmax(0,1.65fr);
+  align-items:start;gap:18px
+ }
+ body[data-dashboard-layout="split-screen"] #dashboard>.dashboard-intro{
+  grid-column:1;grid-row:1 / span 4;position:sticky;top:132px;min-height:440px;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  padding:30px;border-radius:22px;background:linear-gradient(155deg,
+  color-mix(in srgb,var(--cornhill-accent) 14%,var(--cornhill-panel)),var(--cornhill-panel));
+ }
+ body[data-dashboard-layout="split-screen"] #dashboard>.dashboard-intro .dashboard-live-label{margin-top:24px}
+ body[data-dashboard-layout="split-screen"] #dashboard>.dashboard-summary-only,
+ body[data-dashboard-layout="split-screen"] #dashboard> :not(.dashboard-intro){grid-column:2;min-width:0}
+}
+body[data-dashboard-layout="split-screen"] #dashboard .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+body[data-dashboard-layout="split-screen"] #dashboard .module-card{min-height:142px;border-radius:16px}
+/* Editorial / Swiss grid: strong hierarchy, precise rules and restrained colour. */
+body[data-dashboard-layout="editorial-swiss"] #dashboard{
+  border:0;border-radius:0;box-shadow:none;background:var(--cornhill-page)
+}
+body[data-dashboard-layout="editorial-swiss"] #dashboard .dashboard-intro{
+  background:transparent;border:0;border-bottom:3px solid var(--cornhill-ink);
+  border-radius:0;padding:24px 8px
+}
+body[data-dashboard-layout="editorial-swiss"] #dashboard .dashboard-intro h2{
+  font-family:Georgia,'Times New Roman',serif;font-size:clamp(28px,3vw,40px);
+  letter-spacing:-.035em
+}
+body[data-dashboard-layout="editorial-swiss"] #dashboard .module-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:13px!important
+}
+body[data-dashboard-layout="editorial-swiss"] #dashboard .module-grid>.module-card{
+  min-height:144px!important;height:auto!important;border-radius:5px!important;
+  border:1px solid var(--cornhill-ink);box-shadow:none;background:var(--cornhill-panel);
+  padding:20px!important
+}
+body[data-dashboard-layout="editorial-swiss"] #dashboard .module-grid>.panel:first-child{
+  border-radius:5px;box-shadow:none;border-color:var(--cornhill-ink)
+}
+/* Coordinated palette extensions for the new design directions. */
+body[data-theme="warm-corporate"]{
+ --cornhill-accent:#2f6b45;--cornhill-accent-dark:#183e2a;--cornhill-page:#f8f6ef;
+ --cornhill-panel:#fffefa;--cornhill-ink:#26342a;--cornhill-muted:#68766c;--cornhill-line:#e5e1d4
+}
+body[data-theme="finance-navy"]{
+ --cornhill-accent:#17608a;--cornhill-accent-dark:#102b45;--cornhill-page:#f2f5f8;
+ --cornhill-panel:#fff;--cornhill-ink:#1c2938;--cornhill-muted:#647487;--cornhill-line:#dbe3ec
+}
+body[data-theme="paper-swiss"]{
+ --cornhill-accent:#a82727;--cornhill-accent-dark:#222222;--cornhill-page:#f4f2ec;
+ --cornhill-panel:#fffefa;--cornhill-ink:#171717;--cornhill-muted:#57534e;--cornhill-line:#d6d3cc
+}
+body[data-theme="glass-mint"]{
+ --cornhill-accent:#0f8278;--cornhill-accent-dark:#124b47;--cornhill-page:#edf7f4;
+ --cornhill-panel:#fbfffd;--cornhill-ink:#173b37;--cornhill-muted:#5d7771;--cornhill-line:#cde4de
+}
+/* Preview mirrors the four new dashboard layout choices. */
+#appearanceLivePreview[data-preview-layout="bento-grid"] .appearance-preview-stat{
+ border-radius:20px;box-shadow:0 10px 26px rgba(20,49,31,.09);min-height:125px
+}
+#appearanceLivePreview[data-preview-layout="floating-minimal"]{
+ border:0!important;box-shadow:0 18px 42px rgba(20,42,31,.08)
+}
+#appearanceLivePreview[data-preview-layout="floating-minimal"] .appearance-preview-stat{
+ border-radius:24px;box-shadow:0 12px 30px rgba(20,42,31,.07)
+}
+#appearanceLivePreview[data-preview-layout="split-screen"]{
+ display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1.4fr);gap:12px
+}
+#appearanceLivePreview[data-preview-layout="split-screen"] .appearance-preview-top{
+ grid-column:1/-1
+}
+#appearanceLivePreview[data-preview-layout="split-screen"] h3,
+#appearanceLivePreview[data-preview-layout="split-screen"]>p{grid-column:1}
+#appearanceLivePreview[data-preview-layout="split-screen"] .row,
+#appearanceLivePreview[data-preview-layout="split-screen"] .appearance-preview-stat{grid-column:2}
+#appearanceLivePreview[data-preview-layout="editorial-swiss"]{
+ border-radius:3px!important;box-shadow:none!important
+}
+#appearanceLivePreview[data-preview-layout="editorial-swiss"] .appearance-preview-top{
+ border-radius:0;border-bottom:3px solid var(--cornhill-ink)
+}
+#appearanceLivePreview[data-preview-layout="editorial-swiss"] h3{
+ font-family:Georgia,'Times New Roman',serif;font-size:24px
+}
+/* Operational sub-portals share the same warm corporate language without sharing sessions. */
+body:has(.account),body:has(.device),body:has(.card){
+ background:var(--cornhill-page,#f4f7f4)
+}
+.account,.txn,.device,.request{
+ background:var(--cornhill-panel,#fff);border-radius:16px;padding:16px;
+ border:1px solid var(--cornhill-line,#dce7de)
+}
+.tile{background:color-mix(in srgb,var(--cornhill-panel,#fff) 82%,var(--cornhill-page,#f4f7f4))}
+@media(max-width:900px){
+ body[data-dashboard-layout="bento-grid"] #dashboard .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+ body[data-dashboard-layout="bento-grid"] #dashboard .module-grid,
+ body[data-dashboard-layout="floating-minimal"] #dashboard .module-grid,
+ body[data-dashboard-layout="split-screen"] #dashboard .module-grid,
+ body[data-dashboard-layout="editorial-swiss"] #dashboard .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body[data-dashboard-layout="bento-grid"] #dashboard .module-grid>.panel:first-child{grid-column:1/-1;grid-row:auto}
+ body[data-dashboard-layout="split-screen"] #dashboard{display:block}
+ body[data-dashboard-layout="split-screen"] #dashboard>.dashboard-intro{position:relative;top:auto;min-height:0;margin-bottom:12px}
+}
+@media(max-width:390px){
+ body[data-dashboard-layout="bento-grid"] #dashboard .module-grid,
+ body[data-dashboard-layout="floating-minimal"] #dashboard .module-grid,
+ body[data-dashboard-layout="split-screen"] #dashboard .module-grid,
+ body[data-dashboard-layout="editorial-swiss"] #dashboard .module-grid{grid-template-columns:1fr}
+ #appearanceLivePreview[data-preview-layout="split-screen"]{display:block}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ button,.button,a{transition:none}
+}
