@@ -1447,7 +1447,7 @@ body[data-theme="graphite"] th{background:#263449;color:#f1f5f9}
  </section>
 </section>
 
-<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><h3 style="margin-top:18px">Invite a staff member</h3>
+<section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div class="card" style="margin:16px 0;padding:16px"><h3>Register a school employee</h3><p class="muted">Add teaching or non-teaching employees even when they do not need a software login. Staff details are kept in the administrator-only school directory.</p><form id="schoolStaffDirectoryForm"><div><label>Full name *</label><input name="full_name" required minlength="2" maxlength="120"></div><div><label>Phone number</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Gender</label><select name="gender"><option value="">Not recorded</option><option value="Female">Female</option><option value="Male">Male</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div><div><label>Staff category *</label><select name="staff_category" required><option value="">Choose category</option><option value="Teaching">Teaching staff</option><option value="Non-teaching">Non-teaching staff</option></select></div><div><label>Job title *</label><input name="job_title" required maxlength="120" placeholder="e.g. Class Teacher, Matron, Cook"></div><div><label>Department / section</label><input name="department" maxlength="120" placeholder="e.g. Lower Primary, Catering, Stores"></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div class="full"><label>Responsibilities / duties</label><textarea name="responsibilities" rows="2" maxlength="1000"></textarea></div><div class="full"><button type="submit" class="primary">Save employee record</button></div></form></div><h3 style="margin-top:18px">Invite a staff member to sign in</h3>
 <p class="muted">Send a secure email invitation. The staff member sets their own password. Teachers receive the Teacher role; other employees receive Staff access.</p>
 <form id="staffInviteForm">
 <div><label>Full name *</label><input name="full_name" required minlength="2" maxlength="120" placeholder="Staff member's full name"></div>
@@ -3003,6 +3003,18 @@ function renderStaffDashboardStats(rows){
  const note=$('staffDashboardNote');if(note)note.textContent=unclassified+' active profile(s) need a teaching/non-teaching category; '+unknownGender+' need a male/female gender entry. Complete profiles in Staff profiles & HR for accurate totals.';
 }
 $('refreshStaffDashboard')?.addEventListener('click',()=>loadStaffProfiles());
+ $('schoolStaffDirectoryForm').addEventListener('submit',async e=>{
+  e.preventDefault();if(profile?.role!=='Admin'){message('staffProfileMsg','Only administrators can register school employees.',true);return}
+  const button=e.submitter||e.target.querySelector('button[type="submit"]'),values=Object.fromEntries(new FormData(e.target).entries());
+  button.disabled=true;button.textContent='Saving employee…';
+  try{
+   const auth=await db.auth.getUser(),user=auth.data?.user;if(auth.error||!user||user.id!==currentUserId)throw new Error('Your administrator session is unavailable. Sign in again.');
+   const payload={full_name:String(values.full_name||'').trim(),phone:String(values.phone||'').trim()||null,gender:String(values.gender||'')||null,staff_category:String(values.staff_category||''),job_title:String(values.job_title||'').trim(),department:String(values.department||'').trim()||null,responsibilities:String(values.responsibilities||'').trim()||null,employment_start_date:values.employment_start_date||null,reporting_date:values.reporting_date||null,employment_status:values.employment_status||'Active',created_by:user.id};
+   const {error}=await db.from('school_staff_directory').insert(payload);if(error)throw error;
+   e.target.reset();message('staffProfileMsg','Employee record saved in the school staff directory. No login account was created.');await loadStaffProfiles();
+  }catch(err){message('staffProfileMsg','Could not save employee record: '+(err?.message||'Please try again.'),true)}
+  finally{button.disabled=false;button.textContent='Save employee record'}
+ });
 async function loadStaffProfiles(){
  if(demoMode)return;
  if(profile?.role!=='Admin'){message('staffProfileMsg','Only school administrators can manage staff profiles.',true);return}
@@ -3010,12 +3022,15 @@ async function loadStaffProfiles(){
  if(error){message('staffProfileMsg','Could not load staff profiles: '+error.message,true);return}
  staffProfiles=data||[];
  const {data:unlinkedTeachers}=await db.from('academic_teacher_directory').select('id,full_name,phone,subject_specialism,employment_status').is('linked_user_id',null).eq('employment_status','Active');
- const directoryRows=(unlinkedTeachers||[]).map(x=>({id:'directory:'+x.id,full_name:x.full_name,role:'Teacher directory',staff_category:'Teaching',gender:null,job_title:x.subject_specialism||'Teacher',department:'Teaching staff',phone:x.phone||null,employment_status:x.employment_status||'Active',directoryOnly:true}));
- renderStaffDashboardStats([...staffProfiles,...directoryRows]);
+ const {data:directoryEmployees}=await db.from('school_staff_directory').select('id,full_name,phone,gender,staff_category,job_title,department,responsibilities,employment_start_date,employment_status').is('linked_user_id',null).order('full_name');
+ const teacherDirectoryRows=(unlinkedTeachers||[]).map(x=>({id:'teacher-directory:'+x.id,full_name:x.full_name,role:'Teacher directory',staff_category:'Teaching',gender:null,job_title:x.subject_specialism||'Teacher',department:'Teaching staff',phone:x.phone||null,employment_status:x.employment_status||'Active',directoryOnly:true}));
+ const directoryRows=(directoryEmployees||[]).map(x=>({...x,id:'school-directory:'+x.id,role:'School staff directory'}));
+ renderStaffDashboardStats([...staffProfiles,...teacherDirectoryRows,...directoryRows]);
  await loadSchoolPublicContactSettings();
  const accountRows=staffProfiles.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">'+esc(x.role)+'</span></td><td>'+esc(x.staff_category||'Not classified')+'</td><td>'+esc(x.gender||'Not recorded')+'</td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>'+esc(x.parent_contact_visible&&x.parent_contact_phone?x.parent_contact_phone:'Not published')+'</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td></tr>');
- const directoryHtml=directoryRows.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">Teacher directory · account not linked</span></td><td>Teaching</td><td>Not recorded</td><td>'+esc(x.job_title||'Teacher')+'</td><td>Teaching staff</td><td>'+esc(x.phone||'—')+'</td><td>Not published</td><td>Active</td><td>—</td></tr>');
- $('staffProfileRows').innerHTML=[...accountRows,...directoryHtml].join('')||'<tr><td colspan="9">No staff records found.</td></tr>';
+ const teacherHtml=teacherDirectoryRows.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">Teacher directory · account not linked</span></td><td>Teaching</td><td>Not recorded</td><td>'+esc(x.job_title||'Teacher')+'</td><td>Teaching staff</td><td>'+esc(x.phone||'—')+'</td><td>Not published</td><td>Active</td><td>—</td></tr>');
+ const directoryHtml=directoryRows.map(x=>'<tr><td>'+esc(x.full_name||'Unnamed')+'<br><span class="muted">School staff directory · no login</span></td><td>'+esc(x.staff_category||'—')+'</td><td>'+esc(x.gender||'Not recorded')+'</td><td>'+esc(x.job_title||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.phone||'—')+'</td><td>Not published</td><td>'+esc(x.employment_status||'Active')+'</td><td>'+esc(x.employment_start_date||'—')+'</td></tr>');
+ $('staffProfileRows').innerHTML=[...accountRows,...teacherHtml,...directoryHtml].join('')||'<tr><td colspan="9">No staff records found.</td></tr>';
  $('staffProfileSelect').innerHTML='<option value="">Choose staff member</option>'+staffProfiles.map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed')+' ('+esc(x.role)+')</option>').join('');
 }
 $('staffInviteForm').addEventListener('submit',async e=>{
