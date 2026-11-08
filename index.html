@@ -4054,8 +4054,8 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
    let activePeriod=1;const columns=[];
    headers.forEach((header,index)=>{
     const token=normal[index];if(!token||index===nameIndex||index===codeIndex||index===linIndex)return;
-    const summary=token.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]){0,2}$/);
-    if(summary){const n=Number(summary[2]||activePeriod);activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
+    const summary=token.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]{0,2})$/);
+    if(summary){const digits=summary[2]||'',n=digits?Number(digits[0]):activePeriod;activePeriod=Math.min(setBased?4:3,Math.max(activePeriod,n+1));return}
     if(/^(N|SN|ID|ID2|PHOTO|SEX|GENDER|BURSARY|BOARDING|GENERALCOMMENT|REMARKS|INITIALS|FIELD\d*|COLUMN\d*|MAX|OUTOF|PERCENT|PERCENTAGE|INDEX|INDEXNUMBER|INDEXNO|P7INDEXNUMBER|EXCELLENT|VERYGOOD|GOOD|FAIR|WEAK|MISSED|AIMHIGHER)$/.test(token)||/^(AEN|AENG|AMT|ASC|ASS)\d*$/.test(token)||/COMMENT|COMM/.test(token)||/(ENG|EN|MT|MTC|MAT|SCI|SC|SST|SS)C$/.test(token)||String(header).trim().startsWith('='))return;
     const phase=importColumnPeriod(info.matrix,info.headerRow,index,header,activePeriod,info.name),sourcePeriod=importPeriodLabel(phase.period,clsName),suffix=phase.codePeriod;
     const mappedId=teacherExcelHeadingMappings[info.name+'|'+header];
