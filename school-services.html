@@ -893,10 +893,7 @@ $('refreshTransport').addEventListener('click',loadTransport);$('refreshWelfare'
 </script>
 <script src="/assets/school-services-collaboration.js" defer></script>
 <script>
-let servicesInstallPrompt=null;
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();servicesInstallPrompt=event;document.getElementById('installServicesApp')?.classList.remove('hidden')});
-document.getElementById('installServicesApp')?.addEventListener('click',async()=>{if(!servicesInstallPrompt)return;servicesInstallPrompt.prompt();await servicesInstallPrompt.userChoice;servicesInstallPrompt=null;document.getElementById('installServicesApp')?.classList.add('hidden')});
-window.addEventListener('appinstalled',()=>document.getElementById('installServicesApp')?.classList.add('hidden'));
+
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
 </body>
