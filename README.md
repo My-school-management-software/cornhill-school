@@ -54,19 +54,31 @@ The database foundation is additive and uses RLS on the new tables. Teacher lear
 
 ## Work area 9 — P.5, P.6 and P.7 workbook grading analysis
 
-The upper-primary class-mark workspace now reproduces all three analysis sections shown below the marks in the original P.5, P.6 and P.7 Excel workbooks:
+The upper-primary class-mark workspace reproduces all three analysis sections shown below the marks in the original P.5, P.6 and P.7 Excel workbooks:
 
 - **B.O.T:** P.5 Beginning Assessment; P.6 and P.7 Set I.
 - **M.O.T:** P.5 Midterm Assessment; P.6 and P.7 Set II.
 - **E.O.T:** P.5 End of Term Assessment; P.6 and P.7 Set III.
-- Each section reports Division I, II, III, IV, U and X counts (plus separate incomplete-mark counts), average performance in English / Mathematics / Science / Social Studies, the strongest and weakest subject averages, and performance by boys and girls.
-- P.7's additional Set IV remains in the marks table as in the workbook; the workbook has three grading-analysis sections, so Set IV is not given an extra analysis panel.
+- Each section reports Division I, II, III, IV, U and X counts (plus separate incomplete-mark counts), average performance in English / Mathematics / Science / Social Studies, the strongest and weakest subject averages, performance by boys and girls, and the number of learners whose division was adjusted by the English/Mathematics gateway rule.
+- P.7's additional Set IV remains in the marks table; the workbook contains only three grading-analysis sections.
 
-The analysis uses the Excel workbook's grade boundaries: D1 89–100, D2 79–88, C3 74–78, C4 69–73, C5 59–68, C6 49–58, P7 44–48, P8 39–43, and F9 below 39. It totals the four core-subject grade points and applies the workbook's aggregate division thresholds: 34+ = U, 29–33 = IV, 25–28 = III, 13–24 = II, and 4–12 = I. These workbook-specific rules are used only for this class analysis; the school's separate grade-band configuration is not changed. Subject and gender averages are normalized to percentages and exclude blank and X (Absent) marks. A teacher may view one marks period while the analysis still reads all three periods for the selected class and term.
+The class workbook grade boundaries are D1 89–100, D2 79–88, C3 74–78, C4 69–73, C5 59–68, C6 49–58, P7 44–48, P8 39–43 and F9 0–38. The four grade points are added for the aggregate. The current PLE aggregate bands used by the software are I 4–12, II 13–23, III 24–29, IV 30–34 and U 35–36.
 
-For the active 2026 Term 3, the database now has 12 assessment columns for P.5, 12 for P.6 and 16 for P.7 (including P.7 Set IV). These are empty assessment columns ready for teachers to enter marks; no marks were fabricated or imported from the example workbook. The current live database has four core subject links in each of these three classes.
+## Work area 10 — P.4–P.7 English and Mathematics gateway grading
 
-**Acceptance boundary:** JavaScript period mapping, three-panel rendering, workbook grade boundaries, division thresholds, absent/blank handling, and subject/gender analysis were tested with synthetic marks. Real teacher sign-in and live browser acceptance with actual marks are still pending.
+The shared P4–P7 grading helper is used by the teacher marks grid, report-card summary and P.5–P.7 class analyses:
+
+- A P7 or P8 in English or Mathematics caps the result at Division II. It cannot remain Division I, even when the raw aggregate is 12 or better.
+- An F9 in either English or Mathematics caps the result at Division III. The aggregate may still place the learner in Division IV or U when that is the lower result.
+- If the aggregate already produces a lower division, the gateway rule does not upgrade the learner.
+- A printable report card shows the reason whenever a gateway adjustment changes the division. The marks-grid division cell also exposes the explanation.
+
+These English/Mathematics caps are implemented as the CORNHILL grading rule requested by the school. Public descriptions of PLE grading also describe Division I as requiring credit or better across all four subjects, and Division II as requiring passes across the subjects; therefore this software adjustment should be treated as the school's stated internal gateway policy, not as a substitute for checking the latest UNEB instructions for official PLE certification. See [Uganda Radio Network's explanation of PLE divisions](https://www.ugandaradionetwork.net/story/the-face-of-disappointing-ple-results).
+
+The four core subject grade-band rows in Supabase have been aligned to the source Excel formulas for English, Mathematics, Science and Social Studies. Active 2026 Term 3 assessment columns are present for P.4 (12), P.5 (12), P.6 (12) and P.7 (16, including P.7 Set IV). These are blank assessment columns ready for teachers; no learner marks were fabricated or imported.
+
+**Acceptance evidence:** 13/13 synthetic division-helper cases passed, including aggregate 10 with English/Mathematics P7/P8, aggregate 12 with a gateway F9, both English and Mathematics F9, absence handling, class subject aliases, and the current aggregate boundaries. The three analysis panels for each of P.5, P.6 and P.7 passed synthetic rendering checks. Real teacher sign-in and live browser acceptance with actual marks remain pending.
+
 ## Current preview
 
 The active development branch is `fix/assessment-selection-save-preview-20261108`. The latest preview available during this work was built from an earlier service-portal commit and does not include the final admissions page, public website, payroll policy changes or latest front-end fixes. Vercel's Free daily deployment API quota returned a payment-required limit, so no new preview was confirmed for the latest commit. Do not use an older preview to accept these new pages. The production main branch has not been changed by this development branch.
