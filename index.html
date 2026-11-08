@@ -4656,30 +4656,41 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
 $('confirmTeacherMarksImport').addEventListener('click',async()=>{
  const plan=teacherExcelImportPlan,ctx=window.cornhillExcelMarksContext,button=$('confirmTeacherMarksImport');
  if(profile?.role!=='Teacher'||demoMode||!plan||plan.blockingIssues?.length||!ctx||plan.ctxKey!==ctx.classId+'|'+ctx.termId)return;
- button.disabled=true;button.textContent='Importing…';
+ button.disabled=true;const cancelButton=$('cancelTeacherMarksImport');if(cancelButton)cancelButton.disabled=true;
  try{
-  const importTermId=ctx.termId,importClassId=ctx.classId;
-  const auth=await db.auth.getUser(),user=auth.data?.user;
+  const importTermId=ctx.termId,importClassId=ctx.classId,auth=await db.auth.getUser(),user=auth.data?.user;
   if(auth.error||!user||user.id!==currentUserId)throw new Error('Your sign-in session is unavailable. Sign in again.');
-  const payload=plan.payload.map(({source_name,source_header,...x})=>({...x,entered_by:user.id}));
-  const replace=$('replaceExistingImportedMarks').checked;
-  let inserted=0,skipped=0,failed=0;
-  for(const row of payload){
-   const key=row.assessment_id+'|'+row.student_id,existing=ctx.savedMarks.get(key);
-   if(existing&&replace){
-    const {error}=await db.from('assessment_scores').update({score:row.score,teacher_comment:row.teacher_comment,entered_by:user.id}).eq('assessment_id',row.assessment_id).eq('student_id',row.student_id);
-    if(error){failed++;continue}
-   }else if(existing){skipped++;continue}
-   else{
-    const {error}=await db.from('assessment_scores').insert(row);
-    if(error){failed++;continue}
+  const payload=plan.payload.map(({source_name,source_header,source_sheet,...x})=>({...x,entered_by:user.id}));
+  const replace=$('replaceExistingImportedMarks').checked,inserts=[],updates=[];let skipped=0,failed=0,inserted=0,completed=0;
+  for(const row of payload){const key=row.assessment_id+'|'+row.student_id,existing=ctx.savedMarks.get(key);if(existing&&replace)updates.push(row);else if(existing)skipped++;else inserts.push(row)}
+  const total=inserts.length+updates.length;
+  if(!total){message('teacherMarksImportMsg','Nothing new to import. '+skipped+' existing mark(s) were protected.');teacherExcelImportPlan=null;return}
+  const progress=()=>{button.textContent='Importing '+completed+' / '+total+'…';message('teacherMarksImportMsg','Import in progress: '+completed+' of '+total+' mark(s) processed. '+inserted+' saved; '+failed+' failed; '+skipped+' existing marks protected.')};
+  message('teacherMarksImportMsg','Import started: '+total+' mark(s) to process.');progress();
+  for(let offset=0;offset<inserts.length;offset+=40){
+   const batch=inserts.slice(offset,offset+40),result=await db.from('assessment_scores').insert(batch);
+   if(result.error){
+    for(let i=0;i<batch.length;i+=8){
+     const group=batch.slice(i,i+8),outcomes=await Promise.all(group.map(async row=>{const {error}=await db.from('assessment_scores').insert(row);return {row,error}}));
+     for(const outcome of outcomes){completed++;if(outcome.error)failed++;else{inserted++;ctx.savedMarks.set(outcome.row.assessment_id+'|'+outcome.row.student_id,{...outcome.row})}}
+     progress();
+    }
+   }else{
+    for(const row of batch){inserted++;completed++;ctx.savedMarks.set(row.assessment_id+'|'+row.student_id,{...row})}
+    progress();
    }
-   ctx.savedMarks.set(key,{...row});inserted++;
   }
-  message('teacherMarksImportMsg','Import finished: '+inserted+' mark(s) saved; '+skipped+' existing mark(s) protected; '+failed+' failed or blocked by teacher class/subject permissions. Check the mark sheet and grading before continuing.');
-  teacherExcelImportPlan=null;button.disabled=true;await loadAcademics();$('excelMarksTerm').value=importTermId;$('excelMarksClass').value=importClassId;await loadExcelMarksGrid();
- }catch(err){message('teacherMarksImportMsg','Import stopped: '+(err?.message||String(err)),true);button.disabled=false}
- finally{button.textContent='Import matched marks'}
+  for(let offset=0;offset<updates.length;offset+=8){
+   const batch=updates.slice(offset,offset+8),outcomes=await Promise.all(batch.map(async row=>{const {error}=await db.from('assessment_scores').update({score:row.score,teacher_comment:row.teacher_comment,entered_by:user.id}).eq('assessment_id',row.assessment_id).eq('student_id',row.student_id);return {row,error}}));
+   for(const outcome of outcomes){completed++;if(outcome.error)failed++;else{inserted++;ctx.savedMarks.set(outcome.row.assessment_id+'|'+outcome.row.student_id,{...outcome.row})}}
+   progress();
+  }
+  teacherExcelImportPlan=null;button.disabled=true;
+  message('teacherMarksImportMsg','Import finished: '+inserted+' mark(s) saved or replaced; '+skipped+' existing mark(s) protected; '+failed+' failed. '+(failed?'Review failed rows and ask the administrator to check class/subject permissions.':'The import is complete. Check the class mark sheet and grading.'));
+  try{await loadAcademics();$('excelMarksTerm').value=importTermId;$('excelMarksClass').value=importClassId;await loadExcelMarksGrid()}
+  catch(refreshError){message('teacherMarksImportMsg','Import finished: '+inserted+' mark(s) saved or replaced; '+skipped+' existing mark(s) protected; '+failed+' failed. Records were saved, but refreshing the mark sheet failed: '+(refreshError?.message||String(refreshError))+'. Refresh the page to view them.',true)}
+ }catch(err){message('teacherMarksImportMsg','Import stopped: '+(err?.message||String(err))+'. Marks already confirmed as saved remain saved; check the progress message before retrying.',true);button.disabled=false}
+ finally{button.textContent='Import matched marks';if(cancelButton)cancelButton.disabled=!$('teacherMarksWorkbook').files?.length}
 });
 $('exportExcelMarks').addEventListener('click',()=>{
  const ctx=window.cornhillExcelMarksContext;
