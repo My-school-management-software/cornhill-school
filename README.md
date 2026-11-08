@@ -99,7 +99,10 @@ The service worker caches the communications launcher, the School Services page 
 
 ## Current preview
 
-The active development branch is `fix/assessment-selection-save-preview-20261108`; use the branch link for its current head because the source continues to advance. The latest READY Vercel preview is [cornhill-school-72ezmqoan-cypher-projects1.vercel.app](https://cornhill-school-72ezmqoan-cypher-projects1.vercel.app/) from commit `02f799769c3328a0ccab165926b6cc2b6d1e0974`. That preview includes the public site, admissions page, School Services and Staff Communications pages, and the initial P4–P7 gateway/grading changes. It does **not** include the latest service-worker v56 cache isolation, asset-manager edit controls, or the final visitor/maintenance column-level permission hardening. A new preview request for the current source commit was blocked by Vercel's Free daily deployment API limit (retry window 24 hours); no paid plan was enabled and production was not changed. Use the GitHub branch to review the latest source; use the preview only with the noted commit limitation.
+The active development branch is `fix/assessment-selection-save-preview-20261108`. The latest confirmed READY Vercel preview is [cornhill-school-8m53cvr1m-cypher-projects1.vercel.app](https://cornhill-school-8m53cvr1m-cypher-projects1.vercel.app/) from commit `64b9908b3613424b8c2fa4ae5d802d430f1898bf`. It is an earlier snapshot and does **not** contain the latest P.4–P.7 gateway refinements, unified School Services collaboration entry, service-worker v57, or staff collaboration foreign-key indexes.
+
+A new preview request for the active development branch was rejected by Vercel with `payment_required` because the Free daily deployment API limit has been reached; the returned retry window is 24 hours. No paid plan was enabled and production was not changed. Use the [GitHub development branch](https://github.com/My-school-management-software/cornhill-school/tree/fix/assessment-selection-save-preview-20261108) as the current source of truth. Do not use the preview above to accept these latest changes until a deployment from the active branch is READY.
+
 
 ## Offline limitation — important
 
