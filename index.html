@@ -2096,7 +2096,7 @@ window.cornhillStartupStage='loading permitted school records';
 await refresh();if(!sessionIsCurrent())return;
  $('app').classList.remove('hidden');
  $('app').dataset.accountOwner=session.user.id;
- applyRoleNavigation();tab('dashboard');
+ applyRoleNavigation();if(profile?.role==='Staff')renderStaffPortal();tab('dashboard');
  if(!window.cornhillOfflineReadOnly){window.cornhillStartupStage='loading academic year and term controls';await loadAcademicControl();if(!sessionIsCurrent())return;}
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}
  if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');if(!sessionIsCurrent())return;
