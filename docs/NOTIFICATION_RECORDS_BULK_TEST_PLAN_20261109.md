@@ -46,6 +46,7 @@ Database: `yemhortbudwbcrzsoozk`
 | DB-28 | Duplicate notification source keys | PASS — 0 |
 | DB-29 | Notifications referencing missing learner rows | PASS — 0 |
 | DB-30 | Per-user notification states referencing missing notifications | PASS — 0 |
+| DB-31 | Admin full-text Records Centre search RPC uses OCR search index and denies anon execution | PASS |
 | UI-01 | Notification Centre inline JavaScript parses | PASS |
 | UI-02 | Records Centre inline JavaScript parses | PASS |
 | UI-03 | Evidence Capture inline JavaScript parses after scanner enhancement | PASS |
