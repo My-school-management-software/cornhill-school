@@ -2335,7 +2335,7 @@ function renderStaffPortal(){
  const host=$('staffPortalSummary');if(!host)return;
  if(profile?.role!=='Staff'){host.classList.add('hidden');host.innerHTML='';return}
  const name=profile?.full_name||'School staff member',title=profile?.job_title||profile?.department||'CORNHILL staff account';
- const initials=name.split(/\\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
+ const initials=name.split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
  host.innerHTML='<div class="teacher-workspace-head"><div><span class="teacher-kicker">MY CORNHILL WORKSPACE</span><h2>'+esc(name)+'</h2><p>'+esc(title)+' · Staff account</p></div><span class="teacher-avatar">'+esc(initials||'S')+'</span></div><div class="teacher-workspace-subjects"><strong>Your own staff account</strong><p>This workspace is separate from the administrator and teacher workspaces. You can only open the staff services assigned to your account.</p></div><div class="teacher-quick-actions"><button type="button" data-staff-open="attendance"><strong>🕒 My attendance</strong><span>View your attendance records and request a correction</span></button><button type="button" data-staff-open="communication"><strong>💬 Staff communications</strong><span>Read school notices and communicate with colleagues</span></button><button type="button" data-staff-open="notifications"><strong>🔔 My notifications</strong><span>Review school notices and assigned follow-up items</span></button></div>';
  host.querySelectorAll('[data-staff-open]').forEach(button=>button.addEventListener('click',()=>tab(button.dataset.staffOpen)));
  host.classList.remove('hidden');
