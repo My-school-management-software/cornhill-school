@@ -1,87 +1,166 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#14532d"><meta name="description" content="CORNHILL school admission enquiry form">
-<link rel="icon" href="/assets/cornhill-school-badge.png" type="image/png"><link rel="stylesheet" href="/assets/cornhill-design-system.css">
-<title>CORNHILL · Admission Enquiry</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14532d">
+<meta name="description" content="CORNHILL Nursery and Primary School admission enquiries and parent application tracking">
+<link rel="manifest" href="/admissions.webmanifest">
+<title>CORNHILL · Parent Admissions</title>
+<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4f8f4;color:#17251c;font-family:Inter,system-ui,sans-serif}
-.top{padding:16px 20px;background:#14532d;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:10px;font-weight:900}.brand img{width:48px;height:48px;padding:4px;object-fit:contain;background:#fff;border-radius:12px}
-main{width:min(100% - 28px,900px);margin:24px auto}
-.card{padding:clamp(18px,4vw,34px);background:#fff;border:1px solid #dce7de;border-radius:22px;box-shadow:0 14px 38px #1d48230b}
-.eyebrow{font-size:10px;letter-spacing:.17em;font-weight:900;color:#267044}
-h1{font-size:clamp(25px,4vw,36px);margin:9px 0}.muted{font-size:13px;color:#607265;line-height:1.6}
-label{display:block;font-size:12px;font-weight:800;margin:10px 0 5px}
-input,select,textarea{width:100%;padding:12px;border:1px solid #ccd9cf;border-radius:10px;font:inherit;margin:0 0 7px}
-textarea{min-height:90px;resize:vertical}
-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 14px}
-.full{grid-column:1/-1}button{border:0;border-radius:11px;padding:13px 18px;background:#14532d;color:white;font-weight:850;cursor:pointer}
-button:disabled{opacity:.5;cursor:wait}
-.notice{padding:12px;border-radius:11px;background:#eff6ff;color:#1e40af;font-size:13px;margin:12px 0}.success{background:#ecfdf3;color:#166534}.error{background:#fff1f2;color:#9f1239}.notice.warning{background:#fff7ed;color:#9a3412}
-.consent{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#4f6255;margin:12px 0}.consent input{width:18px;height:18px;margin:0;flex-shrink:0}
-.hp{position:absolute!important;left:-10000px!important;opacity:0!important;width:1px!important;height:1px!important}
-@media(max-width:620px){form{grid-template-columns:1fr}.full{grid-column:auto}main{margin:14px auto}.card{padding:17px}}
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#18251c;background:#f2f7f3}
+*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:#fff;padding:17px max(16px,calc((100% - 1040px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:850;display:flex;align-items:center;gap:10px}.brand img{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:9px;padding:3px}
+.wrap{max-width:1040px;margin:22px auto;padding:0 14px;display:grid;gap:16px}.card{background:#fff;border:1px solid #dce8df;border-radius:16px;padding:20px;box-shadow:0 4px 18px #163d2010}
+h1,h2,h3{margin:0 0 9px;color:#183b27}.muted{color:#637568;font-size:13px;line-height:1.55}.eyebrow{font-size:11px;font-weight:850;letter-spacing:.12em;color:#267144}
+label{display:block;font-size:13px;font-weight:750;margin:9px 0 5px;color:#354c3b}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #cbd9ce;border-radius:9px;font:inherit;background:#fff;color:#17251c}input:focus,select:focus,textarea:focus{outline:3px solid #d7eadb;border-color:#32814c}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px}.full{grid-column:1/-1}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+button,.button{border:0;border-radius:9px;padding:11px 15px;background:#e8f1e9;color:#17452a;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+button.primary{background:#166534;color:#fff}button:disabled{opacity:.55;cursor:not-allowed}
+.notice{padding:12px 14px;border-radius:10px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0;line-height:1.5}
+.notice.warning{background:#fff7e6;color:#8a4b08}.notice.success{background:#ecfdf3;color:#166534}.notice.error{background:#fff1f2;color:#9f1239}
+.hidden{display:none!important}.app-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.table-wrap{overflow:auto;margin-top:12px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px;border-bottom:1px solid #e5ece6;vertical-align:top}th{background:#f4f8f4}
+.status{display:inline-block;padding:4px 8px;border-radius:20px;background:#e8f4e9;color:#166534;font-size:11px;font-weight:800}
+.hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+footer{text-align:center;color:#647568;font-size:12px;padding:10px}
+@media(max-width:680px){.form-grid,.app-grid{grid-template-columns:1fr}.card{padding:16px}.top{align-items:flex-start}.wrap{margin:14px auto}}
 </style>
 </head>
-<body data-theme="warm-corporate">
-<header class="top"><a class="brand" href="/school.html" style="color:#fff;text-decoration:none"><img src="/assets/cornhill-school-badge.png" alt="">CORNHILL NURSERY AND PRIMARY SCHOOL</a><div><a href="/school.html" style="color:#fff;font-size:12px">School website</a> · <a href="/parents.html" style="color:#fff;font-size:12px">Parent Portal</a></div></header>
-<main><section class="card">
-<span class="eyebrow">ADMISSIONS & ENQUIRIES</span><h1>Enquire about admission</h1>
-<p class="muted">Complete this short form and the school administration can contact you about admission steps. This is an enquiry only; it does not register the learner or guarantee a place.</p>
-<div class="notice warning">For privacy, do not submit birth certificates, identity documents, medical information, photographs or payment details through this public form. Formal documents are handled later through the school's approved process.</div>
-<form id="admissionForm">
- <div><label for="learnerName">Prospective learner's full name *</label><input id="learnerName" maxlength="140" autocomplete="off" required></div>
- <div><label for="classApplied">Class of interest *</label><select id="classApplied" required><option value="">Choose a class</option><option>Baby</option><option>Middle</option><option>Top</option><option>P.1</option><option>P.2</option><option>P.3</option><option>P.4</option><option>P.5</option><option>P.6</option><option>P.7</option></select></div>
- <div><label for="guardianName">Parent / guardian name *</label><input id="guardianName" maxlength="140" autocomplete="name" required></div>
- <div><label for="guardianPhone">Parent / guardian phone *</label><input id="guardianPhone" type="tel" maxlength="25" autocomplete="tel" placeholder="+256…" required></div>
- <div><label for="guardianEmail">Email (optional)</label><input id="guardianEmail" type="email" maxlength="254" autocomplete="email"></div>
- <div><label for="contactPreference">Preferred contact method</label><select id="contactPreference"><option>Phone</option><option>SMS</option><option>Email</option></select></div>
- <div class="full"><label for="message">Question or short note (optional)</label><textarea id="message" maxlength="1200" placeholder="Tell us what you would like to know about admission."></textarea></div>
- <div class="hp" aria-hidden="true"><label for="website">Leave this field blank</label><input id="website" tabindex="-1" autocomplete="off"></div>
- <div class="full consent"><input id="consent" type="checkbox" required><label for="consent" style="margin:0;font-weight:600">I confirm that I am the parent or guardian making this enquiry and agree that CORNHILL may use these details to respond to this request.</label></div>
- <div class="full"><button id="submitBtn" type="submit">Send admission enquiry</button><div id="formMsg" class="notice hidden" role="status" aria-live="polite"></div></div>
-</form>
-<p class="muted">After you submit, the school must review the enquiry and contact you. For an approved application, formal registration and learner-code creation are completed by the school office.</p>
-</section></main>
+<body>
+<header class="top">
+ <a class="brand" href="/school.html" style="color:#fff;text-decoration:none"><img src="/assets/cornhill-school-badge.png" alt="">CORNHILL NURSERY AND PRIMARY SCHOOL</a>
+ <nav><a href="/school.html" style="color:#fff;font-size:13px">School website</a> · <a href="/parents.html" style="color:#fff;font-size:13px">Current learner Parent Portal</a></nav>
+</header>
+<main class="wrap">
+ <section class="card">
+  <span class="eyebrow">PARENT / GUARDIAN ACCESS</span>
+  <h1>Parent Admissions Account</h1>
+  <p class="muted">Create your own email-and-password account to submit an admission enquiry and return later to check its progress. Your account can see only enquiries submitted from that account. It does not provide access to school administration records.</p>
+  <div class="notice warning">Do not upload identity documents, birth certificates, medical details or payment evidence to this public page. Once the school begins formal admission, the office will request documents through its private evidence process.</div>
+  <div class="form-grid">
+   <div><label for="accountEmail">Your email address</label><input id="accountEmail" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com"></div>
+   <div><label for="accountPassword">Password</label><input id="accountPassword" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="At least 8 characters"></div>
+  </div>
+  <div class="actions">
+   <button class="primary" id="createAccount" type="button">Create parent account</button>
+   <button id="signInAccount" type="button">Sign in</button>
+   <button id="signOutAccount" type="button" class="hidden">Sign out</button>
+   <button id="refreshApplications" type="button" class="hidden">Refresh my applications</button>
+  </div>
+  <p id="accountMessage" class="notice hidden" role="status" aria-live="polite"></p>
+ </section>
+
+ <section class="card hidden" id="myApplications">
+  <span class="eyebrow">PRIVATE APPLICATION TRACKER</span>
+  <h2>My admission applications</h2>
+  <p class="muted">Status updates come from the school admissions office. A submitted enquiry is not yet an approved place or a learner-register entry.</p>
+  <div id="applicationRows"><p class="muted">Loading your applications…</p></div>
+ </section>
+
+ <section class="card">
+  <span class="eyebrow">ADMISSIONS & ENQUIRIES</span>
+  <h2>Enquire about admission</h2>
+  <p class="muted">Complete this form and the school administration can contact you about admission steps. It is an enquiry only; it does not register the learner or guarantee a place.</p>
+  <form id="admissionForm" class="form-grid">
+   <div><label for="learnerName">Prospective learner's full name *</label><input id="learnerName" maxlength="140" autocomplete="off" required></div>
+   <div><label for="classApplied">Class of interest *</label><select id="classApplied" required><option value="">Choose a class</option><option>Baby</option><option>Middle</option><option>Top</option><option>P.1</option><option>P.2</option><option>P.3</option><option>P.4</option><option>P.5</option><option>P.6</option><option>P.7</option></select></div>
+   <div><label for="guardianName">Parent / guardian name *</label><input id="guardianName" maxlength="140" autocomplete="name" required></div>
+   <div><label for="guardianPhone">Parent / guardian phone *</label><input id="guardianPhone" type="tel" maxlength="25" autocomplete="tel" placeholder="+256…" required></div>
+   <div><label for="guardianEmail">Parent / guardian email</label><input id="guardianEmail" type="email" maxlength="254" autocomplete="email"></div>
+   <div><label for="contactPreference">Preferred contact method</label><select id="contactPreference"><option>Phone</option><option>SMS</option><option>Email</option></select></div>
+   <div class="full"><label for="message">Question or short note (optional)</label><textarea id="message" rows="3" maxlength="1200" placeholder="Tell us what you would like to know about admission."></textarea></div>
+   <div class="hp" aria-hidden="true"><label for="website">Leave this field blank</label><input id="website" tabindex="-1" autocomplete="off"></div>
+   <div class="full"><label style="display:flex;gap:9px;align-items:flex-start"><input id="consent" type="checkbox" required style="width:18px;margin-top:2px"> I confirm that I am the parent or guardian making this enquiry and agree that CORNHILL may use these details to respond to this request.</label></div>
+   <div class="full actions"><button class="primary" id="submitBtn" type="submit">Send admission enquiry</button><span id="submissionHint" class="muted">Sign in above to link this enquiry to your parent account and track its status here. Guest enquiries can still be submitted without an account.</span></div>
+  </form>
+  <div id="formMsg" class="notice hidden" role="status" aria-live="polite"></div>
+ </section>
+ <footer>This parent admissions area is separate from the school management workspace. Never share your password or guardian PIN.</footer>
+</main>
 <script>
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'cornhill-parent-admissions-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id);
-function showMsg(message,type){const el=$('formMsg');el.textContent=message;el.className='notice '+(type||'');el.classList.remove('hidden')}
+let parentUser=null;
+function show(id,msg,type){const el=$(id);el.textContent=msg;el.className='notice '+(type||'');el.classList.remove('hidden')}
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function setParentUser(user){
+ parentUser=user||null;
+ $('signOutAccount').classList.toggle('hidden',!parentUser);
+ $('refreshApplications').classList.toggle('hidden',!parentUser);
+ $('myApplications').classList.toggle('hidden',!parentUser);
+ $('submissionHint').textContent=parentUser?'This enquiry will be linked to your signed-in parent account so you can return and check updates.':'Sign in above to link this enquiry to your parent account and track its status here. Guest enquiries can still be submitted without an account.';
+ if(parentUser){$('accountEmail').value=parentUser.email||'';$('guardianEmail').value=parentUser.email||'';loadMyApplications()}
+ else $('applicationRows').innerHTML='<p class="muted">Sign in to view enquiries linked to your parent account.</p>';
+}
+async function loadMyApplications(){
+ if(!parentUser)return;
+ const host=$('applicationRows');host.innerHTML='<p class="muted">Loading your applications…</p>';
+ const {data,error}=await db.from('school_admission_enquiries')
+  .select('id,learner_name,class_applied,status,created_at,reviewed_at,registered_at,student_id')
+  .eq('applicant_user_id',parentUser.id).order('created_at',{ascending:false}).limit(100);
+ if(error){host.innerHTML='<p class="notice error">Your application tracker could not load. Sign in again or contact the school office. '+escapeHtml(error.message)+'</p>';return}
+ if(!data?.length){host.innerHTML='<p class="muted">No admission enquiries have been submitted from this account yet.</p>';return}
+ host.innerHTML='<div class="table-wrap"><table><thead><tr><th>Application reference</th><th>Learner / requested class</th><th>Status</th><th>Last school review</th></tr></thead><tbody>'+data.map(x=>'<tr><td>'+escapeHtml(x.id.slice(0,8).toUpperCase())+'</td><td><strong>'+escapeHtml(x.learner_name)+'</strong><br>'+escapeHtml(x.class_applied)+'</td><td><span class="status">'+escapeHtml(x.student_id?'Registered in learner register':x.status)+'</span></td><td>'+escapeHtml(x.reviewed_at?new Date(x.reviewed_at).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}):'Awaiting school review')+'</td></tr>').join('')+'</tbody></table></div>';
+}
+async function signIn(){
+ const email=$('accountEmail').value.trim(),password=$('accountPassword').value;
+ if(!email||!password){show('accountMessage','Enter your email address and password.','error');return}
+ const {data,error}=await db.auth.signInWithPassword({email,password});
+ if(error){show('accountMessage','Sign-in failed: '+error.message,'error');return}
+ setParentUser(data.user);show('accountMessage','You are signed in. Your applications are shown below.','success');
+}
+async function createAccount(){
+ const email=$('accountEmail').value.trim(),password=$('accountPassword').value;
+ if(!email||!/^\S+@\S+\.\S+$/.test(email)){show('accountMessage','Enter a valid email address.','error');return}
+ if(password.length<8){show('accountMessage','Use a password with at least 8 characters.','error');return}
+ const button=$('createAccount');button.disabled=true;
+ try{
+  const {data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/admissions.html'}});
+  if(error)throw error;
+  if(data.session&&data.user){setParentUser(data.user);show('accountMessage','Parent account created and signed in. You can now submit an application and track its status.','success')}
+  else show('accountMessage','Account registration started. Check your email for the confirmation link, then return here and sign in. Your application will be linked after you sign in.','success');
+ }catch(error){show('accountMessage','Account could not be created: '+(error.message||'Please try again.'),'error')}
+ finally{button.disabled=false}
+}
+$('createAccount').addEventListener('click',createAccount);
+$('signInAccount').addEventListener('click',signIn);
+$('signOutAccount').addEventListener('click',async()=>{await db.auth.signOut();setParentUser(null);show('accountMessage','You have signed out.','success')});
+$('refreshApplications').addEventListener('click',loadMyApplications);
+db.auth.getSession().then(({data})=>setParentUser(data.session?.user||null));
+db.auth.onAuthStateChange((_event,session)=>{setParentUser(session?.user||null)});
 $('admissionForm').addEventListener('submit',async e=>{
- e.preventDefault();
- const btn=$('submitBtn');
- if($('website').value.trim()){showMsg('Your enquiry could not be submitted. Please try again.','error');return}
- if(!navigator.onLine){showMsg('You are offline. Connect to the internet before sending the enquiry.','error');return}
+ e.preventDefault();const btn=$('submitBtn');
+ if($('website').value.trim()){show('formMsg','Your enquiry could not be submitted. Please try again.','error');return}
+ if(!navigator.onLine){show('formMsg','You are offline. Connect to the internet before sending the enquiry.','error');return}
  const phone=$('guardianPhone').value.trim();
- if(phone.replace(/[^0-9+]/g,'').length<7){showMsg('Enter a valid contact phone number.','error');return}
- const email=$('guardianEmail').value.trim();
- if($('contactPreference').value==='Email'&&!email){showMsg('Enter an email address or choose phone / SMS contact.','error');return}
+ if(phone.replace(/[^0-9+]/g,'').length<7){show('formMsg','Enter a valid contact phone number.','error');return}
+ const email=$('guardianEmail').value.trim()||(parentUser?.email||'');
+ if($('contactPreference').value==='Email'&&!email){show('formMsg','Enter an email address or choose phone / SMS contact.','error');return}
  const last=Number(sessionStorage.getItem('cornhill-admission-last-submit')||0);
- if(Date.now()-last<30000){showMsg('Please wait before sending another enquiry from this browser.','error');return}
+ if(Date.now()-last<30000){show('formMsg','Please wait before sending another enquiry from this browser.','error');return}
  const payload={
-  id:crypto.randomUUID(),
-  learner_name:$('learnerName').value.trim(),
-  class_applied:$('classApplied').value,
-  guardian_name:$('guardianName').value.trim(),
-  guardian_phone:phone,
-  guardian_email:email||null,
-  contact_preference:$('contactPreference').value,
-  message:$('message').value.trim()
+  id:crypto.randomUUID(),learner_name:$('learnerName').value.trim(),class_applied:$('classApplied').value,
+  guardian_name:$('guardianName').value.trim(),guardian_phone:phone,guardian_email:email||null,
+  contact_preference:$('contactPreference').value,message:$('message').value.trim(),
+  applicant_user_id:parentUser?.id||null
  };
  btn.disabled=true;btn.textContent='Submitting…';
  try{
-  const {error}=await db.from('school_admission_enquiries').insert(payload);
-  if(error)throw error;
+  const {error}=await db.from('school_admission_enquiries').insert(payload);if(error)throw error;
   sessionStorage.setItem('cornhill-admission-last-submit',String(Date.now()));
-  const ref=payload.id.slice(0,8).toUpperCase();
-  e.target.reset();showMsg('Your admission enquiry has been received. Reference: '+ref+'. Please keep this reference when contacting the school. This is an enquiry, not a confirmed admission.','success');
- }catch(err){showMsg('The enquiry was not submitted. Please check your connection and try again. '+(err.message||''),'error')}
+  const ref=payload.id.slice(0,8).toUpperCase();e.target.reset();
+  if(parentUser){$('guardianEmail').value=parentUser.email||'';await loadMyApplications()}
+  show('formMsg','Your admission enquiry has been received. Reference: '+ref+'. This is an enquiry, not a confirmed admission. '+(parentUser?'It is now linked to your parent account.':'Create/sign in to a parent account before your next enquiry to track it online.'),'success');
+ }catch(err){show('formMsg','The enquiry was not submitted. Please check your connection and try again. '+(err.message||''),'error')}
  finally{btn.disabled=false;btn.textContent='Send admission enquiry'}
 });
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
 </body></html>
