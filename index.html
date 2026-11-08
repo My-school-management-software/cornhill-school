@@ -1929,7 +1929,7 @@ function tab(name){
  $('adminParentPortalDirectory')?.classList.toggle('hidden',profile?.role!=='Admin');
  if(window.cornhillOfflineReadOnly&&!['dashboard','students','classes'].includes(name))return;
  if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;
- if(profile?.role==='Teacher'&&!['dashboard','notifications','helpAssistant','academics','attendance','communication'].includes(name))return;
+ if(profile?.role==='Teacher'&&!['dashboard','notifications','academics','attendance','communication'].includes(name))return;
  if(name==='helpAssistant'&&!['Admin','Teacher'].includes(profile?.role))return;
  if(profile?.role!=='Admin'&&['midtermAdmissions','achievedLearners','trashBin'].includes(name))return;
  if(profile?.role==='Staff'&&!['dashboard','notifications','attendance','communication'].includes(name))return;
@@ -2538,7 +2538,7 @@ function applyRoleNavigation(){
  const role=profile?.role;
  $('setupStandardClasses').classList.toggle('hidden',role!=='Admin');
  document.querySelectorAll('.tabs [data-tab]').forEach(b=>{
-  const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','helpAssistant','academics','attendance','communication'].includes(b.dataset.tab))||(role==='Staff'&&['dashboard','notifications','attendance','communication'].includes(b.dataset.tab));
+  const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','academics','attendance','communication'].includes(b.dataset.tab))||(role==='Staff'&&['dashboard','notifications','attendance','communication'].includes(b.dataset.tab));
   b.classList.toggle('hidden',!allowed)
  });
  document.querySelectorAll('[data-module]').forEach(b=>b.classList.toggle('hidden',role!=='Admin'&&!(role==='Teacher'&&['academics','attendance'].includes(b.dataset.module))&&!(role==='Staff'&&b.dataset.module==='attendance')));
