@@ -2228,7 +2228,7 @@ async function refresh(){
   codeAliasQuery
  ]);
  if(refreshOwner!==currentUserId||refreshGeneration!==(window.cornhillSessionGeneration||0))return;
- const failed=[studentResult,aliasResult].find(result=>result?.error);
+ let failed=[studentResult,aliasResult].find(result=>result?.error);
  const teacherClassFallback=profile?.role==='Teacher'&&window.cornhillTeacherAssignedClassRecord?.id===sessionStorage.getItem('cornhill_teacher_class_id');
  if(!failed&&profile?.role!=='Teacher'&&classResult?.error)failed=classResult;
  if(!failed&&profile?.role==='Teacher'&&classResult?.error&&!teacherClassFallback)failed=classResult;
