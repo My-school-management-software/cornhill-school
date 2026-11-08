@@ -3423,7 +3423,7 @@ async function renderReportCard(options={}){
  const commentChoices=selectedReportComments(studentId);
  const performancePeriod=['End','Midterm','Beginning'].find(p=>Number(phaseTotals[p]?.max||0)>0)||null;
  const performancePercent=performancePeriod?phaseTotals[performancePeriod].got/phaseTotals[performancePeriod].max*100:null;
- const endCellForSubject=cells=>['End','Midterm','Beginning'].map(p=>cells[p]).find(c=>Number(c?.max||0)>0)||null;
+ const endCellForSubject=cells=>{const c=cells.End;return Number(c?.max||0)>0?c:null;};
  const teacherComment=commentChoices.teacher||'';
  const classTeacherComment=commentChoices.classTeacher==='auto'||!commentChoices.classTeacher?(performancePercent===null?'Progress is being monitored.':autoClassTeacherComment(performancePercent)):commentChoices.classTeacher;
  const conductComment=commentChoices.conduct||'';
