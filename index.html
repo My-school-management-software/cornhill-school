@@ -6297,9 +6297,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   const ordered=ass.sort((a,b)=>periods.indexOf(periodFor(a))-periods.indexOf(periodFor(b))||excelSubjectOrder(a)-excelSubjectOrder(b));
   const unique=[...new Map(ordered.map(a=>[a.id,{a,code:excelSubjectLabel(a,0,cls())}])).values()];
   host.innerHTML=unique.length?'<div class="row" style="justify-content:flex-start;margin-bottom:8px"><button type="button" id="markGridSelectAllSubjects">Select all subjects</button><button type="button" id="markGridClearSubjects">Clear selection</button></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px">'+unique.map(({a,code})=>'<label style="display:flex;align-items:center;gap:8px;padding:9px;border:1px solid var(--cornhill-line);border-radius:9px;background:var(--cornhill-panel);margin:0"><input type="checkbox" data-mark-pair="'+escV(a.id)+'" '+(selectedPairs.includes(a.id)?'checked':'')+'><span><b>'+escV(code)+'</b> · '+escV(a.subjects?.name||a.title)+'<small style="display:block;color:var(--cornhill-muted)">'+escV(periodFor(a))+' assessment · /'+escV(a.max_score)+'</small></span></label>').join('')+'</div>':'<p class="muted">No assessments found for the selected term and periods. Ask the administrator to prepare them first.</p>';
-  $('markGridSelectAllSubjects')?.addEventListener('click',()=>{selectedPairs=unique.map(x=>x.a.id);renderSubjectChoices();renderLearnerChoices()});
-  $('markGridClearSubjects')?.addEventListener('click',()=>{selectedPairs=[];renderSubjectChoices();renderLearnerChoices()});
-  host.querySelectorAll('[data-mark-pair]').forEach(input=>input.addEventListener('change',()=>{selectedPairs=input.checked?[...new Set([...selectedPairs,input.dataset.markPair])]:selectedPairs.filter(x=>x!==input.dataset.markPair);renderLearnerChoices()}));
+  $('markGridSelectAllSubjects')?.addEventListener('click',()=>{selectedPairs=unique.map(x=>x.a.id);renderSubjectChoices();renderLearnerChoices();renderMarkGrid()});
+  $('markGridClearSubjects')?.addEventListener('click',()=>{selectedPairs=[];renderSubjectChoices();renderLearnerChoices();renderMarkGrid()});
+  host.querySelectorAll('[data-mark-pair]').forEach(input=>input.addEventListener('change',()=>{selectedPairs=input.checked?[...new Set([...selectedPairs,input.dataset.markPair])]:selectedPairs.filter(x=>x!==input.dataset.markPair);renderLearnerChoices();renderMarkGrid()}));
  }
  function currentLearners(){
   const classId=assignedClass();
@@ -6350,7 +6350,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  }
  function build(){
   const root=$('teacherMarkEntry');if(!root||root.dataset.markGridV2==='yes')return;
-  if(!['Teacher','Admin'].includes(profile?.role||''))return;
+  if(profile?.role!=='Teacher')return;
   root.dataset.markGridV2='yes';
   $('scoreForm')?.classList.add('hidden');
   const panel=document.createElement('section');panel.className='panel';panel.style.marginTop='14px';
