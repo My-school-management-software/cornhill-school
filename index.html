@@ -4826,7 +4826,7 @@ async function submitAcademic(formId,table,transform,success){
     if(!Number.isFinite(maximum)||maximum<=0||maximum>100)throw new Error('Maximum score must be between 1 and 100.');
     if(values.assessment_date&&(values.assessment_date<term.starts_on||values.assessment_date>term.ends_on))throw new Error('Assessment date must fall within '+term.name+'.');
     const auth=await db.auth.getUser(),user=auth.data?.user;if(auth.error||!user)throw new Error('Your session has expired. Sign in again.');
-    const {data:existingRows,error:existingError}=await db.from('assessments').select('id,subject_id,title,assessment_type,max_score,assessment_date').eq('term_id',values.term_id).eq('class_id',classId).in('subject_id',selectedSubjectIds);
+    const {data:existingRows,error:existingError}=await db.from('assessments').select('id,class_id,subject_id,title,assessment_type,max_score,assessment_date').eq('term_id',values.term_id).eq('class_id',classId).in('subject_id',selectedSubjectIds);
     if(existingError)throw existingError;
     let created=0,updated=0,kept=0;const missing=[];
     for(const period of selectedPeriods){
