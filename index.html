@@ -4026,15 +4026,15 @@ $('exportAcademicClassCsv').addEventListener('click',()=>{
 });
 function updateIndividualAssessmentOptions(){
  const subjectKey=$('scoreSubjectSelect')?.value||'',[classId,subjectId]=subjectKey.split('|');
- const allowed=academic.assessments.filter(a=>a.subject_id===subjectId&&a.class_id===classId);
- $('scoreAssessmentSelect').innerHTML='<option value="">'+(subjectKey?(allowed.length?'Choose paper / assessment':'No assessment exists for this subject yet'):'Choose a subject first')+'</option>'+allowed.map(a=>'<option value="'+a.id+'">'+esc(a.title+' · '+(a.school_classes?.name||'')+' · '+(a.subjects?.name||''))+'</option>').join('');
+ const allowed=academic.assessments.filter(a=>a.subject_id===subjectId&&a.class_id===classId),current=$('scoreAssessmentSelect')?.value||'';
+ $('scoreAssessmentSelect').innerHTML='<option value="">'+(subjectKey?(allowed.length?'Choose paper / assessment':'No assessment exists for this subject yet'):'Choose a subject first')+'</option>'+allowed.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.title+' · '+(a.school_classes?.name||classes.find(c=>c.id===a.class_id)?.name||'')+' · '+(a.subjects?.name||''))+'</option>').join('');
+ if(allowed.some(a=>a.id===current))$('scoreAssessmentSelect').value=current;
  updateScoreLearners();
 }
 function updateIndividualSubjectOptions(){
  const select=$('scoreSubjectSelect');if(!select)return;
  const assignedClass=profile?.role==='Teacher'?getAssignedTeacherClassId():'';
- const rows=(academic.classSubjects||[]).filter(row=>!assignedClass||row.class_id===assignedClass);
- const unique=new Map();
+ const rows=(academic.classSubjects||[]).filter(row=>!assignedClass||row.class_id===assignedClass),unique=new Map();
  rows.forEach(row=>{const key=row.class_id+'|'+row.subject_id;if(!unique.has(key))unique.set(key,{key,name:row.subjects?.name||'Subject',className:row.school_classes?.name||classes.find(c=>c.id===row.class_id)?.name||'Class'});});
  const prior=select.value;
  select.innerHTML='<option value="">Choose a subject</option>'+[...unique.values()].sort((a,b)=>a.className.localeCompare(b.className)||a.name.localeCompare(b.name)).map(x=>'<option value="'+esc(x.key)+'">'+esc(x.name+' · '+x.className)+'</option>').join('');
@@ -4044,11 +4044,16 @@ function updateIndividualSubjectOptions(){
 $('scoreSubjectSelect')?.addEventListener('change',updateIndividualAssessmentOptions);
 $('scoreAssessmentSelect')?.addEventListener('change',updateScoreLearners);
 function updateScoreLearners(){
- const id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
- const list=ass?students.filter(x=>x.class_id===ass.class_id):[];
- $('scoreStudentSelect').innerHTML='<option value="">'+(ass?(list.length?'Choose learner':'No learners assigned to '+(ass.school_classes?.name||'this class')):'Choose an assessment first')+'</option>'+list.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</option>').join('');
- if(ass&&!list.length)message('bulkMarksMsg','No learners are currently enrolled in '+(ass.school_classes?.name||'the selected class')+'. Register the learner under Learners → Register student and assign this class, then refresh the page.',true);
- loadBulkMarkSheet();
+ const subjectKey=$('scoreSubjectSelect')?.value||'',[classId,subjectId]=subjectKey.split('|');
+ const id=$('scoreAssessmentSelect')?.value||'',ass=academic.assessments.find(x=>x.id===id),validAssessment=!!(ass&&ass.class_id===classId&&ass.subject_id===subjectId);
+ const list=classId?students.filter(x=>x.class_id===classId):[],learnerSelect=$('scoreStudentSelect'),prior=learnerSelect?.value||'';
+ if(learnerSelect){
+  learnerSelect.innerHTML='<option value="">'+(classId?(list.length?'Choose learner':'No learners are loaded for '+(classes.find(c=>c.id===classId)?.name||'this class')):'Choose a subject first')+'</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' ')+(x.admission_number?' · '+x.admission_number:''))+'</option>').join('');
+  if(prior&&list.some(x=>x.id===prior))learnerSelect.value=prior;
+ }
+ const save=$('scoreForm')?.querySelector('button[type="submit"]');if(save)save.disabled=!(validAssessment&&list.length);
+ if(classId&&!list.length)message('teacherMarkEntryMsg','No learners are loaded for '+(classes.find(c=>c.id===classId)?.name||'your assigned class')+'. Refresh the learner register and verify class enrolments.',true);
+ if(validAssessment)loadBulkMarkSheet();else if($('bulkMarkRows'))$('bulkMarkRows').innerHTML='<tr><td colspan="5">Choose a subject and its assessment to load the class mark sheet.</td></tr>';
 }
 async function loadBulkMarkSheet(){
  const body=$('bulkMarkRows'),id=$('scoreAssessmentSelect').value,ass=academic.assessments.find(x=>x.id===id);
