@@ -4942,26 +4942,33 @@ async function offlineAttendanceDelete(id){
  d.close();
 }
 async function syncOfflineAttendanceCorrections(){
- if(!navigator.onLine||!db||!currentUserId||demoMode)return;
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
+ const stillOwner=()=>!!owner&&currentUserId===owner&&generation===(window.cornhillSessionGeneration||0)&&!!profile;
+ if(!navigator.onLine||!db||!stillOwner()||demoMode)return;
  let queued=[];
  try{queued=await offlineAttendanceAll()}catch(error){return}
+ if(!stillOwner())return;
  let synced=0,failed=0;
  for(const item of queued){
-  if(item.owner!==currentUserId)continue;
+  if(!stillOwner())return;
+  if(item.owner!==owner)continue;
   try{
    const result=await db.from('staff_attendance_adjustments').insert(item.payload);
+   if(!stillOwner())return;
    if(result.error){
     // A retry after a lost network response may encounter the same UUID.
-    const existing=await db.from('staff_attendance_adjustments').select('id').eq('id',item.id).eq('staff_user_id',currentUserId).maybeSingle();
+    const existing=await db.from('staff_attendance_adjustments').select('id').eq('id',item.id).eq('staff_user_id',owner).maybeSingle();
+    if(!stillOwner())return;
     if(existing.error||!existing.data){failed++;continue}
    }
-   await offlineAttendanceDelete(item.id);synced++;
-  }catch(_){failed++}
+   await offlineAttendanceDelete(item.id);
+   if(!stillOwner())return;
+   synced++;
+  }catch(_){if(!stillOwner())return;failed++}
  }
- if(synced||failed){
+ if((synced||failed)&&stillOwner()){
   const status=document.getElementById('attendanceMsg');
   if(status){status.textContent=failed?'Synced '+synced+' saved attendance correction request(s); '+failed+' remain safely stored on this device for retry.':'Synced '+synced+' saved attendance correction request(s) to the administrator.';status.className='notice';status.classList.remove('hidden')}
-  
  }
 }
 window.addEventListener('online',()=>{syncOfflineAttendanceCorrections().catch(()=>{});syncOfflineAssessmentDrafts().catch(()=>{});if(currentUserId&&window.cornhillOfflineReadOnly)refresh().catch(()=>{})});
