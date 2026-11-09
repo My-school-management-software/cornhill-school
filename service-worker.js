@@ -1,8 +1,8 @@
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
-const CACHE_NAME = 'cornhill-shell-v78';
-const STATIC_CACHE = 'cornhill-static-v78';
+const CACHE_NAME = 'cornhill-shell-v79';
+const STATIC_CACHE = 'cornhill-static-v79';
 const SHELL = [
   '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
   '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
