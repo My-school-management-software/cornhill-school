@@ -1,8 +1,8 @@
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
-const CACHE_NAME = 'cornhill-shell-v71';
-const STATIC_CACHE = 'cornhill-static-v71';
+const CACHE_NAME = 'cornhill-shell-v72';
+const STATIC_CACHE = 'cornhill-static-v72';
 const SHELL = [
   '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
   '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
@@ -13,6 +13,7 @@ const SHELL = [
   '/service-worker.js', '/assets/cornhill-school-badge.png',
   '/assets/cornhill-school-pwa-192.svg', '/assets/cornhill-school-pwa-512.svg',
   '/assets/cornhill-design-system.css', '/assets/cornhill-appearance.js',
+  '/assets/cornhill-mark-import-mapping.js',
   '/assets/cornhill-offline.js', '/assets/main-school-workspace-bridge.js',
   '/assets/school-services-collaboration.js', '/assets/cornhill-document-pdf-ocr.js'
 ];
