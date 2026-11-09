@@ -77,6 +77,26 @@ test('administrator academic insights use class cards, full learner registers an
  assert.match(html,/General school academic overview/);
 });
 
+test('class performance summary has its own local term and class controls beside the results table',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(html,/id="performanceTermSelect"/);
+ assert.match(html,/id="performanceClassSelect"/);
+ assert.match(html,/id="refreshSelectedClassPerformance"/);
+ assert.match(html,/getTermScores\(\{termId,classId\}\)/);
+ assert.match(html,/classPerformanceStatus/);
+ assert.match(html,/id="classReportWorkspace"/);
+ assert.match(html,/performanceTerm\.innerHTML=term\.innerHTML/);
+ assert.match(html,/performanceClass\.innerHTML=cls\.innerHTML/);
+});
+test('academic workspace quick navigation points to real sections and is role-scoped',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ for(const anchor of ['adminAcademicInsights','academicAdminSetup','assessmentSetup','teacherMarkEntry','classReportWorkspace']){
+  assert.ok(html.includes('href="#'+anchor+'"'),'missing academic navigation target '+anchor);
+  assert.ok(html.includes('id="'+anchor+'"'),'missing target id '+anchor);
+ }
+ assert.match(html,/data-admin-academic-nav/);
+ assert.match(html,/data-teacher-academic-nav/);
+});
 test('offline shell includes each standalone app entry and its own manifest route',()=>{
  const sw=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
  assert.match(sw,/cornhill-shell-v80/);
@@ -132,20 +152,25 @@ test('every application hostname is locked to its own installed-app route',()=>{
 });
 
 
-test('administrator class workspace detail includes every learner in the selected class, not a school-wide mixed list',()=>{
+test('administrator class workspace includes the selected class learner register and matching teacher marks audit',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
  assert.ok(html.includes("const activeLearners=(students||[]).filter(x=>x.status==='Active')"));
  assert.ok(html.includes("const members=activeLearners.filter(x=>x.class_id===cls.id)"));
  assert.match(html,/All learners in /);
- assert.match(html,/data-class-insight/);
+ assert.match(html,/Teacher-submitted marks &amp; audit/);
+ assert.match(html,/auditRowsByClass\.get\(cls\.id\)/);
+ assert.match(html,/Open '\+esc\(cls\.name\)\+' performance/);
+ assert.match(html,/data-class-mark-export/);
 });
-test('administrator teacher marks register requires an explicit class and term and does not preload school-wide marks',()=>{
+test('administrator teacher-submitted marks are grouped inside each class workspace, not shown in a mixed school-wide sheet',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(html,/id="adminTeacherMarksClass"/);
- assert.match(html,/id="adminTeacherMarksTerm"/);
- assert.ok(html.includes("Choose one valid class and one academic term before loading marks."));
- assert.ok(html.includes(".eq('term_id',termId).eq('class_id',classId)"));
- assert.ok(html.includes("Other classes are not included"));
- assert.ok(html.includes('Promise.resolve({data:[],error:null})'));
- assert.ok(!html.includes("profile?.role==='Admin'?loadAllTeacherMarksRegister()"));
+ assert.match(html,/assessment_scores'\)\.select\('assessment_id,student_id,score,teacher_comment,entered_by,updated_at,students/);
+ assert.match(html,/auditRowsByClass\.get\(assessment\.class_id\)\.push\(row\)/);
+ assert.match(html,/window\.cornhillAdminAcademicTeacherMarksByClass=auditRowsByClass/);
+ assert.match(html,/detail\.addEventListener\('click'/);
+ assert.doesNotMatch(html,/id="adminTeacherMarksRegister"/);
+ assert.doesNotMatch(html,/id="academicScoreRows"/);
+ assert.doesNotMatch(html,/cornhillTeacherMarksRegister/);
+ assert.doesNotMatch(html,/loadAdminTeacherMarksRegister/);
+ assert.doesNotMatch(html,/exportTeacherMarksRegister/);
 });
