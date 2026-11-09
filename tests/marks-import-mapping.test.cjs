@@ -198,6 +198,28 @@ test('real worksheet tab names identify Term 1; generic Sheet 1 does not invent 
   assert.equal(mapping.workbookTermNumber(tab),null,tab);
 });
 
+test('JavaScript inside all school HTML pages parses without syntax errors',()=>{
+ const vm=require('node:vm');
+ const path=require('node:path');
+ const root=path.join(__dirname,'..');
+ const entries=fs.readdirSync(root,{withFileTypes:true});
+ const htmlFiles=entries.filter(x=>x.isFile()&&x.name.endsWith('.html')).map(x=>x.name);
+ assert.ok(htmlFiles.includes('index.html'));
+ let checked=0;
+ for(const file of htmlFiles){
+  const html=fs.readFileSync(path.join(root,file),'utf8');
+  const tags=html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi);
+  for(const match of tags){
+   const attrs=match[1]||'',body=match[2]||'';
+   if(/\bsrc\s*=/.test(attrs)||/type\s*=\s*["']application\/(?:json|ld\+json)["']/i.test(attrs))continue;
+   if(!body.trim())continue;
+   assert.doesNotThrow(()=>new vm.Script(body,{filename:file+' inline script'}),file+' contains a JavaScript syntax error');
+   checked++;
+  }
+ }
+ assert.ok(checked>0,'No inline application scripts were checked');
+});
+
 test('browser importer loads the tested helper and honours missing-subject states',()=>{
  const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
  assert.ok(html.includes('<script src="/assets/cornhill-mark-import-mapping.js"></script>'));
