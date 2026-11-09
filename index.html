@@ -1055,7 +1055,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 </style>
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
   <script src="/assets/cornhill-mark-import-mapping.js"></script>
-<script src="/assets/cornhill-appearance.js"></script>
+<script src="/assets/cornhill-appearance.js"></script> <script src="/assets/cornhill-draft-crypto.js"></script>
 </head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -2243,8 +2243,25 @@ const OFFLINE_SCHOOL_DB='cornhill-school-cache-v1';
 const OFFLINE_SCHOOL_MAX_AGE=24*60*60*1000;
 
 function localFormDraftDb(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('This browser does not support local autosave.'));return}const req=indexedDB.open(OFFLINE_SCHOOL_DB,3);req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('classSnapshots'))d.createObjectStore('classSnapshots',{keyPath:'owner'});if(!d.objectStoreNames.contains(OFFLINE_ASSESSMENT_STORE))d.createObjectStore(OFFLINE_ASSESSMENT_STORE,{keyPath:'draft_id'});if(!d.objectStoreNames.contains('formDrafts'))d.createObjectStore('formDrafts',{keyPath:'draft_id'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Local autosave storage could not be opened.'))})}
-async function saveLocalFormDraft(owner,key,values){const d=await localFormDraftDb(),draft={draft_id:owner+'|'+key,owner,key,values,updated_at:new Date().toISOString()};await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readwrite');tx.objectStore('formDrafts').put(draft);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Autosave did not finish.'))});d.close()}
-async function readLocalFormDraft(owner,key){const d=await localFormDraftDb(),draft=await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readonly'),r=tx.objectStore('formDrafts').get(owner+'|'+key);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});d.close();return draft}
+async function saveLocalFormDraft(owner,key,values){
+ if(!window.CornhillDraftCrypto)throw new Error('Encrypted offline storage is not ready. Draft not saved.');
+ const draftId=owner+'|'+key,updatedAt=new Date().toISOString();
+ const payload=await window.CornhillDraftCrypto.seal({values,updated_at:updatedAt},draftId);
+ const d=await localFormDraftDb(),draft={draft_id:draftId,owner,key,encrypted:true,payload,updated_at:updatedAt};
+ await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readwrite');tx.objectStore('formDrafts').put(draft);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Autosave did not finish.'))});d.close()
+}
+async function readLocalFormDraft(owner,key){
+ const d=await localFormDraftDb(),draft=await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readonly'),r=tx.objectStore('formDrafts').get(owner+'|'+key);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});d.close();
+ if(!draft)return null;
+ if(draft.encrypted&&draft.payload){
+  const opened=await window.CornhillDraftCrypto.open(draft.payload,owner+'|'+key);
+  return {...draft,values:opened.values||{},updated_at:opened.updated_at||draft.updated_at};
+ }
+ // Upgrade legacy plaintext drafts in place before returning them to the form.
+ const values=draft.values||{};
+ await saveLocalFormDraft(owner,key,values);
+ return {...draft,values};
+}
 async function clearLocalFormDraft(owner,key){if(!owner)return;const d=await localFormDraftDb();await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readwrite');tx.objectStore('formDrafts').delete(owner+'|'+key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});d.close()}
 function localFormValues(form){const values={};[...form.elements].forEach(el=>{if(!el.name||el.type==='file'||['submit','button','reset','password'].includes(el.type))return;if(el.type==='checkbox')values[el.name]=!!el.checked;else if(el.type==='radio'){if(el.checked)values[el.name]=el.value}else values[el.name]=el.value});return values}
 function bindLocalAutosaveForm(form,key,statusId,allowed){if(!form||form.dataset.localAutosaveBound==='1')return;form.dataset.localAutosaveBound='1';let timer=null;const save=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(!currentUserId||!allowed())return;try{await saveLocalFormDraft(currentUserId,key,localFormValues(form));const box=$(statusId);if(box){box.textContent='Draft autosaved on this device · '+new Date().toLocaleTimeString();box.className='notice';box.classList.remove('hidden')}}catch(error){const box=$(statusId);if(box){box.textContent='Autosave could not store this draft. Keep the form open and retry. '+(error?.message||'');box.className='notice error';box.classList.remove('hidden')}}},450)};form.addEventListener('input',save);form.addEventListener('change',save)}
@@ -2267,12 +2284,23 @@ function offlineSchoolDb(){
 }
 async function offlineSchoolGet(owner){
  const d=await offlineSchoolDb();
- const value=await new Promise((resolve,reject)=>{const tx=d.transaction('classSnapshots','readonly'),r=tx.objectStore('classSnapshots').get(owner);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});
- d.close();return value;
+ const stored=await new Promise((resolve,reject)=>{const tx=d.transaction('classSnapshots','readonly'),r=tx.objectStore('classSnapshots').get(owner);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)});
+ d.close();
+ if(!stored)return null;
+ if(stored.encrypted&&stored.payload)return await window.CornhillDraftCrypto.open(stored.payload,'classSnapshot|'+owner);
+ // Older snapshots were stored as plaintext; re-encrypt them in place.
+ const legacy={...stored,owner:stored.owner||owner};
+ await offlineSchoolPut(legacy);
+ return legacy;
 }
 async function offlineSchoolPut(snapshot){
+ const owner=snapshot?.owner;
+ if(!owner)throw new Error('The offline class snapshot has no user scope and was not saved.');
+ if(!window.CornhillDraftCrypto)throw new Error('Encrypted offline storage is not ready. Class data was not cached.');
+ const payload=await window.CornhillDraftCrypto.seal(snapshot,'classSnapshot|'+owner);
+ const stored={owner,encrypted:true,payload,updated_at:new Date().toISOString()};
  const d=await offlineSchoolDb();
- await new Promise((resolve,reject)=>{const tx=d.transaction('classSnapshots','readwrite');tx.objectStore('classSnapshots').put(snapshot);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Local snapshot save was cancelled.'))});
+ await new Promise((resolve,reject)=>{const tx=d.transaction('classSnapshots','readwrite');tx.objectStore('classSnapshots').put(stored);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Local snapshot save was cancelled.'))});
  d.close();
 }
 async function offlineSchoolDelete(owner){
@@ -5457,21 +5485,39 @@ function offlineAssessmentDb(){
  });
 }
 async function saveOfflineAssessmentDrafts(drafts){
+ if(!window.CornhillDraftCrypto)throw new Error('Encrypted offline storage is not ready. Marks were not queued.');
+ const secured=await Promise.all(drafts.map(async draft=>({
+  draft_id:draft.draft_id,owner:draft.owner,encrypted:true,
+  payload:await window.CornhillDraftCrypto.seal(draft,'assessmentDraft|'+draft.draft_id),
+  updated_at:new Date().toISOString()
+ })));
  const d=await offlineAssessmentDb();
  await new Promise((resolve,reject)=>{
   const tx=d.transaction(OFFLINE_ASSESSMENT_STORE,'readwrite'),store=tx.objectStore(OFFLINE_ASSESSMENT_STORE);
-  drafts.forEach(x=>store.put(x));
+  secured.forEach(x=>store.put(x));
   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Offline mark drafts were not saved.'));
  });
  d.close();
 }
 async function listOfflineAssessmentDrafts(owner){
  const d=await offlineAssessmentDb();
- const rows=await new Promise((resolve,reject)=>{
+ const stored=await new Promise((resolve,reject)=>{
   const tx=d.transaction(OFFLINE_ASSESSMENT_STORE,'readonly'),req=tx.objectStore(OFFLINE_ASSESSMENT_STORE).getAll();
   req.onsuccess=()=>resolve((req.result||[]).filter(x=>x.owner===owner));req.onerror=()=>reject(req.error);
  });
- d.close();return rows;
+ d.close();
+ const drafts=[];
+ for(const row of stored){
+  if(row.encrypted&&row.payload){
+   drafts.push(await window.CornhillDraftCrypto.open(row.payload,'assessmentDraft|'+row.draft_id));
+  }else{
+   // Re-encrypt any draft left by a previous app version before syncing it.
+   const legacy={...row};
+   await saveOfflineAssessmentDrafts([legacy]);
+   drafts.push(legacy);
+  }
+ }
+ return drafts;
 }
 async function deleteOfflineAssessmentDraft(id){
  const d=await offlineAssessmentDb();
