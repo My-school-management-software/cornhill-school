@@ -4546,22 +4546,26 @@ async function loadAdminAcademicInsights(){
     '<div class="table-wrap"><table><thead><tr><th>Pupil code</th><th>Learner</th><th>Subject</th><th>Assessment</th><th>Mark</th><th>Maximum</th><th>Teacher account</th><th>Last updated</th></tr></thead><tbody>'+(auditHtml||'<tr><td colspan="8">No teacher-submitted marks are saved for this class and term.</td></tr>')+'</tbody></table></div>';
   });
   window.cornhillAdminAcademicClassDetailMarkup=details;
+  window.cornhillAdminAcademicTeacherMarksByClass=auditRowsByClass;
+  if(detail&&!detail.dataset.classMarkExportBound){
+   detail.dataset.classMarkExportBound='1';
+   detail.addEventListener('click',event=>{
+    const exportButton=event.target.closest?.('[data-class-mark-export]');if(!exportButton)return;
+    const classId=exportButton.dataset.classMarkExport;
+    const rows=window.cornhillAdminAcademicTeacherMarksByClass?.get(classId)||[];
+    if(!rows.length)return;
+    const cls=classes.find(item=>item.id===classId);
+    const safeName=String(cls?.name||'class').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'class';
+    const termName=$('adminAcademicTerm')?.selectedOptions[0]?.textContent||'Selected term';
+    downloadCSV('cornhill-'+safeName+'-teacher-marks.csv',
+     ['Class','Term','Pupil code','Learner','Subject','Assessment','Mark','Maximum','Teacher account','Last updated'],
+     rows.map(row=>[cls?.name||'Class',termName,row.admissionCode,row.learner,row.subject,row.assessment,row.mark,row.maximum,row.teacher,row.updated]));
+   });
+  }
   if(cards&&!cards.dataset.classInsightsBound){
    cards.dataset.classInsightsBound='1';
    cards.addEventListener('click',event=>{
-    const exportButton=event.target.closest('[data-class-mark-export]');
-    if(exportButton){
-     const classId=exportButton.dataset.classMarkExport,rows=auditRowsByClass.get(classId)||[];
-     if(!rows.length)return;
-     const cls=classesForTerm.find(item=>item.id===classId);
-     const safeName=String(cls?.name||'class').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'class';
-     const termName=$('adminAcademicTerm')?.selectedOptions[0]?.textContent||'Selected term';
-     downloadCSV('cornhill-'+safeName+'-teacher-marks.csv',
-      ['Class','Term','Pupil code','Learner','Subject','Assessment','Mark','Maximum','Teacher account','Last updated'],
-      rows.map(row=>[cls?.name||'Class',termName,row.admissionCode,row.learner,row.subject,row.assessment,row.mark,row.maximum,row.teacher,row.updated]));
-     return;
-    }
-    const button=event.target.closest('[data-class-insight]');if(!button)return;
+    const button=event.target.closest?.('[data-class-insight]');if(!button)return;
     const markup=window.cornhillAdminAcademicClassDetailMarkup?.[button.dataset.classInsight];
     if(detail&&markup){
      detail.innerHTML=markup;detail.classList.remove('hidden');
