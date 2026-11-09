@@ -208,7 +208,7 @@
       if (!panel) return;
       panel.classList.toggle('hidden', st.role !== 'Admin');
       if (st.role !== 'Admin') {
-        setAdvancedVisible(true);
+        if (st.role) setAdvancedVisible(true);
         editor.classList.add('hidden');
         return;
       }
