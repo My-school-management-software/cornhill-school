@@ -66,6 +66,8 @@ jobs:
     name: Windows Authenticode-signed release
     if: github.event_name == 'workflow_dispatch' && inputs.build_windows && inputs.sign_windows
     runs-on: windows-latest
+    environment:
+      name: school-signing
     env:
       WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
       WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
@@ -96,7 +98,6 @@ jobs:
           $cert = $certs | Where-Object { $_.HasPrivateKey } | Select-Object -First 1
           if (-not $cert) { throw "The PFX did not import a certificate with its private signing key." }
           "WINDOWS_CERTIFICATE_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "CORN HILL_TEMP_PFX=$pfxPath" | Out-Null
           "WINDOWS_CERTIFICATE_PFX_PATH=$pfxPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Generate native icons
