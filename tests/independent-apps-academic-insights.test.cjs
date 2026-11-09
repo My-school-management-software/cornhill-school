@@ -63,8 +63,8 @@ test('main and admissions workspaces load the shared roomy layout stylesheet',()
  assert.match(css,/overflow-wrap:break-word/);
  assert.match(css,/max-width:1680px/);
  assert.match(css,/Desktop workspace geometry/);
- assert.match(css,/width:calc\\(100% - 28px\\)/);
- assert.match(css,/main\\.wrap>#app/);
+ assert.match(css,/width:calc\(100% - 28px\)/);
+ assert.match(css,/main\.wrap>#app/);
  assert.match(css,/left:36px!important/);
  assert.match(css,/margin-left:244px!important/);
 });
@@ -95,14 +95,14 @@ test('offline shell includes each standalone app entry and its own manifest rout
 
 test('App Centre launches side applications in a separate browser context',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(html,/app-centre-card[\\s\\S]{0,220}target="_blank" rel="noopener noreferrer"/);
+ assert.match(html,/app-centre-card[\s\S]{0,220}target="_blank" rel="noopener noreferrer"/);
 });
 
 test('dashboard quality cards and action buttons remain inside their card bounds',()=>{
  const css=fs.readFileSync(path.join(root,'assets/cornhill-design-system.css'),'utf8');
- assert.match(css,/#learnerIdentityQualityPanel>\\.row/);
- assert.match(css,/grid-template-columns:minmax\\(0,1fr\\) auto/);
+ assert.match(css,/#learnerIdentityQualityPanel>\.row/);
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\) auto/);
  assert.match(css,/#refreshLearnerIdentityQuality/);
- assert.match(css,/\\.grid>\\*.*min-width:0/s);
- assert.match(css,/#app button,#app \\.button/);
+ assert.match(css,/#app \.grid>\*.*min-width:0/s);
+ assert.match(css,/#app button,#app \.button/);
 });
