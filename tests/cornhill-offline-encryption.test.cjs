@@ -66,9 +66,6 @@ async function loadCryptoHelper() {
   const fake = createIndexedDb();
   const window = { indexedDB: fake.indexedDB, crypto: webcrypto };
   const source = fs.readFileSync(path.join(__dirname, '../assets/cornhill-draft-crypto.js'), 'utf8');
-  assert.ok(index.includes('<script src="/assets/cornhill-offline.js"></script>'));
-  assert.ok(index.indexOf("/assets/cornhill-offline.js") < index.indexOf("</head>"));
-  assert.ok(index.indexOf("/assets/cornhill-draft-crypto.js") < index.indexOf("</head>"));
   vm.runInNewContext(source, {
     window, TextEncoder, TextDecoder, Uint8Array, Array, JSON, Object, String, Promise, Error
   }, { filename: 'cornhill-draft-crypto.js' });
@@ -113,6 +110,9 @@ test('offline AES key is non-exportable and persisted once for the device', asyn
 test('main dashboard routes forms, class snapshots and mark drafts through encryption', () => {
   const index = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
   assert.match(index, /<script src="\/assets\/cornhill-draft-crypto\.js"><\/script>/);
+  assert.ok(index.includes('<script src="/assets/cornhill-offline.js"></script>'));
+  assert.ok(index.indexOf("/assets/cornhill-offline.js") < index.indexOf("</head>"));
+  assert.ok(index.indexOf("/assets/cornhill-draft-crypto.js") < index.indexOf("</head>"));
   assert.match(index, /CornhillDraftCrypto\.seal\(\{values,updated_at:updatedAt\},draftId\)/);
   assert.match(index, /CornhillDraftCrypto\.open\(draft\.payload,owner\+'\|'\+key\)/);
   assert.match(index, /CornhillDraftCrypto\.seal\(snapshot,'classSnapshot\|'\+owner\)/);
