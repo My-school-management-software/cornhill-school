@@ -22,6 +22,11 @@ on:
       - "school.html"
       - "tests/appearance-workspace.test.cjs"
       - ".github/workflows/appearance-workspace-tests.yml"
+      - "*.html"
+      - "assets/*.js"
+      - "assets/*.css"
+      - "service-worker.js"
+      - "tests/*.test.cjs"
   pull_request:
     paths:
       - "assets/cornhill-appearance.js"
@@ -37,6 +42,11 @@ on:
       - "school.html"
       - "tests/appearance-workspace.test.cjs"
       - ".github/workflows/appearance-workspace-tests.yml"
+      - "*.html"
+      - "assets/*.js"
+      - "assets/*.css"
+      - "service-worker.js"
+      - "tests/*.test.cjs"
   workflow_dispatch:
 
 permissions:
@@ -53,4 +63,4 @@ jobs:
         with:
           node-version: "22"
       - name: Run appearance and workspace tests
-        run: node --test tests/appearance-workspace.test.cjs tests/cornhill-offline-encryption.test.cjs
+        run: node --test tests/*.test.cjs
