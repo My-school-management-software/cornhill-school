@@ -53,13 +53,21 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const shell = await caches.open(CACHE_NAME);
     await Promise.all(SHELL.map(async path => {
-      const request = new Request(new URL(path, self.location.origin), { cache: 'reload' });
-      const response = await fetch(request);
-      if (!response.ok) throw new Error('Required CORNHILL offline shell file failed: ' + path + ' (' + response.status + ')');
-      const enhanced = (path === '/' || path.endsWith('.html'))
-        ? await enhanceHtml(response, path === '/' || path === '/index.html')
-        : response;
-      await shell.put(request, enhanced);
+      try {
+        const request = new Request(new URL(path, self.location.origin), { cache: 'reload' });
+        const response = await fetch(request);
+        if (!response.ok) {
+          console.warn('Offline shell file was not available during install:', path, response.status);
+          return;
+        }
+        const enhanced = (path === '/' || path.endsWith('.html'))
+          ? await enhanceHtml(response, path === '/' || path === '/index.html')
+          : response;
+        await shell.put(request, enhanced);
+      } catch (error) {
+        // One optional app page or asset must not cancel installation of the shared shell.
+        console.warn('Offline shell entry could not be cached:', path, error);
+      }
     }));
 
     const assets = await caches.open(STATIC_CACHE);
