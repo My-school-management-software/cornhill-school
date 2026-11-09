@@ -152,6 +152,14 @@ test('every application hostname is locked to its own installed-app route',()=>{
 });
 
 
+test('administrator class workspaces are grouped into Nursery, Lower Primary and Upper Primary sections',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(html,/Nursery classes · Baby, Middle and Top/);
+ assert.match(html,/Lower Primary · P1 to P3/);
+ assert.match(html,/Upper Primary · P4 to P7/);
+ assert.match(html,/academic-class-band/);
+ assert.match(html,/data-class-insight/);
+});
 test('administrator class workspace includes the selected class learner register and matching teacher marks audit',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
  assert.ok(html.includes("const activeLearners=(students||[]).filter(x=>x.status==='Active')"));
