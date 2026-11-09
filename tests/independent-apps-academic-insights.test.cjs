@@ -152,6 +152,17 @@ test('every application hostname is locked to its own installed-app route',()=>{
 });
 
 
+test('administrator class search filters visible class cards and hides empty class bands',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(html,/id="adminAcademicClassSearch"/);
+ assert.match(html,/card\.textContent\.toLocaleLowerCase\(\)\.includes\(query\)/);
+ assert.match(html,/section\.classList\.toggle\('hidden',visible===0\)/);
+});
+test('teacher marks audit retrieves the assessment title used in its class-only register',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(html,/assessments'\)\.select\('id,class_id,subject_id,title,max_score,school_classes/);
+ assert.match(html,/assessment:assessment\.title\|\|'Assessment'/);
+});
 test('administrator class workspaces are grouped into Nursery, Lower Primary and Upper Primary sections',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
  assert.match(html,/Nursery classes · Baby, Middle and Top/);
