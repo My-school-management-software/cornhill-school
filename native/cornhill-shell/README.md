@@ -19,7 +19,7 @@ Private school records continue to require the existing Supabase sign-in and row
 - Windows installer: Windows 10/11 build runner, Rust, Microsoft C++ Build Tools and WebView2.
 - Android APK: JDK 17, Android SDK platform/tools, Android NDK, Rust Android target and a persistent private Android signing keystore.
 
-## Windows EXE installer
+## Windows EXE installer: unsigned validation build
 
 From this folder on a Windows development machine:
 
@@ -29,7 +29,44 @@ cargo tauri icon ../../assets/cornhill-school-pwa-512.svg --output src-tauri/ico
 cargo tauri build --bundles nsis --no-sign
 ```
 
-The NSIS installer is emitted under `src-tauri/target/release/bundle/nsis/`. It is not code-signed in this free internal build, so Windows may display an unknown-publisher warning. A trusted publisher signature requires a separately purchased/managed signing certificate.
+The NSIS installer is emitted under `src-tauri/target/release/bundle/nsis/`. The CI artifact `CORNHILL-Windows-UNSIGNED-TEST-ONLY` is **not a release for distribution**. Do not ask staff to bypass SmartScreen for this unsigned build.
+
+## Windows trusted-publisher signing
+
+The direct-download Windows installer needs a genuine Authenticode code-signing certificate issued by a CA trusted by Windows/Microsoft. It must be a **public OV code-signing certificate for the school's legal publisher identity**, not an SSL/TLS certificate and not a self-signed development certificate.
+
+This certificate has to be obtained and identity-validated by the school's authorised adult/legal representative. Keep the PFX and its password private. Never commit them to the repository, upload them as workflow artifacts, or send them in chat.
+
+After the school has obtained the certificate, the authorised repository administrator adds these encrypted GitHub Actions repository secrets under **Settings → Secrets and variables → Actions**:
+
+- `WINDOWS_CERTIFICATE`: Base64-encoded contents of the PFX file, including its private key.
+- `WINDOWS_CERTIFICATE_PASSWORD`: the PFX export password.
+
+On a trusted Windows computer, the authorised administrator can produce the one-line Base64 value locally with:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\\secure\\path\\cornhill-code-signing.pfx"))
+```
+
+Do not paste the output anywhere except the matching GitHub Actions secret field. Do not send the PFX or password to ChatGPT or add either value to source files.
+
+Then run **Actions → Build CORNHILL native packages → Run workflow**, select `build_windows = true` and `sign_windows = true`. The signed job:
+
+1. Imports the certificate only on the temporary Windows runner.
+2. Builds the NSIS installer with the certificate thumbprint.
+3. Verifies that every produced installer has a valid Authenticode signature from that exact certificate.
+4. Creates a SHA-256 checksum and uploads the installer plus checksum as `CORNHILL-Windows-SIGNED-VERIFIED`.
+5. Removes the temporary certificate and PFX file when the job finishes.
+
+If either secret is missing, the signed job fails closed. The unsigned validation build is separately labelled TEST ONLY.
+
+**SmartScreen note:** A valid signature identifies the publisher and allows reputation to build across consistent releases, but Microsoft can still show an initial SmartScreen reputation warning for a new publisher or file. A signature is not a promise that every first download will be warning-free.
+
+### No-purchase Windows distribution alternative
+
+For a zero-code-signing-certificate-cost route, CORNHILL can be prepared as an MSIX/PWA package and submitted to the Microsoft Store. After Microsoft approves it, the Store re-signs the package and manages Store delivery/updates. Microsoft currently waives developer registration fees, but account verification and app certification are still required. The school's authorised adult representative must own the publisher account and complete any identity/legal-entity checks. Store packaging and submission are **not yet completed** in this repository.
+
+Microsoft Artifact Signing public trust is not currently offered for Uganda-based publishers, so it is not the route configured here. If the school chooses direct website downloads instead of Store distribution, use a compatible public OV code-signing certificate and confirm its availability with the issuing CA before paying for it.
 
 ## Android APK signing (one time)
 
@@ -48,7 +85,7 @@ Do **not** commit or send the keystore/password in chat. Add these encrypted rep
 PowerShell can encode the keystore for the secret value:
 
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD/cornhill-upload-key.jks"))
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\\cornhill-upload-key.jks"))
 ```
 
 The workflow reconstructs the key only on its temporary build runner and removes it when the job ends. Never rotate or discard the original key: Android will reject an update signed with a different key.
@@ -68,6 +105,10 @@ The build is ARM64 for modern Android phones. Tauri's current Android minimum is
 
 ## CI build
 
-Run **Actions → Build CORNHILL native packages → Run workflow**. The Windows job produces an unsigned NSIS `.exe`. The Android job requires the three signing secrets above and produces an installable, release-signed APK artifact.
+Run **Actions → Build CORNHILL native packages → Run workflow**.
+
+- Windows validation build: unsigned and TEST ONLY; not for distribution.
+- Windows release build: requires the two certificate secrets and `sign_windows = true`; the workflow verifies its signature and checksum.
+- Android release build: requires the three Android signing secrets and produces an installable, release-signed APK artifact.
 
 The APK is not yet submitted to Google Play. Direct internal distribution is possible; Play Store publication is a separate release and policy review.
