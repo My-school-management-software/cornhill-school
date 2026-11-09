@@ -65,7 +65,7 @@ test('main and admissions workspaces load the shared roomy layout stylesheet',()
 
 test('administrator academic insights use class cards, full learner registers and a separate school overview',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(html,/panel\\?\\.classList\\.remove\\('hidden'\\)/);
+ assert.ok(html.includes("panel?.classList.remove('hidden')"));
  assert.match(html,/data-class-insight/);
  assert.match(html,/adminAcademicClassDetail/);
  assert.match(html,/Open '\+esc\(cls\.name\)\+' performance/);
