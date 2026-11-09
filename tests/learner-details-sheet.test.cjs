@@ -46,3 +46,14 @@ test('full date of birth and verified birth year are tracked as separate complet
   assert.match(source, /const hasDob = x => !!x\.date_of_birth/);
   assert.match(source, /const hasBirthYear = x => !!\(x\.birth_year/);
 });
+
+
+test('class-sheet data entry supports previous, next and validated save-and-next navigation', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.ok(source.includes('id="learnerDetailsPrevious"'));
+  assert.ok(source.includes('id="learnerDetailsNext"'));
+  assert.ok(source.includes('type="submit" id="learnerDetailsSaveNext"'));
+  assert.ok(source.includes("event.submitter.id === 'learnerDetailsSaveNext'"));
+  assert.ok(source.includes("editor.dataset.nextLearnerId"));
+  assert.ok(source.includes("window.setTimeout(() => openEditor(nextId), 80)"));
+});
