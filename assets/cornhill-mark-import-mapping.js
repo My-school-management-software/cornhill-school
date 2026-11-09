@@ -150,5 +150,17 @@
     if(score<0||score>Number(maxScore))return {valid:false,blank:false,absent:false,score,reason:'out_of_range'};
     return {valid:true,blank:false,absent:false,score};
   }
-  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod,parseMarkValue};
+  function isSummaryLearnerRow(raw) {
+    const clean=String(raw??'').trim();
+    if(!clean || /^\\d+$/.test(clean)) return true;
+    if(/^(TOTAL(?:\\s+CLASS\\s+ENROL?L?MENT)?|BOYS|GIRLS|CLASS\\s+TEACHER|HEAD\\s*TEACHER|SIGNATURE)$/i.test(clean)) return true;
+    const key=normalise(clean);
+    if([
+      'DIVISION','DIVISIONI','DIVISIONII','DIVISIONIII','DIVISIONIV','DIVISIONU','DIVISIONX',
+      'NOOFPUPILS','NUMBEROFPUPILS','TOTALPUPILS','TOTALLEARNERS','CLASSSTRENGTH',
+      'CLASSENROLMENT','CLASSENROLLMENT','BOARDING','BOARDERS','DAY','DAYSCHOLARS'
+    ].includes(key)) return true;
+    return /(GRADINGANALYSIS|PERF(?:O|OR)MANCEBY|PERFORMANCEBY)/.test(key);
+  }
+  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod,parseMarkValue,isSummaryLearnerRow};
 });
