@@ -116,5 +116,26 @@
     if (/EOT|ENDOFTERM|ENDTERM/.test(n)) return 3;
     return null;
   }
-  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber};
+  // Match the browser importer's period inference, including headings such as
+  // Middle's unnumbered RE / H.H / SD columns after the TT1 and PN1 columns.
+  function columnPeriod(matrix,headerRow,col,header,activePeriod,sheetName) {
+    let grouped=null;
+    for(let r=Math.max(0,headerRow-3);r<headerRow;r++){
+      let carried=null;
+      for(let c=0;c<=col;c++){
+        const value=matrix?.[r]?.[c];
+        if(value!==null&&value!==undefined&&String(value).trim()){
+          const detected=phaseNumber(value);
+          if(detected!==null)carried=detected;
+        }
+      }
+      if(carried!==null)grouped=carried;
+    }
+    const sheetPhase=phaseNumber(sheetName);
+    const suffix=normalise(header).match(/([1-4])$/);
+    const codePeriod=suffix?Number(suffix[1]):null;
+    const explicit=grouped??sheetPhase;
+    return {period:explicit??codePeriod??activePeriod,explicit:explicit!==null&&explicit!==undefined,codePeriod};
+  }
+  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod};
 });
