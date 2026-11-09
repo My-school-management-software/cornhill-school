@@ -1493,7 +1493,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
   <div class="row" style="align-items:end;gap:10px;margin:12px 0"><div style="min-width:190px;flex:1"><label for="adminAcademicTerm">Academic term</label><select id="adminAcademicTerm"></select></div><button type="button" class="primary" id="refreshAdminAcademicInsights">Refresh school performance</button></div>
   <div id="adminAcademicInsightMsg" class="notice hidden"></div><div id="adminAcademicKpis" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px"></div>
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px"><section class="panel"><h4>Class performance comparison</h4><div id="adminAcademicClassBars" class="muted">Choose a term and refresh.</div></section><section class="panel"><h4>Subject performance overview</h4><div id="adminAcademicSubjectBars" class="muted">Choose a term and refresh.</div></section></div>
-  <h4 style="margin-top:16px">Class activity and results</h4><div class="table-wrap"><table><thead><tr><th>Class</th><th>Assessments</th><th>Learners with marks</th><th>Average</th><th>Highest</th><th>Lowest</th><th>Activity</th></tr></thead><tbody id="adminAcademicClassRows"><tr><td colspan="7">Choose a term and refresh.</td></tr></tbody></table></div>
+  <h4 style="margin-top:16px">Class activity and results</h4><p class="muted">Select “View class details” to inspect each class separately, including subject averages and learner performance.</p><div class="table-wrap"><table><thead><tr><th>Class</th><th>Assessments</th><th>Learners with marks</th><th>Average</th><th>Highest</th><th>Lowest</th><th>Activity</th><th>Details</th></tr></thead><tbody id="adminAcademicClassRows"><tr><td colspan="8">Choose a term and refresh.</td></tr></tbody></table></div><section id="adminAcademicClassDetail" class="panel hidden" style="margin-top:14px" aria-live="polite"></section>
  </section>
  <div id="academicAdminSetup">
  <h3>1. Academic year</h3>
@@ -4364,28 +4364,128 @@ async function renderReportCard(options={}){
 
 }
 async function loadAdminAcademicInsights(){
- if(profile?.role!=='Admin'||demoMode)return;
- const termId=$('adminAcademicTerm')?.value,note=$('adminAcademicInsightMsg'),kpis=$('adminAcademicKpis'),classBars=$('adminAcademicClassBars'),subjectBars=$('adminAcademicSubjectBars'),rows=$('adminAcademicClassRows');
+ const insightPanel=$('adminAcademicInsights');
+ if(profile?.role!=='Admin'||demoMode){insightPanel?.classList.add('hidden');return}
+ insightPanel?.classList.remove('hidden');
+ const termId=$('adminAcademicTerm')?.value,note=$('adminAcademicInsightMsg'),kpis=$('adminAcademicKpis'),classBars=$('adminAcademicClassBars'),subjectBars=$('adminAcademicSubjectBars'),rows=$('adminAcademicClassRows'),detailHost=$('adminAcademicClassDetail');
+ if(detailHost){detailHost.classList.add('hidden');detailHost.innerHTML=''}
  if(!termId){if(note){note.textContent='Choose an academic term to view school performance.';note.classList.remove('hidden')}return}
- if(note){note.textContent='Loading school-wide academic records…';note.classList.remove('hidden')}
+ if(note){note.textContent='Loading all saved school academic records…';note.classList.remove('hidden')}
  try{
-  const {data:assessments,error:assessmentError}=await db.from('assessments').select('id,class_id,subject_id,max_score,school_classes(name),subjects(name)').eq('term_id',termId);if(assessmentError)throw assessmentError;
-  const list=assessments||[],ids=list.map(x=>x.id);let scores=[];
-  if(ids.length){const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',ids);if(result.error)throw result.error;scores=result.data||[]}
-  const cm=new Map(),sm=new Map(),am=new Map(list.map(a=>[a.id,a]));
-  list.forEach(a=>{const c=cm.get(a.class_id)||{name:a.school_classes?.name||'Class',assessments:0,learners:new Set(),sum:0,max:0,marks:[]};c.assessments++;cm.set(a.class_id,c);const q=sm.get(a.subject_id)||{name:a.subjects?.name||'Subject',learners:new Set(),sum:0,max:0};sm.set(a.subject_id,q)});
-  scores.forEach(m=>{const a=am.get(m.assessment_id);if(!a||m.score==null||isAbsentMark(m))return;const n=Number(m.score),max=Number(a.max_score||0);if(!Number.isFinite(n)||max<=0)return;const c=cm.get(a.class_id),q=sm.get(a.subject_id);if(c){c.sum+=n;c.max+=max;c.learners.add(m.student_id);c.marks.push(n/max*100)}if(q){q.sum+=n;q.max+=max;q.learners.add(m.student_id)}});
-  const cr=[...cm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:0})).sort((a,b)=>a.name.localeCompare(b.name)),sr=[...sm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:0})).sort((a,b)=>a.average-b.average);
-  const learnerCount=new Set(scores.map(x=>x.student_id)).size,recordedClasses=cr.filter(x=>x.learners.size).length,den=cr.reduce((n,x)=>n+x.max,0),schoolAvg=den?cr.reduce((n,x)=>n+x.sum,0)/den*100:0;
-  const tile=(label,value)=>'<div class="panel" style="padding:12px"><div class="muted">'+label+'</div><strong style="font-size:1.4rem">'+value+'</strong></div>';
-  kpis.innerHTML=tile('Classes with assessments',cr.length)+tile('Classes with saved marks',recordedClasses)+tile('Learners with marks',learnerCount)+tile('School average',den?schoolAvg.toFixed(1)+'%':'—')+tile('Subjects assessed',sr.length)+tile('Saved mark records',scores.length);
-  const bar=(label,p)=>'<div style="margin:8px 0"><div class="row" style="justify-content:space-between;gap:8px"><span>'+esc(label)+'</span><b>'+p.toFixed(1)+'%</b></div><div style="height:9px;background:var(--cornhill-line);border-radius:9px;overflow:hidden"><div style="height:100%;width:'+Math.max(0,Math.min(100,p))+'%;background:var(--cornhill-accent);border-radius:9px"></div></div></div>';
-  classBars.innerHTML=cr.length?cr.map(x=>bar(x.name,x.average)).join(''):'No class assessments found for this term.';
+  const pageSize=1000;
+  const schoolClasses=[];
+  for(let offset=0;;offset+=pageSize){
+   const result=await db.from('school_classes').select('id,name').order('name').range(offset,offset+pageSize-1);
+   if(result.error)throw result.error;
+   const page=result.data||[];schoolClasses.push(...page);
+   if(page.length<pageSize)break;
+   if(offset>=50000)throw new Error('Class register is too large to load safely in one request.');
+  }
+  const list=[];
+  for(let offset=0;;offset+=pageSize){
+   const result=await db.from('assessments').select('id,class_id,subject_id,max_score,school_classes(name),subjects(name)').eq('term_id',termId).order('id').range(offset,offset+pageSize-1);
+   if(result.error)throw result.error;
+   const page=result.data||[];list.push(...page);
+   if(page.length<pageSize)break;
+   if(offset>=50000)throw new Error('This term contains too many assessment records to load safely.');
+  }
+  const makeClass=(id,name)=>({id,name:name||'Class',assessments:0,learners:new Set(),sum:0,max:0,marks:[],subjects:new Map(),learnerTotals:new Map()});
+  const cm=new Map(schoolClasses.map(c=>[c.id,makeClass(c.id,c.name)]));
+  const sm=new Map(),am=new Map(list.map(a=>[a.id,a]));
+  list.forEach(a=>{
+   const c=cm.get(a.class_id)||makeClass(a.class_id,a.school_classes?.name);
+   cm.set(a.class_id,c);c.assessments++;
+   const subjectName=a.subjects?.name||'Subject';
+   const sub=c.subjects.get(a.subject_id)||{id:a.subject_id,name:subjectName,assessments:0,learners:new Set(),sum:0,max:0,marks:[]};
+   sub.assessments++;c.subjects.set(a.subject_id,sub);
+   const schoolSubject=sm.get(a.subject_id)||{name:subjectName,learners:new Set(),sum:0,max:0,marks:[]};
+   sm.set(a.subject_id,schoolSubject);
+  });
+  const scores=[];
+  const ids=list.map(a=>a.id);
+  for(let chunkStart=0;chunkStart<ids.length;chunkStart+=80){
+   const chunk=ids.slice(chunkStart,chunkStart+80);
+   for(let offset=0;;offset+=pageSize){
+    const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',chunk).order('assessment_id').order('student_id').range(offset,offset+pageSize-1);
+    if(result.error)throw result.error;
+    const page=result.data||[];scores.push(...page);
+    if(page.length<pageSize)break;
+    if(offset>=100000)throw new Error('This term contains too many saved mark records to load safely.');
+   }
+  }
+  const markedLearners=new Set();
+  scores.forEach(m=>{
+   const a=am.get(m.assessment_id);
+   if(!a||m.score==null||isAbsentMark(m))return;
+   const value=Number(m.score),max=Number(a.max_score||0);
+   if(!Number.isFinite(value)||!Number.isFinite(max)||max<=0)return;
+   const percentage=value/max*100,c=cm.get(a.class_id),subject=c?.subjects.get(a.subject_id),schoolSubject=sm.get(a.subject_id);
+   if(c){c.sum+=value;c.max+=max;c.learners.add(m.student_id);c.marks.push(percentage)}
+   if(subject){subject.sum+=value;subject.max+=max;subject.learners.add(m.student_id);subject.marks.push(percentage)}
+   if(schoolSubject){schoolSubject.sum+=value;schoolSubject.max+=max;schoolSubject.learners.add(m.student_id);schoolSubject.marks.push(percentage)}
+   if(c){
+    const total=c.learnerTotals.get(m.student_id)||{sum:0,max:0,subjects:new Set()};
+    total.sum+=value;total.max+=max;total.subjects.add(a.subject_id);c.learnerTotals.set(m.student_id,total);
+   }
+   markedLearners.add(m.student_id);
+  });
+  const cr=[...cm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:null})).sort((a,b)=>a.name.localeCompare(b.name));
+  const sr=[...sm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:null})).sort((a,b)=>(a.average??101)-(b.average??101));
+  const totalScore=cr.reduce((n,x)=>n+x.sum,0),totalMax=cr.reduce((n,x)=>n+x.max,0);
+  const recordedClasses=cr.filter(x=>x.learners.size).length,schoolAvg=totalMax?totalScore/totalMax*100:null;
+  const tile=(label,value)=>'<div class="stat" style="min-width:0;padding:12px"><div class="muted">'+label+'</div><strong style="font-size:1.4rem;overflow-wrap:anywhere">'+value+'</strong></div>';
+  kpis.innerHTML=[
+   tile('Classes in school',cr.length),
+   tile('Classes with assessments',cr.filter(x=>x.assessments).length),
+   tile('Classes with saved marks',recordedClasses),
+   tile('Learners with marks',markedLearners.size),
+   tile('School average',schoolAvg===null?'—':schoolAvg.toFixed(1)+'%'),
+   tile('Subjects assessed',sr.length)
+  ].join('');
+  const bar=(label,p)=>{
+   if(p===null||!Number.isFinite(p))return '<div class="muted">'+esc(label)+' · No marks saved</div>';
+   const width=Math.max(0,Math.min(100,p));
+   return '<div style="margin:8px 0;min-width:0"><div class="row" style="justify-content:space-between;gap:8px;min-width:0"><span>'+esc(label)+'</span><b>'+p.toFixed(1)+'%</b></div><div style="height:9px;background:var(--cornhill-line);border-radius:9px;overflow:hidden"><div style="height:100%;width:'+width+'%;background:var(--cornhill-accent);border-radius:9px"></div></div></div>';
+  };
+  const classesWithMarks=cr.filter(x=>x.assessments);
+  classBars.innerHTML=classesWithMarks.length?classesWithMarks.map(x=>bar(x.name,x.average)).join(''):'No classes or assessments are configured for this term.';
   subjectBars.innerHTML=sr.length?sr.map(x=>bar(x.name,x.average)).join(''):'No subject assessments found for this term.';
-  rows.innerHTML=cr.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+x.learners.size+'</td><td>'+(x.learners.size?x.average.toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.max(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.min(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.learners.size?'Marks recorded':'Awaiting marks')+'</td></tr>').join('')||'<tr><td colspan="7">No assessments found.</td></tr>';
-  if(note){note.textContent='Updated from saved school records · '+scores.length+' mark records analysed.';note.classList.remove('hidden')}
-  window.cornhillAdminAcademicInsights={termId,classes:cr.map(x=>({name:x.name,average:x.average,learners:x.learners.size})),subjects:sr.map(x=>({name:x.name,average:x.average})),scoreCount:scores.length};
- }catch(err){if(note){note.textContent='Could not load school academic insights: '+(err?.message||String(err));note.classList.remove('hidden')}console.error('Academic insights load failed',err)}
+  rows.innerHTML=cr.map(x=>{
+   const activity=x.learners.size?'Marks recorded':x.assessments?'Awaiting marks':'No assessments';
+   return '<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+x.learners.size+'</td><td>'+(x.average===null?'—':x.average.toFixed(1)+'%')+'</td><td>'+(x.marks.length?Math.max(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.min(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+activity+'</td><td><button type="button" data-class-insight="'+esc(x.id)+'" '+(x.assessments?'':'disabled')+'>View class details</button></td></tr>';
+  }).join('')||'<tr><td colspan="8">No classes are configured.</td></tr>';
+  const learnerById=new Map((Array.isArray(students)?students:[]).map(x=>[x.id,x]));
+  const detailMarkup={};
+  cr.forEach(c=>{
+   const subjectRows=[...c.subjects.values()].sort((a,b)=>a.name.localeCompare(b.name)).map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+x.learners.size+'</td><td>'+(x.max?(x.sum/x.max*100).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.max(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.min(...x.marks).toFixed(1)+'%':'—')+'</td></tr>').join('');
+   const ranked=[...c.learnerTotals.entries()].map(([id,x])=>{
+    const learner=learnerById.get(id);
+    return {learner,total:x,average:x.max?x.sum/x.max*100:0};
+   }).sort((a,b)=>b.average-a.average);
+   const learnerRows=ranked.slice(0,25).map((x,i)=>{
+    const l=x.learner,fullName=l?[l.first_name,l.middle_name,l.last_name].filter(Boolean).join(' '):'Learner record';
+    return '<tr><td>'+(i+1)+'</td><td>'+esc(l?.admission_number||'—')+'</td><td>'+esc(fullName)+'</td><td>'+x.total.subjects.size+'</td><td>'+x.average.toFixed(1)+'%</td></tr>';
+   }).join('');
+   const activeCount=(Array.isArray(students)?students:[]).filter(x=>x.class_id===c.id&&x.status==='Active').length;
+   detailMarkup[c.id]='<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px"><div><span class="dashboard-eyebrow">CLASS PERFORMANCE DETAIL</span><h3 style="margin:4px 0">'+esc(c.name)+'</h3><p class="muted" style="margin:0">Selected term · Read-only analysis of marks saved by teachers</p></div><button type="button" id="closeAdminClassDetail">Close details</button></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px;margin:14px 0"><div class="stat"><small>Active learners</small><div class="num">'+activeCount+'</div></div><div class="stat"><small>Assessments</small><div class="num">'+c.assessments+'</div></div><div class="stat"><small>Learners assessed</small><div class="num">'+c.learners.size+'</div></div><div class="stat"><small>Class average</small><div class="num">'+(c.average===null?'—':c.average.toFixed(1)+'%')+'</div></div></div><h4>Subject performance</h4><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Learners</th><th>Average</th><th>Highest</th><th>Lowest</th></tr></thead><tbody>'+(subjectRows||'<tr><td colspan="6">No subject assessments found.</td></tr>')+'</tbody></table></div><h4 style="margin-top:18px">Learner performance</h4><div class="table-wrap"><table><thead><tr><th>Position</th><th>Pupil code</th><th>Learner</th><th>Subjects scored</th><th>Average</th></tr></thead><tbody>'+(learnerRows||'<tr><td colspan="5">No learner marks have been saved for this class and term.</td></tr>')+'</tbody></table></div>'+(ranked.length>25?'<p class="muted">Showing the top 25 of '+ranked.length+' learners.</p>':'');
+  });
+  window.cornhillAdminAcademicClassDetailMarkup=detailMarkup;
+  if(rows&&!rows.dataset.classInsightsBound){
+   rows.dataset.classInsightsBound='1';
+   rows.addEventListener('click',event=>{
+    const button=event.target.closest('[data-class-insight]');
+    if(button){
+     const markup=window.cornhillAdminAcademicClassDetailMarkup?.[button.dataset.classInsight];
+     if(detailHost&&markup){detailHost.innerHTML=markup;detailHost.classList.remove('hidden');detailHost.querySelector('#closeAdminClassDetail')?.addEventListener('click',()=>{detailHost.classList.add('hidden');detailHost.innerHTML=''});detailHost.scrollIntoView({behavior:'smooth',block:'nearest'})}
+    }
+   });
+  }
+  if(note){note.textContent='Updated from all saved school records · '+scores.length+' mark records analysed. Select any class to view its subjects and learner results.';note.classList.remove('hidden')}
+  window.cornhillAdminAcademicInsights={termId,classes:cr.map(x=>({id:x.id,name:x.name,average:x.average,learners:x.learners.size,assessments:x.assessments})),subjects:sr.map(x=>({name:x.name,average:x.average})),scoreCount:scores.length};
+ }catch(err){
+  if(note){note.textContent='Could not load school academic insights: '+(err?.message||String(err));note.classList.remove('hidden')}
+  console.error('Academic insights load failed',err);
+ }
 }
 $('refreshAdminAcademicInsights')?.addEventListener('click',loadAdminAcademicInsights);
 $('adminAcademicTerm')?.addEventListener('change',loadAdminAcademicInsights);

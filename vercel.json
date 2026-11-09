@@ -21,6 +21,126 @@
   ],
   "rewrites": [
     {
+      "source": "/apps/school-management/manifest.webmanifest",
+      "destination": "/manifest.webmanifest"
+    },
+    {
+      "source": "/apps/school-management/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/apps/school-management",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/apps/admissions/manifest.webmanifest",
+      "destination": "/admissions.webmanifest"
+    },
+    {
+      "source": "/apps/admissions/",
+      "destination": "/admissions.html"
+    },
+    {
+      "source": "/apps/admissions",
+      "destination": "/admissions.html"
+    },
+    {
+      "source": "/apps/parent-guardian/manifest.webmanifest",
+      "destination": "/parents.webmanifest"
+    },
+    {
+      "source": "/apps/parent-guardian/",
+      "destination": "/parents.html"
+    },
+    {
+      "source": "/apps/parent-guardian",
+      "destination": "/parents.html"
+    },
+    {
+      "source": "/apps/evidence-capture/manifest.webmanifest",
+      "destination": "/evidence.webmanifest"
+    },
+    {
+      "source": "/apps/evidence-capture/",
+      "destination": "/evidence.html"
+    },
+    {
+      "source": "/apps/evidence-capture",
+      "destination": "/evidence.html"
+    },
+    {
+      "source": "/apps/notifications/manifest.webmanifest",
+      "destination": "/notifications.webmanifest"
+    },
+    {
+      "source": "/apps/notifications/",
+      "destination": "/notifications.html"
+    },
+    {
+      "source": "/apps/notifications",
+      "destination": "/notifications.html"
+    },
+    {
+      "source": "/apps/records/manifest.webmanifest",
+      "destination": "/records.webmanifest"
+    },
+    {
+      "source": "/apps/records/",
+      "destination": "/records.html"
+    },
+    {
+      "source": "/apps/records",
+      "destination": "/records.html"
+    },
+    {
+      "source": "/apps/banking/manifest.webmanifest",
+      "destination": "/banking.webmanifest"
+    },
+    {
+      "source": "/apps/banking/",
+      "destination": "/banking.html"
+    },
+    {
+      "source": "/apps/banking",
+      "destination": "/banking.html"
+    },
+    {
+      "source": "/apps/school-services/manifest.webmanifest",
+      "destination": "/school-services.webmanifest"
+    },
+    {
+      "source": "/apps/school-services/",
+      "destination": "/school-services.html"
+    },
+    {
+      "source": "/apps/school-services",
+      "destination": "/school-services.html"
+    },
+    {
+      "source": "/apps/staff-communications/manifest.webmanifest",
+      "destination": "/staff-communications.webmanifest"
+    },
+    {
+      "source": "/apps/staff-communications/",
+      "destination": "/school-communications.html"
+    },
+    {
+      "source": "/apps/staff-communications",
+      "destination": "/school-communications.html"
+    },
+    {
+      "source": "/apps/school-website/manifest.webmanifest",
+      "destination": "/school.webmanifest"
+    },
+    {
+      "source": "/apps/school-website/",
+      "destination": "/school.html"
+    },
+    {
+      "source": "/apps/school-website",
+      "destination": "/school.html"
+    },
+    {
       "source": "/p",
       "destination": "/parents.html"
     }

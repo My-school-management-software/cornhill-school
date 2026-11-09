@@ -1,15 +1,25 @@
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
-const CACHE_NAME = 'cornhill-shell-v75';
-const STATIC_CACHE = 'cornhill-static-v75';
+const CACHE_NAME = 'cornhill-shell-v76';
+const STATIC_CACHE = 'cornhill-static-v76';
 const SHELL = [
   '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
   '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
   '/school-services.html', '/school-communications.html',
+  '/apps/school-management/', '/apps/school-management/manifest.webmanifest',
+  '/apps/admissions/', '/apps/admissions/manifest.webmanifest',
+  '/apps/parent-guardian/', '/apps/parent-guardian/manifest.webmanifest',
+  '/apps/evidence-capture/', '/apps/evidence-capture/manifest.webmanifest',
+  '/apps/notifications/', '/apps/notifications/manifest.webmanifest',
+  '/apps/records/', '/apps/records/manifest.webmanifest',
+  '/apps/banking/', '/apps/banking/manifest.webmanifest',
+  '/apps/school-services/', '/apps/school-services/manifest.webmanifest',
+  '/apps/staff-communications/', '/apps/staff-communications/manifest.webmanifest',
+  '/apps/school-website/', '/apps/school-website/manifest.webmanifest',
   '/manifest.webmanifest', '/school.webmanifest', '/admissions.webmanifest',
   '/parents.webmanifest', '/evidence.webmanifest', '/notifications.webmanifest',
-  '/records.webmanifest', '/banking.webmanifest', '/school-services.webmanifest',
+  '/records.webmanifest', '/banking.webmanifest', '/school-services.webmanifest', '/staff-communications.webmanifest',
   '/service-worker.js', '/assets/cornhill-school-badge.png',
   '/assets/cornhill-school-pwa-192.svg', '/assets/cornhill-school-pwa-512.svg',
   '/assets/cornhill-design-system.css', '/assets/cornhill-appearance.js',
@@ -128,7 +138,7 @@ self.addEventListener('fetch', event => {
       try {
         let response = await fetch(request);
         if (response.ok) {
-          const includeRecordsTools = path === '/' || path === '/index.html';
+          const includeRecordsTools = ['/', '/index.html', '/apps/school-management/', '/apps/school-management'].includes(path);
           response = await enhanceHtml(response, includeRecordsTools);
           await cache.put(path, response.clone());
           if (path === '/' || path === '/index.html') await cache.put('/', response.clone());

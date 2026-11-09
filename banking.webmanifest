@@ -1,10 +1,10 @@
 {
-  "id": "/banking.html",
+  "id": "/apps/banking/",
   "name": "CORNHILL Banking & Daily Deposits",
   "short_name": "Cornhill Banking",
   "description": "Secure school bank deposits, withdrawals, expense approvals and evidence verification",
-  "start_url": "/banking.html",
-  "scope": "/",
+  "start_url": "/apps/banking/",
+  "scope": "/apps/banking/",
   "display": "fullscreen",
   "background_color": "#f3f7f3",
   "theme_color": "#14532d",

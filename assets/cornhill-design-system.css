@@ -198,3 +198,45 @@ body[data-theme] th{background:color-mix(in srgb,var(--cornhill-accent) 9%,var(-
 body[data-theme] .muted,body[data-theme] .small,body[data-theme] .sub,body[data-theme] .comm-muted{color:var(--cornhill-muted)}
 body[data-motion="off"] button,body[data-motion="off"] .button,body[data-motion="off"] a{transition:none!important}
 @media(prefers-reduced-motion:reduce){body[data-motion="on"] button,body[data-motion="on"] .button,body[data-motion="on"] a{transition:none!important}}
+
+
+/* Roomier layouts across administrator, teacher and staff workspaces. */
+*,*::before,*::after{box-sizing:border-box}
+html{overflow-x:clip}
+body{min-width:0;overflow-x:hidden}
+.wrap,main,#app,.container,.content,.workspace-main{
+ width:min(calc(100% - 28px),1680px)!important;
+ max-width:1680px!important;
+ min-width:0!important;
+ margin-inline:auto!important
+}
+.panel,.stat,.card,.tile,.module-card,.notice,.account,.txn,.device,.request,
+.grid,.module-grid,.row,form,section{min-width:0;max-width:100%}
+.panel,.stat,.card,.tile,.module-card{overflow-wrap:anywhere}
+.row{flex-wrap:wrap}
+.row>*{min-width:0}
+button,a,label,small,p,h1,h2,h3,h4,h5,td,th,strong,span{
+ overflow-wrap:anywhere
+}
+img,video,canvas,svg{max-width:100%;height:auto}
+.table-wrap{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+table{max-width:100%}
+.grid,.module-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
+@media(max-width:900px){
+ .wrap,main,#app,.container,.content,.workspace-main{
+  width:min(calc(100% - 20px),1680px)!important
+ }
+ .panel,.stat,.card,.tile{padding:clamp(12px,2vw,18px)}
+}
+@media(max-width:600px){
+ .wrap,main,#app,.container,.content,.workspace-main{
+  width:100%!important;
+  padding-inline:10px!important
+ }
+ .panel,.stat,.card,.tile{border-radius:14px;padding:13px!important}
+ .row{gap:8px!important}
+ .row>button,.row>.button{max-width:100%}
+ .grid,.module-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))!important;gap:10px!important}
+ .table-wrap{margin-inline:0}
+ input,select,textarea{max-width:100%;min-width:0}
+}
