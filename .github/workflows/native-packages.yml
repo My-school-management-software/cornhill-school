@@ -1,6 +1,12 @@
 name: Build CORNHILL native packages
 
 on:
+  push:
+    branches:
+      - feat/offline-first-workspaces-20261109
+    paths:
+      - "native/cornhill-shell/**"
+      - ".github/workflows/native-packages.yml"
   workflow_dispatch:
     inputs:
       build_windows:
@@ -20,7 +26,7 @@ permissions:
 jobs:
   windows:
     name: Windows 10/11 installer
-    if: inputs.build_windows
+    if: github.event_name == 'push' || inputs.build_windows
     runs-on: windows-latest
     steps:
       - name: Checkout CORNHILL
@@ -28,6 +34,9 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install NSIS
+        run: choco install nsis --no-progress -y
 
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2" --locked
