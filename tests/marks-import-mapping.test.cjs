@@ -229,6 +229,17 @@ test('JavaScript inside all school HTML pages, assets and service worker parses 
  assert.ok(checked>0,'No application JavaScript files were checked');
 });
 
+test('actual workbook summary rows and the stray Baby numeric label are skipped',()=>{
+ for(const label of ['4','TOTAL CLASS ENROLLMENT','CLASS ENROLLMENT','BOYS','GIRLS','DIVISION','DIVISION IV','GRADING ANALYSIS BOT','PERFORMANCE BY GENDER','BOARDING'])
+  assert.equal(mapping.isSummaryLearnerRow(label),true,label+' must not be treated as a learner');
+ assert.equal(mapping.isSummaryLearnerRow('AIJUKA ANDREW'),false);
+ assert.equal(mapping.isSummaryLearnerRow('ANKUNZIRE ASSEY'),false);
+});
+
+test('P6 workbook heading PUPIL\'S NAMES is recognised as the learner-name column',()=>{
+ assert.equal(mapping.normalise("PUPIL'S NAMES"),'PUPILSNAMES');
+});
+
 test('browser importer loads the tested helper and honours missing-subject states',()=>{
  const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
  assert.ok(html.includes('<script src="/assets/cornhill-mark-import-mapping.js"></script>'));
@@ -245,4 +256,6 @@ test('browser importer loads the tested helper and honours missing-subject state
  assert.ok(html.includes('The importer will never guess the source term.'));
  assert.ok(html.includes('Selected class: '));
  assert.ok(html.includes('Excel worksheet tab: '));
+ assert.ok(html.includes('isSummaryLearnerRow(cleanRowName)'));
+ assert.ok(html.includes('isSummaryLearnerRow(rawName)'));
 });
