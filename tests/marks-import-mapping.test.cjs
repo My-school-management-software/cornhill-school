@@ -109,6 +109,76 @@ test('academic-term labels are separate from assessment-period labels',()=>{
  assert.equal(mapping.phaseNumber('Set III'),3);
 });
 
+test('actual uploaded workbooks: SC / SCI / SCC and SST / SS variants map to the right Upper Primary subjects',()=>{
+ const scienceRows=makeAssessments([['Science','SC1'],['Social Studies','SST1']],'Beginning');
+ for(const code of ['SC1','SC 1','SCI1','SCI 1','SCC1','S.C.C.1']){
+  assert.equal(runMatch(code,'P6','Beginning',scienceRows).assessment?.subject,'Science',code+' must map to Science');
+ }
+ for(const code of ['SST1','SST 1','SS1','SS 1','S.S.T.1','S.S.1']){
+  assert.equal(runMatch(code,'P6','Beginning',scienceRows).assessment?.subject,'Social Studies',code+' must map to Social Studies');
+ }
+});
+
+test('actual uploaded P4/P5 workbook headings map every subject in all three periods',()=>{
+ const p4=[
+  ['Beginning',[['MT1','Mathematics'],['EN1','English'],['SC1','Science'],['SST','Social Studies']]],
+  ['Midterm',[['MT2','Mathematics'],['EN2','English'],['SC2','Science'],['SS2','Social Studies']]],
+  ['End',[['MT3','Mathematics'],['EN3','English'],['SC3','Science'],['SS3','Social Studies']]]
+ ];
+ const p5=[
+  ['Beginning',[['EN 1','English'],['MT 1','Mathematics'],['SC 1','Science'],['SS1','Social Studies']]],
+  ['Midterm',[['ENG2','English'],['MT2','Mathematics'],['SC2','Science'],['SS2','Social Studies']]],
+  ['End',[['EN3','English'],['MT3','Mathematics'],['SC3','Science'],['SS3','Social Studies']]]
+ ];
+ for(const [period,codes] of p4)assertCodes('P4',period,codes);
+ for(const [period,codes] of p5)assertCodes('P5',period,codes);
+});
+
+test('actual P6 and P7 workbook codes include SCI, SC, SCC and both SST and SS',()=>{
+ const p6=[
+  ['Set I',[['ENG1','English'],['MAT1','Mathematics'],['SCI1','Science'],['SST1','Social Studies']]],
+  ['Set II',[['ENG 2','English'],['MAT 2','Mathematics'],['SCI 2','Science'],['SST 2','Social Studies']]],
+  ['Set III',[['ENG 3','English'],['MT 3','Mathematics'],['SC3','Science'],['SST 3','Social Studies']]]
+ ];
+ const p7=[
+  ['Set I',[['ENG1','English'],['MAT1','Mathematics'],['SCI1','Science'],['SST1','Social Studies']]],
+  ['Set II',[['EN2','English'],['MA2','Mathematics'],['SC2','Science'],['SS2','Social Studies']]],
+  ['Set III',[['ENG3','English'],['MAT 3','Mathematics'],['SCI3','Science'],['SST 3','Social Studies']]],
+  ['Set IV',[['ENG4','English'],['MAT 4','Mathematics'],['SCI4','Science'],['SST 4','Social Studies']]]
+ ];
+ for(const [period,codes] of p6)assertCodes('P6',period,codes);
+ for(const [period,codes] of p7)assertCodes('P7',period,codes);
+});
+
+test('Middle workbook unnumbered RE, H.H and SD columns resolve to Midterm after TT1/PN1',()=>{
+ const headers=['NU1','EN1','WR1','HH1','RE1','SD1','DR1','TT1','PN1','NU2','EN2','RE','H.H','SD','WR2','DR2','TT2','PN2','NU3'];
+ let activePeriod=1;
+ const periods={};
+ headers.forEach((header,index)=>{
+  const token=mapping.normalise(header);
+  const summary=token.match(/^(TT|PN|POTN|AGG|AG|DIV|DI|TOTAL|POSITION)([1-4]{0,2})$/);
+  if(summary){
+   const digits=summary[2]||'';
+   const n=digits?Number(digits[0]):activePeriod;
+   activePeriod=Math.min(3,Math.max(activePeriod,n+1));
+   return;
+  }
+  const codePeriod=token.match(/([1-4])$/);
+  const subjectCode=token.replace(/[1-4]$/,'');
+  if(['RE','HH','SD'].includes(subjectCode)&&!codePeriod){
+   periods[header]=mapping.columnPeriod([],0,index,header,activePeriod,'MIDDLE 1ST TERM').period;
+  }
+ });
+ assert.deepEqual(periods,{RE:2,'H.H':2,SD:2});
+});
+
+test('real worksheet tab names identify Term 1; generic Sheet 1 does not invent a term',()=>{
+ for(const tab of ['MIDDLE 1ST TERM','P.6 1ST TERM','P.7 1ST TERM','P.3 1ST TERM'])
+  assert.equal(mapping.workbookTermNumber(tab),1,tab);
+ for(const tab of ['sheet 1','Sheet 1','MIDDLE CLASS'])
+  assert.equal(mapping.workbookTermNumber(tab),null,tab);
+});
+
 test('browser importer loads the tested helper and honours missing-subject states',()=>{
  const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
  assert.ok(html.includes('<script src="/assets/cornhill-mark-import-mapping.js"></script>'));
