@@ -72,7 +72,7 @@
     ['bento-grid','Bento grid'],['floating-minimal','Floating minimal'],
     ['split-screen','Split-screen'],['editorial-swiss','Editorial Swiss']
   ];
-  const ACTIVE_USERS = new Set();
+  let ACTIVE_USER_ID = null;
   const keyFor = id => PREFIX + String(id);
   function safeParse(value) {
     try { const parsed = JSON.parse(value || '{}'); return parsed && typeof parsed === 'object' ? parsed : {}; }
@@ -122,7 +122,7 @@
     const next = normalise(Object.assign({}, getForUser(userId), changes || {}));
     try { localStorage.setItem(keyFor(userId), JSON.stringify(next)); }
     catch (_) { applyPreferences(next); return false; }
-    if (ACTIVE_USERS.has(userId)) applyPreferences(next);
+    if (ACTIVE_USER_ID === userId) applyPreferences(next);
     window.dispatchEvent(new CustomEvent('cornhill:appearance-changed', { detail: { userId, preferences: next } }));
     return true;
   }
@@ -210,15 +210,15 @@
   }
   function applyForUser(userId, options) {
     if (typeof userId !== 'string' || !userId.trim() || !document.body) return false;
-    ACTIVE_USERS.add(userId);
+    ACTIVE_USER_ID = userId;
     const prefs = getForUser(userId);
     applyPreferences(prefs);
     if (!options || options.mount !== false) mountSettings(userId);
     return true;
   }
   window.addEventListener('storage', event => {
-    const userId = [...ACTIVE_USERS].find(id => keyFor(id) === event.key);
-    if (!userId) return;
+    const userId = ACTIVE_USER_ID;
+    if (!userId || keyFor(userId) !== event.key) return;
     applyPreferences(getForUser(userId));
     syncPanel(userId);
   });
