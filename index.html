@@ -1502,6 +1502,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
   <div id="adminAcademicInsightMsg" class="notice hidden"></div><div id="adminAcademicKpis" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px"></div>
   <section class="panel" style="margin-top:16px;padding:15px">
    <div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Class workspaces</h3><p class="muted" style="margin:5px 0 0">Choose Baby, Middle, Top or a primary class. Each class opens its own full learner performance register. Learners from other classes are not mixed into it.</p></div><span class="badge">One class at a time</span></div>
+   <div style="margin-top:14px"><label for="adminAcademicClassSearch">Find a class</label><input id="adminAcademicClassSearch" type="search" placeholder="Search Baby, Middle, Top, P1, P2…" autocomplete="off" aria-controls="adminAcademicClassRows"></div>
    <div id="adminAcademicClassRows" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px;margin-top:14px"><div class="notice">Choose a term and refresh to load class sections.</div></div>
    <section id="adminAcademicClassDetail" class="panel hidden" style="margin-top:14px" aria-live="polite"></section>
   </section>
@@ -4417,7 +4418,7 @@ async function loadAdminAcademicInsights(){
   }
   const assessments=[];
   for(let offset=0;;offset+=pageSize){
-   const result=await db.from('assessments').select('id,class_id,subject_id,max_score,school_classes(name),subjects(name)').eq('term_id',termId).order('id').range(offset,offset+pageSize-1);
+   const result=await db.from('assessments').select('id,class_id,subject_id,title,max_score,school_classes(name),subjects(name)').eq('term_id',termId).order('id').range(offset,offset+pageSize-1);
    if(result.error)throw result.error;
    const page=result.data||[];assessments.push(...page);
    if(page.length<pageSize)break;
@@ -4523,6 +4524,22 @@ async function loadAdminAcademicInsights(){
   const otherClasses=classesForTerm.filter(cls=>!classBands.some(band=>curriculumGroupForClass(cls.name)===band.key));
   const otherMarkup=otherClasses.length?'<section class="academic-class-band" style="margin-top:16px"><h4 style="margin:0 0 10px">Other registered classes</h4><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px">'+otherClasses.map(renderClassCard).join('')+'</div></section>':'';
   cards.innerHTML=bandMarkup+otherMarkup||'<div class="notice">No classes have been registered. Create classes before viewing class performance.</div>';
+  const classSearch=$('adminAcademicClassSearch');
+  if(classSearch&&!classSearch.dataset.bound){
+   classSearch.dataset.bound='1';
+   classSearch.addEventListener('input',()=>{
+    const query=classSearch.value.trim().toLocaleLowerCase();
+    cards.querySelectorAll('.academic-class-band').forEach(section=>{
+     let visible=0;
+     section.querySelectorAll('.academic-class-workspace-card').forEach(card=>{
+      const match=!query||card.textContent.toLocaleLowerCase().includes(query);
+      card.classList.toggle('hidden',!match);if(match)visible++;
+     });
+     section.classList.toggle('hidden',visible===0);
+    });
+   });
+  }
+  if(classSearch){classSearch.value='';classSearch.dispatchEvent(new Event('input'));}
   const details={};
   classesForTerm.forEach(cls=>{
    const members=activeLearners.filter(x=>x.class_id===cls.id);
