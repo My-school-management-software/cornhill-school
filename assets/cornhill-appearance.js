@@ -109,6 +109,8 @@
         background-color:var(--cornhill-accent-dark)!important;
       }
       body[data-theme] :is(h1,h2,h3,h4,.brand,.section-head,.kicker) { color:var(--cornhill-ink)!important; }
+      body[data-theme] :is(header.top,.top) { color:#fff!important; }
+      body[data-theme] :is(header.top,.top) :is(h1,h2,h3,h4,.brand,.section-head,.kicker,a:not(.button):not(.cta),.sub) { color:#fff!important; }
       body[data-theme] :is(label,.muted,.small,.sub,.stat small,.record-meta) { color:var(--cornhill-muted)!important; }
       body[data-theme] :is(input,select,textarea) {
         background-color:var(--cornhill-panel)!important; color:var(--cornhill-ink)!important;
