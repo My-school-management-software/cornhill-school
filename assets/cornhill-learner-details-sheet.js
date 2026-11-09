@@ -24,6 +24,7 @@
 
   const css = [
     '#learnerDetailsWorkspace{margin:14px 0 18px;padding:clamp(14px,1.8vw,22px);border:1px solid var(--cornhill-line,#dce7de);border-radius:18px;background:var(--cornhill-panel,#fff);box-shadow:0 6px 20px rgba(20,55,34,.045)}',
+    '#students .lds-legacy-collapsed{display:none!important}',
     '#learnerDetailsWorkspace .lds-kicker{font-size:10px;font-weight:900;letter-spacing:.13em;color:var(--cornhill-accent,#176b48)}',
     '#learnerDetailsWorkspace .lds-intro{max-width:880px;margin:4px 0 0;color:var(--cornhill-muted,#647568);font-size:13px;line-height:1.5}',
     '#learnerDetailsWorkspace .lds-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:14px 0}',
@@ -94,7 +95,7 @@
         '<div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">' +
           '<div><div class="lds-kicker">CLASS-BY-CLASS INFORMATION DESK</div><h3 id="learnerDetailsHeading" style="margin:4px 0">Learner information completion sheet</h3>' +
           '<p class="lds-intro">All learners in the selected class appear together below. Select any learner to complete their date of birth, verified birth year, parent / guardian names and contact details without leaving this register.</p></div>' +
-          '<div class="row" style="gap:7px;flex-wrap:wrap"><button type="button" id="learnerDetailsExport" class="tab">Export class sheet</button><button type="button" id="learnerDetailsPrint" class="tab">Print sheet</button></div>' +
+          '<div class="row" style="gap:7px;flex-wrap:wrap"><button type="button" id="learnerDetailsAdvancedToggle" class="tab" aria-expanded="false">Show advanced register actions</button><button type="button" id="learnerDetailsExport" class="tab">Export class sheet</button><button type="button" id="learnerDetailsPrint" class="tab">Print sheet</button></div>' +
         '</div>' +
         '<div class="lds-metrics" aria-live="polite">' +
           '<div class="lds-metric"><strong id="ldsTotal">0</strong><span>Learners in this sheet</span></div>' +
@@ -149,6 +150,19 @@
     let selectedId = null;
     let dirty = false;
     let syncing = false;
+    let advancedVisible = false;
+    const legacyBulkPanel = $('bulkPromotionPanel');
+    const legacyTableWrap = rowsHost.closest('.table-wrap');
+    const legacyEmptyState = $('noStudents');
+    function setAdvancedVisible(show) {
+      advancedVisible = !!show;
+      [legacyBulkPanel, legacyTableWrap, legacyEmptyState].filter(Boolean).forEach(node => node.classList.toggle('lds-legacy-collapsed', !advancedVisible));
+      const toggle = $('learnerDetailsAdvancedToggle');
+      if (toggle) {
+        toggle.textContent = advancedVisible ? 'Hide advanced register actions' : 'Show advanced register actions';
+        toggle.setAttribute('aria-expanded', String(advancedVisible));
+      }
+    }
 
     function currentLearners() {
       const st = state();
@@ -194,9 +208,11 @@
       if (!panel) return;
       panel.classList.toggle('hidden', st.role !== 'Admin');
       if (st.role !== 'Admin') {
+        setAdvancedVisible(true);
         editor.classList.add('hidden');
         return;
       }
+      setAdvancedVisible(advancedVisible);
       const metrics = metricLearners();
       const dobMissing = metrics.filter(x => !(x.date_of_birth || x.birth_year)).length;
       const guardianMissing = metrics.filter(x => !String(x.guardian_name || '').trim()).length;
@@ -451,6 +467,7 @@
         button.click();
       }
     });
+    $('learnerDetailsAdvancedToggle').addEventListener('click', () => setAdvancedVisible(!advancedVisible));
     $('learnerDetailsFilter').addEventListener('change', renderSheet);
     $('studentRegisterClassCards').addEventListener('click', () => window.setTimeout(renderSheet, 0));
     $('search').addEventListener('input', renderSheet);
