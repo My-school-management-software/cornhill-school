@@ -51,7 +51,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
 <body data-theme="warm-corporate">
 <header class="top">
   <div class="brand"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL badge"><div>CORNHILL NURSERY AND PRIMARY SCHOOL<small>Secure School Services Portal · Uganda</small></div></div>
-  <div class="row"><span id="userLabel" style="font-size:12px;color:#e5f4e8"></span><a class="button" href="/notifications.html" style="background:#fff;color:#14532d">Notifications</a><a class="button hidden" id="servicesRecordsLink" href="/records.html" style="background:#fff;color:#14532d">Records Centre</a><a class="button" href="/" style="background:#fff;color:#14532d">Main School System</a><button id="signOut" class="hidden">Sign out</button></div>
+  <div class="row"><span id="userLabel" style="font-size:12px;color:#e5f4e8"></span><button id="installServicesApp" type="button" class="hidden" style="background:#fff;color:#14532d">Install Services</button><a class="button" href="/notifications.html" style="background:#fff;color:#14532d">Notifications</a><a class="button hidden" id="servicesRecordsLink" href="/records.html" style="background:#fff;color:#14532d">Records Centre</a><a class="button" href="/" style="background:#fff;color:#14532d">Main School System</a><button id="signOut" class="hidden">Sign out</button></div>
 </header>
 <main class="wrap">
 <section id="loginPanel" class="panel login">
@@ -894,6 +894,10 @@ $('refreshTransport').addEventListener('click',loadTransport);$('refreshWelfare'
 <script src="/assets/school-services-collaboration.js" defer></script>
 <script>
 
+let servicesInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();servicesInstallPrompt=event;document.getElementById('installServicesApp')?.classList.remove('hidden')});
+document.getElementById('installServicesApp')?.addEventListener('click',async()=>{if(!servicesInstallPrompt)return;servicesInstallPrompt.prompt();await servicesInstallPrompt.userChoice;servicesInstallPrompt=null;document.getElementById('installServicesApp')?.classList.add('hidden')});
+window.addEventListener('appinstalled',()=>document.getElementById('installServicesApp')?.classList.add('hidden'));
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
 </body>
