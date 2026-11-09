@@ -200,6 +200,14 @@
   }
   if(name==='communication'){buildDashboardPanels();loadMainStaffNotices();loadMainCalendarEvents()}
  };
+  function setupDashboardRefinements(){
+   if(document.getElementById('cornhillDashboardRefinements'))return;
+   const link=document.createElement('link');
+   link.id='cornhillDashboardRefinements';
+   link.rel='stylesheet';
+   link.href='/assets/cornhill-dashboard-refinements.css';
+   document.head.appendChild(link);
+  }
   function setupMainInstallButton(){
    const host=document.querySelector('header.top .row');
    if(!host||$('installMainApp'))return;
@@ -219,6 +227,6 @@
    });
    window.addEventListener('appinstalled',()=>{button.style.display='none'});
   }
- function start(){if(bridgeReady)return;bridgeReady=true;setupMainInstallButton();buildDashboardPanels();updateWorkspaceCards();routeRequestedWorkspace();}
+ function start(){if(bridgeReady)return;bridgeReady=true;setupMainInstallButton();setupDashboardRefinements();buildDashboardPanels();updateWorkspaceCards();routeRequestedWorkspace();}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
