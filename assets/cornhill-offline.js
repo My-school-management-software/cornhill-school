@@ -362,7 +362,44 @@
     api.createClient = wrapped;
   }
 
+  function mountInstallButton() {
+    // Pages with a dedicated install control manage their own prompt.
+    if (document.querySelector('button[id^="install"]')) return;
+    const host = document.querySelector('header .row') || document.querySelector('header nav') || document.querySelector('header');
+    if (!host || document.getElementById('installCornhillWorkspace')) return;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'installCornhillWorkspace';
+    button.textContent = 'Install app';
+    button.title = 'Install this CORNHILL workspace on this device';
+    button.setAttribute('aria-label', 'Install this CORNHILL workspace');
+    button.style.cssText = 'display:none;background:#fff;color:#14532d;border:0;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;margin:0 6px 0 0';
+    host.insertBefore(button, host.firstChild);
+
+    let installEvent = null;
+    window.addEventListener('beforeinstallprompt', event => {
+      event.preventDefault();
+      installEvent = event;
+      button.style.display = 'inline-flex';
+    });
+    button.addEventListener('click', async () => {
+      if (!installEvent) return;
+      const prompt = installEvent;
+      installEvent = null;
+      try {
+        prompt.prompt();
+        await prompt.userChoice;
+      } catch (_) {
+        // The browser retains its own install menu when an inline prompt is unavailable.
+      }
+      button.style.display = 'none';
+    });
+    window.addEventListener('appinstalled', () => { button.style.display = 'none'; });
+  }
+
   function boot() {
+    mountInstallButton();
     mountIndicator();
     wireForms();
     hookSupabaseAuth();
