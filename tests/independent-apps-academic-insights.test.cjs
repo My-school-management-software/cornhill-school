@@ -57,7 +57,11 @@ test('main and admissions workspaces load the shared roomy layout stylesheet',()
  const css=fs.readFileSync(path.join(root,'assets/cornhill-design-system.css'),'utf8');
  assert.match(css,/Roomier layouts across administrator/);
  assert.match(css,/overflow-wrap:anywhere/);
- assert.match(css,/max-width:1680px/);\n assert.match(css,/calc\\(100vw - 1680px\\)/);\n assert.match(css,/width:calc\\(100% - 252px\\)/);\n assert.match(css,/width:calc\\(100% - 214px\\)/);\n assert.match(css,/flex:0 0 auto/);
+ assert.match(css,/max-width:1680px/);
+ assert.ok(css.includes('calc((100vw - 1680px)/2 + 14px)'));
+ assert.ok(css.includes('width:calc(100% - 252px)'));
+ assert.ok(css.includes('width:calc(100% - 214px)'));
+ assert.ok(css.includes('flex:0 0 auto'));
 });
 
 test('administrator academic insights show class-by-class subject and learner details from paged records',()=>{
