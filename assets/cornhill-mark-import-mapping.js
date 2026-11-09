@@ -152,15 +152,17 @@
   }
   function isSummaryLearnerRow(raw) {
     const clean=String(raw??'').trim();
-    if(!clean || /^\\d+$/.test(clean)) return true;
-    if(/^(TOTAL(?:\\s+CLASS\\s+ENROL?L?MENT)?|BOYS|GIRLS|CLASS\\s+TEACHER|HEAD\\s*TEACHER|SIGNATURE)$/i.test(clean)) return true;
+    if(!clean) return true;
     const key=normalise(clean);
+    if(/^\d+$/.test(clean)) return true;
+    if(key.startsWith('TOTAL')) return true;
     if([
+      'BOYS','GIRLS','CLASSTEACHER','HEADTEACHER','SIGNATURE',
       'DIVISION','DIVISIONI','DIVISIONII','DIVISIONIII','DIVISIONIV','DIVISIONU','DIVISIONX',
       'NOOFPUPILS','NUMBEROFPUPILS','TOTALPUPILS','TOTALLEARNERS','CLASSSTRENGTH',
       'CLASSENROLMENT','CLASSENROLLMENT','BOARDING','BOARDERS','DAY','DAYSCHOLARS'
     ].includes(key)) return true;
-    return /(GRADINGANALYSIS|PERF(?:O|OR)MANCEBY|PERFORMANCEBY)/.test(key);
+    return key.includes('GRADINGANALYSIS') || key.includes('PERFORMANCEBY') || key.includes('PERFOMANCEBY');
   }
   return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod,parseMarkValue,isSummaryLearnerRow};
 });
