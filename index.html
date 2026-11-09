@@ -4501,7 +4501,7 @@ async function loadAdminAcademicInsights(){
   };
   classBars.innerHTML=classesForTerm.map(cls=>bar(cls.name+(cls.stream?' · '+cls.stream:''),cls.average)).join('')||'No classes are registered.';
   subjectBars.innerHTML=subjectsForTerm.map(x=>bar(x.name,x.average)).join('')||'No subjects have assessments in this term.';
-  cards.innerHTML=classesForTerm.map(cls=>{
+  const renderClassCard=cls=>{
    const className=cls.name+(cls.stream?' · '+cls.stream:'');
    const enrolled=activeLearners.filter(x=>x.class_id===cls.id).length;
    const state=cls.learners.size?'Teacher marks recorded':cls.assessments?'Assessments ready · awaiting marks':'No assessments prepared';
@@ -4509,7 +4509,20 @@ async function loadAdminAcademicInsights(){
     '<div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px"><div><div class="dashboard-eyebrow">CLASS WORKSPACE</div><h3 style="margin:3px 0">'+esc(className)+'</h3></div><span class="badge">'+enrolled+' learners</span></div>' +
     '<div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><div class="stat"><small>Assessments</small><div class="num">'+cls.assessments+'</div></div><div class="stat"><small>Learners with marks</small><div class="num">'+cls.learners.size+'</div></div><div class="stat"><small>Class average</small><div class="num">'+(cls.average===null?'—':cls.average.toFixed(1)+'%')+'</div></div><div class="stat"><small>Highest</small><div class="num">'+(cls.marks.length?Math.max(...cls.marks).toFixed(1)+'%':'—')+'</div></div></div>' +
     '<p class="muted" style="font-size:12px;margin:0">'+state+'</p><button type="button" class="primary" data-class-insight="'+esc(cls.id)+'">Open '+esc(cls.name)+' performance</button></article>';
-  }).join('')||'<div class="notice">No classes have been registered. Create classes before viewing class performance.</div>';
+  };
+  const classBands=[
+   {key:'Nursery',label:'Nursery classes · Baby, Middle and Top'},
+   {key:'P1-P3',label:'Lower Primary · P1 to P3'},
+   {key:'P4-P7',label:'Upper Primary · P4 to P7'}
+  ];
+  const bandMarkup=classBands.map(band=>{
+   const members=classesForTerm.filter(cls=>curriculumGroupForClass(cls.name)===band.key);
+   if(!members.length)return '';
+   return '<section class="academic-class-band" style="margin-top:16px"><h4 style="margin:0 0 10px">'+band.label+'</h4><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px">'+members.map(renderClassCard).join('')+'</div></section>';
+  }).join('');
+  const otherClasses=classesForTerm.filter(cls=>!classBands.some(band=>curriculumGroupForClass(cls.name)===band.key));
+  const otherMarkup=otherClasses.length?'<section class="academic-class-band" style="margin-top:16px"><h4 style="margin:0 0 10px">Other registered classes</h4><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px">'+otherClasses.map(renderClassCard).join('')+'</div></section>':'';
+  cards.innerHTML=bandMarkup+otherMarkup||'<div class="notice">No classes have been registered. Create classes before viewing class performance.</div>';
   const details={};
   classesForTerm.forEach(cls=>{
    const members=activeLearners.filter(x=>x.class_id===cls.id);
