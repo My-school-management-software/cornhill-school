@@ -45,7 +45,7 @@ test('main dashboard also loads the hostname guard before dashboard scripts',()=
 });
 
 test('the legacy School Services container is disabled and redirects to the main app',()=>{
- const sql=read('supabase/migrations/20261109204503_route_notices_and_calendar_to_standalone_apps.sql');
+ const sql=read('supabase/migrations/20261110200000_deactivate_combined_school_services_portal.sql');
  const vercel=JSON.parse(read('vercel.json'));
  assert.match(sql,/school-services-hub/);
  assert.match(sql,/is_active\s*=\s*false/i);
