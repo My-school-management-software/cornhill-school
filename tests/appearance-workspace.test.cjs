@@ -55,13 +55,14 @@ test('preferences save and apply to the page using the same per-user key as the 
   const { api, body, documentElement, themeMeta, stored } = loadAppearance();
   assert.equal(api.saveForUser('staff-1', {
     theme: 'midnight', font: 'georgia', fontSize: '18',
-    density: 'compact', motion: 'on', dashboardLayout: 'bento-grid'
+    density: 'compact', motion: 'on', dashboardLayout: 'bento-grid', navigationLayout: 'rail'
   }), true);
   assert.equal(api.applyForUser('staff-1', { mount: false }), true);
   assert.equal(body.dataset.theme, 'midnight');
   assert.equal(body.dataset.density, 'compact');
   assert.equal(body.dataset.motion, 'on');
   assert.equal(body.dataset.dashboardLayout, 'bento-grid');
+  assert.equal(body.dataset.navigationLayout, 'rail');
   assert.equal(body.style.getPropertyValue('--cornhill-page'), '#111827');
   assert.equal(body.style.getPropertyValue('--panel'), '#1f2937');
   assert.equal(documentElement.style.fontSize, '18px');
@@ -69,6 +70,16 @@ test('preferences save and apply to the page using the same per-user key as the 
   assert.equal(themeMeta.content, '#0f172a');
   assert.ok(stored.has('cornhill_appearance_v1:staff-1'));
   assert.deepEqual(JSON.parse(stored.get('cornhill_appearance_v1:staff-1')).theme, 'midnight');
+});
+
+test('navigation layout is selectable and synchronized by the shared appearance panel', () => {
+  assert.ok(helperSource.includes("id:'caNavigationLayout',label:'Navigation layout'"));
+  assert.ok(helperSource.includes("caNavigationLayout:'navigationLayout'"));
+  assert.ok(helperSource.includes("caNavigationLayout:p.navigationLayout"));
+  const { api, body } = loadAppearance();
+  assert.equal(api.saveForUser('staff-nav', { navigationLayout: 'top' }), true);
+  assert.equal(api.applyForUser('staff-nav', { mount: false }), true);
+  assert.equal(body.dataset.navigationLayout, 'top');
 });
 
 test('appearance preferences stay scoped to the active staff account', () => {
