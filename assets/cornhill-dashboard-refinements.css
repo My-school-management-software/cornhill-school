@@ -1,0 +1,102 @@
+/* CORNHILL dashboard and class-board layout refinement */
+#app>#dashboard .dashboard-summary-only{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:14px!important;
+ margin:0 0 18px!important;
+}
+#app>#dashboard .dashboard-summary-only>.stat{
+ min-width:0!important;
+ min-height:102px!important;
+ padding:18px 20px!important;
+ border:1px solid var(--line,#dce8df)!important;
+ border-radius:16px!important;
+ background:linear-gradient(145deg,var(--panel,#fff),var(--surface-muted,#f7faf8))!important;
+ box-shadow:0 4px 14px rgba(20,55,34,.045)!important;
+}
+#app>#dashboard .dashboard-summary-only>.stat small{
+ display:block!important;
+ margin-bottom:8px!important;
+ color:var(--muted,#647568)!important;
+ font-size:11px!important;
+ font-weight:800!important;
+ letter-spacing:.055em!important;
+ text-transform:uppercase!important;
+}
+#app>#dashboard .dashboard-summary-only>.stat .num{
+ font-size:clamp(25px,2.1vw,32px)!important;
+ line-height:1.05!important;
+ font-weight:850!important;
+ color:var(--text,#173b27)!important;
+ font-variant-numeric:tabular-nums!important;
+}
+#app>#dashboard #staffDashboardStats,
+#app>#dashboard #learnerIdentityQualityPanel,
+#app>#dashboard #academicControlCard,
+#app>#dashboard .module-grid>.panel{
+ border-radius:17px!important;
+}
+#app>#dashboard #staffDashboardStats{padding:clamp(14px,2vw,20px)!important}
+#app>#dashboard #staffDashboardStats>.grid{gap:10px!important}
+#app>#classes #dashboardClassBoardsPanel{
+ display:block!important;
+ width:100%!important;
+ box-sizing:border-box!important;
+ padding:clamp(15px,2vw,22px)!important;
+ border:1px solid var(--line,#dce8df)!important;
+ border-radius:18px!important;
+ background:var(--panel,#fff)!important;
+ box-shadow:0 5px 18px rgba(20,55,34,.045)!important;
+}
+#app>#classes #dashboardClassBoardsPanel .class-register-grid{
+ display:grid!important;
+ grid-template-columns:repeat(auto-fit,minmax(min(100%,225px),1fr))!important;
+ gap:12px!important;
+ margin-top:15px!important;
+}
+#app>#classes #dashboardClassBoardsPanel .class-register-card{
+ min-width:0!important;
+ box-sizing:border-box!important;
+ border-radius:15px!important;
+ border:1px solid var(--line,#dce8df)!important;
+ background:var(--panel,#fff)!important;
+ box-shadow:0 3px 12px rgba(20,55,34,.04)!important;
+ padding:16px!important;
+}
+#app>#classes #dashboardClassBoardsPanel .class-register-card h3{
+ margin:10px 0 4px!important;
+ overflow-wrap:anywhere!important;
+}
+#app>#classes #dashboardClassBoardsPanel .class-register-card .primary{
+ width:100%!important;
+ margin-top:12px!important;
+}
+#app>#classes> .row:first-child{margin-bottom:12px!important}
+#app .tabs [data-tab="classes"]+ #classBoardsNav{
+ margin-top:2px!important;
+ border-left:2px solid var(--accent,#28734a)!important;
+ background:var(--surface-muted,#f7faf8)!important;
+ font-size:12px!important;
+}
+#app .tabs #classBoardsNav.active{
+ border-left-color:var(--accent,#28734a)!important;
+}
+@media(min-width:1200px){
+ #app>#dashboard .dashboard-summary-only{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #app>#dashboard .module-grid>.panel:first-child .records-chart-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:900px){
+ #app>#dashboard .dashboard-summary-only{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
+ #app>#dashboard .dashboard-summary-only>.stat{padding:14px!important}
+}
+@media(max-width:560px){
+ #app>#dashboard .dashboard-summary-only{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #app>#dashboard .dashboard-summary-only>.stat:first-child{grid-column:1/-1!important}
+ #app>#classes #dashboardClassBoardsPanel .class-register-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #app>#classes #dashboardClassBoardsPanel .class-register-card{padding:12px!important}
+}
+@media(max-width:360px){
+ #app>#dashboard .dashboard-summary-only{grid-template-columns:1fr!important}
+ #app>#dashboard .dashboard-summary-only>.stat:first-child{grid-column:auto!important}
+ #app>#classes #dashboardClassBoardsPanel .class-register-grid{grid-template-columns:1fr!important}
+}
