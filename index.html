@@ -5132,7 +5132,11 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     }
    });
    for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
-    const row=rows[rowIndex],rawName=row[nameIndex],cleanRowName=String(rawName??'').trim(),summaryName=normaliseImportText(cleanRowName);if(!cleanRowName||/^(TOTAL(?:\s+CLASS\s+ENROL?L?MENT)?|BOYS|GIRLS|CLASS\s+TEACHER|HEAD\s*TEACHER|SIGNATURE)$/i.test(cleanRowName)||(['DIVISION','DIVISIONI','DIVISIONII','DIVISIONIII','DIVISIONIV','DIVISIONU','DIVISIONX','NOOFPUPILS','NUMBEROFPUPILS','TOTALPUPILS','TOTALLEARNERS','CLASSSTRENGTH','CLASSENROLMENT','CLASSENROLLMENT'].includes(summaryName)||/(GRADINGANALYSIS|PERF(?:O|OR)MANCEBY|PERFORMANCEBY)/.test(summaryName)))continue;
+    const row=rows[rowIndex],rawName=row[nameIndex],cleanRowName=String(rawName??'').trim();
+    const isSummaryRow=window.CornhillMarkImportMapping?.isSummaryLearnerRow
+      ?window.CornhillMarkImportMapping.isSummaryLearnerRow(cleanRowName)
+      :(!cleanRowName||/^\d+$/.test(cleanRowName)||/^(TOTAL(?:\s+CLASS\s+ENROL?L?MENT)?|BOYS|GIRLS|CLASS\s+TEACHER|HEAD\s*TEACHER|SIGNATURE)$/i.test(cleanRowName));
+    if(isSummaryRow)continue;
     const code=codeIndex>=0?normaliseImportText(row[codeIndex]):'',lin=linIndex>=0?normaliseImportText(row[linIndex]):'',name=normaliseImportText(rawName);
     const cm=code?(byCode.get(code)||[]):[],lm=lin?(byLin.get(lin)||[]):[],nm=byName.get(name)||[];
     let learner=null,issue='';
@@ -5193,7 +5197,9 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
      const gridHead=identity.map(x=>'<th>'+esc(x.label)+'</th>').join('')+gridColumns.map(x=>'<th><b>'+esc(x.header)+'</b><span class="excel-grid-period">'+esc(x.period)+' · '+esc(x.status)+'</span></th>').join('');
      const gridRows=info.matrix.slice(info.headerRow+1).map((row,index)=>{
       const rawName=String(row[nameIndex]??'').trim(),normName=normaliseImportText(rawName),rawCode=codeIndex>=0?normaliseImportText(row[codeIndex]):'',rawLin=linIndex>=0?normaliseImportText(row[linIndex]):'';
-      if(!rawName||/^(TOTAL|BOYS|GIRLS|CLASS TEACHER|HEAD TEACHER|SIGNATURE)$/i.test(rawName))return '';
+      if(window.CornhillMarkImportMapping?.isSummaryLearnerRow
+       ?window.CornhillMarkImportMapping.isSummaryLearnerRow(rawName)
+       :(!rawName||/^\d+$/.test(rawName)||/^(TOTAL|BOYS|GIRLS|CLASS TEACHER|HEAD TEACHER|SIGNATURE)$/i.test(rawName)))return '';
       const matched=ctx.students.find(student=>{
        const official=normaliseImportText([student.first_name,student.middle_name,student.last_name].filter(Boolean).join(' '));
        return (normName&&official===normName)||(rawCode&&rawCode===normaliseImportText(student.pupil_code||student.admission_number))||(rawLin&&rawLin===normaliseImportText(student.lin));
