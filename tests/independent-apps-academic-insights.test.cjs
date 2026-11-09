@@ -30,9 +30,9 @@ test('every CORNHILL PWA has a distinct app id, start URL and scope',()=>{
  assert.equal(ids.size,apps.length);
  assert.equal(scopes.size,apps.length);
  assert.equal(starts.size,apps.length);
- const scopes=apps.map(([, ,manifestFile])=>JSON.parse(fs.readFileSync(path.join(root,manifestFile),'utf8')).scope);
- for(let i=0;i<scopes.length;i++)for(let j=i+1;j<scopes.length;j++){
-  assert.ok(!scopes[i].startsWith(scopes[j])&&!scopes[j].startsWith(scopes[i]),scopes[i]+' must not overlap '+scopes[j]);
+ const scopePaths=apps.map(([, ,manifestFile])=>JSON.parse(fs.readFileSync(path.join(root,manifestFile),'utf8')).scope);
+ for(let i=0;i<scopePaths.length;i++)for(let j=i+1;j<scopePaths.length;j++){
+  assert.ok(!scopePaths[i].startsWith(scopePaths[j])&&!scopePaths[j].startsWith(scopePaths[i]),scopePaths[i]+' must not overlap '+scopePaths[j]);
  }
 });
 
