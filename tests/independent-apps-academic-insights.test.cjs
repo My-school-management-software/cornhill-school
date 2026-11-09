@@ -63,16 +63,18 @@ test('main and admissions workspaces load the shared roomy layout stylesheet',()
  assert.ok(css.includes('flex:0 0 auto'));
 });
 
-test('administrator academic insights show class-by-class subject and learner details from paged records',()=>{
+test('administrator academic insights use class cards, full learner registers and a separate school overview',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
  assert.match(html,/insightPanel\?\.classList\.remove\('hidden'\)/);
  assert.match(html,/data-class-insight/);
  assert.match(html,/adminAcademicClassDetail/);
- assert.match(html,/View class details/);
+ assert.match(html,/Open '\+esc\(cls\.name\)\+' performance/);
  assert.match(html,/assessment_scores/);
  assert.match(html,/\.range\(offset,offset\+pageSize-1\)/);
- assert.match(html,/Subject performance/);
- assert.match(html,/Learner performance/);
+ assert.match(html,/Subject performance in /);
+ assert.match(html,/All learners in /);
+ assert.doesNotMatch(html,/ranked\.slice\(0,25\)/);
+ assert.match(html,/General school academic overview/);
 });
 
 test('offline shell includes each standalone app entry and its own manifest route',()=>{
@@ -127,4 +129,23 @@ test('every application hostname is locked to its own installed-app route',()=>{
  const hosts=['admissions-cornhill-school.vercel.app','parents-cornhill-school.vercel.app','evidence-cornhill-school.vercel.app','notifications-cornhill-school.vercel.app','records-cornhill-school.vercel.app','banking-cornhill-school.vercel.app','school-website-cornhill-school.vercel.app','staff-communications-cornhill-school.vercel.app','hr-payroll-cornhill-school.vercel.app','learning-cornhill-school.vercel.app','library-cornhill-school.vercel.app','transport-cornhill-school.vercel.app','welfare-cornhill-school.vercel.app','integrations-cornhill-school.vercel.app','system-health-cornhill-school.vercel.app','assets-maintenance-cornhill-school.vercel.app','visitor-register-cornhill-school.vercel.app','noticeboard-cornhill-school.vercel.app','school-calendar-cornhill-school.vercel.app'];
  for(const host of hosts)assert.ok(guard.includes(host),host);
  for(const file of ['index.html','admissions.html','parents.html','evidence.html','records.html','banking.html','school.html','notifications.html','school-services.html','school-communications.html'])assert.match(fs.readFileSync(path.join(root,file),'utf8'),/app-isolation-guard\.js/);
+});
+
+
+test('administrator class workspace detail includes every learner in the selected class, not a school-wide mixed list',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(html,/students\\|\\|\\[\\]\\)\\.filter\\(x=>x\\.status==='Active'\\)/);
+ assert.match(html,/activeLearners\\.filter\\(x=>x\\.class_id===cls\\.id\\)/);
+ assert.match(html,/All learners in /);
+ assert.match(html,/data-class-insight/);
+});
+test('administrator teacher marks register requires an explicit class and term and does not preload school-wide marks',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(html,/id="adminTeacherMarksClass"/);
+ assert.match(html,/id="adminTeacherMarksTerm"/);
+ assert.match(html,/Choose one class and one term before loading marks/);
+ assert.match(html,/\\.eq\\('term_id',termId\\)\\.eq\\('class_id',classId\\)/);
+ assert.match(html,/Other classes are not included/);
+ assert.match(html,/Promise\\.resolve\\(\\{data:\\[\\],error:null\\}\\)/);
+ assert.doesNotMatch(html,/profile\\?\\.role==='Admin'\\?loadAllTeacherMarksRegister\\(\\)/);
 });

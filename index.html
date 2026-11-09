@@ -1493,8 +1493,15 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
   <div class="row" style="align-items:center;justify-content:space-between"><div><h3 style="margin:0">Academic Performance &amp; Insights</h3><p class="muted" style="margin:5px 0">School-wide monitoring. Teachers manage assessments and marks; this view is for oversight and analysis, not approval.</p></div><span class="badge">Administrator overview</span></div>
   <div class="row" style="align-items:end;gap:10px;margin:12px 0"><div style="min-width:190px;flex:1"><label for="adminAcademicTerm">Academic term</label><select id="adminAcademicTerm"></select></div><button type="button" class="primary" id="refreshAdminAcademicInsights">Refresh school performance</button></div>
   <div id="adminAcademicInsightMsg" class="notice hidden"></div><div id="adminAcademicKpis" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px"></div>
-  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px"><section class="panel"><h4>Class performance comparison</h4><div id="adminAcademicClassBars" class="muted">Choose a term and refresh.</div></section><section class="panel"><h4>Subject performance overview</h4><div id="adminAcademicSubjectBars" class="muted">Choose a term and refresh.</div></section></div>
-  <h4 style="margin-top:16px">Class activity and results</h4><p class="muted">Select “View class details” to inspect each class separately, including subject averages and learner performance.</p><div class="table-wrap"><table><thead><tr><th>Class</th><th>Assessments</th><th>Learners with marks</th><th>Average</th><th>Highest</th><th>Lowest</th><th>Activity</th><th>Details</th></tr></thead><tbody id="adminAcademicClassRows"><tr><td colspan="8">Choose a term and refresh.</td></tr></tbody></table></div><section id="adminAcademicClassDetail" class="panel hidden" style="margin-top:14px" aria-live="polite"></section>
+  <section class="panel" style="margin-top:16px;padding:15px">
+   <div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Class workspaces</h3><p class="muted" style="margin:5px 0 0">Choose Baby, Middle, Top or a primary class. Each class opens its own full learner performance register. Learners from other classes are not mixed into it.</p></div><span class="badge">One class at a time</span></div>
+   <div id="adminAcademicClassRows" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px;margin-top:14px"><div class="notice">Choose a term and refresh to load class sections.</div></div>
+   <section id="adminAcademicClassDetail" class="panel hidden" style="margin-top:14px" aria-live="polite"></section>
+  </section>
+  <section class="panel" style="margin-top:16px;padding:15px">
+   <h3 style="margin:0 0 5px">General school academic overview</h3><p class="muted" style="margin:0">These comparisons combine all classes for the selected term. Use the class workspaces above when you need individual learner details.</p>
+   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px"><section class="panel"><h4>Class performance comparison</h4><div id="adminAcademicClassBars" class="muted">Choose a term and refresh.</div></section><section class="panel"><h4>Subject performance overview</h4><div id="adminAcademicSubjectBars" class="muted">Choose a term and refresh.</div></section></div>
+  </section>
  </section>
  <div id="academicAdminSetup">
  <h3>1. Academic year</h3>
@@ -1628,8 +1635,8 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <p class="muted">Use these nine grade codes for internal tests and mock estimates. UNEB determines final examination subject grades through national standardisation, so percentage cut-offs here must be approved by the school for its own assessments and must not be presented as official UNEB cut-offs. Set the range separately for each core subject; aggregate remains unavailable until all required boundaries are configured.</p>
  <div id="unebGradeBandAdmin" class="hidden"><form id="unebGradeBandForm"><div><label>Core subject *</label><select name="subject_id" id="unebGradeSubject" required></select></div><div><label>Grade code *</label><select name="grade_code" required><option>D1</option><option>D2</option><option>C3</option><option>C4</option><option>C5</option><option>C6</option><option>P7</option><option>P8</option><option>F9</option></select></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div class="full"><button class="primary">Save UNEB subject boundary</button></div></form></div>
  <div class="table-wrap"><table><thead><tr><th>Subject</th><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Status</th></tr></thead><tbody id="unebGradeBandRows"></tbody></table></div>
- </section></section><h3 style="margin-top:24px">7. Term report cards and class performance</h3>
- <p class="muted">Teachers can view individual report cards and class results for their assigned class. Administrators can view report cards across the whole school and manage official printing. Academic results do not wait for administrator approval.</p>
+ </section></section><h3 style="margin-top:24px">7. Term report cards and selected-class performance</h3>
+ <p class="muted">Choose a term and one class first. Learner selection, report-card previews, class batches and the performance summary below use only that selected class.</p>
  <div class="row" style="align-items:end">
   <div style="flex:1;min-width:160px"><label>Term</label><select id="reportTermSelect"></select></div>
   <div style="flex:1;min-width:160px"><label>Class</label><select id="reportClassSelect"></select></div>
@@ -1661,15 +1668,22 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <p id="reportBatchStatus" class="muted" aria-live="polite">Choose a term and class, then generate the class batch.</p>
  <div id="reportBatchPrint" class="hidden"></div>
  <div id="reportCardPreview" style="margin-top:14px"></div>
- <h3 style="margin-top:20px">Class performance summary</h3>
- <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportAcademicClassCsv">Export class results CSV</button></div>
+ <h3 style="margin-top:20px">Performance summary for the selected class</h3>
+ <p class="muted">This summary follows the Term and Class selectors above. It contains only learners belonging to the selected class.</p>
+ <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportAcademicClassCsv">Export selected-class results · CSV</button></div>
  <div class="table-wrap"><table><thead><tr><th>Position*</th><th>Learner</th><th>Subjects scored</th><th>Total marks</th><th>Average %</th></tr></thead><tbody id="classPerformanceRows"></tbody></table></div>
  <p class="muted">*Position is a provisional ranking among learners with entered marks. Missing marks are excluded from each learner's average. Export is limited to the selected class and term.</p>
- <section id="adminTeacherMarksRegister" style="margin-top:20px">
- <h3>Administrator · teacher-submitted marks register</h3>
- <p class="muted">Read-only overview of marks saved by teachers. The table initially shows the latest 1,000 saved marks; load a selected class and term to fetch the complete register in pages, then export it as CSV for Excel.</p>
- <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="loadAdminTeacherMarksRegister">Load selected class and term</button><button type="button" id="exportTeacherMarksRegister" disabled>Export teacher marks register · CSV</button></div><p id="adminMarksRegisterStatus" class="muted">Choose a term and class, then load the teacher-submitted marks.</p>
- <div class="table-wrap"><table><thead><tr><th>Class</th><th>Term</th><th>Learner code</th><th>Learner</th><th>Subject</th><th>Assessment</th><th>Mark</th><th>Maximum</th><th>Teacher account</th><th>Last updated</th></tr></thead><tbody id="academicScoreRows"></tbody></table></div>
+ <section id="adminTeacherMarksRegister" class="panel" style="margin-top:20px;padding:15px">
+ <h3 style="margin:0 0 5px">Administrator · teacher-submitted marks register</h3>
+ <p class="muted">Read-only audit view. Select exactly one class and one term before loading. The register will never open as a mixed school-wide learner list.</p>
+ <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap;margin:12px 0">
+  <div style="flex:1;min-width:190px"><label for="adminTeacherMarksClass">Class</label><select id="adminTeacherMarksClass"><option value="">Choose one class</option></select></div>
+  <div style="flex:1;min-width:190px"><label for="adminTeacherMarksTerm">Academic term</label><select id="adminTeacherMarksTerm"><option value="">Choose one term</option></select></div>
+  <button type="button" class="primary" id="loadAdminTeacherMarksRegister">Load this class's marks</button>
+  <button type="button" id="exportTeacherMarksRegister" disabled>Export selected class · CSV</button>
+ </div>
+ <p id="adminMarksRegisterStatus" class="muted" role="status" aria-live="polite">Choose a class and term above. No marks are loaded until you press the button.</p>
+ <div class="table-wrap"><table><thead><tr><th>Class</th><th>Term</th><th>Learner code</th><th>Learner</th><th>Subject</th><th>Assessment</th><th>Mark</th><th>Maximum</th><th>Teacher account</th><th>Last updated</th></tr></thead><tbody id="academicScoreRows"><tr><td colspan="10">Select one class and term to view teacher-submitted marks.</td></tr></tbody></table></div>
  </section>
 </section>
 
@@ -3976,7 +3990,7 @@ async function loadAcademics(){
   (profile?.role==='Teacher'?db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')):db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)')).order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('role','Teacher').order('full_name'):Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?db.from('academic_teacher_directory').select('*').order('full_name'):Promise.resolve({data:[],error:null}),
-  profile?.role==='Admin'?loadAllTeacherMarksRegister():Promise.resolve({data:[],error:null}),
+  Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,teacher_directory_id,school_classes(name),subjects(name),academic_teacher_directory(full_name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')),
   profile?.role==='Admin'?db.from('class_teacher_directory_assignments').select('class_id,teacher_directory_id,updated_at,academic_teacher_directory(full_name,employment_status,linked_user_id)'):Promise.resolve({data:[],error:null})
  ]);
@@ -4016,6 +4030,18 @@ async function loadAcademics(){
  $('academicScoreRows').innerHTML=profile?.role==='Admin'?window.cornhillTeacherMarksRegister.map(x=>'<tr><td>'+esc(x.assessments?.school_classes?.name||'—')+'</td><td>'+esc(x.assessments?.academic_terms?.name||'—')+'</td><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.middle_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.subjects?.name||'—')+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>'+esc(window.cornhillStaffNames[x.entered_by]||'Teacher account')+'</td><td>'+esc(x.updated_at?new Date(x.updated_at).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No teacher marks have been saved yet.</td></tr>':'<tr><td colspan="10">Administrator register only.</td></tr>';
  updateScoreLearners();
  populateReportFilters();
+ // Keep the administrator marks audit empty until a single class and term are selected.
+ const adminMarksClass=$('adminTeacherMarksClass'),adminMarksTerm=$('adminTeacherMarksTerm');
+ if(adminMarksClass)adminMarksClass.innerHTML='<option value="">Choose one class</option>'+classes.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name+(c.stream?' · '+c.stream:''))+'</option>').join('');
+ if(adminMarksTerm){
+  adminMarksTerm.innerHTML='<option value="">Choose one term</option>'+academic.terms.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.name+' · '+(t.academic_years?.name||''))+'</option>').join('');
+  const preferred=academic.terms.find(t=>t.is_current&&!t.is_closed)||academic.terms.find(t=>!t.is_closed)||academic.terms[0];
+  if(preferred)adminMarksTerm.value=preferred.id;
+ }
+ window.cornhillTeacherMarkRegisterRows=[];
+ $('academicScoreRows').innerHTML='<tr><td colspan="10">Select one class and term to view teacher-submitted marks.</td></tr>';
+ $('exportTeacherMarksRegister').disabled=true;
+ $('adminMarksRegisterStatus').textContent='Choose one class and term. The table stays empty until you load that class.';
  if(profile?.role==='Admin'){
   const insightTerm=$('adminAcademicTerm');if(insightTerm){insightTerm.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');const current=academic.terms.find(x=>x.is_current&&!x.is_closed)||academic.terms.find(x=>!x.is_closed)||academic.terms[0];if(current)insightTerm.value=current.id;}
   await loadAdminAcademicInsights();
@@ -4365,127 +4391,153 @@ async function renderReportCard(options={}){
 
 }
 async function loadAdminAcademicInsights(){
- const insightPanel=$('adminAcademicInsights');
- if(profile?.role!=='Admin'||demoMode){insightPanel?.classList.add('hidden');return}
- insightPanel?.classList.remove('hidden');
- const termId=$('adminAcademicTerm')?.value,note=$('adminAcademicInsightMsg'),kpis=$('adminAcademicKpis'),classBars=$('adminAcademicClassBars'),subjectBars=$('adminAcademicSubjectBars'),rows=$('adminAcademicClassRows'),detailHost=$('adminAcademicClassDetail');
- if(detailHost){detailHost.classList.add('hidden');detailHost.innerHTML=''}
- if(!termId){if(note){note.textContent='Choose an academic term to view school performance.';note.classList.remove('hidden')}return}
- if(note){note.textContent='Loading all saved school academic records…';note.classList.remove('hidden')}
+ const panel=$('adminAcademicInsights');
+ if(profile?.role!=='Admin'||demoMode){panel?.classList.add('hidden');return}
+ panel?.classList.remove('hidden');
+ const termId=$('adminAcademicTerm')?.value,note=$('adminAcademicInsightMsg'),kpis=$('adminAcademicKpis'),classBars=$('adminAcademicClassBars'),subjectBars=$('adminAcademicSubjectBars'),cards=$('adminAcademicClassRows'),detail=$('adminAcademicClassDetail');
+ if(detail){detail.classList.add('hidden');detail.innerHTML=''}
+ if(!termId){
+  if(note){note.textContent='Choose an academic term above to load the class sections.';note.classList.remove('hidden')}
+  if(cards)cards.innerHTML='<div class="notice">Choose an academic term to load class performance.</div>';
+  return;
+ }
+ if(note){note.textContent='Loading separate class workspaces and teacher-entered marks…';note.classList.remove('hidden')}
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  try{
-  const pageSize=1000;
-  const schoolClasses=[];
+  const pageSize=1000,classRecords=[];
   for(let offset=0;;offset+=pageSize){
-   const result=await db.from('school_classes').select('id,name').order('name').range(offset,offset+pageSize-1);
+   const result=await db.from('school_classes').select('id,name,stream').order('name').range(offset,offset+pageSize-1);
    if(result.error)throw result.error;
-   const page=result.data||[];schoolClasses.push(...page);
+   const page=result.data||[];classRecords.push(...page);
    if(page.length<pageSize)break;
-   if(offset>=50000)throw new Error('Class register is too large to load safely in one request.');
+   if(offset>=50000)throw new Error('The class register is too large to load safely.');
   }
-  const list=[];
+  const assessments=[];
   for(let offset=0;;offset+=pageSize){
    const result=await db.from('assessments').select('id,class_id,subject_id,max_score,school_classes(name),subjects(name)').eq('term_id',termId).order('id').range(offset,offset+pageSize-1);
    if(result.error)throw result.error;
-   const page=result.data||[];list.push(...page);
+   const page=result.data||[];assessments.push(...page);
    if(page.length<pageSize)break;
-   if(offset>=50000)throw new Error('This term contains too many assessment records to load safely.');
+   if(offset>=50000)throw new Error('This term contains too many assessment records.');
   }
-  const makeClass=(id,name)=>({id,name:name||'Class',assessments:0,learners:new Set(),sum:0,max:0,marks:[],subjects:new Map(),learnerTotals:new Map()});
-  const cm=new Map(schoolClasses.map(c=>[c.id,makeClass(c.id,c.name)]));
-  const sm=new Map(),am=new Map(list.map(a=>[a.id,a]));
-  list.forEach(a=>{
-   const c=cm.get(a.class_id)||makeClass(a.class_id,a.school_classes?.name);
-   cm.set(a.class_id,c);c.assessments++;
+  const makeClass=row=>({id:row.id,name:row.name||'Class',stream:row.stream||null,assessments:0,learners:new Set(),sum:0,max:0,marks:[],subjects:new Map(),learnerTotals:new Map()});
+  const classMap=new Map(classRecords.map(row=>[row.id,makeClass(row)]));
+  const assessmentMap=new Map(assessments.map(row=>[row.id,row])),subjectMap=new Map();
+  assessments.forEach(a=>{
+   const cls=classMap.get(a.class_id)||makeClass({id:a.class_id,name:a.school_classes?.name||'Class'});
+   classMap.set(a.class_id,cls);cls.assessments++;
    const subjectName=a.subjects?.name||'Subject';
-   const sub=c.subjects.get(a.subject_id)||{id:a.subject_id,name:subjectName,assessments:0,learners:new Set(),sum:0,max:0,marks:[]};
-   sub.assessments++;c.subjects.set(a.subject_id,sub);
-   const schoolSubject=sm.get(a.subject_id)||{name:subjectName,learners:new Set(),sum:0,max:0,marks:[]};
-   sm.set(a.subject_id,schoolSubject);
+   const subject=cls.subjects.get(a.subject_id)||{id:a.subject_id,name:subjectName,assessments:0,learners:new Set(),sum:0,max:0,marks:[]};
+   subject.assessments++;cls.subjects.set(a.subject_id,subject);
+   if(!subjectMap.has(a.subject_id))subjectMap.set(a.subject_id,{name:subjectName,learners:new Set(),sum:0,max:0,marks:[]});
   });
-  const scores=[];
-  const ids=list.map(a=>a.id);
-  for(let chunkStart=0;chunkStart<ids.length;chunkStart+=80){
-   const chunk=ids.slice(chunkStart,chunkStart+80);
+  const scores=[],assessmentIds=assessments.map(a=>a.id);
+  for(let start=0;start<assessmentIds.length;start+=80){
+   const group=assessmentIds.slice(start,start+80);
    for(let offset=0;;offset+=pageSize){
-    const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',chunk).order('assessment_id').order('student_id').range(offset,offset+pageSize-1);
+    const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',group).order('assessment_id').order('student_id').range(offset,offset+pageSize-1);
     if(result.error)throw result.error;
     const page=result.data||[];scores.push(...page);
     if(page.length<pageSize)break;
-    if(offset>=100000)throw new Error('This term contains too many saved mark records to load safely.');
+    if(offset>=100000)throw new Error('This term contains too many saved marks.');
    }
   }
-  const markedLearners=new Set();
-  scores.forEach(m=>{
-   const a=am.get(m.assessment_id);
-   if(!a||m.score==null||isAbsentMark(m))return;
-   const value=Number(m.score),max=Number(a.max_score||0);
-   if(!Number.isFinite(value)||!Number.isFinite(max)||max<=0)return;
-   const percentage=value/max*100,c=cm.get(a.class_id),subject=c?.subjects.get(a.subject_id),schoolSubject=sm.get(a.subject_id);
-   if(c){c.sum+=value;c.max+=max;c.learners.add(m.student_id);c.marks.push(percentage)}
-   if(subject){subject.sum+=value;subject.max+=max;subject.learners.add(m.student_id);subject.marks.push(percentage)}
-   if(schoolSubject){schoolSubject.sum+=value;schoolSubject.max+=max;schoolSubject.learners.add(m.student_id);schoolSubject.marks.push(percentage)}
-   if(c){
-    const total=c.learnerTotals.get(m.student_id)||{sum:0,max:0,subjects:new Set()};
-    total.sum+=value;total.max+=max;total.subjects.add(a.subject_id);c.learnerTotals.set(m.student_id,total);
+  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
+  const marked=new Set();
+  scores.forEach(mark=>{
+   const a=assessmentMap.get(mark.assessment_id);
+   if(!a||mark.score==null||isAbsentMark(mark))return;
+   const value=Number(mark.score),maximum=Number(a.max_score||0);
+   if(!Number.isFinite(value)||!Number.isFinite(maximum)||maximum<=0)return;
+   const pct=value/maximum*100,cls=classMap.get(a.class_id),subject=cls?.subjects.get(a.subject_id),schoolSubject=subjectMap.get(a.subject_id);
+   if(cls){cls.sum+=value;cls.max+=maximum;cls.learners.add(mark.student_id);cls.marks.push(pct)}
+   if(subject){subject.sum+=value;subject.max+=maximum;subject.learners.add(mark.student_id);subject.marks.push(pct)}
+   if(schoolSubject){schoolSubject.sum+=value;schoolSubject.max+=maximum;schoolSubject.learners.add(mark.student_id);schoolSubject.marks.push(pct)}
+   if(cls){
+    const total=cls.learnerTotals.get(mark.student_id)||{sum:0,max:0,subjects:new Set()};
+    total.sum+=value;total.max+=maximum;total.subjects.add(a.subject_id);cls.learnerTotals.set(mark.student_id,total);
    }
-   markedLearners.add(m.student_id);
+   marked.add(mark.student_id);
   });
-  const cr=[...cm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:null})).sort((a,b)=>a.name.localeCompare(b.name));
-  const sr=[...sm.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:null})).sort((a,b)=>(a.average??101)-(b.average??101));
-  const totalScore=cr.reduce((n,x)=>n+x.sum,0),totalMax=cr.reduce((n,x)=>n+x.max,0);
-  const recordedClasses=cr.filter(x=>x.learners.size).length,schoolAvg=totalMax?totalScore/totalMax*100:null;
-  const tile=(label,value)=>'<div class="stat" style="min-width:0;padding:12px"><div class="muted">'+label+'</div><strong style="font-size:1.4rem;overflow-wrap:anywhere">'+value+'</strong></div>';
+  const classesForTerm=[...classMap.values()].map(cls=>({...cls,average:cls.max?cls.sum/cls.max*100:null}))
+   .sort((a,b)=>a.name.localeCompare(b.name)||String(a.stream||'').localeCompare(String(b.stream||'')));
+  const subjectsForTerm=[...subjectMap.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:null}))
+   .sort((a,b)=>(a.average??101)-(b.average??101));
+  const totalScore=classesForTerm.reduce((n,x)=>n+x.sum,0),totalMax=classesForTerm.reduce((n,x)=>n+x.max,0);
+  const activeLearners=(students||[]).filter(x=>x.status==='Active'),schoolAverage=totalMax?totalScore/totalMax*100:null;
+  const tile=(label,value)=>'<div class="stat" style="min-width:0;padding:12px"><div class="muted">'+label+'</div><strong style="display:block;font-size:1.4rem;overflow-wrap:anywhere">'+value+'</strong></div>';
   kpis.innerHTML=[
-   tile('Classes in school',cr.length),
-   tile('Classes with assessments',cr.filter(x=>x.assessments).length),
-   tile('Classes with saved marks',recordedClasses),
-   tile('Learners with marks',markedLearners.size),
-   tile('School average',schoolAvg===null?'—':schoolAvg.toFixed(1)+'%'),
-   tile('Subjects assessed',sr.length)
+   tile('Classes',classesForTerm.length),tile('Active learners',activeLearners.length),
+   tile('Classes with assessments',classesForTerm.filter(x=>x.assessments).length),
+   tile('Classes with saved marks',classesForTerm.filter(x=>x.learners.size).length),
+   tile('Learners with marks',marked.size),tile('School average',schoolAverage===null?'—':schoolAverage.toFixed(1)+'%')
   ].join('');
-  const bar=(label,p)=>{
-   if(p===null||!Number.isFinite(p))return '<div class="muted">'+esc(label)+' · No marks saved</div>';
-   const width=Math.max(0,Math.min(100,p));
-   return '<div style="margin:8px 0;min-width:0"><div class="row" style="justify-content:space-between;gap:8px;min-width:0"><span>'+esc(label)+'</span><b>'+p.toFixed(1)+'%</b></div><div style="height:9px;background:var(--cornhill-line);border-radius:9px;overflow:hidden"><div style="height:100%;width:'+width+'%;background:var(--cornhill-accent);border-radius:9px"></div></div></div>';
+  const bar=(label,value)=>{
+   if(value===null||!Number.isFinite(value))return '<div class="muted">'+esc(label)+' · No marks saved</div>';
+   const width=Math.max(0,Math.min(100,value));
+   return '<div style="margin:8px 0;min-width:0"><div class="row" style="justify-content:space-between;gap:8px;min-width:0"><span>'+esc(label)+'</span><b>'+value.toFixed(1)+'%</b></div><div style="height:9px;background:var(--cornhill-line);border-radius:9px;overflow:hidden"><div style="height:100%;width:'+width+'%;background:var(--cornhill-accent);border-radius:9px"></div></div></div>';
   };
-  const classesWithMarks=cr.filter(x=>x.assessments);
-  classBars.innerHTML=classesWithMarks.length?classesWithMarks.map(x=>bar(x.name,x.average)).join(''):'No classes or assessments are configured for this term.';
-  subjectBars.innerHTML=sr.length?sr.map(x=>bar(x.name,x.average)).join(''):'No subject assessments found for this term.';
-  rows.innerHTML=cr.map(x=>{
-   const activity=x.learners.size?'Marks recorded':x.assessments?'Awaiting marks':'No assessments';
-   return '<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+x.learners.size+'</td><td>'+(x.average===null?'—':x.average.toFixed(1)+'%')+'</td><td>'+(x.marks.length?Math.max(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.min(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+activity+'</td><td><button type="button" data-class-insight="'+esc(x.id)+'" '+(x.assessments?'':'disabled')+'>View class details</button></td></tr>';
-  }).join('')||'<tr><td colspan="8">No classes are configured.</td></tr>';
-  const learnerById=new Map((Array.isArray(students)?students:[]).map(x=>[x.id,x]));
-  const detailMarkup={};
-  cr.forEach(c=>{
-   const subjectRows=[...c.subjects.values()].sort((a,b)=>a.name.localeCompare(b.name)).map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+x.learners.size+'</td><td>'+(x.max?(x.sum/x.max*100).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.max(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.min(...x.marks).toFixed(1)+'%':'—')+'</td></tr>').join('');
-   const ranked=[...c.learnerTotals.entries()].map(([id,x])=>{
-    const learner=learnerById.get(id);
-    return {learner,total:x,average:x.max?x.sum/x.max*100:0};
-   }).sort((a,b)=>b.average-a.average);
-   const learnerRows=ranked.slice(0,25).map((x,i)=>{
-    const l=x.learner,fullName=l?[l.first_name,l.middle_name,l.last_name].filter(Boolean).join(' '):'Learner record';
-    return '<tr><td>'+(i+1)+'</td><td>'+esc(l?.admission_number||'—')+'</td><td>'+esc(fullName)+'</td><td>'+x.total.subjects.size+'</td><td>'+x.average.toFixed(1)+'%</td></tr>';
+  classBars.innerHTML=classesForTerm.map(cls=>bar(cls.name+(cls.stream?' · '+cls.stream:''),cls.average)).join('')||'No classes are registered.';
+  subjectBars.innerHTML=subjectsForTerm.map(x=>bar(x.name,x.average)).join('')||'No subjects have assessments in this term.';
+  cards.innerHTML=classesForTerm.map(cls=>{
+   const className=cls.name+(cls.stream?' · '+cls.stream:'');
+   const enrolled=activeLearners.filter(x=>x.class_id===cls.id).length;
+   const state=cls.learners.size?'Teacher marks recorded':cls.assessments?'Assessments ready · awaiting marks':'No assessments prepared';
+   return '<article class="panel academic-class-workspace-card" style="min-width:0;padding:15px;border:1px solid var(--cornhill-line);border-radius:14px;display:flex;flex-direction:column;gap:9px">' +
+    '<div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px"><div><div class="dashboard-eyebrow">CLASS WORKSPACE</div><h3 style="margin:3px 0">'+esc(className)+'</h3></div><span class="badge">'+enrolled+' learners</span></div>' +
+    '<div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><div class="stat"><small>Assessments</small><div class="num">'+cls.assessments+'</div></div><div class="stat"><small>Learners with marks</small><div class="num">'+cls.learners.size+'</div></div><div class="stat"><small>Class average</small><div class="num">'+(cls.average===null?'—':cls.average.toFixed(1)+'%')+'</div></div><div class="stat"><small>Highest</small><div class="num">'+(cls.marks.length?Math.max(...cls.marks).toFixed(1)+'%':'—')+'</div></div></div>' +
+    '<p class="muted" style="font-size:12px;margin:0">'+state+'</p><button type="button" class="primary" data-class-insight="'+esc(cls.id)+'">Open '+esc(cls.name)+' performance</button></article>';
+  }).join('')||'<div class="notice">No classes have been registered. Create classes before viewing class performance.</div>';
+  const learnerById=new Map((students||[]).map(x=>[x.id,x])),details={};
+  classesForTerm.forEach(cls=>{
+   const members=activeLearners.filter(x=>x.class_id===cls.id);
+   const ranked=members.map(learner=>{
+    const total=cls.learnerTotals.get(learner.id)||{sum:0,max:0,subjects:new Set()};
+    return {learner,total,average:total.max?total.sum/total.max*100:null};
+   }).sort((a,b)=>{
+    if(a.average===null&&b.average!==null)return 1;
+    if(a.average!==null&&b.average===null)return -1;
+    if(a.average!==null&&b.average!==null&&Math.abs(a.average-b.average)>0.000001)return b.average-a.average;
+    return [a.learner.last_name,a.learner.first_name].filter(Boolean).join(' ').localeCompare([b.learner.last_name,b.learner.first_name].filter(Boolean).join(' '));
+   });
+   let lastAverage=null,lastPosition=0;
+   ranked.forEach((row,index)=>{
+    if(row.average===null){row.position=null;return}
+    if(lastAverage===null||Math.abs(row.average-lastAverage)>0.000001)lastPosition=index+1;
+    row.position=lastPosition;lastAverage=row.average;
+   });
+   const subjectHtml=[...cls.subjects.values()].sort((a,b)=>a.name.localeCompare(b.name)).map(x=>
+    '<tr><td>'+esc(x.name)+'</td><td>'+x.assessments+'</td><td>'+x.learners.size+'</td><td>'+(x.max?(x.sum/x.max*100).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.max(...x.marks).toFixed(1)+'%':'—')+'</td><td>'+(x.marks.length?Math.min(...x.marks).toFixed(1)+'%':'—')+'</td></tr>'
+   ).join('');
+   const learnerHtml=ranked.map(row=>{
+    const learner=row.learner,total=row.total;
+    const name=[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ');
+    return '<tr><td>'+(row.position??'—')+'</td><td>'+esc(learner.admission_number||'—')+'</td><td>'+esc(name||'Learner record')+'</td><td>'+total.subjects.size+'</td><td>'+(total.max?Number(total.sum).toFixed(1)+' / '+Number(total.max).toFixed(1):'—')+'</td><td>'+(row.average===null?'No marks':row.average.toFixed(1)+'%')+'</td><td><span class="badge">'+(row.average===null?'Awaiting marks':'Marks recorded')+'</span></td></tr>';
    }).join('');
-   const activeCount=(Array.isArray(students)?students:[]).filter(x=>x.class_id===c.id&&x.status==='Active').length;
-   detailMarkup[c.id]='<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px"><div><span class="dashboard-eyebrow">CLASS PERFORMANCE DETAIL</span><h3 style="margin:4px 0">'+esc(c.name)+'</h3><p class="muted" style="margin:0">Selected term · Read-only analysis of marks saved by teachers</p></div><button type="button" id="closeAdminClassDetail">Close details</button></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px;margin:14px 0"><div class="stat"><small>Active learners</small><div class="num">'+activeCount+'</div></div><div class="stat"><small>Assessments</small><div class="num">'+c.assessments+'</div></div><div class="stat"><small>Learners assessed</small><div class="num">'+c.learners.size+'</div></div><div class="stat"><small>Class average</small><div class="num">'+(c.average===null?'—':c.average.toFixed(1)+'%')+'</div></div></div><h4>Subject performance</h4><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Learners</th><th>Average</th><th>Highest</th><th>Lowest</th></tr></thead><tbody>'+(subjectRows||'<tr><td colspan="6">No subject assessments found.</td></tr>')+'</tbody></table></div><h4 style="margin-top:18px">Learner performance</h4><div class="table-wrap"><table><thead><tr><th>Position</th><th>Pupil code</th><th>Learner</th><th>Subjects scored</th><th>Average</th></tr></thead><tbody>'+(learnerRows||'<tr><td colspan="5">No learner marks have been saved for this class and term.</td></tr>')+'</tbody></table></div>'+(ranked.length>25?'<p class="muted">Showing the top 25 of '+ranked.length+' learners.</p>':'');
+   details[cls.id]='<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><div><div class="dashboard-eyebrow">SELECTED CLASS WORKSPACE</div><h3 style="margin:4px 0">'+esc(cls.name)+(cls.stream?' · '+esc(cls.stream):'')+'</h3><p class="muted" style="margin:0">Only learners enrolled in this class appear below. Results are read-only and come from teachers’ saved marks.</p></div><button type="button" id="closeAdminClassDetail">Back to class sections</button></div>' +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px;margin:14px 0"><div class="stat"><small>Active learners</small><div class="num">'+members.length+'</div></div><div class="stat"><small>Assessments</small><div class="num">'+cls.assessments+'</div></div><div class="stat"><small>Learners with marks</small><div class="num">'+cls.learners.size+'</div></div><div class="stat"><small>Class average</small><div class="num">'+(cls.average===null?'—':cls.average.toFixed(1)+'%')+'</div></div></div>' +
+    '<h4>Subject performance in '+esc(cls.name)+'</h4><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Learners with marks</th><th>Average</th><th>Highest</th><th>Lowest</th></tr></thead><tbody>'+(subjectHtml||'<tr><td colspan="6">No subject assessments have been prepared for this class and term.</td></tr>')+'</tbody></table></div>' +
+    '<h4 style="margin-top:18px">All learners in '+esc(cls.name)+' · performance register</h4><p class="muted">This register includes every active learner in the selected class, including learners whose marks are not yet entered.</p><div class="table-wrap"><table><thead><tr><th>Position</th><th>Pupil code</th><th>Learner</th><th>Subjects scored</th><th>Total / maximum</th><th>Average</th><th>Status</th></tr></thead><tbody>'+(learnerHtml||'<tr><td colspan="7">No active learners are enrolled in this class.</td></tr>')+'</tbody></table></div>';
   });
-  window.cornhillAdminAcademicClassDetailMarkup=detailMarkup;
-  if(rows&&!rows.dataset.classInsightsBound){
-   rows.dataset.classInsightsBound='1';
-   rows.addEventListener('click',event=>{
-    const button=event.target.closest('[data-class-insight]');
-    if(button){
-     const markup=window.cornhillAdminAcademicClassDetailMarkup?.[button.dataset.classInsight];
-     if(detailHost&&markup){detailHost.innerHTML=markup;detailHost.classList.remove('hidden');detailHost.querySelector('#closeAdminClassDetail')?.addEventListener('click',()=>{detailHost.classList.add('hidden');detailHost.innerHTML=''});detailHost.scrollIntoView({behavior:'smooth',block:'nearest'})}
+  window.cornhillAdminAcademicClassDetailMarkup=details;
+  if(cards&&!cards.dataset.classInsightsBound){
+   cards.dataset.classInsightsBound='1';
+   cards.addEventListener('click',event=>{
+    const button=event.target.closest('[data-class-insight]');if(!button)return;
+    const markup=window.cornhillAdminAcademicClassDetailMarkup?.[button.dataset.classInsight];
+    if(detail&&markup){
+     detail.innerHTML=markup;detail.classList.remove('hidden');
+     detail.querySelector('#closeAdminClassDetail')?.addEventListener('click',()=>{detail.classList.add('hidden');detail.innerHTML=''});
+     detail.scrollIntoView({behavior:'smooth',block:'nearest'});
     }
    });
   }
-  if(note){note.textContent='Updated from all saved school records · '+scores.length+' mark records analysed. Select any class to view its subjects and learner results.';note.classList.remove('hidden')}
-  window.cornhillAdminAcademicInsights={termId,classes:cr.map(x=>({id:x.id,name:x.name,average:x.average,learners:x.learners.size,assessments:x.assessments})),subjects:sr.map(x=>({name:x.name,average:x.average})),scoreCount:scores.length};
- }catch(err){
-  if(note){note.textContent='Could not load school academic insights: '+(err?.message||String(err));note.classList.remove('hidden')}
-  console.error('Academic insights load failed',err);
+  if(note){note.textContent='Updated for '+($('adminAcademicTerm')?.selectedOptions[0]?.textContent||'the selected term')+' · '+scores.length+' saved mark records checked. Select one class card to view its full learner performance.';note.classList.remove('hidden')}
+  window.cornhillAdminAcademicInsights={termId,classes:classesForTerm.map(x=>({id:x.id,name:x.name,average:x.average,learners:x.learners.size,assessments:x.assessments})),subjects:subjectsForTerm.map(x=>({name:x.name,average:x.average})),scoreCount:scores.length};
+ }catch(error){
+  if(note){note.textContent='Could not load school academic insights: '+(error?.message||String(error));note.classList.remove('hidden')}
+  if(cards)cards.innerHTML='<div class="notice error">Class performance could not be loaded. '+esc(error?.message||'Please refresh and try again.')+'</div>';
+  console.error('Academic insights load failed',error);
  }
 }
 $('refreshAdminAcademicInsights')?.addEventListener('click',loadAdminAcademicInsights);
@@ -4505,33 +4557,53 @@ async function renderClassPerformance(){
 $('loadAdminTeacherMarksRegister').addEventListener('click',async()=>{
  if(profile?.role!=='Admin'||demoMode)return;
  const button=$('loadAdminTeacherMarksRegister'),status=$('adminMarksRegisterStatus'),exportButton=$('exportTeacherMarksRegister');
- button.disabled=true;exportButton.disabled=true;status.textContent='Loading the selected class and term…';
+ const classId=$('adminTeacherMarksClass')?.value||'',termId=$('adminTeacherMarksTerm')?.value||'';
+ const classRecord=classes.find(c=>c.id===classId),termRecord=academic.terms.find(t=>t.id===termId);
+ if(!classRecord||!termRecord){status.textContent='Choose one valid class and one academic term before loading marks.';message('academicMsg','Choose one class and one term in the teacher-submitted marks register.',true);return}
+ const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
+ button.disabled=true;exportButton.disabled=true;status.textContent='Loading '+classRecord.name+' only…';
+ $('academicScoreRows').innerHTML='<tr><td colspan="10">Loading marks for '+esc(classRecord.name)+'…</td></tr>';
  try{
-  const data=await getTermScores();if(!data)throw new Error('Select a valid class and term first.');
-  const teacherIds=[...new Set(data.scores.map(x=>x.entered_by).filter(Boolean))];
-  let names=window.cornhillStaffNames||{};
+  const pageSize=1000,assessments=[];
+  for(let offset=0;;offset+=pageSize){
+   const result=await db.from('assessments').select('id,title,max_score,subject_id,term_id,class_id,subjects(name)').eq('term_id',termId).eq('class_id',classId).order('id').range(offset,offset+pageSize-1);
+   if(result.error)throw result.error;
+   const page=result.data||[];assessments.push(...page);if(page.length<pageSize)break;
+   if(offset>=50000)throw new Error('This class has too many assessments to load safely.');
+  }
+  const assessmentMap=new Map(assessments.map(a=>[a.id,a])),scores=[],assessmentIds=assessments.map(a=>a.id);
+  for(let start=0;start<assessmentIds.length;start+=80){
+   const group=assessmentIds.slice(start,start+80);
+   for(let offset=0;;offset+=pageSize){
+    const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment,entered_by,updated_at,students(admission_number,first_name,middle_name,last_name)').in('assessment_id',group).order('updated_at',{ascending:false}).range(offset,offset+pageSize-1);
+    if(result.error)throw result.error;
+    const page=result.data||[];scores.push(...page);if(page.length<pageSize)break;
+    if(offset>=100000)throw new Error('This class has too many saved marks to load safely.');
+   }
+  }
+  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
+  const teacherIds=[...new Set(scores.map(x=>x.entered_by).filter(Boolean))];let names=window.cornhillStaffNames||{};
   if(teacherIds.length){
    const profiles=await db.from('user_profiles').select('id,full_name').in('id',teacherIds);
    if(profiles.error)throw profiles.error;
    names={...names,...Object.fromEntries((profiles.data||[]).map(x=>[x.id,x.full_name||'Teacher account']))};
   }
-  const assessmentById=new Map(data.assessments.map(x=>[x.id,x]));
-  const learnerById=new Map(students.map(x=>[x.id,x]));
-  const className=$('reportClassSelect').selectedOptions[0]?.textContent||'';
-  const termName=$('reportTermSelect').selectedOptions[0]?.textContent||'';
-  const rows=data.scores.map(score=>{
-   const assessment=assessmentById.get(score.assessment_id)||{},learner=learnerById.get(score.student_id)||{};
-   return {className,termName,admissionCode:learner.admission_number||score.students?.admission_number||'',
-    learner:[learner.first_name||score.students?.first_name,learner.middle_name||score.students?.middle_name,learner.last_name||score.students?.last_name].filter(Boolean).join(' '),
-    subject:assessment.subjects?.name||'',assessment:assessment.title||'',mark:isAbsentMark(score)?'X':score.score,
-    maximum:assessment.max_score??'',teacher:names[score.entered_by]||'Teacher account',updated:score.updated_at||''};
+  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
+  const rows=scores.map(score=>{
+   const assessment=assessmentMap.get(score.assessment_id)||{},learner=score.students||{};
+   return {className:classRecord.name+(classRecord.stream?' · '+classRecord.stream:''),termName:termRecord.name+' · '+(termRecord.academic_years?.name||''),admissionCode:learner.admission_number||'',learner:[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '),subject:assessment.subjects?.name||'',assessment:assessment.title||'',mark:isAbsentMark(score)?'X':score.score,maximum:assessment.max_score??'',teacher:names[score.entered_by]||'Teacher account',updated:score.updated_at||''};
   });
   window.cornhillTeacherMarkRegisterRows=rows;
-  $('academicScoreRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.className)+'</td><td>'+esc(x.termName)+'</td><td>'+esc(x.admissionCode)+'</td><td>'+esc(x.learner)+'</td><td>'+esc(x.subject)+'</td><td>'+esc(x.assessment)+'</td><td>'+esc(x.mark)+'</td><td>'+esc(x.maximum)+'</td><td>'+esc(x.teacher)+'</td><td>'+esc(x.updated?new Date(x.updated).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No marks have been entered for this class and term.</td></tr>';
+  $('academicScoreRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.className)+'</td><td>'+esc(x.termName)+'</td><td>'+esc(x.admissionCode)+'</td><td>'+esc(x.learner)+'</td><td>'+esc(x.subject)+'</td><td>'+esc(x.assessment)+'</td><td>'+esc(x.mark)+'</td><td>'+esc(x.maximum)+'</td><td>'+esc(x.teacher)+'</td><td>'+esc(x.updated?new Date(x.updated).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No teacher-submitted marks have been saved for '+esc(classRecord.name)+' in '+esc(termRecord.name)+'.</td></tr>';
   exportButton.disabled=!rows.length;
-  status.textContent='Loaded '+rows.length+' teacher-entered mark record(s) for '+className+' · '+termName+'. This view is read-only.';
- }catch(err){status.textContent='Could not load the teacher marks: '+(err?.message||String(err));message('academicMsg','Teacher marks register could not be loaded: '+(err?.message||String(err)),true)}
- finally{button.disabled=false}
+  status.textContent='Loaded '+rows.length+' mark record(s) · '+classRecord.name+' · '+termRecord.name+'. Other classes are not included.';
+ }catch(error){
+  if(owner===currentUserId&&generation===(window.cornhillSessionGeneration||0)){
+   status.textContent='Could not load '+classRecord.name+' marks: '+(error?.message||String(error));
+   $('academicScoreRows').innerHTML='<tr><td colspan="10">The selected class marks could not be loaded. Please retry.</td></tr>';
+   message('academicMsg','Teacher marks register could not be loaded: '+(error?.message||String(error)),true);
+  }
+ }finally{if(owner===currentUserId&&generation===(window.cornhillSessionGeneration||0))button.disabled=false}
 });
 $('exportTeacherMarksRegister').addEventListener('click',()=>{
  if(profile?.role!=='Admin'||demoMode)return;
