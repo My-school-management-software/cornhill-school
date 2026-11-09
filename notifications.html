@@ -30,6 +30,8 @@ input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius
 @media(max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.controls{grid-template-columns:1fr 1fr}.controls input{grid-column:1/-1}}
 @media(max-width:460px){.controls{grid-template-columns:1fr}.controls input{grid-column:auto}.card{padding:14px}.wrap{margin:12px auto}}
 </style>
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<script src="/assets/cornhill-appearance.js"></script>
 <script src="/assets/cornhill-offline.js"></script></head>
 <body data-theme="warm-corporate">
 <header class="top">
@@ -94,7 +96,7 @@ async function enterApp(nextUser){
  user=nextUser;
  const {data:account,error}=await db.from('user_profiles').select('id,full_name,role,employment_status,job_title').eq('id',user.id).maybeSingle();
  if(error||!account||account.employment_status!=='Active'){await db.auth.signOut();throw new Error('An active CORNHILL staff account is required.')}
- profile=account;showApp();await loadNotifications();
+ profile=account;window.CornhillAppearance?.applyForUser?.(profile.id);showApp();await loadNotifications();
  if(pollTimer)clearInterval(pollTimer);
  pollTimer=setInterval(()=>{if(document.visibilityState==='visible')loadNotifications({quiet:true})},20000);
 }
