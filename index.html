@@ -4938,6 +4938,8 @@ function importPhaseNumber(raw){
  return null;
 }
 function importColumnPeriod(matrix,headerRow,col,header,activePeriod,sheetName){
+ const shared=window.CornhillMarkImportMapping;
+ if(shared?.columnPeriod)return shared.columnPeriod(matrix,headerRow,col,header,activePeriod,sheetName);
  let grouped=null;
  for(let r=Math.max(0,headerRow-3);r<headerRow;r++){
   let carried=null;
