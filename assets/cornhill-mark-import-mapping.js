@@ -137,5 +137,18 @@
     const explicit=grouped??sheetPhase;
     return {period:explicit??codePeriod??activePeriod,explicit:explicit!==null&&explicit!==undefined,codePeriod};
   }
-  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod};
+  function parseMarkValue(raw,maxScore,allowAbsent) {
+    const value=String(raw??'').trim();
+    if(value==='')return {valid:true,blank:true,absent:false,score:null};
+    if(value.toUpperCase()==='X'){
+      return allowAbsent
+        ? {valid:true,blank:false,absent:true,score:0}
+        : {valid:false,blank:false,absent:true,score:null,reason:'absent_not_allowed'};
+    }
+    const score=Number(value);
+    if(!Number.isFinite(score))return {valid:false,blank:false,absent:false,score:null,reason:'not_numeric'};
+    if(score<0||score>Number(maxScore))return {valid:false,blank:false,absent:false,score,reason:'out_of_range'};
+    return {valid:true,blank:false,absent:false,score};
+  }
+  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod,parseMarkValue};
 });
