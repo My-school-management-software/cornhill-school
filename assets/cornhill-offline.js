@@ -229,29 +229,34 @@
     return records.filter(x => x.status !== 'synced').length;
   }
 
-  function paintIndicator(state, pending, savedDrafts) {
+  function paintIndicator(state, pending) {
     if (!indicator) return;
     const offline = !navigator.onLine;
-    indicator.dataset.state = offline ? 'offline' : pending ? 'pending' : 'online';
-    const title = offline
-      ? 'Offline · drafts stay on this device'
+    indicator.dataset.state = offline ? 'offline' : 'online';
+    indicator.querySelector('[data-label]').textContent = offline ? 'Offline' : 'Online';
+    const pendingLabel = indicator.querySelector('[data-pending]');
+    const syncButton = indicator.querySelector('[data-sync]');
+    if (pendingLabel) {
+      pendingLabel.textContent = pending ? pending + ' pending' : '';
+      pendingLabel.hidden = !pending || offline;
+    }
+    syncButton.hidden = !pending || offline;
+    syncButton.disabled = offline || !pending || state === 'syncing';
+    syncButton.textContent = state === 'syncing' ? 'Syncing…' : 'Sync';
+    indicator.title = offline
+      ? 'Internet connection is unavailable.'
       : pending
-        ? 'Connected · ' + pending + ' item(s) waiting to sync'
-        : 'Connected · ready';
-    indicator.querySelector('[data-label]').textContent = title;
-    indicator.querySelector('[data-drafts]').textContent = savedDrafts ? savedDrafts + ' local draft(s)' : '';
-    indicator.querySelector('[data-sync]').disabled = offline || !pending;
-    indicator.querySelector('[data-sync]').textContent = state === 'syncing' ? 'Syncing…' : 'Sync now';
+        ? pending + ' queued item(s) awaiting synchronisation.'
+        : 'Internet connection is available.';
   }
 
   async function updateIndicator(state) {
     if (!indicator) return;
     try {
-      const [pending, drafts] = await Promise.all([countPending(), storeAll('drafts')]);
-      const scoped = drafts.filter(x => x.scope === currentScope()).length;
-      paintIndicator(state, pending, scoped);
+      const pending = await countPending();
+      paintIndicator(state, pending);
     } catch (_) {
-      paintIndicator(state, 0, 0);
+      paintIndicator(state, 0);
     }
   }
 
@@ -259,19 +264,23 @@
     if (indicator || !document.body) return;
     const style = document.createElement('style');
     style.textContent = `
-      #cornhillOfflineIndicator{position:fixed;z-index:99999;right:12px;bottom:12px;display:flex;align-items:center;gap:9px;max-width:min(94vw,440px);padding:9px 12px;border:1px solid #d7e3d9;border-radius:999px;background:#fff;color:#173d27;box-shadow:0 5px 24px #102b1a20;font:700 11px/1.25 system-ui,sans-serif}
+      #cornhillOfflineIndicator{position:fixed;z-index:99999;right:14px;bottom:14px;display:inline-flex;align-items:center;gap:7px;width:max-content;max-width:min(92vw,230px);padding:7px 10px;border:1px solid #d7e3d9;border-radius:999px;background:#fff;color:#173d27;box-shadow:0 4px 16px #102b1a18;font:700 11px/1.2 system-ui,sans-serif}
+      #cornhillOfflineIndicator::before{content:"";display:inline-block;flex:0 0 7px;width:7px;height:7px;border-radius:50%;background:#16a34a}
       #cornhillOfflineIndicator[data-state="offline"]{background:#fff8e8;border-color:#e8d19c;color:#704c0b}
-      #cornhillOfflineIndicator [data-drafts]{font-weight:500;color:#657568}
-      #cornhillOfflineIndicator button{border:0;border-radius:999px;padding:6px 10px;background:#14532d;color:#fff;font:700 11px system-ui,sans-serif;cursor:pointer}
-      #cornhillOfflineIndicator button:disabled{opacity:.45;cursor:default}
-      @media(max-width:560px){#cornhillOfflineIndicator{left:8px;right:8px;bottom:8px;justify-content:space-between;max-width:none}#cornhillOfflineIndicator [data-drafts]{display:none}}
+      #cornhillOfflineIndicator[data-state="offline"]::before{background:#d97706}
+      #cornhillOfflineIndicator [data-pending]{font-weight:600;color:#657568;font-size:10px}
+      #cornhillOfflineIndicator [data-pending][hidden],#cornhillOfflineIndicator button[hidden]{display:none!important}
+      #cornhillOfflineIndicator button{border:0;border-radius:999px;padding:5px 8px;background:#14532d;color:#fff;font:700 10px system-ui,sans-serif;cursor:pointer}
+      #cornhillOfflineIndicator button:disabled{opacity:.55;cursor:default}
+      @media(max-width:560px){#cornhillOfflineIndicator{right:10px;bottom:10px;left:auto;max-width:calc(100vw - 20px)}}
     `;
     document.head.appendChild(style);
     indicator = document.createElement('div');
     indicator.id = 'cornhillOfflineIndicator';
     indicator.setAttribute('role', 'status');
     indicator.setAttribute('aria-live', 'polite');
-    indicator.innerHTML = '<span data-label>Checking connection…</span><span data-drafts></span><button type="button" data-sync>Sync now</button>';
+    indicator.setAttribute('aria-label', 'Internet connection status');
+    indicator.innerHTML = '<span data-label>Checking…</span><span data-pending hidden></span><button type="button" data-sync hidden>Sync</button>';
     document.body.appendChild(indicator);
     indicator.querySelector('[data-sync]').addEventListener('click', () => syncNow().catch(() => {}));
     updateIndicator();

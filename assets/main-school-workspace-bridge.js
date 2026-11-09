@@ -9,11 +9,28 @@
  let enquiryRows=[];
  let noticeRows=[],calendarRows=[];
  let bridgeReady=false;
+ let dashboardApplicationsObserver=null;
+ function enforceDashboardAppCentreOnly(){
+  const dashboard=$('dashboard');
+  if(!dashboard)return;
+  const removeDashboardApplications=()=>{
+   dashboard.querySelectorAll(
+    '#dashboardWorkspacePanel, #appCentreCards, .app-centre-grid, .app-centre-card, [data-dashboard-app-shortcut], [data-dashboard-application]'
+   ).forEach(node=>node.remove());
+  };
+  removeDashboardApplications();
+  if(!dashboardApplicationsObserver&&window.MutationObserver){
+   dashboardApplicationsObserver=new MutationObserver(removeDashboardApplications);
+   dashboardApplicationsObserver.observe(dashboard,{childList:true,subtree:true});
+  }
+  const appCentreEyebrow=document.querySelector('#appCentre .dashboard-eyebrow');
+  if(appCentreEyebrow)appCentreEyebrow.textContent='SCHOOL APPLICATIONS';
+ }
  function buildDashboardPanels(){
   const dashboard=$('dashboard');
   if(!dashboard)return;
-  // App shortcuts belong in the navigation's App Centre, never on the home dashboard.
-  $('dashboardWorkspacePanel')?.remove();
+  // Enforce the App Centre boundary for every role, including late-rendered dashboard cards.
+  enforceDashboardAppCentreOnly();
   // Keep class boards available from navigation, but place them inside the Classes workspace.
   const classBoardsPanel=$('dashboardClassBoardsPanel'),classesWorkspace=$('classes');
   if(classBoardsPanel&&classesWorkspace&&!classesWorkspace.contains(classBoardsPanel)){
