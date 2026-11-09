@@ -115,6 +115,21 @@ test('all authenticated staff side-apps load and apply the shared appearance hel
   }
 });
 
+test('shared appearance CSS and helper load before staff pages apply account preferences', () => {
+  const staffApps = ['banking.html', 'evidence.html', 'school-services.html', 'notifications.html', 'records.html'];
+  for (const file of staffApps) {
+    const html = fs.readFileSync(path.join(root, file), 'utf8');
+    const css = html.indexOf('/assets/cornhill-design-system.css');
+    const helper = html.indexOf('/assets/cornhill-appearance.js');
+    const apply = html.indexOf('CornhillAppearance?.applyForUser?.(profile.id)');
+    assert.ok(css >= 0, file + ' must load shared appearance CSS');
+    assert.ok(helper >= 0, file + ' must load shared appearance helper');
+    assert.ok(apply >= 0, file + ' must apply preferences after staff profile is available');
+    assert.ok(css < helper, file + ' must load theme CSS before the helper');
+    assert.ok(helper < apply, file + ' must load the helper before applying staff preferences');
+  }
+});
+
 test('parent-facing portals remain isolated from staff appearance settings', () => {
   for (const file of ['parents.html', 'admissions.html', 'school.html']) {
     const html = fs.readFileSync(path.join(root, file), 'utf8');
