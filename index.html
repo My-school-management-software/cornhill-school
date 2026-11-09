@@ -5065,8 +5065,12 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   // Refuse a mismatched workbook rather than silently writing historical marks into
   // whichever term happens to be selected in the teacher workspace.
   const sourceTermNumbers=[...new Set(sheetInfos.map(info=>importWorkbookTermNumber(info.name)).filter(Boolean))];
+  const unlabelledTermSheets=sheetInfos.filter(info=>!importWorkbookTermNumber(info.name));
   const selectedAcademicTerm=academic.terms.find(t=>t.id===termId);
   const destinationTermNumber=importWorkbookTermNumber(selectedAcademicTerm?.name||'');
+  if(unlabelledTermSheets.length){
+   issues.push('Academic term could not be verified for worksheet tab(s): '+unlabelledTermSheets.map(info=>info.name).join(', ')+'. No marks can be imported until each worksheet tab identifies its source term. Rename the Excel worksheet tab itself to include 1ST TERM, 2ND TERM or 3RD TERM (for example, P5 1ST TERM), then preview again. Changing a cell or the workbook filename does not rename the worksheet tab.');
+  }
   if(sourceTermNumbers.length>1){
    issues.push('This workbook contains worksheets labelled for different academic terms. Separate the terms into different workbooks before importing.');
   }else if(sourceTermNumbers.length===1&&destinationTermNumber&&sourceTermNumbers[0]!==destinationTermNumber){
