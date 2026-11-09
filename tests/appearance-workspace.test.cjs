@@ -149,3 +149,32 @@ test('main dashboard shares the same preference namespace and listens for change
   assert.ok(html.includes("navigationLayout:$('navigationLayoutChoice').value"));
   assert.ok(html.includes("window.CornhillAppearance?.applyPreferences?.(prefs)"));
 });
+
+
+test('the shared responsive layout stylesheet is loaded by the main system and every top-level app', () => {
+  const entryPoints = [
+    'index.html', 'admissions.html', 'banking.html', 'evidence.html',
+    'notifications.html', 'parents.html', 'records.html',
+    'school-services.html', 'school.html'
+  ];
+  for (const file of entryPoints) {
+    const html = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.ok(
+      html.includes('/assets/cornhill-design-system.css'),
+      file + ' must load the shared system-wide responsive layout'
+    );
+  }
+});
+
+test('shared layout uses full width for standalone apps and reserves the fixed rail for the main workspace only', () => {
+  const css = fs.readFileSync(path.join(root, 'assets', 'cornhill-design-system.css'), 'utf8');
+  assert.match(css, /--cornhill-layout-max:\s*1760px/);
+  assert.match(css, /#app:not\(:has\(\.cornhill-sidebar\)\)>section:not\(\.tabs\)/);
+  assert.match(css, /#app:has\(\.cornhill-sidebar\)>section:not\(\.tabs\)/);
+  assert.match(css, /margin-left:0!important/);
+  assert.match(css, /margin-left:252px!important/);
+  assert.match(css, /margin-left:214px!important/);
+  assert.match(css, /\.table-wrap[^{]*\{[^}]*overflow-x:auto/s);
+  assert.match(css, /\.panel,\.stat,\.card,\.tile[^{]*\{[^}]*min-width:0!important/s);
+  assert.match(css, /@media\(max-width:700px\)/);
+});
