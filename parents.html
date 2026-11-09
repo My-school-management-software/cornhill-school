@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
 <script src="/assets/cornhill-offline.js"></script></head>
 <body data-theme="warm-corporate">
-<header class="top"><div><div class="brand">CORNHILL NURSERY AND PRIMARY SCHOOL</div><div class="sub">Parent & Guardian Portal · Private learner access</div></div></header>
+<header class="top"><div><div class="brand">CORNHILL NURSERY AND PRIMARY SCHOOL</div><div class="sub">Parent & Guardian Portal · Private learner access</div></div><button id="installParentPortal" type="button" class="secondary hidden">Install Parent Portal</button></header>
 <main class="wrap">
 <section class="card" id="loginCard">
 <h1>Parent & Guardian Sign In</h1>
@@ -122,6 +122,10 @@ function stopVoiceRecording(){if(voiceTimer)clearTimeout(voiceTimer);voiceTimer=
 el('signInGuardian').addEventListener('click',signInGuardian);el('sendParentMessage').addEventListener('click',sendParentMessage);el('startVoice').addEventListener('click',startVoiceRecording);el('stopVoice').addEventListener('click',stopVoiceRecording);el('clearVoice').addEventListener('click',clearVoiceNote);el('changeGuardianPin').addEventListener('click',changeGuardianPin);el('resetPinButton').addEventListener('click',resetGuardianPin);el('showPinReset').addEventListener('click',()=>el('pinResetPanel').classList.toggle('hidden'));el('futureOtp').addEventListener('click',()=>message('loginMessage','SMS OTP will be available in a future CORNHILL upgrade. Please use Guardian PIN for now.'));el('signOut').addEventListener('click',async()=>{try{if(parentSessionToken)await parentApi('signout')}catch(e){}parentSessionToken=null;clearVoiceNote();el('learnerResult').classList.add('hidden');el('parentMessages').classList.add('hidden');el('parentSchoolContacts').classList.add('hidden');el('guardianPinSettings').classList.add('hidden');el('loginCard').classList.remove('hidden');el('phone').value='';el('guardianPin').value='';el('pupilCodeBeforeVerify').value=''});
 // Guardian PIN verification is handled by the protected server-side RPC. SMS OTP remains inactive.
 
+let parentInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();parentInstallPrompt=event;el('installParentPortal').classList.remove('hidden')});
+el('installParentPortal').addEventListener('click',async()=>{if(!parentInstallPrompt)return;parentInstallPrompt.prompt();await parentInstallPrompt.userChoice;parentInstallPrompt=null;el('installParentPortal').classList.add('hidden')});
+window.addEventListener('appinstalled',()=>el('installParentPortal').classList.add('hidden'));
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
 </body></html>
