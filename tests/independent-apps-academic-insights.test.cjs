@@ -134,8 +134,8 @@ test('every application hostname is locked to its own installed-app route',()=>{
 
 test('administrator class workspace detail includes every learner in the selected class, not a school-wide mixed list',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(html,/students\\|\\|\\[\\]\\)\\.filter\\(x=>x\\.status==='Active'\\)/);
- assert.match(html,/activeLearners\\.filter\\(x=>x\\.class_id===cls\\.id\\)/);
+ assert.ok(html.includes("const activeLearners=(students||[]).filter(x=>x.status==='Active')"));
+ assert.ok(html.includes('const members=activeLearners.filter(x=>x.class_id===cls.id)'));
  assert.match(html,/All learners in /);
  assert.match(html,/data-class-insight/);
 });
@@ -144,8 +144,8 @@ test('administrator teacher marks register requires an explicit class and term a
  assert.match(html,/id="adminTeacherMarksClass"/);
  assert.match(html,/id="adminTeacherMarksTerm"/);
  assert.match(html,/Choose one class and one term before loading marks/);
- assert.match(html,/\\.eq\\('term_id',termId\\)\\.eq\\('class_id',classId\\)/);
+ assert.ok(html.includes(".eq('term_id',termId).eq('class_id',classId)"));
  assert.match(html,/Other classes are not included/);
- assert.match(html,/Promise\\.resolve\\(\\{data:\\[\\],error:null\\}\\)/);
- assert.doesNotMatch(html,/profile\\?\\.role==='Admin'\\?loadAllTeacherMarksRegister\\(\\)/);
+ assert.ok(html.includes('Promise.resolve({data:[],error:null})'));
+ assert.ok(!html.includes("profile?.role==='Admin'?loadAllTeacherMarksRegister()"));
 });
