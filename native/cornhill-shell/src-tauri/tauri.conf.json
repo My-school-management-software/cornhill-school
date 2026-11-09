@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "CORNHILL School",
+  "version": "1.0.0",
+  "identifier": "ug.co.cornhill.school",
+  "build": {
+    "frontendDist": "https://cornhill-school-swart.vercel.app/"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "CORNHILL Nursery and Primary School",
+        "width": 1380,
+        "height": 900,
+        "minWidth": 980,
+        "minHeight": 640,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "capabilities": []
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "category": "Education",
+    "shortDescription": "CORNHILL School Management System",
+    "longDescription": "The official CORNHILL Nursery and Primary School management application for authorised school staff.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "android": {
+      "minSdkVersion": 24
+    }
+  }
+}
