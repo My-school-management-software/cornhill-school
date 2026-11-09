@@ -172,6 +172,25 @@ test('Middle workbook unnumbered RE, H.H and SD columns resolve to Midterm after
  assert.deepEqual(periods,{RE:2,'H.H':2,SD:2});
 });
 
+test('actual P7 workbook typo 33O is rejected and is never silently converted into a mark',()=>{
+ const bad=mapping.parseMarkValue('33O',100,false);
+ assert.equal(bad.valid,false);
+ assert.equal(bad.reason,'not_numeric');
+ const valid=mapping.parseMarkValue('33',100,false);
+ assert.equal(valid.valid,true);
+ assert.equal(valid.score,33);
+});
+
+test('mark validation preserves zero, maximum, range checks and Upper Primary absence rules',()=>{
+ assert.deepEqual(mapping.parseMarkValue('0',100,false),{valid:true,blank:false,absent:false,score:0});
+ assert.equal(mapping.parseMarkValue('100',100,false).valid,true);
+ assert.equal(mapping.parseMarkValue('101',100,false).reason,'out_of_range');
+ assert.equal(mapping.parseMarkValue('-1',100,false).reason,'out_of_range');
+ assert.deepEqual(mapping.parseMarkValue('X',100,true),{valid:true,blank:false,absent:true,score:0});
+ assert.equal(mapping.parseMarkValue('X',100,false).reason,'absent_not_allowed');
+ assert.equal(mapping.parseMarkValue('',100,false).blank,true);
+});
+
 test('real worksheet tab names identify Term 1; generic Sheet 1 does not invent a term',()=>{
  for(const tab of ['MIDDLE 1ST TERM','P.6 1ST TERM','P.7 1ST TERM','P.3 1ST TERM'])
   assert.equal(mapping.workbookTermNumber(tab),1,tab);
