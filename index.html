@@ -5176,6 +5176,14 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     prior.count+=count;prior.result=issue?'Needs correction':prior.count?'Ready':'No valid marks';displayMap.set(displayKey,prior);
    }
   }
+  const mappedAssessmentPairs=markColumns.map(column=>column.assessment.subject_id+'|'+column.period);
+  const missingRequiredColumns=window.CornhillMarkImportMapping?.missingAssessmentPairs
+   ?window.CornhillMarkImportMapping.missingAssessmentPairs(ctx.assessments,mappedAssessmentPairs,excelAssessmentPeriod,assessment=>assessment.subjects?.name||assessment.title||'Subject')
+   :[];
+  if(missingRequiredColumns.length){
+   const missingLabel=missingRequiredColumns.map(item=>item.subject+' · '+item.period).join('; ');
+   issues.push('Workbook is missing required subject/period columns available to this account: '+missingLabel+'. Add the missing columns to the original class workbook or ask the administrator to check the assessment setup. No partial class import is allowed.');
+  }
   if(!markColumns.length)issues.push('No assessment subject columns have been matched yet. Map the unfamiliar headings below, or check the selected class and workbook.');
   const display=[...displayMap.values()],existing=new Set([...ctx.savedMarks.keys()]),replaceExisting=$('replaceExistingImportedMarks').checked,filtered=plan.filter(x=>replaceExisting||!existing.has(x.assessment_id+'|'+x.student_id));
   teacherExcelImportPlan={payload:filtered,all:plan,display,workbook:file.name,ctxKey:classId+'|'+termId,blockingIssues:issues,requiresTermConfirmation,termConfirmationKey};
