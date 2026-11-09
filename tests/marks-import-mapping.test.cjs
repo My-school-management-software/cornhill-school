@@ -229,6 +229,20 @@ test('JavaScript inside all school HTML pages, assets and service worker parses 
  assert.ok(checked>0,'No application JavaScript files were checked');
 });
 
+test('complete class import blocks when a required subject-period pair is absent',()=>{
+ const expected=[
+  {subject_id:'en',subjects:{name:'English'},period:'Set I'},
+  {subject_id:'mt',subjects:{name:'Mathematics'},period:'Set I'},
+  {subject_id:'sc',subjects:{name:'Science'},period:'Set I'},
+  {subject_id:'sst',subjects:{name:'Social Studies'},period:'Set I'}
+ ];
+ const mapped=['en|Set I','mt|Set I','sc|Set I'];
+ const missing=mapping.missingAssessmentPairs(expected,mapped,a=>a.period,a=>a.subjects.name);
+ assert.deepEqual(missing,[{key:'sst|Set I',subject:'Social Studies',period:'Set I'}]);
+ const complete=mapping.missingAssessmentPairs(expected,[...mapped,'sst|Set I'],a=>a.period,a=>a.subjects.name);
+ assert.deepEqual(complete,[]);
+});
+
 test('actual workbook summary rows and the stray Baby numeric label are skipped',()=>{
  for(const label of ['4','TOTAL CLASS ENROLLMENT','CLASS ENROLLMENT','BOYS','GIRLS','DIVISION','DIVISION IV','GRADING ANALYSIS BOT','PERFORMANCE BY GENDER','BOARDING'])
   assert.equal(mapping.isSummaryLearnerRow(label),true,label+' must not be treated as a learner');
@@ -258,4 +272,6 @@ test('browser importer loads the tested helper and honours missing-subject state
  assert.ok(html.includes('Excel worksheet tab: '));
  assert.ok(html.includes('isSummaryLearnerRow(cleanRowName)'));
  assert.ok(html.includes('isSummaryLearnerRow(rawName)'));
+ assert.ok(html.includes('Workbook is missing required subject/period columns available to this account'));
+ assert.ok(html.includes('missingAssessmentPairs(ctx.assessments'));
 });
