@@ -5143,9 +5143,14 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     if(learner&&!issue){
      for(const col of columns){
       const cell=row[col.index];if(cell===null||cell===undefined||String(cell).trim()===''||typeof cell==='string'&&cell.startsWith('='))continue;
-      const absent=String(cell).trim().toUpperCase()==='X',score=absent?0:Number(cell);
-      if(!absent&&(!Number.isFinite(score)||score<0||score>Number(col.assessment.max_score))){issues.push(info.name+' · '+rawName+' · '+col.header+': '+cell+' is invalid; maximum is '+col.assessment.max_score+'.');continue}
-      if(absent&&!allowsAbsentMarkForClass(classId)){issues.push(info.name+' · '+rawName+' · '+col.header+': X is not allowed for this class.');continue}
+      const parsedMark=window.CornhillMarkImportMapping?.parseMarkValue
+       ?window.CornhillMarkImportMapping.parseMarkValue(cell,col.assessment.max_score,allowsAbsentMarkForClass(classId))
+       :{valid:(String(cell).trim().toUpperCase()==='X'?allowsAbsentMarkForClass(classId):(Number.isFinite(Number(cell))&&Number(cell)>=0&&Number(cell)<=Number(col.assessment.max_score))),absent:String(cell).trim().toUpperCase()==='X',score:String(cell).trim().toUpperCase()==='X'?0:Number(cell),reason:String(cell).trim().toUpperCase()==='X'?'absent_not_allowed':'not_numeric'};
+      if(!parsedMark.valid){
+       const detail=parsedMark.reason==='absent_not_allowed'?'X is not allowed for this class.':parsedMark.reason==='not_numeric'?'is not a numeric mark.':'is invalid; the maximum is '+col.assessment.max_score+'.';
+       issues.push(info.name+' · '+rawName+' · '+col.header+': '+cell+' '+detail);continue;
+      }
+      const absent=!!parsedMark.absent,score=parsedMark.score;
       const markKey=col.assessment.id+'|'+learner.id;
       if(seenMarks.has(markKey)){issues.push(info.name+' · '+rawName+' · '+col.header+': this learner/subject/period is repeated across worksheets.');continue}
       seenMarks.add(markKey);
