@@ -77,8 +77,8 @@ test('administrator academic insights show class-by-class subject and learner de
 
 test('offline shell includes each standalone app entry and its own manifest route',()=>{
  const sw=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
- assert.match(sw,/cornhill-shell-v78/);
- assert.match(sw,/cornhill-static-v78/);
+ assert.match(sw,/cornhill-shell-v79/);
+ assert.match(sw,/cornhill-static-v79/);
  assert.match(sw,/app-isolation-guard\.js/);
  for(const [slug] of [...apps,...serviceApps.map(x=>[x[0]])]){
   assert.ok(sw.includes('/apps/'+slug+'/'));
