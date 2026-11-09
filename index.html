@@ -1489,6 +1489,13 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <div class="row"><h2>Academics · administration, teaching and results</h2><span class="badge" id="academicAccessBadge">Administrator and assigned teacher access</span></div>
  <p class="muted">Teachers independently prepare assessments, enter marks and manage results for their assigned classes. Administrators monitor school-wide performance and manage academic structure; routine assessment approval is not required.</p>
  <div id="academicMsg" class="notice hidden"></div>
+ <nav id="academicWorkspaceNav" class="tabs" aria-label="Academic workspace sections" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--cornhill-line)">
+  <a class="tab" href="#adminAcademicInsights" data-admin-academic-nav>Results overview</a>
+  <a class="tab" href="#academicAdminSetup" data-admin-academic-nav>Academic setup</a>
+  <a class="tab" href="#assessmentSetup" data-admin-academic-nav>Assessment setup</a>
+  <a class="tab" href="#teacherMarkEntry" data-teacher-academic-nav>Teacher mark entry</a>
+  <a class="tab" href="#classReportWorkspace">Report cards &amp; class results</a>
+ </nav>
  <section id="adminAcademicInsights" class="panel hidden" style="margin:14px 0;padding:16px">
   <div class="row" style="align-items:center;justify-content:space-between"><div><h3 style="margin:0">Academic Performance &amp; Insights</h3><p class="muted" style="margin:5px 0">School-wide monitoring. Teachers manage assessments and marks; this view is for oversight and analysis, not approval.</p></div><span class="badge">Administrator overview</span></div>
   <div class="row" style="align-items:end;gap:10px;margin:12px 0"><div style="min-width:190px;flex:1"><label for="adminAcademicTerm">Academic term</label><select id="adminAcademicTerm"></select></div><button type="button" class="primary" id="refreshAdminAcademicInsights">Refresh school performance</button></div>
@@ -1635,7 +1642,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <p class="muted">Use these nine grade codes for internal tests and mock estimates. UNEB determines final examination subject grades through national standardisation, so percentage cut-offs here must be approved by the school for its own assessments and must not be presented as official UNEB cut-offs. Set the range separately for each core subject; aggregate remains unavailable until all required boundaries are configured.</p>
  <div id="unebGradeBandAdmin" class="hidden"><form id="unebGradeBandForm"><div><label>Core subject *</label><select name="subject_id" id="unebGradeSubject" required></select></div><div><label>Grade code *</label><select name="grade_code" required><option>D1</option><option>D2</option><option>C3</option><option>C4</option><option>C5</option><option>C6</option><option>P7</option><option>P8</option><option>F9</option></select></div><div><label>Minimum % *</label><input name="min_percent" type="number" min="0" max="100" step="0.01" required></div><div><label>Maximum % *</label><input name="max_percent" type="number" min="0" max="100" step="0.01" required></div><div class="full"><button class="primary">Save UNEB subject boundary</button></div></form></div>
  <div class="table-wrap"><table><thead><tr><th>Subject</th><th>Grade</th><th>Minimum</th><th>Maximum</th><th>Status</th></tr></thead><tbody id="unebGradeBandRows"></tbody></table></div>
- </section></section><h3 style="margin-top:24px">7. Term report cards and selected-class performance</h3>
+ </section></section><h3 id="classReportWorkspace" style="margin-top:24px">7. Term report cards and selected-class performance</h3>
  <p class="muted">Choose a term and one class first. Learner selection, report-card previews, class batches and the performance summary below use only that selected class.</p>
  <div class="row" style="align-items:end">
   <div style="flex:1;min-width:160px"><label>Term</label><select id="reportTermSelect"></select></div>
@@ -1668,23 +1675,20 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <p id="reportBatchStatus" class="muted" aria-live="polite">Choose a term and class, then generate the class batch.</p>
  <div id="reportBatchPrint" class="hidden"></div>
  <div id="reportCardPreview" style="margin-top:14px"></div>
- <h3 style="margin-top:20px">Performance summary for the selected class</h3>
- <p class="muted">This summary follows the Term and Class selectors above. It contains only learners belonging to the selected class.</p>
- <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportAcademicClassCsv">Export selected-class results · CSV</button></div>
- <div class="table-wrap"><table><thead><tr><th>Position*</th><th>Learner</th><th>Subjects scored</th><th>Total marks</th><th>Average %</th></tr></thead><tbody id="classPerformanceRows"></tbody></table></div>
- <p class="muted">*Position is a provisional ranking among learners with entered marks. Missing marks are excluded from each learner's average. Export is limited to the selected class and term.</p>
- <section id="adminTeacherMarksRegister" class="panel" style="margin-top:20px;padding:15px">
- <h3 style="margin:0 0 5px">Administrator · teacher-submitted marks register</h3>
- <p class="muted">Read-only audit view. Select exactly one class and one term before loading. The register will never open as a mixed school-wide learner list.</p>
- <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap;margin:12px 0">
-  <div style="flex:1;min-width:190px"><label for="adminTeacherMarksClass">Class</label><select id="adminTeacherMarksClass"><option value="">Choose one class</option></select></div>
-  <div style="flex:1;min-width:190px"><label for="adminTeacherMarksTerm">Academic term</label><select id="adminTeacherMarksTerm"><option value="">Choose one term</option></select></div>
-  <button type="button" class="primary" id="loadAdminTeacherMarksRegister">Load this class's marks</button>
-  <button type="button" id="exportTeacherMarksRegister" disabled>Export selected class · CSV</button>
+ <section id="selectedClassPerformance" class="panel" style="margin-top:20px;padding:15px">
+ <h3 style="margin:0 0 5px">Class performance &amp; learner ranking</h3>
+ <p class="muted" style="margin:0">Choose the term and class in this section. The results table and export below use only this exact class and term.</p>
+ <div class="row" id="classPerformanceFilters" style="align-items:end;gap:10px;flex-wrap:wrap;margin:12px 0">
+  <div style="flex:1;min-width:170px"><label for="performanceTermSelect">Academic term</label><select id="performanceTermSelect"><option value="">Choose term</option></select></div>
+  <div style="flex:1;min-width:170px"><label for="performanceClassSelect">Class</label><select id="performanceClassSelect"><option value="">Choose class</option></select></div>
+  <button type="button" class="primary" id="refreshSelectedClassPerformance">Load class performance</button>
  </div>
- <p id="adminMarksRegisterStatus" class="muted" role="status" aria-live="polite">Choose a class and term above. No marks are loaded until you press the button.</p>
- <div class="table-wrap"><table><thead><tr><th>Class</th><th>Term</th><th>Learner code</th><th>Learner</th><th>Subject</th><th>Assessment</th><th>Mark</th><th>Maximum</th><th>Teacher account</th><th>Last updated</th></tr></thead><tbody id="academicScoreRows"><tr><td colspan="10">Select one class and term to view teacher-submitted marks.</td></tr></tbody></table></div>
+ <p id="classPerformanceStatus" class="muted" role="status" aria-live="polite">Choose one academic term and one class, then load the performance summary.</p>
+ <div class="row" style="justify-content:flex-end;margin:8px 0"><button type="button" id="exportAcademicClassCsv">Export this class ranking · CSV</button></div>
+ <div class="table-wrap"><table><thead><tr><th>Position*</th><th>Learner</th><th>Subjects scored</th><th>Total marks</th><th>Average %</th></tr></thead><tbody id="classPerformanceRows"><tr><td colspan="5">Select a term and class to view their performance.</td></tr></tbody></table></div>
+ <p class="muted">*Position is a provisional ranking among learners with entered marks. Missing marks are excluded from each learner's average. The export is restricted to the selected class and term.</p>
  </section>
+
 </section>
 
 <section id="staffProfiles" class="panel hidden"><div class="row"><h2>Staff profiles & HR</h2><span class="badge">Administrator only</span></div><p class="muted">Maintain staff contact, role description and employment dates. Confidential identity documents are not stored in this basic profile screen.</p><div id="staffProfileMsg" class="notice hidden"></div><div class="card" style="margin:16px 0;padding:16px"><h3>Register a school employee</h3><p class="muted">Add teaching or non-teaching employees even when they do not need a software login. Staff details are kept in the administrator-only school directory.</p><form id="schoolStaffDirectoryForm"><div><label>Full name *</label><input name="full_name" required minlength="2" maxlength="120"></div><div><label>Phone number</label><input name="phone" type="tel" placeholder="+256..."></div><div><label>Gender</label><select name="gender"><option value="">Not recorded</option><option value="Female">Female</option><option value="Male">Male</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div><div><label>Staff category *</label><select name="staff_category" required><option value="">Choose category</option><option value="Teaching">Teaching staff</option><option value="Non-teaching">Non-teaching staff</option></select></div><div><label>Job title *</label><input name="job_title" required maxlength="120" placeholder="e.g. Class Teacher, Matron, Cook"></div><div><label>Department / section</label><input name="department" maxlength="120" placeholder="e.g. Lower Primary, Catering, Stores"></div><div><label>Employment start date</label><input name="employment_start_date" type="date"></div><div><label>Reporting date</label><input name="reporting_date" type="date"></div><div><label>Employment status</label><select name="employment_status"><option>Active</option><option>On Leave</option><option>Exited</option></select></div><div class="full"><label>Responsibilities / duties</label><textarea name="responsibilities" rows="2" maxlength="1000"></textarea></div><div class="full"><button type="submit" class="primary">Save employee record</button></div></form></div><h3 style="margin-top:18px">Invite a staff member to sign in</h3>
@@ -3968,10 +3972,11 @@ async function loadAcademics(){
  if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
  if(profile?.role==='Teacher'){try{const ready=await ensureTeacherAcademicClassContext();if(!ready)return}catch(contextError){message('academicMsg',contextError?.message||'Your assigned class could not be verified. Sign out and sign in again.',true);const field=$('markGridTerm')?.closest('section.panel')?.querySelector('input[readonly]');if(field)field.value='Class assignment needs administrator review';return}}
  $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
+ document.querySelectorAll('[data-admin-academic-nav]').forEach(link=>link.classList.toggle('hidden',profile?.role!=='Admin'));
+ document.querySelectorAll('[data-teacher-academic-nav]').forEach(link=>link.classList.toggle('hidden',profile?.role!=='Teacher'));
  $('assessmentSetup').classList.toggle('hidden',profile?.role!=='Admin');
  $('adminAcademicInsights')?.classList.toggle('hidden',profile?.role!=='Admin');
  $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
- $('adminTeacherMarksRegister').classList.toggle('hidden',profile?.role!=='Admin');
  $('adminReportActions').classList.toggle('hidden',profile?.role!=='Admin');
  $('exportAcademicClassCsv').classList.toggle('hidden',profile?.role!=='Admin');
  $('downloadBlankReportTemplates').classList.toggle('hidden',profile?.role!=='Admin');
@@ -3983,19 +3988,18 @@ async function loadAcademics(){
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic Performance & Insights · school-wide monitoring':'Academics & Results · teacher-managed';
  $('academics').querySelector('h2').textContent=profile?.role==='Admin'?'Academic Performance & Insights':'Academics & Results';
  $('adminReportActions')?.classList.toggle('hidden',profile?.role!=='Admin');
- const [y,t,s,a,staff,teacherDirectory,cscores,assignments,classTeacherAssignments]=await Promise.all([
+ const [y,t,s,a,staff,teacherDirectory,assignments,classTeacherAssignments]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
   db.from('academic_terms').select('id,name,academic_year_id,is_current,is_closed,starts_on,ends_on').order('starts_on',{ascending:false}),
   profile?.role==='Admin'?db.from('subjects').select('*').eq('is_active',true).order('name'):(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}),
   (profile?.role==='Teacher'?db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')):db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)')).order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('role','Teacher').order('full_name'):Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?db.from('academic_teacher_directory').select('*').order('full_name'):Promise.resolve({data:[],error:null}),
-  Promise.resolve({data:[],error:null}),
   profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,teacher_directory_id,school_classes(name),subjects(name),academic_teacher_directory(full_name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')),
   profile?.role==='Admin'?db.from('class_teacher_directory_assignments').select('class_id,teacher_directory_id,updated_at,academic_teacher_directory(full_name,employment_status,linked_user_id)'):Promise.resolve({data:[],error:null})
  ]);
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
- const err=[y,t,s,a,staff,teacherDirectory,cscores,assignments,classTeacherAssignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
+ const err=[y,t,s,a,staff,teacherDirectory,assignments,classTeacherAssignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
  if(profile?.role!=='Teacher')window.teacherClassIds=null;
  const teacherClassId=sessionStorage.getItem('cornhill_teacher_class_id');
  const teacherSubjectScope=new Set((assignments.data||[]).filter(x=>x.class_id===teacherClassId).map(x=>x.subject_id));
@@ -4025,23 +4029,9 @@ async function loadAcademics(){
  if(profile?.role==='Admin'&&currentUserId){for(const row of assignments.data||[]){try{const draft=await readLocalFormDraft(currentUserId,'academic-teacher-assignment-'+row.id);const select=document.querySelector('[data-assignment-teacher="'+CSS.escape(row.id)+'"]');if(draft&&select&&[...select.options].some(o=>o.value===draft.values?.teacher_directory_id))select.value=draft.values.teacher_directory_id}catch(_){}}}
  $('assessmentTermSelect').innerHTML=opts(academic.terms,x=>x.name+' · '+(x.academic_years?.name||''));
  updateIndividualSubjectOptions();
- window.cornhillTeacherMarksRegister=cscores.data||[];
  window.cornhillStaffNames=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||'Teacher account']));
- $('academicScoreRows').innerHTML=profile?.role==='Admin'?window.cornhillTeacherMarksRegister.map(x=>'<tr><td>'+esc(x.assessments?.school_classes?.name||'—')+'</td><td>'+esc(x.assessments?.academic_terms?.name||'—')+'</td><td>'+esc(x.students?.admission_number||'—')+'</td><td>'+esc([x.students?.first_name,x.students?.middle_name,x.students?.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(x.assessments?.subjects?.name||'—')+'</td><td>'+esc(x.assessments?.title||'—')+'</td><td>'+(isAbsentMark(x)?'X · Absent':esc(x.score))+'</td><td>'+esc(x.assessments?.max_score??'—')+'</td><td>'+esc(window.cornhillStaffNames[x.entered_by]||'Teacher account')+'</td><td>'+esc(x.updated_at?new Date(x.updated_at).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No teacher marks have been saved yet.</td></tr>':'<tr><td colspan="10">Administrator register only.</td></tr>';
  updateScoreLearners();
  populateReportFilters();
- // Keep the administrator marks audit empty until a single class and term are selected.
- const adminMarksClass=$('adminTeacherMarksClass'),adminMarksTerm=$('adminTeacherMarksTerm');
- if(adminMarksClass)adminMarksClass.innerHTML='<option value="">Choose one class</option>'+classes.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name+(c.stream?' · '+c.stream:''))+'</option>').join('');
- if(adminMarksTerm){
-  adminMarksTerm.innerHTML='<option value="">Choose one term</option>'+academic.terms.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.name+' · '+(t.academic_years?.name||''))+'</option>').join('');
-  const preferred=academic.terms.find(t=>t.is_current&&!t.is_closed)||academic.terms.find(t=>!t.is_closed)||academic.terms[0];
-  if(preferred)adminMarksTerm.value=preferred.id;
- }
- window.cornhillTeacherMarkRegisterRows=[];
- $('academicScoreRows').innerHTML='<tr><td colspan="10">Select one class and term to view teacher-submitted marks.</td></tr>';
- $('exportTeacherMarksRegister').disabled=true;
- $('adminMarksRegisterStatus').textContent='Choose one class and term. The table stays empty until you load that class.';
  if(profile?.role==='Admin'){
   const insightTerm=$('adminAcademicTerm');if(insightTerm){insightTerm.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');const current=academic.terms.find(x=>x.is_current&&!x.is_closed)||academic.terms.find(x=>!x.is_closed)||academic.terms[0];if(current)insightTerm.value=current.id;}
   await loadAdminAcademicInsights();
@@ -4174,6 +4164,16 @@ function populateReportFilters(){
  const allowedClassIds=profile?.role==='Teacher'?new Set((window.teacherClassIds||[])):null;
  const available=classes.filter(x=>!allowedClassIds||allowedClassIds.has(x.id));
  cls.innerHTML='<option value="">Choose class</option>'+available.map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.stream?' - '+x.stream:''))+'</option>').join('');
+ const performanceTerm=$('performanceTermSelect'),performanceClass=$('performanceClassSelect');
+ if(performanceTerm){
+  performanceTerm.innerHTML=term.innerHTML;
+  const preferredTerm=academic.terms.find(x=>x.is_current&&!x.is_closed)||academic.terms.find(x=>!x.is_closed)||academic.terms[0];
+  performanceTerm.value=term.value||preferredTerm?.id||'';
+ }
+ if(performanceClass){
+  performanceClass.innerHTML=cls.innerHTML;
+  performanceClass.value=cls.value||(profile?.role==='Teacher'&&available.length===1?available[0].id:'');
+ }
  setupExcelMarksFilters();
  updateReportLearners();
 }
@@ -4192,8 +4192,11 @@ function updateReportLearners(){
  const list=students.filter(x=>!classId||x.class_id===classId);
  $('reportStudentSelect').innerHTML='<option value="">Choose learner</option>'+list.map(x=>'<option value="'+x.id+'">'+esc(x.admission_number+' · '+x.first_name+' '+x.last_name)+'</option>').join('');
 }
-$('reportClassSelect').addEventListener('change',()=>{updateReportLearners();renderClassPerformance()});
-$('reportTermSelect').addEventListener('change',()=>{renderClassPerformance();$('reportCardPreview').innerHTML=''});
+$('reportClassSelect').addEventListener('change',()=>{updateReportLearners();$('reportCardPreview').innerHTML=''});
+$('reportTermSelect').addEventListener('change',()=>$('reportCardPreview').innerHTML='');
+$('performanceClassSelect').addEventListener('change',renderClassPerformance);
+$('performanceTermSelect').addEventListener('change',renderClassPerformance);
+$('refreshSelectedClassPerformance').addEventListener('click',renderClassPerformance);
 $('buildReportCard').addEventListener('click',async()=>{
  const button=$('buildReportCard'),preview=$('reportCardPreview'),owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  if(button.dataset.busy==='1')return;
@@ -4314,8 +4317,8 @@ async function downloadBlankClassReportTemplates(){
 }
 $('downloadBlankReportTemplates')?.addEventListener('click',downloadBlankClassReportTemplates);
 
-async function getTermScores(){
- const termId=$('reportTermSelect').value,classId=$('reportClassSelect').value;
+async function getTermScores(selection={}){
+ const termId=selection.termId??$('reportTermSelect').value,classId=selection.classId??$('reportClassSelect').value;
  if(!termId||!classId){message('academicMsg','Choose both a term and a class to view results.',true);return null}
  const {data:allRows,error}=await db.from('assessments').select('id,title,max_score,subject_id,term_id,class_id,subjects(id,name)').eq('term_id',termId).eq('class_id',classId);
  if(error){message('academicMsg','Could not load term assessments: '+error.message,true);return null}
@@ -4435,7 +4438,7 @@ async function loadAdminAcademicInsights(){
   for(let start=0;start<assessmentIds.length;start+=80){
    const group=assessmentIds.slice(start,start+80);
    for(let offset=0;;offset+=pageSize){
-    const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment').in('assessment_id',group).order('assessment_id').order('student_id').range(offset,offset+pageSize-1);
+    const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment,entered_by,updated_at,students(admission_number,first_name,middle_name,last_name)').in('assessment_id',group).order('assessment_id').order('student_id').range(offset,offset+pageSize-1);
     if(result.error)throw result.error;
     const page=result.data||[];scores.push(...page);
     if(page.length<pageSize)break;
@@ -4465,6 +4468,25 @@ async function loadAdminAcademicInsights(){
    .sort((a,b)=>(a.average??101)-(b.average??101));
   const totalScore=classesForTerm.reduce((n,x)=>n+x.sum,0),totalMax=classesForTerm.reduce((n,x)=>n+x.max,0);
   const activeLearners=(students||[]).filter(x=>x.status==='Active'),schoolAverage=totalMax?totalScore/totalMax*100:null;
+  const learnerById=new Map((students||[]).map(x=>[x.id,x]));
+  const auditRowsByClass=new Map();
+  const teacherNames=window.cornhillStaffNames||{};
+  scores.forEach(score=>{
+   const assessment=assessmentMap.get(score.assessment_id);if(!assessment?.class_id)return;
+   const learner=score.students||learnerById.get(score.student_id)||{};
+   const row={
+    admissionCode:learner.admission_number||'—',
+    learner:[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ')||'Learner record',
+    subject:assessment.subjects?.name||'Subject',
+    assessment:assessment.title||'Assessment',
+    mark:isAbsentMark(score)?'X':(score.score??'—'),
+    maximum:assessment.max_score??'—',
+    teacher:teacherNames[score.entered_by]||'Teacher account',
+    updated:score.updated_at||''
+   };
+   if(!auditRowsByClass.has(assessment.class_id))auditRowsByClass.set(assessment.class_id,[]);
+   auditRowsByClass.get(assessment.class_id).push(row);
+  });
   const tile=(label,value)=>'<div class="stat" style="min-width:0;padding:12px"><div class="muted">'+label+'</div><strong style="display:block;font-size:1.4rem;overflow-wrap:anywhere">'+value+'</strong></div>';
   kpis.innerHTML=[
    tile('Classes',classesForTerm.length),tile('Active learners',activeLearners.length),
@@ -4488,7 +4510,7 @@ async function loadAdminAcademicInsights(){
     '<div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><div class="stat"><small>Assessments</small><div class="num">'+cls.assessments+'</div></div><div class="stat"><small>Learners with marks</small><div class="num">'+cls.learners.size+'</div></div><div class="stat"><small>Class average</small><div class="num">'+(cls.average===null?'—':cls.average.toFixed(1)+'%')+'</div></div><div class="stat"><small>Highest</small><div class="num">'+(cls.marks.length?Math.max(...cls.marks).toFixed(1)+'%':'—')+'</div></div></div>' +
     '<p class="muted" style="font-size:12px;margin:0">'+state+'</p><button type="button" class="primary" data-class-insight="'+esc(cls.id)+'">Open '+esc(cls.name)+' performance</button></article>';
   }).join('')||'<div class="notice">No classes have been registered. Create classes before viewing class performance.</div>';
-  const learnerById=new Map((students||[]).map(x=>[x.id,x])),details={};
+  const details={};
   classesForTerm.forEach(cls=>{
    const members=activeLearners.filter(x=>x.class_id===cls.id);
    const ranked=members.map(learner=>{
@@ -4514,15 +4536,31 @@ async function loadAdminAcademicInsights(){
     const name=[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' ');
     return '<tr><td>'+(row.position??'—')+'</td><td>'+esc(learner.admission_number||'—')+'</td><td>'+esc(name||'Learner record')+'</td><td>'+total.subjects.size+'</td><td>'+(total.max?Number(total.sum).toFixed(1)+' / '+Number(total.max).toFixed(1):'—')+'</td><td>'+(row.average===null?'No marks':row.average.toFixed(1)+'%')+'</td><td><span class="badge">'+(row.average===null?'Awaiting marks':'Marks recorded')+'</span></td></tr>';
    }).join('');
+   const auditRows=auditRowsByClass.get(cls.id)||[];
+   const auditHtml=auditRows.map(row=>'<tr><td>'+esc(row.admissionCode)+'</td><td>'+esc(row.learner)+'</td><td>'+esc(row.subject)+'</td><td>'+esc(row.assessment)+'</td><td>'+esc(row.mark)+'</td><td>'+esc(row.maximum)+'</td><td>'+esc(row.teacher)+'</td><td>'+esc(row.updated&&Number.isFinite(Date.parse(row.updated))?new Date(row.updated).toLocaleString():'—')+'</td></tr>').join('');
    details[cls.id]='<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><div><div class="dashboard-eyebrow">SELECTED CLASS WORKSPACE</div><h3 style="margin:4px 0">'+esc(cls.name)+(cls.stream?' · '+esc(cls.stream):'')+'</h3><p class="muted" style="margin:0">Only learners enrolled in this class appear below. Results are read-only and come from teachers’ saved marks.</p></div><button type="button" id="closeAdminClassDetail">Back to class sections</button></div>' +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px;margin:14px 0"><div class="stat"><small>Active learners</small><div class="num">'+members.length+'</div></div><div class="stat"><small>Assessments</small><div class="num">'+cls.assessments+'</div></div><div class="stat"><small>Learners with marks</small><div class="num">'+cls.learners.size+'</div></div><div class="stat"><small>Class average</small><div class="num">'+(cls.average===null?'—':cls.average.toFixed(1)+'%')+'</div></div></div>' +
     '<h4>Subject performance in '+esc(cls.name)+'</h4><div class="table-wrap"><table><thead><tr><th>Subject</th><th>Assessments</th><th>Learners with marks</th><th>Average</th><th>Highest</th><th>Lowest</th></tr></thead><tbody>'+(subjectHtml||'<tr><td colspan="6">No subject assessments have been prepared for this class and term.</td></tr>')+'</tbody></table></div>' +
-    '<h4 style="margin-top:18px">All learners in '+esc(cls.name)+' · performance register</h4><p class="muted">This register includes every active learner in the selected class, including learners whose marks are not yet entered.</p><div class="table-wrap"><table><thead><tr><th>Position</th><th>Pupil code</th><th>Learner</th><th>Subjects scored</th><th>Total / maximum</th><th>Average</th><th>Status</th></tr></thead><tbody>'+(learnerHtml||'<tr><td colspan="7">No active learners are enrolled in this class.</td></tr>')+'</tbody></table></div>';
+    '<h4 style="margin-top:18px">All learners in '+esc(cls.name)+' · performance register</h4><p class="muted">This register includes every active learner in the selected class, including learners whose marks are not yet entered.</p><div class="table-wrap"><table><thead><tr><th>Position</th><th>Pupil code</th><th>Learner</th><th>Subjects scored</th><th>Total / maximum</th><th>Average</th><th>Status</th></tr></thead><tbody>'+(learnerHtml||'<tr><td colspan="7">No active learners are enrolled in this class.</td></tr>')+'</tbody></table></div>' +
+    '<div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:20px"><div><h4 style="margin:0">Teacher-submitted marks &amp; audit · '+esc(cls.name)+'</h4><p class="muted" style="margin:4px 0 0">Only saved marks from this class and the selected term are listed here.</p></div><button type="button" data-class-mark-export="'+esc(cls.id)+'">Export this class marks · CSV</button></div>' +
+    '<div class="table-wrap"><table><thead><tr><th>Pupil code</th><th>Learner</th><th>Subject</th><th>Assessment</th><th>Mark</th><th>Maximum</th><th>Teacher account</th><th>Last updated</th></tr></thead><tbody>'+(auditHtml||'<tr><td colspan="8">No teacher-submitted marks are saved for this class and term.</td></tr>')+'</tbody></table></div>';
   });
   window.cornhillAdminAcademicClassDetailMarkup=details;
   if(cards&&!cards.dataset.classInsightsBound){
    cards.dataset.classInsightsBound='1';
    cards.addEventListener('click',event=>{
+    const exportButton=event.target.closest('[data-class-mark-export]');
+    if(exportButton){
+     const classId=exportButton.dataset.classMarkExport,rows=auditRowsByClass.get(classId)||[];
+     if(!rows.length)return;
+     const cls=classesForTerm.find(item=>item.id===classId);
+     const safeName=String(cls?.name||'class').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'class';
+     const termName=$('adminAcademicTerm')?.selectedOptions[0]?.textContent||'Selected term';
+     downloadCSV('cornhill-'+safeName+'-teacher-marks.csv',
+      ['Class','Term','Pupil code','Learner','Subject','Assessment','Mark','Maximum','Teacher account','Last updated'],
+      rows.map(row=>[cls?.name||'Class',termName,row.admissionCode,row.learner,row.subject,row.assessment,row.mark,row.maximum,row.teacher,row.updated]));
+     return;
+    }
     const button=event.target.closest('[data-class-insight]');if(!button)return;
     const markup=window.cornhillAdminAcademicClassDetailMarkup?.[button.dataset.classInsight];
     if(detail&&markup){
@@ -4545,78 +4583,47 @@ $('adminAcademicTerm')?.addEventListener('change',loadAdminAcademicInsights);
 
 async function renderClassPerformance(){
  if(demoMode)return;
- const data=await getTermScores();if(!data)return;
- const classId=$('reportClassSelect').value;
+ const termId=$('performanceTermSelect')?.value||'',classId=$('performanceClassSelect')?.value||'';
+ const tbody=$('classPerformanceRows'),status=$('classPerformanceStatus');
+ if(!termId||!classId){
+  window.cornhillClassPerformanceRows=[];
+  if(tbody)tbody.innerHTML='<tr><td colspan="5">Choose one term and one class to view performance.</td></tr>';
+  if(status)status.textContent='Choose one academic term and one class, then load the performance summary.';
+  return;
+ }
+ if(status)status.textContent='Loading results for the selected class and term…';
+ const data=await getTermScores({termId,classId});if(!data)return;
+ if((data.assessments||[]).some(a=>a.term_id!==termId||a.class_id!==classId)){
+  if(tbody)tbody.innerHTML='<tr><td colspan="5">The returned results do not match the selected class and term. Please reload.</td></tr>';
+  if(status)status.textContent='Results were not displayed because the class/term did not match.';
+  window.cornhillClassPerformanceRows=[];
+  return;
+ }
  const learners=students.filter(x=>x.class_id===classId&&x.status==='Active'),totals=new Map();
- data.scores.forEach(s=>{const a=data.assessments.find(x=>x.id===s.assessment_id);if(!a)return;const x=totals.get(s.student_id)||{score:0,max:0,subjects:new Set()};if(!isAbsentMark(s)){x.score+=Number(s.score);x.max+=Number(a.max_score);x.subjects.add(a.subject_id)}totals.set(s.student_id,x)});
- const ranked=learners.map(l=>({l,x:totals.get(l.id)})).filter(x=>x.x&&x.x.max>0).sort((a,b)=>(b.x.score/b.x.max)-(a.x.score/a.x.max));
+ (data.scores||[]).forEach(score=>{
+  const assessment=(data.assessments||[]).find(x=>x.id===score.assessment_id);if(!assessment)return;
+  const total=totals.get(score.student_id)||{score:0,max:0,subjects:new Set()};
+  if(!isAbsentMark(score)){total.score+=Number(score.score);total.max+=Number(assessment.max_score);total.subjects.add(assessment.subject_id)}
+  totals.set(score.student_id,total);
+ });
+ const ranked=learners.map(learner=>({learner,total:totals.get(learner.id)})).filter(row=>row.total&&row.total.max>0)
+  .sort((a,b)=>(b.total.score/b.total.max)-(a.total.score/a.total.max));
  let lastPct=null,lastRank=0;
- window.cornhillClassPerformanceRows=ranked.map((x,i)=>{const pct=x.x.score/x.x.max*100;if(lastPct===null||Math.abs(pct-lastPct)>0.000001)lastRank=i+1;lastPct=pct;return {position:lastRank,admission_code:x.l.admission_number,learner:[x.l.first_name,x.l.middle_name,x.l.last_name].filter(Boolean).join(' '),subjects_scored:x.x.subjects.size,total_marks:x.x.score,maximum_marks:x.x.max,average_percent:Number(pct.toFixed(1))}});
- $('classPerformanceRows').innerHTML=window.cornhillClassPerformanceRows.map(x=>'<tr><td>'+x.position+'</td><td>'+esc(x.admission_code)+' · '+esc(x.learner)+'</td><td>'+x.subjects_scored+'</td><td>'+money(x.total_marks)+' / '+money(x.maximum_marks)+'</td><td>'+x.average_percent.toFixed(1)+'%</td></tr>').join('')||'<tr><td colspan="5">No marks entered for this class and term.</td></tr>';
+ window.cornhillClassPerformanceRows=ranked.map((row,index)=>{
+  const pct=row.total.score/row.total.max*100;
+  if(lastPct===null||Math.abs(pct-lastPct)>0.000001)lastRank=index+1;
+  lastPct=pct;
+  return {position:lastRank,admission_code:row.learner.admission_number,learner:[row.learner.first_name,row.learner.middle_name,row.learner.last_name].filter(Boolean).join(' '),subjects_scored:row.total.subjects.size,total_marks:row.total.score,maximum_marks:row.total.max,average_percent:Number(pct.toFixed(1))};
+ });
+ if(tbody)tbody.innerHTML=window.cornhillClassPerformanceRows.map(row=>'<tr><td>'+row.position+'</td><td>'+esc(row.admission_code)+' · '+esc(row.learner)+'</td><td>'+row.subjects_scored+'</td><td>'+money(row.total_marks)+' / '+money(row.maximum_marks)+'</td><td>'+row.average_percent.toFixed(1)+'%</td></tr>').join('')||'<tr><td colspan="5">No marks entered for this class and term.</td></tr>';
+ const className=$('performanceClassSelect').selectedOptions[0]?.textContent||'Selected class';
+ const termName=$('performanceTermSelect').selectedOptions[0]?.textContent||'Selected term';
+ if(status)status.textContent='Loaded '+window.cornhillClassPerformanceRows.length+' learner result(s) with saved marks · '+className+' · '+termName+'. No other classes are included.';
 }
-$('loadAdminTeacherMarksRegister').addEventListener('click',async()=>{
- if(profile?.role!=='Admin'||demoMode)return;
- const button=$('loadAdminTeacherMarksRegister'),status=$('adminMarksRegisterStatus'),exportButton=$('exportTeacherMarksRegister');
- const classId=$('adminTeacherMarksClass')?.value||'',termId=$('adminTeacherMarksTerm')?.value||'';
- const classRecord=classes.find(c=>c.id===classId),termRecord=academic.terms.find(t=>t.id===termId);
- if(!classRecord||!termRecord){status.textContent='Choose one valid class and one academic term before loading marks.';message('academicMsg','Choose one class and one term in the teacher-submitted marks register.',true);return}
- const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
- button.disabled=true;exportButton.disabled=true;status.textContent='Loading '+classRecord.name+' only…';
- $('academicScoreRows').innerHTML='<tr><td colspan="10">Loading marks for '+esc(classRecord.name)+'…</td></tr>';
- try{
-  const pageSize=1000,assessments=[];
-  for(let offset=0;;offset+=pageSize){
-   const result=await db.from('assessments').select('id,title,max_score,subject_id,term_id,class_id,subjects(name)').eq('term_id',termId).eq('class_id',classId).order('id').range(offset,offset+pageSize-1);
-   if(result.error)throw result.error;
-   const page=result.data||[];assessments.push(...page);if(page.length<pageSize)break;
-   if(offset>=50000)throw new Error('This class has too many assessments to load safely.');
-  }
-  const assessmentMap=new Map(assessments.map(a=>[a.id,a])),scores=[],assessmentIds=assessments.map(a=>a.id);
-  for(let start=0;start<assessmentIds.length;start+=80){
-   const group=assessmentIds.slice(start,start+80);
-   for(let offset=0;;offset+=pageSize){
-    const result=await db.from('assessment_scores').select('assessment_id,student_id,score,teacher_comment,entered_by,updated_at,students(admission_number,first_name,middle_name,last_name)').in('assessment_id',group).order('updated_at',{ascending:false}).range(offset,offset+pageSize-1);
-    if(result.error)throw result.error;
-    const page=result.data||[];scores.push(...page);if(page.length<pageSize)break;
-    if(offset>=100000)throw new Error('This class has too many saved marks to load safely.');
-   }
-  }
-  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
-  const teacherIds=[...new Set(scores.map(x=>x.entered_by).filter(Boolean))];let names=window.cornhillStaffNames||{};
-  if(teacherIds.length){
-   const profiles=await db.from('user_profiles').select('id,full_name').in('id',teacherIds);
-   if(profiles.error)throw profiles.error;
-   names={...names,...Object.fromEntries((profiles.data||[]).map(x=>[x.id,x.full_name||'Teacher account']))};
-  }
-  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
-  const rows=scores.map(score=>{
-   const assessment=assessmentMap.get(score.assessment_id)||{},learner=score.students||{};
-   return {className:classRecord.name+(classRecord.stream?' · '+classRecord.stream:''),termName:termRecord.name+' · '+(termRecord.academic_years?.name||''),admissionCode:learner.admission_number||'',learner:[learner.first_name,learner.middle_name,learner.last_name].filter(Boolean).join(' '),subject:assessment.subjects?.name||'',assessment:assessment.title||'',mark:isAbsentMark(score)?'X':score.score,maximum:assessment.max_score??'',teacher:names[score.entered_by]||'Teacher account',updated:score.updated_at||''};
-  });
-  window.cornhillTeacherMarkRegisterRows=rows;
-  $('academicScoreRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.className)+'</td><td>'+esc(x.termName)+'</td><td>'+esc(x.admissionCode)+'</td><td>'+esc(x.learner)+'</td><td>'+esc(x.subject)+'</td><td>'+esc(x.assessment)+'</td><td>'+esc(x.mark)+'</td><td>'+esc(x.maximum)+'</td><td>'+esc(x.teacher)+'</td><td>'+esc(x.updated?new Date(x.updated).toLocaleString():'—')+'</td></tr>').join('')||'<tr><td colspan="10">No teacher-submitted marks have been saved for '+esc(classRecord.name)+' in '+esc(termRecord.name)+'.</td></tr>';
-  exportButton.disabled=!rows.length;
-  status.textContent='Loaded '+rows.length+' mark record(s) · '+classRecord.name+' · '+termRecord.name+'. Other classes are not included.';
- }catch(error){
-  if(owner===currentUserId&&generation===(window.cornhillSessionGeneration||0)){
-   status.textContent='Could not load '+classRecord.name+' marks: '+(error?.message||String(error));
-   $('academicScoreRows').innerHTML='<tr><td colspan="10">The selected class marks could not be loaded. Please retry.</td></tr>';
-   message('academicMsg','Teacher marks register could not be loaded: '+(error?.message||String(error)),true);
-  }
- }finally{if(owner===currentUserId&&generation===(window.cornhillSessionGeneration||0))button.disabled=false}
-});
-$('exportTeacherMarksRegister').addEventListener('click',()=>{
- if(profile?.role!=='Admin'||demoMode)return;
- const rows=window.cornhillTeacherMarkRegisterRows||[];
- if(!rows.length){message('academicMsg','Load a class and term marks register before exporting.',true);return}
- downloadCSV('cornhill-teacher-marks-register.csv',
- ['Class','Term','Admission code','Learner','Subject','Assessment','Mark','Maximum','Teacher account','Last updated'],
- rows.map(x=>[x.className,x.termName,x.admissionCode,x.learner,x.subject,x.assessment,x.mark,x.maximum,x.teacher,x.updated]));
-});
 $('exportAcademicClassCsv').addEventListener('click',()=>{
  if(profile?.role!=='Admin'||demoMode)return;
  const rows=window.cornhillClassPerformanceRows||[];if(!rows.length){message('academicMsg','Generate class performance for a term and class before exporting.',true);return}
- const term=$('reportTermSelect').selectedOptions[0]?.textContent||'Selected term',cls=$('reportClassSelect').selectedOptions[0]?.textContent||'Selected class';
+ const term=$('performanceTermSelect').selectedOptions[0]?.textContent||'Selected term',cls=$('performanceClassSelect').selectedOptions[0]?.textContent||'Selected class';
  downloadCSV('cornhill-academic-results.csv',['Term','Class','Position','Admission code','Learner','Subjects scored','Total marks','Maximum marks','Average percent'],rows.map(x=>[term,cls,x.position,x.admission_code,x.learner,x.subjects_scored,x.total_marks,x.maximum_marks,x.average_percent]));
 });
 function updateIndividualAssessmentOptions(){
