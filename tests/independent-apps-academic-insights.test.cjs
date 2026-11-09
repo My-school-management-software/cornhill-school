@@ -134,8 +134,8 @@ test('every application hostname is locked to its own installed-app route',()=>{
 
 test('administrator class workspace detail includes every learner in the selected class, not a school-wide mixed list',()=>{
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(html,/students\\|\\|\\[\\]\\)\\.filter\\(x=>x\\.status==='Active'\\)/);
- assert.match(html,/activeLearners\\.filter\\(x=>x\\.class_id===cls\\.id\\)/);
+ assert.ok(html.includes("const activeLearners=(students||[]).filter(x=>x.status==='Active')"));
+ assert.ok(html.includes("const members=activeLearners.filter(x=>x.class_id===cls.id)"));
  assert.match(html,/All learners in /);
  assert.match(html,/data-class-insight/);
 });
