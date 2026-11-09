@@ -164,5 +164,17 @@
     ].includes(key)) return true;
     return key.includes('GRADINGANALYSIS') || key.includes('PERFORMANCEBY') || key.includes('PERFOMANCEBY');
   }
-  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod,parseMarkValue,isSummaryLearnerRow};
+  function missingAssessmentPairs(expected, mappedPairs, getPeriod, getSubject) {
+    const mapped=new Set(mappedPairs||[]),seen=new Set(),missing=[];
+    for(const assessment of expected||[]){
+      const period=getPeriod(assessment),subjectId=assessment.subject_id;
+      if(!period||!subjectId)continue;
+      const key=subjectId+'|'+period;
+      if(seen.has(key))continue;
+      seen.add(key);
+      if(!mapped.has(key))missing.push({key,subject:getSubject(assessment),period});
+    }
+    return missing;
+  }
+  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod,parseMarkValue,isSummaryLearnerRow,missingAssessmentPairs};
 });
