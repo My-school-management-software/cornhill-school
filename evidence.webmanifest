@@ -1,10 +1,10 @@
 {
-  "id": "/evidence.html",
+  "id": "/apps/evidence-capture/",
   "name": "CORNHILL Evidence Capture",
   "short_name": "Cornhill Capture",
   "description": "Secure CORNHILL phone camera and document attachment service",
-  "start_url": "/evidence.html",
-  "scope": "/",
+  "start_url": "/apps/evidence-capture/",
+  "scope": "/apps/evidence-capture/",
   "display": "fullscreen",
   "background_color": "#f3f7f3",
   "theme_color": "#14532d",
