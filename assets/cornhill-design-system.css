@@ -241,140 +241,102 @@ table{max-width:100%}
  input,select,textarea{max-width:100%;min-width:0}
 }
 
-/* Desktop workspace geometry: align the content sheet with the sidebar and use
-   the available monitor width. The old 1,540px sidebar reference caused a
-   70px horizontal drift against the centered content container. */
-@media(min-width:701px){
-  .wrap,main,#app,.container,.content,.workspace-main{
-    width:calc(100% - 28px)!important;
-    max-width:none!important;
-    min-width:0!important;
-    margin-inline:auto!important;
-  }
-  main.wrap{padding-inline:10px!important}
-  main.wrap>#app{
-    width:100%!important;
-    max-width:none!important;
-    min-width:0!important;
-    margin:0!important;
-    padding:0!important;
-  }
+
+/* Desktop workspace fit: align the main content edge with the fixed sidebar,
+   then use all remaining horizontal space instead of a narrow centred sheet. */
+@media(min-width:901px){
   #app .cornhill-sidebar{
-    left:36px!important;
-    width:220px!important;
+    left:max(14px,calc((100vw - 1680px)/2 + 14px))!important;
+  }
+  #app>section:not(.tabs),
+  #app>.module-preview{
+    width:calc(100% - 252px)!important;
+    max-width:calc(100% - 252px)!important;
+    min-width:0!important;
+    margin-left:252px!important;
+    box-sizing:border-box!important;
   }
   #app>.row:first-child,
   #app>#appMsg,
   #app>#staffAttendanceNotice,
   #app>#demoBanner,
-  #app>.grid:first-of-type,
-  #app>section:not(.tabs),
-  #app>.module-preview{
-    width:auto!important;
-    max-width:none!important;
-    min-width:0!important;
-    margin-left:244px!important;
-    margin-right:0!important;
+  #app>.grid:first-of-type{
+    width:calc(100% - 252px)!important;
+    max-width:calc(100% - 252px)!important;
+    box-sizing:border-box!important;
   }
 }
 @media(min-width:701px) and (max-width:900px){
-  #app .cornhill-sidebar{left:10px!important;width:194px!important}
+  #app>section:not(.tabs),
+  #app>.module-preview{
+    width:calc(100% - 214px)!important;
+    max-width:calc(100% - 214px)!important;
+    min-width:0!important;
+    margin-left:214px!important;
+    box-sizing:border-box!important;
+  }
   #app>.row:first-child,
   #app>#appMsg,
   #app>#staffAttendanceNotice,
   #app>#demoBanner,
-  #app>.grid:first-of-type,
-  #app>section:not(.tabs),
-  #app>.module-preview{margin-left:192px!important}
+  #app>.grid:first-of-type{
+    width:calc(100% - 214px)!important;
+    max-width:calc(100% - 214px)!important;
+    box-sizing:border-box!important;
+  }
 }
-@media(max-width:700px){
-  main.wrap{width:100%!important;max-width:none!important;padding-inline:10px!important}
-  main.wrap>#app{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
-  #app>.row:first-child,
-  #app>#appMsg,
-  #app>#staffAttendanceNotice,
-  #app>#demoBanner,
-  #app>.grid:first-of-type,
-  #app>section:not(.tabs),
-  #app>.module-preview{width:auto!important;max-width:100%!important;margin-left:0!important;margin-right:0!important}
-}
-
-/* Cards and action controls must shrink inside their own sheet rather than
-   painting across the border or hiding content behind the sidebar. */
-#app .panel,#app .stat,#app .card,#app .tile,#app .module-card,
-#app .grid,#app .module-grid,#app .row,#app form,#app section{
-  box-sizing:border-box;
-  min-width:0;
-  max-width:100%;
-}
-#app .grid>*,#app .module-grid>*,#app .app-centre-grid>*,
-#app .row>*,#app form>*{
-  box-sizing:border-box;
-  min-width:0;
-  max-width:100%;
-}
-#app .panel,#app .stat,#app .card,#app .tile,#app .module-card{
-  overflow-wrap:break-word;
-  word-break:normal;
-}
-#app button,#app .button,#app a.button{
-  box-sizing:border-box;
-  max-width:100%;
-  min-width:0;
-  white-space:normal;
-  overflow-wrap:break-word;
-  word-break:normal;
-  line-height:1.35;
-}
-#app .dashboard-intro{
-  min-width:0;
-  max-width:100%;
-  flex-wrap:wrap;
-}
-#app .dashboard-live-label{white-space:normal}
-#app .module-grid{
-  grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));
-  align-items:stretch;
-}
-#app #learnerIdentityQualityPanel{
-  width:100%;
-  max-width:100%;
+/* Prevent cards and their controls from being squeezed across their own borders. */
+#app>section:not(.tabs),
+#app>section:not(.tabs) *,
+#app .module-preview,
+#app .module-preview *{
   min-width:0;
   box-sizing:border-box;
 }
-#app #learnerIdentityQualityPanel>.row{
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr) auto;
+#app .panel .row,
+#app .stat .row,
+#app .card .row{
   align-items:center;
   gap:12px;
 }
-#app #learnerIdentityQualityPanel>.row>div{min-width:0}
-#app #refreshLearnerIdentityQuality{
+#app .panel .row>button,
+#app .panel .row>.button,
+#learnerIdentityQualityPanel .row>button{
+  flex:0 0 auto;
   max-width:100%;
-  min-width:0;
   white-space:normal;
   overflow-wrap:normal;
 }
-#app #learnerIdentityQualityPanel>.grid{
-  grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))!important;
-  align-items:stretch;
+#learnerIdentityQualityPanel{
+  width:100%;
+  max-width:100%;
+  overflow:visible;
 }
-#app #learnerIdentityQualityPanel>.grid>.stat{
+#learnerIdentityQualityPanel>.row>div{
+  flex:1 1 460px;
+  min-width:0;
+}
+#learnerIdentityQualityPanel>.grid{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))!important;
+  width:100%;
+  min-width:0;
+}
+#learnerIdentityQualityPanel>.grid>.stat{
+  width:100%;
   min-width:0;
   max-width:100%;
-  box-sizing:border-box;
-  overflow-wrap:break-word;
 }
-#app #learnerIdentityQualityPanel .stat small{
-  display:block;
-  line-height:1.35;
-  overflow-wrap:break-word;
+@media(max-width:700px){
+  #app>section:not(.tabs),
+  #app>.module-preview,
+  #app>.row:first-child,
+  #app>#appMsg,
+  #app>#staffAttendanceNotice,
+  #app>#demoBanner,
+  #app>.grid:first-of-type{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+  }
 }
-@media(max-width:520px){
-  #app #learnerIdentityQualityPanel>.row{grid-template-columns:minmax(0,1fr)}
-  #app #learnerIdentityQualityPanel>.grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-}
-@media(max-width:360px){
-  #app #learnerIdentityQualityPanel>.grid{grid-template-columns:1fr!important}
-}
-
