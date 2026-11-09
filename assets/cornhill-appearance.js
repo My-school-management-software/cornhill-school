@@ -225,7 +225,8 @@
       {id:'caFontSize',label:'Text size',items:[['14','Compact'],['16','Standard'],['18','Large'],['20','Extra large']]},
       {id:'caDensity',label:'Spacing',items:[['comfortable','Comfortable'],['compact','Compact']]},
       {id:'caMotion',label:'Motion',items:[['off','Reduced motion'],['on','Subtle motion']]},
-      {id:'caLayout',label:'Main dashboard layout',wide:true,items:LAYOUTS}
+      {id:'caLayout',label:'Main dashboard layout',wide:true,items:LAYOUTS},
+      {id:'caNavigationLayout',label:'Navigation layout',wide:true,items:[['left','Left sidebar'],['top','Top navigation'],['right','Right sidebar'],['rail','Icon rail']]}
     ];
     fields.forEach(field => {
       const wrap = document.createElement('div'); if (field.wide) wrap.className = 'ca-wide';
@@ -234,7 +235,7 @@
       field.items.forEach(item => option(select,item[0],item[1]));
       select.addEventListener('change', () => {
         const activeId = panel.dataset.userId;
-        const map = {caTheme:'theme',caFont:'font',caFontSize:'fontSize',caDensity:'density',caMotion:'motion',caLayout:'dashboardLayout'};
+        const map = {caTheme:'theme',caFont:'font',caFontSize:'fontSize',caDensity:'density',caMotion:'motion',caLayout:'dashboardLayout',caNavigationLayout:'navigationLayout'};
         const changed = {}; changed[map[select.id]] = select.value;
         const saved = saveForUser(activeId, changed);
         status.textContent = saved ? 'Saved on this device. The same staff account will use this appearance in the other CORNHILL staff apps on this browser.' : 'The appearance changed for this page, but browser storage is unavailable. It may not persist after closing the page.';
@@ -261,7 +262,7 @@
     if (!panel) return;
     panel.dataset.userId = userId;
     const p = getForUser(userId);
-    const values = {caTheme:p.theme,caFont:p.font,caFontSize:p.fontSize,caDensity:p.density,caMotion:p.motion,caLayout:p.dashboardLayout};
+    const values = {caTheme:p.theme,caFont:p.font,caFontSize:p.fontSize,caDensity:p.density,caMotion:p.motion,caLayout:p.dashboardLayout,caNavigationLayout:p.navigationLayout};
     Object.keys(values).forEach(id => { const el = document.getElementById(id); if (el) el.value = values[id]; });
   }
   function applyForUser(userId, options) {
