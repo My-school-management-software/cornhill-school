@@ -138,7 +138,7 @@
             '<div class="lds-field"><label for="ldsWhatsappPhone">Parent / guardian WhatsApp number</label><input id="ldsWhatsappPhone" name="guardian_whatsapp_phone" type="tel" maxlength="30" placeholder="+256…"></div>' +
             '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsWhatsappOptIn" name="guardian_whatsapp_opt_in"> Parent / guardian has agreed to receive school WhatsApp messages.</label></div>' +
           '</div>' +
-          '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="button" id="learnerDetailsSaveNext" class="primary">Save &amp; open next learner</button><button type="button" id="learnerDetailsFullEdit" class="tab">Open full learner record</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
+          '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="submit" id="learnerDetailsSaveNext" class="primary">Save &amp; open next learner</button><button type="button" id="learnerDetailsFullEdit" class="tab">Open full learner record</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
           '<p class="lds-note">Changes are saved using the existing administrator Learner Register workflow. This quick sheet does not change bursary awards, fees, payments, attendance or academic marks.</p>' +
         '</form>' +
       '</section>'
@@ -420,6 +420,15 @@
     });
     quickForm.addEventListener('submit', event => {
       event.preventDefault();
+      if (event.submitter && event.submitter.id === 'learnerDetailsSaveNext') {
+        const current = currentLearners();
+        const currentIndex = current.findIndex(x => x.id === selectedId);
+        const next = currentIndex >= 0 ? current[currentIndex + 1] : null;
+        editor.dataset.nextLearnerId = next ? next.id : '';
+        if (!next) $('learnerDetailsSheetStatus').textContent = 'This is the last learner in the current sheet. The record will be saved without moving to another learner.';
+      } else {
+        editor.dataset.nextLearnerId = '';
+      }
       const form = $('studentForm');
       if (!form || !selectedId || typeof profile === 'undefined' || profile?.role !== 'Admin' || demoMode) return;
       const first = String(quickForm.elements.first_name.value || '').trim();
@@ -472,14 +481,6 @@
     }
     $('learnerDetailsPrevious').addEventListener('click', () => moveToAdjacentLearner(-1));
     $('learnerDetailsNext').addEventListener('click', () => moveToAdjacentLearner(1));
-    $('learnerDetailsSaveNext').addEventListener('click', () => {
-      const list = currentLearners();
-      const index = list.findIndex(x => x.id === selectedId);
-      const next = index >= 0 ? list[index + 1] : null;
-      editor.dataset.nextLearnerId = next ? next.id : '';
-      if (!next) $('learnerDetailsSheetStatus').textContent = 'This is the last learner in the current sheet. The record will be saved without moving to another learner.';
-      quickForm.requestSubmit();
-    });
     $('learnerDetailsClose').addEventListener('click', () => closeEditor(true));
     $('learnerDetailsCancel').addEventListener('click', () => closeEditor(true));
     $('learnerDetailsFullEdit').addEventListener('click', () => {
