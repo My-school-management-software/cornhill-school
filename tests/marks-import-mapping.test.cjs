@@ -208,6 +208,10 @@ test('browser importer loads the tested helper and honours missing-subject state
  assert.ok(html.includes("science:'SCC1',socialstudies:'SST1'"));
  assert.ok(html.includes('Selected class: '));
  assert.ok(html.includes('Excel worksheet tab: '));
- assert.ok(html.includes('Academic term could not be verified for worksheet tab(s): '));
- assert.ok(html.includes('Rename the Excel worksheet tab itself'));
+ assert.ok(html.includes('Academic term not printed on worksheet tab'));
+ assert.ok(html.includes('confirmExcelSourceTerm'));
+ assert.ok(html.includes('teacherExcelTermConfirmationKey!==plan.termConfirmationKey'));
+ assert.ok(html.includes('The importer will never guess the source term.'));
+ assert.ok(html.includes('Selected class: '));
+ assert.ok(html.includes('Excel worksheet tab: '));
 });
