@@ -174,6 +174,25 @@
   }
   if(name==='communication'){buildDashboardPanels();loadMainStaffNotices();loadMainCalendarEvents()}
  };
- function start(){if(bridgeReady)return;bridgeReady=true;buildDashboardPanels();updateWorkspaceCards();routeRequestedWorkspace();}
+  function setupMainInstallButton(){
+   const host=document.querySelector('header.top .row');
+   if(!host||$('installMainApp'))return;
+   const button=document.createElement('button');
+   button.type='button';button.id='installMainApp';button.textContent='Install CORNHILL';
+   button.title='Install CORNHILL as an app on this device';
+   button.setAttribute('aria-label','Install CORNHILL');
+   button.style.cssText='display:none;background:#fff;color:#14532d;border:0;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer';
+   host.insertBefore(button,host.firstChild);
+   let installEvent=null;
+   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installEvent=event;button.style.display='inline-flex'});
+   button.addEventListener('click',async()=>{
+    if(!installEvent)return;
+    const prompt=installEvent;installEvent=null;
+    try{prompt.prompt();await prompt.userChoice}catch(_){}
+    button.style.display='none';
+   });
+   window.addEventListener('appinstalled',()=>{button.style.display='none'});
+  }
+ function start(){if(bridgeReady)return;bridgeReady=true;setupMainInstallButton();buildDashboardPanels();updateWorkspaceCards();routeRequestedWorkspace();}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
