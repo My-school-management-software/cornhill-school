@@ -27,7 +27,7 @@
     '#students .lds-legacy-collapsed{display:none!important}',
     '#learnerDetailsWorkspace .lds-kicker{font-size:10px;font-weight:900;letter-spacing:.13em;color:var(--cornhill-accent,#176b48)}',
     '#learnerDetailsWorkspace .lds-intro{max-width:880px;margin:4px 0 0;color:var(--cornhill-muted,#647568);font-size:13px;line-height:1.5}',
-    '#learnerDetailsWorkspace .lds-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:14px 0}',
+    '#learnerDetailsWorkspace .lds-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin:14px 0}',
     '#learnerDetailsWorkspace .lds-metric{min-width:0;padding:12px;border:1px solid var(--cornhill-line,#dce7de);border-radius:13px;background:color-mix(in srgb,var(--cornhill-panel,#fff) 88%,var(--cornhill-page,#f4f7f4))}',
     '#learnerDetailsWorkspace .lds-metric strong{display:block;font-size:clamp(20px,2vw,27px);line-height:1.1;color:var(--cornhill-ink,#17251c);font-variant-numeric:tabular-nums}',
     '#learnerDetailsWorkspace .lds-metric span{display:block;margin-top:5px;font-size:11px;color:var(--cornhill-muted,#647568)}',
@@ -99,14 +99,15 @@
         '</div>' +
         '<div class="lds-metrics" aria-live="polite">' +
           '<div class="lds-metric"><strong id="ldsTotal">0</strong><span>Learners in this sheet</span></div>' +
-          '<div class="lds-metric"><strong id="ldsDobMissing">0</strong><span>Missing birth date and year</span></div>' +
+          '<div class="lds-metric"><strong id="ldsDobMissing">0</strong><span>Missing exact date of birth</span></div>' +
+          '<div class="lds-metric"><strong id="ldsBirthYearMissing">0</strong><span>Missing birth year</span></div>' +
           '<div class="lds-metric"><strong id="ldsGuardianMissing">0</strong><span>Missing parent / guardian name</span></div>' +
           '<div class="lds-metric"><strong id="ldsContactMissing">0</strong><span>Missing guardian contact</span></div>' +
           '<div class="lds-metric"><strong id="ldsLinMissing">0</strong><span>Missing Ministry LIN</span></div>' +
         '</div>' +
         '<div class="lds-toolbar"><div><label for="learnerDetailsFilter">Show learners</label><select id="learnerDetailsFilter">' +
           '<option value="all">All learners in this class</option><option value="needs_attention">Any missing information</option>' +
-          '<option value="missing_dob">Missing date of birth and year</option><option value="missing_guardian">Missing parent / guardian name</option>' +
+          '<option value="missing_dob">Missing full date of birth</option><option value="missing_year">Missing birth year</option><option value="missing_guardian">Missing parent / guardian name</option>' +
           '<option value="missing_contact">Missing guardian contact</option><option value="missing_lin">Missing Ministry LIN</option>' +
           '<option value="complete">All selected details recorded</option></select></div>' +
           '<p id="learnerDetailsSheetStatus" class="muted" style="margin:0" role="status">Choose a class above or use the existing register search.</p></div>' +
@@ -177,16 +178,18 @@
         return full.includes(q);
       });
       const mode = $('learnerDetailsFilter') && $('learnerDetailsFilter').value || 'all';
-      const hasDob = x => !!(x.date_of_birth || x.birth_year);
+      const hasDob = x => !!x.date_of_birth;
+      const hasBirthYear = x => !!(x.birth_year || (x.date_of_birth && String(x.date_of_birth).length >= 4));
       const hasGuardian = x => !!String(x.guardian_name || '').trim();
       const hasContact = x => !!(String(x.guardian_phone || '').trim() || String(x.guardian_email || '').trim());
       const hasLin = x => !!String(x.lin || '').trim();
       if (mode === 'missing_dob') list = list.filter(x => !hasDob(x));
+      if (mode === 'missing_year') list = list.filter(x => !hasBirthYear(x));
       if (mode === 'missing_guardian') list = list.filter(x => !hasGuardian(x));
       if (mode === 'missing_contact') list = list.filter(x => !hasContact(x));
       if (mode === 'missing_lin') list = list.filter(x => !hasLin(x));
-      if (mode === 'needs_attention') list = list.filter(x => !hasDob(x) || !hasGuardian(x) || !hasContact(x) || !hasLin(x));
-      if (mode === 'complete') list = list.filter(x => hasDob(x) && hasGuardian(x) && hasContact(x) && hasLin(x));
+      if (mode === 'needs_attention') list = list.filter(x => !hasDob(x) || !hasBirthYear(x) || !hasGuardian(x) || !hasContact(x) || !hasLin(x));
+      if (mode === 'complete') list = list.filter(x => hasDob(x) && hasBirthYear(x) && hasGuardian(x) && hasContact(x) && hasLin(x));
       return list.sort((a, b) => String(a.last_name || '').localeCompare(String(b.last_name || '')) ||
         String(a.first_name || '').localeCompare(String(b.first_name || '')));
     }
@@ -214,12 +217,14 @@
       }
       setAdvancedVisible(advancedVisible);
       const metrics = metricLearners();
-      const dobMissing = metrics.filter(x => !(x.date_of_birth || x.birth_year)).length;
+      const dobMissing = metrics.filter(x => !x.date_of_birth).length;
+      const birthYearMissing = metrics.filter(x => !(x.birth_year || (x.date_of_birth && String(x.date_of_birth).length >= 4))).length;
       const guardianMissing = metrics.filter(x => !String(x.guardian_name || '').trim()).length;
       const contactMissing = metrics.filter(x => !(String(x.guardian_phone || '').trim() || String(x.guardian_email || '').trim())).length;
       const linMissing = metrics.filter(x => !String(x.lin || '').trim()).length;
       $('ldsTotal').textContent = metrics.length.toLocaleString();
       $('ldsDobMissing').textContent = dobMissing.toLocaleString();
+      $('ldsBirthYearMissing').textContent = birthYearMissing.toLocaleString();
       $('ldsGuardianMissing').textContent = guardianMissing.toLocaleString();
       $('ldsContactMissing').textContent = contactMissing.toLocaleString();
       $('ldsLinMissing').textContent = linMissing.toLocaleString();
@@ -232,7 +237,7 @@
       };
       $('learnerDetailsSheetRows').innerHTML = shown.map((x, i) => {
         const fullName = [x.first_name, x.middle_name, x.last_name].filter(Boolean).join(' ');
-        const missing = !(x.date_of_birth || x.birth_year) || !String(x.guardian_name || '').trim() ||
+        const missing = !x.date_of_birth || !(x.birth_year || (x.date_of_birth && String(x.date_of_birth).length >= 4)) || !String(x.guardian_name || '').trim() ||
           !(String(x.guardian_phone || '').trim() || String(x.guardian_email || '').trim()) || !String(x.lin || '').trim();
         const dob = x.date_of_birth ? fmtDate(x.date_of_birth) : 'Not recorded';
         const year = x.birth_year || (x.date_of_birth ? String(x.date_of_birth).slice(0, 4) : '—');
