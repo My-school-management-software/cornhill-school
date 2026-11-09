@@ -1033,6 +1033,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 @media(prefers-reduced-motion:reduce){.app-centre-card{transition:none}.app-centre-card:hover{transform:none}}
 </style>
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
+  <script src="/assets/cornhill-mark-import-mapping.js"></script>
 </head>
 <body>
 <div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
@@ -3780,6 +3781,8 @@ $('gradeBandForm').addEventListener('submit',async e=>{
  e.target.reset();await loadGradeBands();message('academicMsg','Grading band saved.');
 });
 function curriculumGroupForClass(name){
+ const shared=window.CornhillMarkImportMapping;
+ if(shared?.curriculumGroup)return shared.curriculumGroup(name);
  const n=String(name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
  if(n.includes('BABY')||n.includes('MIDDLE')||n.includes('TOP')||n.includes('NURSERY'))return 'Nursery';
  if(/P[123]/.test(n)||/PRIMARY[123]/.test(n))return 'P1-P3';
@@ -4560,8 +4563,8 @@ function excelSubjectLabel(assessment,index,clsArg){
   P3:{1:{english:'EN1',mathematics:'MT1',literacyi:'LI11',literacyii:'LT21',religious:'RE1',local:'LL1'},2:{english:'EN2',mathematics:'MT2',literacyi:'LI12',literacyii:'LI22',religious:'RE2',local:'LL2'},3:{english:'EN3',mathematics:'MT3',literacyi:'LI3',literacyii:'LI23',religious:'RE3',local:'LL3'}},
   P4:{1:{mathematics:'MT1',english:'EN1',science:'SC1',socialstudies:'SST1'},2:{mathematics:'MT2',english:'EN2',science:'SC2',socialstudies:'SS2'},3:{mathematics:'MT3',english:'EN3',science:'SC3',socialstudies:'SS3'}},
   P5:{1:{english:'EN1',mathematics:'MT1',science:'SC1',socialstudies:'SS1'},2:{english:'ENG2',mathematics:'MT2',science:'SC2',socialstudies:'SS2'},3:{english:'EN3',mathematics:'MT3',science:'SC3',socialstudies:'SS3'}},
-  P6:{1:{english:'ENG1',mathematics:'MAT1',science:'SCI1',socialstudies:'SST1'},2:{english:'ENG2',mathematics:'MAT2',science:'SCI2',socialstudies:'SST2'},3:{english:'ENG3',mathematics:'MT3',science:'SC3',socialstudies:'SST3'},4:{english:'ENG4',mathematics:'MAT4',science:'SCI4',socialstudies:'SST4'}},
-  P7:{1:{english:'ENG1',mathematics:'MAT1',science:'SCI1',socialstudies:'SST1'},2:{english:'EN2',mathematics:'MA2',science:'SC2',socialstudies:'SS2'},3:{english:'ENG3',mathematics:'MAT3',science:'SCI3',socialstudies:'SST3'},4:{english:'ENG4',mathematics:'MAT4',science:'SCI4',socialstudies:'SST4'}}
+  P6:{1:{english:'ENG1',mathematics:'MAT1',science:'SCC1',socialstudies:'SST1'},2:{english:'ENG2',mathematics:'MAT2',science:'SCC2',socialstudies:'SST2'},3:{english:'ENG3',mathematics:'MT3',science:'SC3',socialstudies:'SST3'},4:{english:'ENG4',mathematics:'MAT4',science:'SCC4',socialstudies:'SST4'}},
+  P7:{1:{english:'ENG1',mathematics:'MAT1',science:'SCC1',socialstudies:'SST1'},2:{english:'EN2',mathematics:'MA2',science:'SC2',socialstudies:'SS2'},3:{english:'ENG3',mathematics:'MAT3',science:'SCC3',socialstudies:'SST3'},4:{english:'ENG4',mathematics:'MAT4',science:'SCC4',socialstudies:'SST4'}}
  };
  const classKey=group==='Nursery'?(/BABY/.test(className)?'Baby':/MIDDLE/.test(className)?'Middle':'Top'):isP1?'P1':isP2?'P2':isP3?'P3':isP4?'P4':isP5?'P5':isP6?'P6':isP7?'P7':'';
  const exactCode=exact[classKey]?.[phaseNo]?.[key];if(exactCode)return exactCode;
@@ -4866,18 +4869,30 @@ function isImportLearnerNameHeading(value){return ['NAME','PUPILNAME','PUPILSNAM
 function isImportLearnerCodeHeading(value){return /^(ID|ID2|SCHOOLID|IDNUMBER|PUPILNO|PUPILID|PUPILCODE|PUPILNUMBER|LEARNERNO|LEARNERID|LEARNERCODE|ADMISSIONNO|ADMISSIONNUMBER|ADMISSIONCODE|REGNO|REGISTRATIONNUMBER)$/.test(normaliseImportText(value))}
 function isImportLinHeading(value){return /^(LIN|LINS|LINNO|LINNUMBER|LEARNERIDENTIFICATIONNUMBER|LEARNERSIDENTIFICATIONNUMBERLIN)$/.test(normaliseImportText(value))}
 function importSubjectAliases(token,group){
+ const shared=window.CornhillMarkImportMapping;
+ if(shared?.subjectAliases)return shared.subjectAliases(token,group);
  const nursery=group==='Nursery',lower=group==='P1-P3';
- const common={NU:['Numbers'],NUM:['Numbers'],EN:['English'],ENG:['English'],MTC:['Mathematics'],MT:['Mathematics'],MAT:['Mathematics'],MA:['Mathematics'],MATH:['Mathematics'],SC:['Science'],SCI:['Science'],SST:['Social Studies'],SS:['Social Studies'],LI1:['Literacy I'],LIT1:['Literacy I'],LI:['Literacy I'],LIT:['Literacy I'],LIT2:['Literacy II'],LI2:['Literacy II'],LT2:['Literacy II'],L12:['Literacy II'],LL:['Local Language'],LL1:['Local Language'],LL2:['Local Language'],LOC:['Local Language'],LOCAL:['Local Language'],RR:['Local Language'],RUR:['Local Language'],RU:['Local Language'],RNY:['Local Language'],RNYANKORE:['Local Language'],RUNYANKORE:['Local Language'],NYANKORE:['Local Language'],RR1:['Local Language'],RR2:['Local Language'],RU1:['Local Language'],RU2:['Local Language'],RU3:['Local Language'],RE:['Religious Education'],CRE:['Religious Education'],HH:['Health Habits'],SD:['Social Development'],WR:['Writing'],WRI:['Writing'],DR:['Drawing'],DRAW:['Drawing'],LD:['Language Development']};
+ const common={NU:['Numbers'],NUM:['Numbers'],EN:['English'],ENG:['English'],MTC:['Mathematics'],MT:['Mathematics'],MAT:['Mathematics'],MA:['Mathematics'],MATH:['Mathematics'],SC:['Science'],SCI:['Science'],SCC:['Science'],SST:['Social Studies'],SS:['Social Studies'],LI1:['Literacy I'],LIT1:['Literacy I'],LI:['Literacy I'],LIT:['Literacy I'],LIT2:['Literacy II'],LI2:['Literacy II'],LT2:['Literacy II'],L12:['Literacy II'],LL:['Local Language'],LL1:['Local Language'],LL2:['Local Language'],LOC:['Local Language'],LOCAL:['Local Language'],RR:['Local Language'],RUR:['Local Language'],RU:['Local Language'],RNY:['Local Language'],RNYANKORE:['Local Language'],RUNYANKORE:['Local Language'],NYANKORE:['Local Language'],RR1:['Local Language'],RR2:['Local Language'],RU1:['Local Language'],RU2:['Local Language'],RU3:['Local Language'],RE:['Religious Education'],CRE:['Religious Education'],HH:['Health Habits'],SD:['Social Development'],WR:['Writing'],WRI:['Writing'],DR:['Drawing'],DRAW:['Drawing'],LD:['Language Development']};
  if(nursery){if(token==='EN'||token==='LD')return ['Language Development'];if(token==='RE')return ['Reading'];if(token==='NU')return ['Numbers']}
  if(lower&&token==='RE')return ['Religious Education'];return common[token]||[];
 }
 function importPeriodLabel(n,clsName){const setBased=/P\.?\s*[67]|PRIMARY\s*[67]/i.test(clsName||'');return setBased?('Set '+(['','I','II','III','IV'][n]||'')):(['','Beginning','Midterm','End'][n]||'')}
 function importCodeDistance(a,b){a=normaliseImportText(a);b=normaliseImportText(b);const row=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let prev=row[0];row[0]=i;for(let j=1;j<=b.length;j++){const cur=row[j];row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=cur}}return row[b.length]}
 function matchImportAssessment(header,ctx,period){
- const clean=normaliseImportText(header),token=clean.replace(/\d$/,''),cls=classes.find(c=>c.id===ctx.classId),group=curriculumGroupForClass(cls?.name||''),aliases=importSubjectAliases(token,group).map(normaliseImportText);
+ const cls=classes.find(c=>c.id===ctx.classId);
+ const shared=window.CornhillMarkImportMapping;
+ if(shared?.matchAssessment){
+  return shared.matchAssessment({
+   header,className:cls?.name||'',period,assessments:ctx.assessments,
+   getAssessmentPeriod:excelAssessmentPeriod,
+   getSubjectName:assessment=>assessment.subjects?.name||'',
+   getSuggestedCode:assessment=>excelSubjectLabel(assessment,0,cls)
+  });
+ }
+ const clean=normaliseImportText(header),token=clean.replace(/\d$/,''),group=curriculumGroupForClass(cls?.name||''),aliases=importSubjectAliases(token,group).map(normaliseImportText);
  const candidates=ctx.assessments.filter(a=>excelAssessmentPeriod(a)===period);
  const found=candidates.find(a=>{const subject=normaliseImportText(a.subjects?.name||'');return subject===token||aliases.includes(subject)||excelSubjectKey(a.subjects?.name||'')===excelSubjectKey(token)});
- if(found)return {assessment:found};
+ if(found)return {assessment:found,matchedBySchoolAlias:aliases.includes(normaliseImportText(found.subjects?.name||''))};
  const suggestions=candidates.map(assessment=>({assessment,code:excelSubjectLabel(assessment,0,cls)})).map(x=>({...x,distance:importCodeDistance(clean,x.code)})).sort((x,y)=>x.distance-y.distance);
  return suggestions[0]?.distance<=1?{suggested:suggestions[0]}:{};
 }
@@ -4901,6 +4916,8 @@ function importSheetClassMatch(sheetName,className){
  return !known.some(x=>sheet.startsWith(x));
 }
 function importWorkbookTermNumber(raw){
+ const shared=window.CornhillMarkImportMapping;
+ if(shared?.workbookTermNumber)return shared.workbookTermNumber(raw);
  const value=normaliseImportText(raw);
  if(/(?:FIRST|1ST)TERM|TERM(?:ONE|1)/.test(value))return 1;
  if(/(?:SECOND|2ND)TERM|TERM(?:TWO|2)/.test(value))return 2;
@@ -4908,13 +4925,15 @@ function importWorkbookTermNumber(raw){
  return null;
 }
 function importPhaseNumber(raw){
+ const shared=window.CornhillMarkImportMapping;
+ if(shared?.phaseNumber)return shared.phaseNumber(raw);
  const n=normaliseImportText(raw);
  if(/SETIV|SET4|FOURTH/.test(n))return 4;
  if(/SETIII|SET3|THIRD/.test(n))return 3;
  if(/SETII|SET2|SECOND/.test(n))return 2;
  if(/SETI|SET1|FIRST/.test(n))return 1;
  if(/BOT|BEGINNING|STARTOFTERM/.test(n))return 1;
- if(/MIDTERM/.test(n)||/\\bMID\\b/i.test(String(raw??'')))return 2;
+ if(/MIDTERM/.test(n)||/\bMID\b/i.test(String(raw??'')))return 2;
  if(/EOT|ENDOFTERM|ENDTERM/.test(n))return 3;
  return null;
 }
@@ -5049,7 +5068,10 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   if(sourceTermNumbers.length>1){
    issues.push('This workbook contains worksheets labelled for different academic terms. Separate the terms into different workbooks before importing.');
   }else if(sourceTermNumbers.length===1&&destinationTermNumber&&sourceTermNumbers[0]!==destinationTermNumber){
-   issues.push('Academic term mismatch: this workbook is labelled Term '+sourceTermNumbers[0]+' but the selected destination is '+(selectedAcademicTerm?.name||('Term '+destinationTermNumber))+'. No marks can be imported into the wrong term. Ask the administrator to make the correct academic term available, then select it and preview again.');
+   const sourceTermSheets=sheetInfos.filter(info=>importWorkbookTermNumber(info.name)===sourceTermNumbers[0]).map(info=>info.name);
+   const availableTerms=(academic.terms||[]).map(term=>term.name).filter(Boolean);
+   const matchingHistoricalTerm=(academic.terms||[]).some(term=>importWorkbookTermNumber(term.name)===sourceTermNumbers[0]);
+   issues.push('Academic term mismatch: worksheet tab '+(sourceTermSheets.join(', ')||'in this workbook')+' identifies Term '+sourceTermNumbers[0]+' but the selected destination is '+(selectedAcademicTerm?.name||('Term '+destinationTermNumber))+'. No marks can be imported into the wrong term. '+(matchingHistoricalTerm?'Select the matching historical term.':'No matching Term '+sourceTermNumbers[0]+' is configured in CORNHILL yet. Available academic terms: '+(availableTerms.join(', ')||'none')+'. Ask an administrator to create the correct historical term before importing.')+' The term label is read from the Excel worksheet tab name, not from a cell inside the sheet.');
   }
   for(const info of sheetInfos){
    const headers=info.matrix[info.headerRow].map(v=>String(v??'').trim()),rows=info.matrix.slice(info.headerRow+1),normal=headers.map(normaliseImportText);
@@ -5078,7 +5100,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
      const destinationName=match.assessment.subjects?.name||'Subject';
      // A recognised school abbreviation (for example NU1/EN1 in Nursery)
      // is a valid match even when its short code differs from the full subject name.
-     const recognisedAlias=importSubjectAliases(token,curriculumGroupForClass(clsName)).some(alias=>normaliseImportText(alias)===normaliseImportText(destinationName));
+     const recognisedAlias=!!match.matchedBySchoolAlias||importSubjectAliases(token,curriculumGroupForClass(clsName)).some(alias=>normaliseImportText(alias)===normaliseImportText(destinationName));
      const directName=normaliseImportText(destinationName)===token||excelSubjectKey(destinationName)===excelSubjectKey(token)||recognisedAlias;
      if(!mappedId&&!directName){
       const detail='This workbook code currently suggests '+destinationName+'. Confirm the correct assigned subject and period before importing.';
@@ -5087,11 +5109,15 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
      }else codeReview.push({header,sheetName:info.name,period,status:'Matched',detail:destinationName+' · '+period+(info.hidden?' · hidden worksheet':'')});
      if(markColumns.some(x=>x.assessment.id===match.assessment.id)){issues.push(info.name+' · '+header+': duplicate subject/period column.');codeReview.push({header,sheetName:info.name,period,status:'Duplicate',detail:'This subject and period already appeared in another worksheet.'});}
      else{const column={index,header,assessment:match.assessment,period,sheetName:info.name};markColumns.push(column);columns.push(column);}
+    }else if(match.unavailableSubject){
+     const detail=match.detail||('Recognised subject '+match.unavailableSubject+' is not available in the permitted assessment list for '+period+'. Ask the administrator to check class-subject access and assessment setup.');
+     issues.push(info.name+' · '+header+': '+detail);
+     codeReview.push({header,sheetName:info.name,period,status:'Subject unavailable',detail});
     }else if(match.suggested){
      const detail='Possible correction: '+match.suggested.code+' ('+(match.suggested.assessment.subjects?.name||'subject')+').';
      issues.push(info.name+' · '+header+': '+detail);codeReview.push({header,sheetName:info.name,period,status:'Possible typo',detail});
     }else{
-     issues.push(info.name+' · '+header+': no matching '+clsName+' subject exists for '+period+'.');codeReview.push({header,sheetName:info.name,period,status:'Unrecognised',detail:'This subject is not assigned to this class, or its code is incorrect.'});
+     issues.push(info.name+' · '+header+': no matching '+clsName+' subject exists for '+period+'.');codeReview.push({header,sheetName:info.name,period,status:'Unrecognised',detail:'This subject code is not recognised for this curriculum. Ask the administrator to confirm the code or curriculum assignment.'});
     }
    });
    for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
@@ -5137,6 +5163,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   const review=$('teacherMarksCodeReview');
   if(review){
    const needsMapping=codeReview.filter(x=>['Unrecognised','Possible typo','Period/code mismatch','Wrong class period','Code needs confirmation'].includes(x.status));
+   const teacherScopeNote=profile?.role==='Teacher'&&window.cornhillTeacherFullClassAccess!==true?'<div class="notice"><b>Teacher subject access:</b> The mapping choices below are limited to assessments your account is permitted to view and enter. If a valid school subject is marked <b>Subject unavailable</b> or is missing from the choices, ask the administrator to assign that subject or grant the correct class-wide teaching access. Do not map it to a different subject.</div>':'';
    const sampleFor=x=>{const source=sheetInfos.find(info=>info.name===x.sheetName);if(!source)return '—';const headers=source.matrix[source.headerRow]||[],colIndex=headers.findIndex(v=>String(v??'').trim()===x.header);if(colIndex<0)return '—';const values=source.matrix.slice(source.headerRow+1).map((row,index)=>({row:index+source.headerRow+2,value:row[colIndex]})).filter(item=>item.value!==null&&item.value!==undefined&&String(item.value).trim()!==''&&!String(item.value).trim().startsWith('=')).slice(0,8);return values.length?values.map(item=>'Row '+item.row+': '+String(item.value).trim()).join(' · '):'No sample values in this column';};
    const mappingRows=needsMapping.map(x=>{const key=teacherExcelMappingKey(file,classId,termId,x.sheetName,x.header),periodOrder=assessmentPeriodsForClassName(clsName),opts=ctx.assessments.slice().sort((a,b)=>periodOrder.indexOf(excelAssessmentPeriod(a))-periodOrder.indexOf(excelAssessmentPeriod(b))||excelSubjectOrder(a)-excelSubjectOrder(b)).map(a=>'<option value="'+esc(a.id)+'" '+(teacherExcelHeadingMappings[key]===a.id?'selected':'')+'>'+esc((a.subjects?.name||a.title||'Subject')+' · '+excelAssessmentPeriod(a))+'</option>').join('');return '<label style="display:block;margin:8px 0;padding:10px;border:1px solid var(--cornhill-line);border-radius:8px"><b>'+esc(x.sheetName+' · '+x.header)+'</b> <span class="muted">(detected: '+esc(x.period)+')</span><div class="muted" style="margin:4px 0 8px">Example contents: <b>'+esc(sampleFor(x))+'</b></div><select data-import-heading-map="'+esc(key)+'"><option value="">Choose destination subject AND period…</option><option value="__IGNORE__" '+(teacherExcelHeadingMappings[key]==='__IGNORE__'?'selected':'')+'>Ignore this column — not a mark</option>'+opts+'</select></label>'}).join('');
    const workbookGrid=sheetInfos.map(info=>{
@@ -5168,7 +5195,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
      }).join('');
      return '<section class="excel-sheet-grid"><div class="excel-sheet-grid-title"><b>'+esc(info.name)+'</b><span>'+(info.hidden?'Hidden worksheet':'Worksheet')+' · '+Math.max(0,info.matrix.length-info.headerRow-1)+' data row(s)</span></div><div class="table-wrap excel-grid-scroll"><table class="excel-import-grid"><thead><tr>'+letterHead+'</tr><tr>'+gridHead+'</tr></thead><tbody>'+gridRows+'</tbody></table></div></section>';;
    }).join('');
-   review.innerHTML='<strong>Workbook check · '+sheetInfos.length+' worksheet(s), including hidden sheets</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Check</th><th>Example contents</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(sampleFor(x))+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div><h3 style="margin-top:18px">Excel-style learner and marks preview</h3><p class="muted">Each row is a learner from the workbook. The first columns identify the learner; each following column shows the actual subject mark. Scroll sideways to see all subjects.</p>'+(mappingRows?'<div class="notice"><b>Subject headings and codes needing confirmation — choose the correct CORNHILL subject</b><p>Each unfamiliar heading or abbreviated subject code is shown with its worksheet, detected period and up to eight actual cell values with Excel row numbers. Even when a code has a possible match, confirm the exact destination subject AND period before importing. RR1, RR2 and RU3 are recognised as possible Local Language codes; if their period conflicts with the workbook’s grouped headings, the review asks you to choose the correct destination explicitly. You may ignore a column that contains a comment, total, position or note. Your mapping is applied only to this workbook preview; no marks are saved until every issue is resolved and you confirm the import.</p>'+mappingRows+'<button type="button" id="applyTeacherHeadingMappings" class="primary">Apply mappings and preview again</button></div>':'')+workbookGrid+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the workbook or map unfamiliar headings above. No marks have been imported.</p></div>':'<div class="notice">All detected subjects, periods and learner identifiers match this class.</div>');
+   review.innerHTML=teacherScopeNote+'<strong>Workbook check · '+sheetInfos.length+' worksheet(s), including hidden sheets</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Check</th><th>Example contents</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(sampleFor(x))+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div><h3 style="margin-top:18px">Excel-style learner and marks preview</h3><p class="muted">Each row is a learner from the workbook. The first columns identify the learner; each following column shows the actual subject mark. Scroll sideways to see all subjects.</p>'+(mappingRows?'<div class="notice"><b>Subject headings and codes needing confirmation — choose the correct CORNHILL subject</b><p>Each unfamiliar heading or abbreviated subject code is shown with its worksheet, detected period and up to eight actual cell values with Excel row numbers. Even when a code has a possible match, confirm the exact destination subject AND period before importing. RR1, RR2 and RU3 are recognised as possible Local Language codes; if their period conflicts with the workbook’s grouped headings, the review asks you to choose the correct destination explicitly. You may ignore a column that contains a comment, total, position or note. Your mapping is applied only to this workbook preview; no marks are saved until every issue is resolved and you confirm the import.</p>'+mappingRows+'<button type="button" id="applyTeacherHeadingMappings" class="primary">Apply mappings and preview again</button></div>':'')+workbookGrid+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the workbook or map unfamiliar headings above. No marks have been imported.</p></div>':'<div class="notice">All detected subjects, periods and learner identifiers match this class.</div>');
    review.querySelectorAll('[data-import-heading-map]').forEach(select=>select.addEventListener('change',()=>{const key=select.dataset.importHeadingMap;if(select.value)teacherExcelHeadingMappings[key]=select.value;else delete teacherExcelHeadingMappings[key]}));
    review.querySelector('#applyTeacherHeadingMappings')?.addEventListener('click',()=>{const missing=[...review.querySelectorAll('[data-import-heading-map]')].filter(x=>!x.value);if(missing.length){message('teacherMarksImportMsg','Choose a subject for each unfamiliar heading you want to import. Remove unrelated columns from the workbook or leave them unmapped.',true);return}$('previewTeacherMarksImport').click()});
   }
