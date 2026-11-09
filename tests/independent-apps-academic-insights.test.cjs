@@ -144,7 +144,7 @@ test('administrator teacher marks register requires an explicit class and term a
  assert.match(html,/id="adminTeacherMarksClass"/);
  assert.match(html,/id="adminTeacherMarksTerm"/);
  assert.ok(html.includes("Choose one valid class and one academic term before loading marks."));
- assert.ok(html.includes(".eq('term_id',values.term_id).eq('class_id',classId)"));
+ assert.ok(html.includes(".eq('term_id',termId).eq('class_id',classId)"));
  assert.ok(html.includes("Other classes are not included"));
  assert.ok(html.includes('Promise.resolve({data:[],error:null})'));
  assert.ok(!html.includes("profile?.role==='Admin'?loadAllTeacherMarksRegister()"));
