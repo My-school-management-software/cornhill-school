@@ -130,4 +130,7 @@ test('main dashboard shares the same preference namespace and listens for change
   assert.ok(html.includes("event.key!==appearanceStorageKey()"));
   assert.ok(html.includes("id=\"themeChoice\""));
   assert.ok(html.includes("id=\"dashboardLayoutChoice\""));
+  assert.ok(html.includes("id=\"navigationLayoutChoice\""));
+  assert.ok(html.includes("navigationLayout:$('navigationLayoutChoice').value"));
+  assert.ok(html.includes("window.CornhillAppearance?.applyPreferences?.(prefs)"));
 });
