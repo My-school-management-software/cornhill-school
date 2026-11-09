@@ -340,3 +340,185 @@ table{max-width:100%}
     margin-left:0!important;
   }
 }
+
+
+/* -------------------------------------------------------------------------
+   CORNHILL system-wide layout pass
+   Shared by the main management workspace and every linked application.
+   The fixed left rail belongs ONLY to the main workspace; standalone apps
+   must use their full content width.
+   ------------------------------------------------------------------------- */
+:root{
+  --cornhill-layout-max:1760px;
+  --cornhill-layout-gutter:clamp(12px,1.25vw,24px);
+  --cornhill-layout-gap:clamp(12px,1.15vw,20px);
+}
+html{overflow-x:clip}
+body{min-width:320px;max-width:100%;overflow-x:clip}
+
+/* Make each app's actual content shell use the available screen width. */
+.wrap,.container,.content,.workspace-main{
+  width:min(calc(100% - 2 * var(--cornhill-layout-gutter)),var(--cornhill-layout-max))!important;
+  max-width:var(--cornhill-layout-max)!important;
+  min-width:0!important;
+  margin-inline:auto!important;
+}
+.wrap:has(#app){
+  width:min(calc(100% - 2 * var(--cornhill-layout-gutter)),var(--cornhill-layout-max))!important;
+  max-width:var(--cornhill-layout-max)!important;
+}
+#app{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+/* Public-facing pages may use a full-bleed main element around inner .wraps. */
+main:not(.wrap):not(:has(>.wrap)){
+  width:100%!important;
+  max-width:none!important;
+  margin-inline:0!important;
+}
+
+/* Cards, panels and all their descendants may shrink without clipping. */
+.panel,.stat,.card,.tile,.module-card,.notice,.account,.txn,.device,.request,
+.comm-card,.record,.class-register-card,.app-centre-card{
+  min-width:0!important;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  box-sizing:border-box;
+}
+.grid,.module-grid,.app-grid,.stats,.form-grid,.editor,.toolbar,.controls,
+.dashboard-summary-only,.class-register-grid,.records{
+  min-width:0;
+  max-width:100%;
+}
+.grid>*,.module-grid>*,.app-grid>*,.stats>*,.form-grid>*,
+.editor>*,.toolbar>*,.controls>*,.dashboard-summary-only>*{
+  min-width:0;
+  max-width:100%;
+}
+.row,.actions,.nav,.navlinks,.top-actions,.notice-head,.record-head{
+  min-width:0;
+  flex-wrap:wrap;
+}
+.row>*{min-width:0;max-width:100%}
+button,.button,a,input,select,textarea{
+  min-width:0;
+  max-width:100%;
+}
+button,.button{
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+input,select,textarea{
+  box-sizing:border-box;
+}
+.table-wrap,.table-responsive,[data-table-scroll]{
+  display:block;
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  -webkit-overflow-scrolling:touch;
+}
+table{
+  max-width:100%;
+}
+th,td{
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  vertical-align:top;
+}
+img,video,canvas,svg{max-width:100%}
+img,video{height:auto}
+
+/* Main app: preserve a measured left navigation rail and give the rest of
+   the viewport to the active page. Standalone #app containers get no offset. */
+@media(min-width:901px){
+  #app:not(:has(.cornhill-sidebar))>section:not(.tabs),
+  #app:not(:has(.cornhill-sidebar))>.module-preview,
+  #app:not(:has(.cornhill-sidebar))>.row:first-child,
+  #app:not(:has(.cornhill-sidebar))>#appMsg,
+  #app:not(:has(.cornhill-sidebar))>#staffAttendanceNotice,
+  #app:not(:has(.cornhill-sidebar))>#demoBanner,
+  #app:not(:has(.cornhill-sidebar))>.grid:first-of-type{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+  }
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type,
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview{
+    width:calc(100% - 252px)!important;
+    max-width:calc(100% - 252px)!important;
+    margin-left:252px!important;
+    margin-right:0!important;
+    box-sizing:border-box!important;
+  }
+  #app:has(.cornhill-sidebar) .cornhill-sidebar{
+    left:max(var(--cornhill-layout-gutter),calc((100vw - var(--cornhill-layout-max))/2 + var(--cornhill-layout-gutter)))!important;
+  }
+}
+@media(min-width:701px) and (max-width:900px){
+  #app:not(:has(.cornhill-sidebar))>section:not(.tabs),
+  #app:not(:has(.cornhill-sidebar))>.module-preview,
+  #app:not(:has(.cornhill-sidebar))>.row:first-child,
+  #app:not(:has(.cornhill-sidebar))>#appMsg,
+  #app:not(:has(.cornhill-sidebar))>#staffAttendanceNotice,
+  #app:not(:has(.cornhill-sidebar))>#demoBanner,
+  #app:not(:has(.cornhill-sidebar))>.grid:first-of-type{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+  }
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type,
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview{
+    width:calc(100% - 214px)!important;
+    max-width:calc(100% - 214px)!important;
+    margin-left:214px!important;
+    margin-right:0!important;
+    box-sizing:border-box!important;
+  }
+  #app:has(.cornhill-sidebar) .cornhill-sidebar{
+    left:var(--cornhill-layout-gutter)!important;
+    width:194px!important;
+  }
+}
+@media(max-width:700px){
+  .wrap,.container,.content,.workspace-main{
+    width:100%!important;
+    max-width:100%!important;
+    padding-left:10px!important;
+    padding-right:10px!important;
+  }
+  #app>section:not(.tabs),#app>.module-preview,
+  #app>.row:first-child,#app>#appMsg,#app>#staffAttendanceNotice,
+  #app>#demoBanner,#app>.grid:first-of-type{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+  }
+  .panel,.card,.stat,.tile{max-width:100%;overflow-wrap:anywhere}
+  .table-wrap,.table-responsive,[data-table-scroll]{margin-inline:0}
+}
+@media(max-width:420px){
+  .row,.actions,.top-actions{gap:8px}
+  button,.button{max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:0.01ms!important;animation-duration:0.01ms!important;animation-iteration-count:1!important}
+}
