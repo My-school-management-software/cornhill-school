@@ -240,3 +240,141 @@ table{max-width:100%}
  .table-wrap{margin-inline:0}
  input,select,textarea{max-width:100%;min-width:0}
 }
+
+/* Desktop workspace geometry: align the content sheet with the sidebar and use
+   the available monitor width. The old 1,540px sidebar reference caused a
+   70px horizontal drift against the centered content container. */
+@media(min-width:701px){
+  .wrap,main,#app,.container,.content,.workspace-main{
+    width:calc(100% - 28px)!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin-inline:auto!important;
+  }
+  main.wrap{padding-inline:10px!important}
+  main.wrap>#app{
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  #app .cornhill-sidebar{
+    left:36px!important;
+    width:220px!important;
+  }
+  #app>.row:first-child,
+  #app>#appMsg,
+  #app>#staffAttendanceNotice,
+  #app>#demoBanner,
+  #app>.grid:first-of-type,
+  #app>section:not(.tabs),
+  #app>.module-preview{
+    width:auto!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin-left:244px!important;
+    margin-right:0!important;
+  }
+}
+@media(min-width:701px) and (max-width:900px){
+  #app .cornhill-sidebar{left:10px!important;width:194px!important}
+  #app>.row:first-child,
+  #app>#appMsg,
+  #app>#staffAttendanceNotice,
+  #app>#demoBanner,
+  #app>.grid:first-of-type,
+  #app>section:not(.tabs),
+  #app>.module-preview{margin-left:192px!important}
+}
+@media(max-width:700px){
+  main.wrap{width:100%!important;max-width:none!important;padding-inline:10px!important}
+  main.wrap>#app{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+  #app>.row:first-child,
+  #app>#appMsg,
+  #app>#staffAttendanceNotice,
+  #app>#demoBanner,
+  #app>.grid:first-of-type,
+  #app>section:not(.tabs),
+  #app>.module-preview{width:auto!important;max-width:100%!important;margin-left:0!important;margin-right:0!important}
+}
+
+/* Cards and action controls must shrink inside their own sheet rather than
+   painting across the border or hiding content behind the sidebar. */
+#app .panel,#app .stat,#app .card,#app .tile,#app .module-card,
+#app .grid,#app .module-grid,#app .row,#app form,#app section{
+  box-sizing:border-box;
+  min-width:0;
+  max-width:100%;
+}
+#app .grid>*,#app .module-grid>*,#app .app-centre-grid>*,
+#app .row>*,#app form>*{
+  box-sizing:border-box;
+  min-width:0;
+  max-width:100%;
+}
+#app .panel,#app .stat,#app .card,#app .tile,#app .module-card{
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+#app button,#app .button,#app a.button{
+  box-sizing:border-box;
+  max-width:100%;
+  min-width:0;
+  white-space:normal;
+  overflow-wrap:break-word;
+  word-break:normal;
+  line-height:1.35;
+}
+#app .dashboard-intro{
+  min-width:0;
+  max-width:100%;
+  flex-wrap:wrap;
+}
+#app .dashboard-live-label{white-space:normal}
+#app .module-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));
+  align-items:stretch;
+}
+#app #learnerIdentityQualityPanel{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+#app #learnerIdentityQualityPanel>.row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+}
+#app #learnerIdentityQualityPanel>.row>div{min-width:0}
+#app #refreshLearnerIdentityQuality{
+  max-width:100%;
+  min-width:0;
+  white-space:normal;
+  overflow-wrap:normal;
+}
+#app #learnerIdentityQualityPanel>.grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))!important;
+  align-items:stretch;
+}
+#app #learnerIdentityQualityPanel>.grid>.stat{
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+  overflow-wrap:break-word;
+}
+#app #learnerIdentityQualityPanel .stat small{
+  display:block;
+  line-height:1.35;
+  overflow-wrap:break-word;
+}
+@media(max-width:520px){
+  #app #learnerIdentityQualityPanel>.row{grid-template-columns:minmax(0,1fr)}
+  #app #learnerIdentityQualityPanel>.grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:360px){
+  #app #learnerIdentityQualityPanel>.grid{grid-template-columns:1fr!important}
+}
+

@@ -30,6 +30,10 @@ test('every CORNHILL PWA has a distinct app id, start URL and scope',()=>{
  assert.equal(ids.size,apps.length);
  assert.equal(scopes.size,apps.length);
  assert.equal(starts.size,apps.length);
+ const scopes=apps.map(([, ,manifestFile])=>JSON.parse(fs.readFileSync(path.join(root,manifestFile),'utf8')).scope);
+ for(let i=0;i<scopes.length;i++)for(let j=i+1;j<scopes.length;j++){
+  assert.ok(!scopes[i].startsWith(scopes[j])&&!scopes[j].startsWith(scopes[i]),scopes[i]+' must not overlap '+scopes[j]);
+ }
 });
 
 test('each install route and manifest route rewrites to its existing application page',()=>{
@@ -56,8 +60,13 @@ test('main and admissions workspaces load the shared roomy layout stylesheet',()
  }
  const css=fs.readFileSync(path.join(root,'assets/cornhill-design-system.css'),'utf8');
  assert.match(css,/Roomier layouts across administrator/);
- assert.match(css,/overflow-wrap:anywhere/);
+ assert.match(css,/overflow-wrap:break-word/);
  assert.match(css,/max-width:1680px/);
+ assert.match(css,/Desktop workspace geometry/);
+ assert.match(css,/width:calc\\(100% - 28px\\)/);
+ assert.match(css,/main\\.wrap>#app/);
+ assert.match(css,/left:36px!important/);
+ assert.match(css,/margin-left:244px!important/);
 });
 
 test('administrator academic insights show class-by-class subject and learner details from paged records',()=>{
@@ -81,4 +90,19 @@ test('offline shell includes each standalone app entry and its own manifest rout
   assert.ok(sw.includes('/apps/'+slug+'/manifest.webmanifest'));
  }
  assert.match(sw,/\/apps\/school-management\/'\,\s*'\/apps\/school-management/);
+});
+
+
+test('App Centre launches side applications in a separate browser context',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(html,/app-centre-card[\\s\\S]{0,220}target="_blank" rel="noopener noreferrer"/);
+});
+
+test('dashboard quality cards and action buttons remain inside their card bounds',()=>{
+ const css=fs.readFileSync(path.join(root,'assets/cornhill-design-system.css'),'utf8');
+ assert.match(css,/#learnerIdentityQualityPanel>\\.row/);
+ assert.match(css,/grid-template-columns:minmax\\(0,1fr\\) auto/);
+ assert.match(css,/#refreshLearnerIdentityQuality/);
+ assert.match(css,/\\.grid>\\*.*min-width:0/s);
+ assert.match(css,/button,#app/);
 });
