@@ -104,5 +104,5 @@ test('dashboard quality cards and action buttons remain inside their card bounds
  assert.match(css,/grid-template-columns:minmax\\(0,1fr\\) auto/);
  assert.match(css,/#refreshLearnerIdentityQuality/);
  assert.match(css,/\\.grid>\\*.*min-width:0/s);
- assert.match(css,/button,#app/);
+ assert.match(css,/#app button,#app \\.button/);
 });
