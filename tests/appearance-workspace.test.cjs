@@ -64,8 +64,8 @@ test('preferences save and apply to the page using the same per-user key as the 
   assert.equal(body.dataset.dashboardLayout, 'bento-grid');
   assert.equal(body.style.getPropertyValue('--cornhill-page'), '#111827');
   assert.equal(body.style.getPropertyValue('--panel'), '#1f2937');
-  assert.equal(documentElement.style.getPropertyValue('font-size'), '18px');
-  assert.match(documentElement.style.getPropertyValue('font-family'), /Georgia/);
+  assert.equal(documentElement.style.fontSize, '18px');
+  assert.match(documentElement.style.fontFamily, /Georgia/);
   assert.equal(themeMeta.content, '#0f172a');
   assert.ok(stored.has('cornhill_appearance_v1:staff-1'));
   assert.deepEqual(JSON.parse(stored.get('cornhill_appearance_v1:staff-1')).theme, 'midnight');
