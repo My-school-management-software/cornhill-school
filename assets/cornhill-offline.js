@@ -264,7 +264,6 @@
       #cornhillOfflineIndicator [data-drafts]{font-weight:500;color:#657568}
       #cornhillOfflineIndicator button{border:0;border-radius:999px;padding:6px 10px;background:#14532d;color:#fff;font:700 11px system-ui,sans-serif;cursor:pointer}
       #cornhillOfflineIndicator button:disabled{opacity:.45;cursor:default}
-      #installApp,#installAdmissionsApp,#installParentPortal,#installServicesApp,#installSchoolWebsite{display:none!important}
       @media(max-width:560px){#cornhillOfflineIndicator{left:8px;right:8px;bottom:8px;justify-content:space-between;max-width:none}#cornhillOfflineIndicator [data-drafts]{display:none}}
     `;
     document.head.appendChild(style);
