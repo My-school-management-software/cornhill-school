@@ -1058,7 +1058,6 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 <script src="/assets/cornhill-appearance.js"></script> <script src="/assets/cornhill-offline.js"></script> <script src="/assets/cornhill-draft-crypto.js"></script>
 </head>
 <body>
-<div id="connectionStatus" role="status" aria-live="polite" class="hidden" style="position:sticky;top:0;z-index:1000;padding:9px 14px;text-align:center;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:700">You are offline. The app shell is available, but live learner records, finance and payments need an internet connection. No payment has been recorded.</div>
 <header class="top"><div><div class="brand" style="display:flex;align-items:center;gap:12px"><img src="/assets/cornhill-school-badge.png" alt="Cornhill Nursery and Primary School crest" style="width:48px;height:48px;object-fit:contain;background:#fff;border-radius:50%;padding:2px;flex:0 0 auto"><span>CORNHILL NURSERY AND PRIMARY SCHOOL</span></div><div class="sub">School Management System · Uganda</div>
 <div class="school-motto"><span>WE SHARE ONE DREAM</span><small>Learning together · Growing together · Achieving together</small></div></div><div class="row"><button id="refreshApp" type="button" title="Check for the latest CORNHILL version" style="background:#fff;color:#14532d">↻ Refresh app</button><button id="logout" class="hidden">Sign out</button></div></header>
 <main class="wrap">
@@ -7836,13 +7835,6 @@ $('staffCommunicationFeed').addEventListener('click',async e=>{
  const react=e.target.closest('[data-react]');if(react){const {error}=await db.from('staff_communication_reactions').insert({post_id:react.dataset.react,user_id:currentUserId,reaction:'helpful'});if(error){message('staffCommMsg','Reaction was not saved: '+error.message,true);return}await loadStaffCommunication();return}
  const del=e.target.closest('[data-delete-post]');if(del&&confirm('Delete this staff message and its comments?')){const {error}=await db.from('staff_communication_posts').delete().eq('id',del.dataset.deletePost);if(error){message('staffCommMsg','Message could not be deleted: '+error.message,true);return}await loadStaffCommunication()}
 });
-</script><script>
-(function(){
- const status=document.getElementById('connectionStatus');
- function updateConnection(){if(!status)return;const offline=!navigator.onLine;status.classList.remove('hidden');status.style.background=offline?'#fff7ed':'#ecfdf5';status.style.color=offline?'#9a3412':'#166534';status.textContent=offline?'OFFLINE MODE · Saved CORNHILL app is available. Class-list snapshots are view-only; queued teacher marks and attendance requests stay on this device until they can sync. Finance, payments, receipts, messages and live database updates require internet.':'ONLINE · Connected to the school service. Pending teacher marks and attendance requests will be synchronised when you are signed in.';}
- window.addEventListener('online',updateConnection);window.addEventListener('offline',updateConnection);updateConnection();
- 
-})();
 </script>
 
 <script>
