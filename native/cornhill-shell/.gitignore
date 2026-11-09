@@ -1,0 +1,11 @@
+# Native build output
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/*.png
+src-tauri/icons/*.ico
+src-tauri/icons/*.icns
+
+# Never commit signing keys or passwords
+src-tauri/gen/android/keystore.properties
+*.jks
+*.keystore
