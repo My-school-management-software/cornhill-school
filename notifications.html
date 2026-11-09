@@ -34,7 +34,7 @@ input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius
 <body data-theme="warm-corporate">
 <header class="top">
  <div><div class="brand">CORNHILL · NOTIFICATION CENTRE</div><div class="sub">One school-wide attention and approvals inbox</div></div>
- <div class="top-actions"><a href="/">Main system</a><a href="/evidence.html">Evidence Capture</a><a id="recordsLink" class="hidden" href="/records.html">Records Centre</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
+ <div class="top-actions"><a href="/">Main system</a><button id="installApp" type="button" class="hidden">Install app</button><a href="/evidence.html">Evidence Capture</a><a id="recordsLink" class="hidden" href="/records.html">Records Centre</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
 </header>
 <main class="wrap">
  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -198,6 +198,10 @@ db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(da
 db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(pollTimer)clearInterval(pollTimer);user=null;profile=null;$('app').classList.add('hidden');$('loginCard').classList.remove('hidden')}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user)loadNotifications({quiet:true})});
 
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('installApp').classList.remove('hidden')});
+$('installApp').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installApp').classList.add('hidden')});
+window.addEventListener('appinstalled',()=>{$('installApp').classList.add('hidden');toast('Notification Centre is installed on this device.')});
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
 </body></html>
