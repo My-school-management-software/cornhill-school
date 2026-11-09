@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d"><meta name="description" content="CORNHILL secure phone evidence capture"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="/evidence.webmanifest"><link rel="apple-touch-icon" href="/assets/cornhill-school-badge.png">
+<title>CORNHILL Evidence Capture</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js" defer></script>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:16px max(16px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:850;font-size:18px}.sub{font-size:12px;opacity:.8;margin-top:4px}.wrap{max-width:1080px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid #dce7de;border-radius:15px;padding:18px;margin:0 0 14px;box-shadow:0 3px 14px #183d2010}.hidden{display:none!important}.muted{color:#647568;font-size:13px;line-height:1.5}.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf3;color:#166534}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-size:13px;font-weight:700;color:#435449;margin:8px 0 5px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:#fff;font:inherit;margin:0 0 9px}button,.button{border:0;border-radius:9px;padding:11px 14px;background:#e6efe7;color:#17452a;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}.badge{font-size:11px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:800}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#991b1b}.device,.request{border:1px solid #e0e9e1;border-radius:12px;padding:13px;margin:10px 0}.request h3{margin:0 0 5px;font-size:16px}.request p{margin:5px 0}.code{font:700 20px ui-monospace,monospace;letter-spacing:2px;background:#f1f5f2;padding:12px;border-radius:8px;overflow-wrap:anywhere}.preview{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.preview img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid #d8e2da}.timer{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums;color:#9a3412}.capture{border:2px dashed #9fb5a4;border-radius:13px;padding:18px;text-align:center;background:#f8fbf8}.small{font-size:11px;color:#647568}
+.scan-video-wrap{background:#17251c;border-radius:12px;overflow:hidden;min-height:200px;display:flex;align-items:center;justify-content:center}
+.scan-video-wrap video{width:100%;max-height:55vh;object-fit:contain}
+.scan-editor-image{display:block;max-width:100%;max-height:58vh}
+.scan-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.scan-page-thumb{width:88px;height:112px;object-fit:cover;border:1px solid #dce7de;border-radius:8px;background:white}
+.scan-page-card{border:1px solid #dce7de;border-radius:10px;padding:8px;display:grid;gap:4px;text-align:center}
+.scan-pages{display:flex;gap:9px;overflow:auto;padding:8px 0}
+.scan-camera-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.scan-progress{font-size:12px;color:#647568}
+.cropper-container{max-width:100%}
+@media(max-width:620px){.scan-toolbar button{flex:1 1 auto}.scan-video-wrap video{max-height:45vh}}
+@media(prefers-reduced-motion:reduce){.scan-page-card{scroll-behavior:auto}}
+@media(max-width:620px){.grid{grid-template-columns:1fr}.top{align-items:flex-start}.panel{padding:14px}.wrap{margin:12px auto}}
+</style>
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<script src="/assets/cornhill-appearance.js"></script>
+<script src="/assets/cornhill-offline.js"></script><script src="/assets/app-isolation-guard.js"></script></head>
+<body data-theme="warm-corporate">
+<header class="top"><div><div class="brand">CORNHILL · EVIDENCE CAPTURE</div><div class="sub">Secure phone camera and document attachment service</div></div><div class="row"><a class="button" href="https://cornhill-school-swart.vercel.app/apps/school-management/">School system</a><a class="button" href="https://notifications-cornhill-school.vercel.app/apps/notifications/">Notifications</a><a class="button hidden" id="recordsCentreLink" href="https://records-cornhill-school.vercel.app/apps/records/">Records Centre</a><span id="userLabel" class="small" style="color:#e5f4e8"></span><button id="signOut" class="hidden">Sign out</button></div></header>
+<main class="wrap">
+<section id="loginPanel" class="panel" style="max-width:460px;margin:32px auto">
+<h2>Staff sign-in</h2><p class="muted">Sign in using your own CORNHILL staff account. Do not use another staff member's password.</p>
+<form id="loginForm"><label>Email address</label><input name="email" type="email" autocomplete="username" required><label>Password</label><input name="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">Sign in securely</button></form><div id="loginMsg" class="notice hidden" role="status"></div>
+</section>
+<section id="appPanel" class="hidden">
+<div class="panel"><div class="row"><div><h2 id="hello">Welcome</h2><p id="roleInfo" class="muted">Your access is limited to your assigned permissions and capture requests.</p></div><span id="connectionBadge" class="badge">Connected</span></div><div id="globalMsg" class="notice hidden" role="status"></div></div>
+<section id="adminPanel" class="hidden">
+<div class="panel"><h2>1. Authorise a phone</h2><p class="muted">Choose the staff account that will use the phone. The staff member must sign in on that phone with their own account and enter the one-time pairing code. Codes expire after ten minutes and can be used once.</p>
+<form id="deviceForm"><div><label>Staff account *</label><select id="deviceStaff" required><option value="">Loading staff accounts…</option></select></div><div><label>Phone/device name *</label><input id="deviceName" required maxlength="80" placeholder="e.g. Deputy Bursar phone"></div><div><label>Device type</label><select id="devicePlatform"><option>Android</option><option>iOS</option><option>Windows</option><option>Other</option></select></div><div class="row" style="align-items:end"><button class="primary" type="submit">Generate pairing code</button></div></form>
+<div id="pairCodePanel" class="notice hidden"><strong>One-time pairing code</strong><div id="pairCode" class="code"></div><p id="pairExpiry" class="small"></p><button type="button" id="copyPairCode">Copy code</button></div>
+</div>
+<div class="panel"><div class="row"><div><h2>2. Authorised phones</h2><p class="muted">Only active phones can receive new capture requests.</p></div><button type="button" id="refreshDevices">Refresh</button></div><div id="deviceList"><p class="muted">Loading devices…</p></div></div>
+<div class="panel"><h2>3. Request evidence from a phone</h2><p class="muted">Select an authorised phone. The request is valid for ten minutes. The amount is optional for non-financial documents.</p>
+<form id="requestForm"><input type="hidden" id="requestContextType" value="general_attachment"><input type="hidden" id="requestRecordId"><div><label>Send request to *</label><select id="requestDevice" required><option value="">Choose how to attach the document…</option><option value="__local__">Upload an existing file from this computer / phone</option></select><small class="muted">Use an existing file first. Choose an authorised phone only when you need someone to photograph or scan a paper document.</small></div><div><label>Evidence type *</label><select id="requestPurpose" required><option>Bank deposit slip</option><option>Expense receipt</option><option>Withdrawal evidence</option><option>Staff ID</option><option>Staff application letter</option><option>Staff national ID</option><option>Staff academic certificates</option><option>Staff appointment letter</option><option>Birth certificate</option><option>Previous report</option><option>Transfer letter</option><option>Learner document</option><option>Parent / guardian document</option><option>General document</option><option>Other</option></select></div><div><label>Record name / reference *</label><input id="requestContext" required maxlength="180" placeholder="e.g. Daily bank deposit – 8 Nov 2026"></div><div><label>Amount (UGX), if applicable</label><input id="requestAmount" type="number" min="1" step="1" placeholder="e.g. 850000"></div><div class="full"><label>Instructions</label><textarea id="requestDescription" rows="2" maxlength="500" placeholder="What should the phone user photograph?"></textarea></div><button class="primary" type="submit">Send ten-minute photo request</button></form></div>
+<div class="panel"><div class="row"><div><h2>4. Evidence register</h2><p class="muted">Review submitted photos and record a separate decision.</p></div><button id="refreshRequests" type="button">Refresh register</button></div><div id="adminRequests"><p class="muted">Loading requests…</p></div></div>
+</section>
+<section id="phonePanel" class="hidden">
+<div class="panel"><h2>Connect this phone</h2><p class="muted">If this phone has not been authorised yet, enter the one-time code provided by the administrator.</p>
+<form id="pairForm"><div><label>Phone name *</label><input id="phoneName" required maxlength="80" placeholder="e.g. Deputy Bursar phone"></div><div><label>One-time pairing code *</label><input id="phonePairCode" required autocomplete="one-time-code" minlength="24" maxlength="100" placeholder="Paste the code from the administrator"></div><div><label>Device type</label><select id="phonePlatform"><option>Android</option><option>iOS</option><option>Windows</option><option>Other</option></select></div><button class="primary" type="submit">Authorise this phone</button></form><div id="pairMsg" class="notice hidden"></div>
+</div>
+<div class="panel"><div class="row"><div><h2>Requests for this phone</h2><p class="muted">New requests appear here while this page is open and connected to the internet. For files already stored on this computer or phone, the administrator can upload them directly; otherwise the assigned phone can capture a photo or PDF.</p></div><div class="row"><button type="button" id="enableNotifications">Enable notifications</button><button type="button" id="refreshPhone">Refresh</button></div></div><div id="phoneRequests"><p class="muted">Pair this phone to see assigned requests.</p></div></div>
+<div id="scannerWorkspace" class="panel hidden">
+ <div class="row"><div><span class="eyebrow">MULTI-PAGE DOCUMENT SCANNER</span><h2>Scan a document</h2><p class="muted">Capture a page, crop its edges, rotate it and choose a clean document filter. Add several pages and submit one PDF to the linked school record.</p></div><button type="button" id="closeScanner">Close scanner</button></div>
+ <div class="notice">For best results, place the paper on a flat surface with good light. The browser scanner provides manual crop and image enhancement. Automatic edge detection varies by device; check every page before submitting.</div>
+ <div id="scannerCameraArea">
+  <div class="scan-video-wrap"><video id="scannerVideo" autoplay playsinline muted></video></div>
+  <div class="scan-camera-actions">
+   <button type="button" class="primary" id="captureScanPage">Capture page</button>
+   <label class="button" style="margin:0">Choose photo instead<input id="scannerImagePicker" type="file" accept="image/*" multiple hidden></label>
+   <button type="button" id="switchScanCamera">Switch camera</button>
+  </div>
+ </div>
+ <div id="scannerEditor" class="hidden" style="margin-top:14px">
+  <div class="capture"><img id="scannerEditorImage" class="scan-editor-image" alt="Document page crop preview"></div>
+  <div class="scan-toolbar">
+   <button type="button" id="rotateScanLeft">Rotate left</button><button type="button" id="rotateScanRight">Rotate right</button>
+   <label style="margin:0;min-width:150px">Document filter<select id="scannerFilter"><option value="enhanced" selected>Smart document · balanced colour</option><option value="original">Original colour</option><option value="colour">Colour document</option><option value="gray">Grayscale</option><option value="clean">Clean black & white</option></select></label>
+   <button type="button" id="resetScanCrop">Reset crop</button>
+   <button type="button" class="primary" id="addScanPage">Add page to PDF</button>
+  </div>
+ </div>
+ <div class="row" style="margin-top:12px"><strong>Pages in this scan</strong><span class="badge" id="scannerPageCount">0 / 8</span></div>
+ <div class="scan-pages" id="scannerPageList"><span class="muted">No pages added yet.</span></div>
+ <p class="scan-progress" id="scannerStatus" role="status">Camera ready when you open a scan request.</p>
+ <div class="scan-toolbar"><button type="button" class="primary" id="finishScanPdf" disabled>Build PDF and submit evidence</button><button type="button" class="danger" id="discardScanPages">Discard pages</button></div>
+</div>
+</section>
+</section>
+</main>
+<script>
+const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
+const EVIDENCE_AUTH_TAB_ID_KEY='cornhill-evidence-tab-id-v1';
+const makeEvidenceAuthTabId=()=>window.crypto?.randomUUID?.()||('tab-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
+let evidenceAuthStorage=null,evidenceAuthStorageKey='';
+try{
+ const navEntry=performance.getEntriesByType('navigation')[0];
+ const sameTabReload=navEntry?.type==='reload';
+ const storedTabId=sessionStorage.getItem(EVIDENCE_AUTH_TAB_ID_KEY);
+ const tabId=storedTabId&&sameTabReload?storedTabId:makeEvidenceAuthTabId();
+ sessionStorage.setItem(EVIDENCE_AUTH_TAB_ID_KEY,tabId);
+ evidenceAuthStorage=sessionStorage;
+ evidenceAuthStorageKey='cornhill-evidence-tab-'+tabId;
+}catch(_){
+ evidenceAuthStorageKey='cornhill-evidence-ephemeral-'+makeEvidenceAuthTabId();
+}
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{
+ storageKey:evidenceAuthStorageKey,
+ ...(evidenceAuthStorage?{storage:evidenceAuthStorage,persistSession:true}:{persistSession:false}),
+ autoRefreshToken:true,detectSessionInUrl:false
+}});
+const $=id=>document.getElementById(id), bucket='cornhill-private-evidence';
+let user=null,profile=null,devices=[],staff=[],timerHandle=null,realtimeChannel=null,selectedFiles=[],phoneDevices=[],heartbeatHandle=null,pollHandle=null;
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function note(id,text,type='notice'){const el=$(id);if(!el)return;el.textContent=text;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.classList.remove('hidden')}
+function clearNote(id){$(id)?.classList.add('hidden')}
+function isExpired(r){return new Date(r.expires_at).getTime()<=Date.now()}
+function statusBadge(r){if(r.status==='Submitted')return '<span class="badge">Submitted</span>';if(isExpired(r))return '<span class="badge bad">Expired</span>';if(r.status==='Cancelled')return '<span class="badge bad">Cancelled</span>';return '<span class="badge warn">Awaiting photo</span>'}
+function startCountdowns(){if(timerHandle)clearInterval(timerHandle);timerHandle=setInterval(()=>{document.querySelectorAll('[data-expiry]').forEach(el=>{const ms=new Date(el.dataset.expiry).getTime()-Date.now();if(ms<=0){el.textContent='Expired';el.classList.add('badge','bad');}else{const sec=Math.floor(ms/1000);el.textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}});},1000)}
+async function hashCode(code){const bytes=new TextEncoder().encode(code);const digest=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')}
+async function loadProfile(){const {data,error}=await db.from('user_profiles').select('id,full_name,role,employment_status').eq('id',user.id).single();if(error)throw error;if(!data||data.employment_status!=='Active')throw new Error('This staff account is not active. Contact the school administrator.');profile=data;window.CornhillAppearance?.applyForUser?.(profile.id)}
+function browserNotify(title,body){if(!('Notification'in window)||Notification.permission!=='granted')return;try{const n=new Notification(title,{body,icon:'/assets/cornhill-school-badge.png'});n.onclick=()=>{window.focus();n.close()}}catch(_){}}
+function setupRealtime(){
+ if(realtimeChannel)db.removeChannel(realtimeChannel);
+ let channel=db.channel('evidence-requests-'+user.id);
+ if(profile?.role==='Admin'){
+  channel=channel.on('postgres_changes',{event:'UPDATE',schema:'public',table:'evidence_capture_requests',filter:'requested_by=eq.'+user.id},payload=>{
+   loadAdminRequests();
+   if(payload.new.status==='Submitted')browserNotify('CORNHILL: evidence received',payload.new.purpose+' · '+payload.new.context_label);
+  });
+ }else{
+  channel=channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'evidence_capture_requests',filter:'assigned_user_id=eq.'+user.id},payload=>{
+   loadPhoneRequests();
+   browserNotify('CORNHILL: photo evidence requested',payload.new.purpose+' · '+payload.new.context_label);
+  });
+ }
+ realtimeChannel=channel.subscribe();
+}
+function startPhoneHeartbeat(){
+ if(heartbeatHandle)clearInterval(heartbeatHandle);
+ if(pollHandle)clearInterval(pollHandle);
+ const touch=()=>{if(!user||!navigator.onLine||document.visibilityState==='hidden')return;phoneDevices.forEach(d=>db.rpc('touch_evidence_capture_device',{p_device_id:d.id}).then(()=>{}).catch(()=>{}))};
+ touch();
+ heartbeatHandle=setInterval(touch,60000);
+ pollHandle=setInterval(()=>{
+  if(!user||!navigator.onLine||document.visibilityState!=='visible')return;
+  loadPhoneRequests();
+  if(profile?.role==='Admin')loadAdminRequests();
+ },25000);
+}
+async function enterApp(){await loadProfile();$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');$('signOut').classList.remove('hidden');$('userLabel').textContent=profile.full_name||'Staff';$('recordsCentreLink').classList.toggle('hidden',profile.role!=='Admin');$('hello').textContent='Welcome, '+(profile.full_name||'staff member');$('roleInfo').textContent=profile.role+' account · Phone evidence access is limited to authorised devices and assigned requests.';$('adminPanel').classList.toggle('hidden',profile.role!=='Admin');$('phonePanel').classList.toggle('hidden',false);if(profile.role==='Admin'){await loadStaff();await loadDevices();await loadAdminRequests()}await loadPhoneRequests();setupRealtime();startCountdowns();startPhoneHeartbeat();}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const {data,error}=await db.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error){note('loginMsg',error.message,'error');return}user=data.user;try{await enterApp()}catch(err){await db.auth.signOut({scope:'local'});note('loginMsg',err.message||'Could not load your staff profile.','error')}});
+$('signOut').addEventListener('click',async()=>{if(realtimeChannel)await db.removeChannel(realtimeChannel);if(timerHandle)clearInterval(timerHandle);if(heartbeatHandle)clearInterval(heartbeatHandle);if(pollHandle)clearInterval(pollHandle);await db.auth.signOut({scope:'local'});user=null;profile=null;phoneDevices=[];$('appPanel').classList.add('hidden');$('loginPanel').classList.remove('hidden');$('signOut').classList.add('hidden');$('userLabel').textContent=''});
+async function loadStaff(){const {data,error}=await db.from('user_profiles').select('id,full_name,role,employment_status').eq('employment_status','Active').order('full_name');if(error){$('deviceStaff').innerHTML='<option value="">Staff directory unavailable</option>';note('globalMsg','Could not load active staff accounts: '+error.message,'error');return}staff=data||[];$('deviceStaff').innerHTML='<option value="">Choose a staff member…</option>'+staff.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.full_name||'Unnamed staff')+' · '+esc(s.role)+'</option>').join('')}
+async function loadDevices(){const {data,error}=await db.from('evidence_capture_devices').select('id,assigned_user_id,device_name,platform,status,paired_at,last_seen_at,created_at').order('created_at',{ascending:false});if(error){note('globalMsg','Could not load authorised phones: '+error.message,'error');return}devices=data||[];const staffName=id=>staff.find(s=>s.id===id)?.full_name||'Staff account';$('deviceList').innerHTML=devices.length?devices.map(d=>'<div class="device"><div class="row"><strong>'+esc(d.device_name)+'</strong><span class="badge '+(d.status==='Active'?'':'warn')+'">'+esc(d.status)+'</span></div><p class="muted">'+esc(staffName(d.assigned_user_id))+' · '+esc(d.platform)+' · '+(d.last_seen_at?'Last active '+esc(new Date(d.last_seen_at).toLocaleString()):'Not yet connected')+'</p>'+(d.status==='Active'?'<button class="danger" type="button" data-revoke="'+esc(d.id)+'">Revoke device</button>':'')+'</div>').join(''):'<p class="muted">No phones registered yet.</p>';$('requestDevice').innerHTML='<option value="">Choose how to attach the document…</option><option value="__local__">Upload an existing file from this computer / phone</option>'+devices.filter(d=>d.status==='Active').map(d=>'<option value="'+esc(d.id)+'">Phone capture · '+esc(d.device_name)+' · '+esc(staffName(d.assigned_user_id))+'</option>').join('')}
+$('deviceList').addEventListener('click',async e=>{const b=e.target.closest('[data-revoke]');if(!b)return;if(!confirm('Revoke this phone? It will no longer receive or submit new requests.'))return;const {error}=await db.from('evidence_capture_devices').update({status:'Revoked',pairing_code_hash:null,pairing_expires_at:null}).eq('id',b.dataset.revoke);if(error)note('globalMsg','Could not revoke device: '+error.message,'error');else{note('globalMsg','Phone access revoked.','success');await loadDevices()}});
+$('deviceForm').addEventListener('submit',async e=>{e.preventDefault();const staffId=$('deviceStaff').value,name=$('deviceName').value.trim(),platform=$('devicePlatform').value;if(!staffId||!name)return;const bytes=crypto.getRandomValues(new Uint8Array(32)),code=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');const codeHash=await hashCode(code);const expires=new Date(Date.now()+10*60*1000).toISOString();const {error}=await db.from('evidence_capture_devices').insert({assigned_user_id:staffId,device_name:name,platform,status:'Pending',pairing_code_hash:codeHash,pairing_expires_at:expires,created_by:user.id});if(error){note('globalMsg','Could not create pairing code: '+error.message,'error');return}$('pairCode').textContent=code;$('pairExpiry').textContent='Expires at '+new Date(expires).toLocaleTimeString()+' (10 minutes). Give this code only to the selected staff member.';$('pairCodePanel').classList.remove('hidden');$('deviceForm').reset();await loadDevices();note('globalMsg','A one-time pairing code was created.','success')});
+$('copyPairCode').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('pairCode').textContent);note('globalMsg','Pairing code copied.','success')}catch(_){note('globalMsg','Select and copy the code manually.','error')}});
+$('pairForm').addEventListener('submit',async e=>{e.preventDefault();const code=$('phonePairCode').value.trim();const {data,error}=await db.rpc('claim_evidence_capture_device',{p_pairing_code:code,p_device_name:$('phoneName').value.trim(),p_platform:$('phonePlatform').value});if(error){note('pairMsg',error.message,'error');return} $('phonePairCode').value='';note('pairMsg','This phone is now authorised.','success');await loadPhoneRequests();startPhoneHeartbeat()});
+$('enableNotifications').addEventListener('click',async()=>{if(!('Notification'in window)){note('globalMsg','This browser does not support web notifications. Keep CORNHILL Evidence Capture open and use Refresh to check new requests.','error');return}try{const permission=await Notification.requestPermission();if(permission==='granted')note('globalMsg','Notifications are enabled for this browser. Keep the app open or active to receive live requests.','success');else note('globalMsg','Notifications were not enabled. New requests will still appear inside this app while it is open.','error')}catch(err){note('globalMsg','Could not enable notifications: '+(err.message||'browser permission unavailable'),'error')}});
+$('requestForm').addEventListener('submit',async e=>{e.preventDefault();const device=devices.find(d=>d.id===$('requestDevice').value);const localUpload=$('requestDevice').value==='__local__';if(!device&&!localUpload){note('globalMsg','Choose an upload method or an active authorised phone.','error');return}const amount=$('requestAmount').value?Number($('requestAmount').value):null;if(amount!==null&&(!Number.isSafeInteger(amount)||amount<=0)){note('globalMsg','Enter a valid whole-shilling amount.','error');return}const {data,error}=await db.from('evidence_capture_requests').insert({assigned_device_id:localUpload?null:device.id,assigned_user_id:localUpload?null:device.assigned_user_id,requested_by:user.id,purpose:$('requestPurpose').value,context_label:$('requestContext').value.trim(),context_type:$('requestContextType').value||'general_attachment',context_record_id:$('requestRecordId').value.trim()||null,amount_ugx:amount,description:$('requestDescription').value.trim()||null,expires_at:new Date(Date.now()+10*60*1000).toISOString()}).select('id').single();if(error){note('globalMsg','Request was not sent: '+error.message,'error');return}e.currentTarget.reset();note('globalMsg','Photo request sent. It expires in ten minutes. Request ID: '+data.id,'success');await loadAdminRequests()});
+async function loadAdminRequests(){const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,context_type,context_record_id,amount_ugx,description,status,expires_at,created_at,assigned_user_id,assigned_device_id').order('created_at',{ascending:false}).limit(80);if(error){$('adminRequests').textContent='Could not load requests: '+error.message;return}const rows=data||[];const {data:files}=await db.from('evidence_capture_files').select('id,request_id,storage_path,original_file_name,content_type,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']);const {data:reviews}=await db.from('evidence_capture_reviews').select('request_id,action,review_note,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']).order('created_at',{ascending:false});const fileMap={};for(const f of files||[]){fileMap[f.request_id]??=[];fileMap[f.request_id].push(f)}const reviewMap={};for(const r of reviews||[])if(!reviewMap[r.request_id])reviewMap[r.request_id]=r;const userName=id=>id?(staff.find(s=>s.id===id)?.full_name||'Assigned staff'):'School computer upload';let cards=[];for(const r of rows){const fs=fileMap[r.id]||[],signed=[];for(const f of fs){const {data}=await db.storage.from(bucket).createSignedUrl(f.storage_path,600);if(data?.signedUrl)signed.push('<a href="'+esc(data.signedUrl)+'" target="_blank" rel="noopener">Open '+esc(f.original_file_name)+'</a>')}const review=reviewMap[r.id],finalReview=['Approved','Rejected','Needs clearer photo'].includes(review?.action);cards.push('<div class="request"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">Assigned to '+esc(userName(r.assigned_user_id))+' · '+esc(new Date(r.created_at).toLocaleString())+' · '+(r.status==='Pending'&&!isExpired(r)?'<span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span>':'')+'</p>'+(r.description?'<p class="muted">'+esc(r.description)+'</p>':'')+(signed.length?'<p>'+signed.join(' · ')+'</p>':'<p class="muted">No evidence uploaded yet.</p>')+(r.status==='Pending'&&!isExpired(r)?'<div class="capture"><label>Attach an existing file from this computer / phone</label><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-admin-evidence="'+esc(r.id)+'"><button type="button" class="primary" data-admin-upload="'+esc(r.id)+'">Upload selected file(s)</button><p class="small">Up to 8 files, 15 MB each. If there is no saved file, the assigned phone can capture it instead.</p></div>':'')+(review?'<p><strong>Latest review: '+esc(review.action)+'</strong> '+esc(review.review_note||'')+'</p>':'')+(r.status==='Submitted'&&!finalReview?'<div class="row"><button class="primary" data-review="Approved" data-id="'+esc(r.id)+'">Approve evidence</button><button class="danger" data-review="Rejected" data-id="'+esc(r.id)+'">Reject evidence</button><button data-review="Needs clearer photo" data-id="'+esc(r.id)+'">Request clearer photo</button></div>':'')+'</div>')} $('adminRequests').innerHTML=cards.join('')||'<p class="muted">No capture requests have been created.</p>'}
+$('adminRequests').addEventListener('click',async e=>{
+ const uploadButton=e.target.closest('[data-admin-upload]');
+ if(uploadButton){
+  const requestId=uploadButton.dataset.adminUpload,card=uploadButton.closest('.request'),picker=card?.querySelector('[data-admin-evidence]'),files=Array.from(picker?.files||[]);
+  if(!files.length){note('globalMsg','Choose at least one existing file first.','error');return}
+  if(files.length>8){note('globalMsg','Upload no more than eight files per evidence request.','error');return}
+  uploadButton.disabled=true;uploadButton.textContent='Uploading…';
+  try{
+   for(const file of files){
+    if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);
+    if(file.size>15728640)throw new Error(file.name+' exceeds the 15 MB limit.');
+    const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];
+    const storagePath=requestId+'/'+crypto.randomUUID()+'.'+ext;
+    const {error:uploadError}=await db.storage.from(bucket).upload(storagePath,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+    if(uploadError)throw uploadError;
+    const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:requestId,storage_path:storagePath,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});
+    if(metaError){await db.storage.from(bucket).remove([storagePath]);throw metaError}
+   }
+   const {error:statusError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',requestId).eq('status','Pending');
+   if(statusError)throw statusError;
+   note('globalMsg','Existing file(s) uploaded and linked to the CORNHILL record. Review the files below before approval.','success');
+   await loadAdminRequests();
+  }catch(error){note('globalMsg','Upload did not finish: '+(error.message||'Please try again.'),'error')}
+  finally{uploadButton.disabled=false;uploadButton.textContent='Upload selected file(s)'}
+  return;
+ }
+ const b=e.target.closest('[data-review]');if(!b)return;
+ const action=b.dataset.review,id=b.dataset.id,noteText=prompt('Optional review note (for example, reason for rejection):')||null;
+ const {data:requestContext,error:contextError}=await db.from('evidence_capture_requests').select('id,purpose,context_label,context_type,context_record_id,amount_ugx,description,assigned_device_id,assigned_user_id').eq('id',id).single();
+ if(contextError||!requestContext){note('globalMsg','Could not confirm which school record this evidence belongs to. No review was saved. '+(contextError?.message||''),'error');return}
+ const {error}=await db.from('evidence_capture_reviews').insert({request_id:id,reviewed_by:user.id,action,review_note:noteText});
+ if(error){note('globalMsg','Review could not be saved: '+error.message,'error');return}
+ if(action==='Needs clearer photo'){
+  if(requestContext.context_type==='bank_transaction'&&requestContext.context_record_id){
+   const {error:retryError}=await db.rpc('reissue_school_bank_evidence',{p_transaction_id:requestContext.context_record_id,p_device_id:requestContext.assigned_device_id,p_note:noteText||'Please provide a clearer bank document photo.'});
+   if(retryError){note('globalMsg','Evidence was marked unclear, but a replacement bank request could not be issued: '+retryError.message+'. Use Banking & Daily Deposits to issue a new request.','error');await loadAdminRequests();return}
+  }else if(requestContext.context_type==='school_expense_request'&&requestContext.context_record_id){
+   const {error:retryError}=await db.rpc('reissue_school_expense_evidence',{p_request_id:requestContext.context_record_id,p_device_id:requestContext.assigned_device_id,p_note:noteText||'Please provide a clearer expense receipt.'});
+   if(retryError){note('globalMsg','Evidence was marked unclear, but a replacement expense request could not be issued: '+retryError.message+'. Use Banking & Daily Deposits to issue a new request.','error');await loadAdminRequests();return}
+  }else{
+   const label=('Replacement: '+requestContext.context_label).slice(0,180);
+   const description=('Please photograph a clearer replacement document. '+(noteText||requestContext.description||'')).slice(0,500);
+   const {error:retryError}=await db.from('evidence_capture_requests').insert({
+    assigned_device_id:requestContext.assigned_device_id,assigned_user_id:requestContext.assigned_user_id,
+    requested_by:user.id,purpose:requestContext.purpose,context_label:label,
+    context_type:requestContext.context_type,context_record_id:requestContext.context_record_id,
+    amount_ugx:requestContext.amount_ugx,description,expires_at:new Date(Date.now()+10*60*1000).toISOString()
+   });
+   if(retryError){note('globalMsg','The review was recorded, but a replacement photo request could not be created: '+retryError.message,'error');await loadAdminRequests();return}
+  }
+ }
+ note('globalMsg',action==='Needs clearer photo'?'A separate ten-minute replacement request has been sent to the assigned phone.':'Evidence review recorded: '+action+'.','success');
+ await loadAdminRequests()
+});
+async function loadPhoneRequests(){if(!user)return;const {data:myDevices,error:deviceError}=await db.from('evidence_capture_devices').select('id,device_name,status').eq('assigned_user_id',user.id).eq('status','Active');if(deviceError){note('globalMsg','Could not check authorised phone: '+deviceError.message,'error');return}phoneDevices=myDevices||[];if(!myDevices?.length){$('phoneRequests').innerHTML='<p class="muted">This account has no active authorised phone yet. Ask an administrator to issue a pairing code.</p>';return}const deviceIds=myDevices.map(d=>d.id);const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,amount_ugx,description,status,expires_at,created_at,assigned_device_id').in('assigned_device_id',deviceIds).order('created_at',{ascending:false}).limit(30);if(error){$('phoneRequests').textContent='Could not load requests: '+error.message;return}const rows=(data||[]).filter(r=>r.status==='Submitted'||!isExpired(r));$('phoneRequests').innerHTML=rows.length?rows.map(r=>'<div class="request"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">'+esc(r.description||'Photograph the requested document clearly. You may add several pages.')+'</p>'+(r.status==='Pending'&&!isExpired(r)?'<div class="row"><span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span><span class="small">Time remaining</span></div><div class="capture"><p><strong>Capture document evidence</strong></p><p class="muted">Use the camera to take one or more clear photos, or select a PDF. Check each page before submitting.</p><input type="file" accept="image/*,application/pdf" capture="environment" multiple data-capture="'+esc(r.id)+'"><div class="preview" id="preview-'+esc(r.id)+'"></div><button class="primary" type="button" data-submit-capture="'+esc(r.id)+'">Upload evidence and finish request</button></div>':'')+'</div>').join(''):'<p class="muted">No active requests at the moment.</p>'}
+$('phoneRequests').addEventListener('change',e=>{const input=e.target.closest('[data-capture]');if(!input)return;selectedFiles=Array.from(input.files||[]);const id=input.dataset.capture,preview=$('preview-'+id);if(preview)preview.innerHTML=selectedFiles.filter(f=>f.type.startsWith('image/')).map(f=>'<img alt="Selected evidence preview" src="'+URL.createObjectURL(f)+'">').join('')+(selectedFiles.length?'<span class="small">'+selectedFiles.length+' file(s) selected</span>':'')});
+$('phoneRequests').addEventListener('click',async e=>{const b=e.target.closest('[data-submit-capture]');if(!b)return;const id=b.dataset.submitCapture,card=b.closest('.request'),input=card.querySelector('[data-capture]'),files=Array.from(input?.files||[]);if(!files.length){note('globalMsg','Take or select at least one photo or PDF first.','error');return}if(files.length>8){note('globalMsg','Please submit no more than eight pages per request.','error');return}b.disabled=true;b.textContent='Uploading…';try{for(const file of files){if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];const path=id+'/'+crypto.randomUUID()+'.'+ext;const {error:uploadError}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});if(uploadError)throw uploadError;const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:id,storage_path:path,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});if(metaError)throw metaError}const {error:updateError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',id).eq('status','Pending');if(updateError)throw updateError;note('globalMsg','Evidence uploaded and request submitted. The administrator can now review it.','success');await loadPhoneRequests()}catch(err){note('globalMsg','Upload did not finish: '+(err.message||'Unknown error')+'. Keep the selected files and try again while the request is still active.','error')}finally{b.disabled=false;b.textContent='Upload evidence and finish request'}});
+async function loadPhoneRequests(){
+ if(!user)return;
+ const {data:myDevices,error:deviceError}=await db.from('evidence_capture_devices')
+  .select('id,device_name,status').eq('assigned_user_id',user.id).eq('status','Active');
+ if(deviceError){note('globalMsg','Could not check authorised phone: '+deviceError.message,'error');return}
+ phoneDevices=myDevices||[];
+ if(!myDevices?.length){$('phoneRequests').innerHTML='<p class="muted">This account has no active authorised phone yet. Ask an administrator to issue a pairing code.</p>';return}
+ const deviceIds=myDevices.map(d=>d.id);
+ const {data,error}=await db.from('evidence_capture_requests')
+  .select('id,purpose,context_label,amount_ugx,description,status,expires_at,created_at,assigned_device_id')
+  .in('assigned_device_id',deviceIds).order('created_at',{ascending:false}).limit(30);
+ if(error){$('phoneRequests').textContent='Could not load requests: '+error.message;return}
+ const rows=(data||[]).filter(r=>r.status==='Submitted'||!isExpired(r));
+ $('phoneRequests').innerHTML=rows.length?rows.map(r=>'<div class="request" data-phone-request="'+esc(r.id)+'">'+
+  '<div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div>'+
+  '<p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p>'+
+  '<p class="muted">'+esc(r.description||'Photograph or scan the requested document clearly.')+'</p>'+
+  (r.status==='Pending'&&!isExpired(r)?
+   '<div class="row"><span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span><span class="small">Time remaining</span></div>'+
+   '<div class="capture"><p><strong>Choose how to capture this document</strong></p>'+
+   '<p class="muted">Use the scanner for a cropped, cleaned multi-page PDF; take a photo for a quick image; or attach an existing file.</p>'+
+   '<div class="scan-camera-actions">'+
+   '<button type="button" class="primary" data-open-scanner="'+esc(r.id)+'">Scan document</button>'+
+   '<label class="button" style="margin:0">Take photo<input type="file" accept="image/*" capture="environment" multiple data-capture-photos="'+esc(r.id)+'" hidden></label>'+
+   '<label class="button" style="margin:0">Choose files / PDF<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-capture-files="'+esc(r.id)+'" hidden></label>'+
+   '</div><div class="preview" data-capture-preview="'+esc(r.id)+'"></div>'+
+   '<button class="primary" type="button" data-submit-capture="'+esc(r.id)+'">Upload selected files and finish request</button></div>':'')+
+  '</div>').join(''):'<p class="muted">No active requests at the moment.</p>';
+}
+async function uploadEvidenceFiles(requestId,files,options={}){
+ if(!files.length)throw new Error('Take a photo, scan a page or choose a file first.');
+ if(files.length>8)throw new Error('Submit no more than eight files per request.');
+ const uploadedPaths=[],fileIds=[];
+ try{
+  for(const file of files){
+   if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);
+   if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');
+   const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];
+   const path=requestId+'/'+crypto.randomUUID()+'.'+ext;
+   const {error:uploadError}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+   if(uploadError)throw uploadError;
+   uploadedPaths.push(path);
+   const {data:metadata,error:metaError}=await db.from('evidence_capture_files').insert({
+    request_id:requestId,storage_path:path,original_file_name:file.name,content_type:file.type,
+    size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()
+   }).select('id').single();
+   if(metaError)throw metaError;
+   fileIds.push(metadata.id);
+  }
+  const {error:updateError}=await db.from('evidence_capture_requests').update({
+   status:'Submitted',submitted_at:new Date().toISOString()
+  }).eq('id',requestId).eq('status','Pending');
+  if(updateError)throw updateError;
+  if(options.ocrText&&fileIds[0]){
+   const {error:ocrError}=await db.rpc('save_school_record_ocr_text',{
+    p_evidence_file_id:fileIds[0],
+    p_extracted_text:options.ocrText,
+    p_extracted_fields:options.ocrFields||{review_required:true}
+   });
+   if(ocrError)note('globalMsg','PDF was uploaded successfully. OCR text could not be indexed yet: '+ocrError.message,'error');
+  }
+  return {fileIds,uploadedPaths};
+ }catch(error){
+  // Remove physical files that did not receive matching metadata rows.
+  // Existing metadata and successfully indexed evidence are never deleted here.
+  for(const path of uploadedPaths){
+   const {data:existing}=await db.from('evidence_capture_files').select('id').eq('storage_path',path).maybeSingle();
+   if(!existing)await db.storage.from(bucket).remove([path]);
+  }
+  throw error;
+ }
+}
+$('phoneRequests').addEventListener('change',e=>{
+ const input=e.target.closest('[data-capture-photos],[data-capture-files]');if(!input)return;
+ const card=input.closest('[data-phone-request]');if(!card)return;
+ const allInputs=[...card.querySelectorAll('[data-capture-photos],[data-capture-files]')];
+ const files=allInputs.flatMap(x=>Array.from(x.files||[]));
+ card._captureFiles=files;
+ const preview=card.querySelector('[data-capture-preview]');
+ if(preview){
+  preview.innerHTML=files.map(file=>file.type.startsWith('image/')
+   ?'<span class="scan-page-card"><img class="preview img" src="'+URL.createObjectURL(file)+'" alt="Selected photo preview"><small>'+esc(file.name)+'</small></span>'
+   :'<span class="scan-page-card"><span>PDF</span><small>'+esc(file.name)+'</small></span>').join('');
+ }
+});
+$('phoneRequests').addEventListener('click',async e=>{
+ const scanner=e.target.closest('[data-open-scanner]');
+ if(scanner){await startDocumentScanner(scanner.dataset.openScanner);return}
+ const b=e.target.closest('[data-submit-capture]');if(!b)return;
+ const id=b.dataset.submitCapture,card=b.closest('[data-phone-request]'),files=Array.from(card?._captureFiles||[]);
+ if(!files.length){note('globalMsg','Take a photo, scan a page or choose a file first.','error');return}
+ b.disabled=true;b.textContent='Uploading…';
+ try{
+  await uploadEvidenceFiles(id,files);
+  note('globalMsg','Evidence uploaded and request submitted. The administrator can now review it.','success');
+  await loadPhoneRequests();
+  if(profile?.role==='Admin')await loadAdminRequests();
+ }catch(err){note('globalMsg','Upload did not finish: '+(err.message||'Unknown error')+'. Keep the selected files and try again while the request is still active.','error')}
+ finally{b.disabled=false;b.textContent='Upload selected files and finish request'}
+});
+let scannerStream=null,scannerRequestId=null,scannerPages=[],scannerCropper=null,scannerImageUrl=null,scannerFacing='environment';
+function scannerStatus(text,type='info'){
+ const el=$('scannerStatus');if(!el)return;el.textContent=text;el.className='scan-progress'+(type==='error'?' error':type==='success'?' success':'');
+}
+function stopScannerCamera(){
+ if(scannerStream){scannerStream.getTracks().forEach(track=>track.stop());scannerStream=null}
+ const video=$('scannerVideo');if(video)video.srcObject=null;
+}
+async function ensureCropper(){
+ if(window.Cropper)return window.Cropper;
+ await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('Crop and rotate tools could not load. Connect to the internet or use Take photo instead.'));
+  document.head.appendChild(script);
+ });
+ if(!window.Cropper)throw new Error('Crop tools did not initialise.');
+ return window.Cropper;
+}
+async function ensureJsPdf(){
+ if(window.jspdf?.jsPDF)return window.jspdf.jsPDF;
+ await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('PDF builder could not load. Connect to the internet or attach individual photos.'));
+  document.head.appendChild(script);
+ });
+ if(!window.jspdf?.jsPDF)throw new Error('PDF builder did not initialise.');
+ return window.jspdf.jsPDF;
+}
+async function ensureTesseract(){
+ if(window.Tesseract)return window.Tesseract;
+ await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('OCR engine could not load.'));
+  document.head.appendChild(script);
+ });
+ if(!window.Tesseract)throw new Error('OCR engine did not initialise.');
+ return window.Tesseract;
+}
+async function startScannerCamera(){
+ stopScannerCamera();
+ if(!navigator.mediaDevices?.getUserMedia)throw new Error('This browser cannot open a camera. Use Take photo or Choose files instead.');
+ scannerStream=await navigator.mediaDevices.getUserMedia({
+  audio:false,
+  video:{facingMode:{ideal:scannerFacing},width:{ideal:2560},height:{ideal:1920}}
+ });
+ const video=$('scannerVideo');video.srcObject=scannerStream;
+ await video.play();
+ $('scannerCameraArea').classList.remove('hidden');
+ scannerStatus('Camera ready. Keep the page flat and fully inside the frame.');
+}
+function canvasToBlob(canvas,type='image/jpeg',quality=.9){
+ return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('The captured page could not be processed.')),type,quality));
+}
+async function openScannerImage(file){
+ if(!file||!file.type.startsWith('image/'))throw new Error('Choose a JPG, PNG or WebP image.');
+ if(scannerCropper){scannerCropper.destroy();scannerCropper=null}
+ if(scannerImageUrl)URL.revokeObjectURL(scannerImageUrl);
+ scannerImageUrl=URL.createObjectURL(file);
+ const image=$('scannerEditorImage');
+ image.src=scannerImageUrl;
+ $('scannerCameraArea').classList.add('hidden');
+ $('scannerEditor').classList.remove('hidden');
+ await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(new Error('The selected image could not be opened.'))});
+ const Cropper=await ensureCropper();
+ scannerCropper=new Cropper(image,{viewMode:1,dragMode:'crop',autoCropArea:.92,background:false,zoomable:true,rotatable:true,scalable:false, movable:true, responsive:true,restore:false});
+ scannerStatus('Adjust the crop edges. Rotate the page or choose a cleaner filter, then add this page.');
+}
+function scannerApplyFilter(canvas,mode){
+ if(mode==='original'||mode==='colour')return canvas;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true}),image=ctx.getImageData(0,0,canvas.width,canvas.height),d=image.data;
+ for(let i=0;i<d.length;i+=4){
+  if(mode==='enhanced'){
+   // Mild per-channel contrast and brightness adjustment keeps stamps,
+   // coloured seals and ID portraits while making typed text clearer.
+   for(let channel=0;channel<3;channel++){
+    const value=(d[i+channel]-128)*1.12+133;
+    d[i+channel]=Math.max(0,Math.min(255,value));
+   }
+  }else{
+   const grey=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+   if(mode==='gray'){d[i]=grey;d[i+1]=grey;d[i+2]=grey}
+   else{
+    const contrast=1.65,clean=Math.max(0,Math.min(255,(grey-128)*contrast+128+8));
+    const value=clean>166?255:0;d[i]=value;d[i+1]=value;d[i+2]=value;
+   }
+  }
+ }
+ ctx.putImageData(image,0,0);return canvas;
+}
+async function renderScannerPages(){
+ $('scannerPageCount').textContent=scannerPages.length+' / 8';
+ $('finishScanPdf').disabled=scannerPages.length===0;
+ $('scannerPageList').innerHTML=scannerPages.length?scannerPages.map((page,i)=>
+  '<span class="scan-page-card"><img class="scan-page-thumb" src="'+page.previewUrl+'" alt="Scanned page '+(i+1)+'"><strong>Page '+(i+1)+'</strong><button type="button" data-remove-scan-page="'+i+'">Remove</button></span>'
+ ).join(''):'<span class="muted">No pages added yet.</span>';
+}
+$('scannerPageList').addEventListener('click',e=>{
+ const b=e.target.closest('[data-remove-scan-page]');if(!b)return;
+ const index=Number(b.dataset.removeScanPage);const page=scannerPages[index];if(page?.previewUrl)URL.revokeObjectURL(page.previewUrl);
+ scannerPages.splice(index,1);renderScannerPages();
+});
+async function startDocumentScanner(requestId){
+ if(!user||!requestId)return;
+ const card=document.querySelector('[data-phone-request="'+CSS.escape(requestId)+'"]');
+ if(!card||!card.querySelector('[data-submit-capture]')){note('globalMsg','This capture request is no longer active. Refresh the phone requests.','error');return}
+ scannerRequestId=requestId;scannerPages=[];
+ $('scannerWorkspace').classList.remove('hidden');
+ $('scannerEditor').classList.add('hidden');
+ await renderScannerPages();
+ $('scannerWorkspace').scrollIntoView({behavior:'smooth',block:'start'});
+ try{await startScannerCamera()}
+ catch(error){scannerStatus(error.message||'Camera could not start. Use the image picker below.', 'error');$('scannerCameraArea').classList.remove('hidden')}
+}
+async function addScannerPage(){
+ if(!scannerCropper)throw new Error('Capture or choose a page first.');
+ if(scannerPages.length>=8)throw new Error('A single request supports up to eight scanned pages.');
+ const canvas=scannerCropper.getCroppedCanvas({maxWidth:2600,maxHeight:3400,imageSmoothingEnabled:true,imageSmoothingQuality:'high'});
+ if(!canvas)throw new Error('The document crop could not be created.');
+ scannerApplyFilter(canvas,$('scannerFilter').value);
+ const blob=await canvasToBlob(canvas,'image/jpeg',.9);
+ const previewUrl=URL.createObjectURL(blob);
+ scannerPages.push({blob,previewUrl,ocrText:''});
+ scannerCropper.destroy();scannerCropper=null;
+ $('scannerEditor').classList.add('hidden');$('scannerCameraArea').classList.remove('hidden');
+ await renderScannerPages();
+ scannerStatus('Page '+scannerPages.length+' added. Capture the next page or finish the PDF.','success');
+}
+$('captureScanPage').addEventListener('click',async()=>{
+ const video=$('scannerVideo');if(!video.videoWidth||!video.videoHeight){scannerStatus('Wait for the camera to become ready.', 'error');return}
+ const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+ canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+ try{await openScannerImage(await canvasToBlob(canvas,'image/jpeg',.94))}
+ catch(error){scannerStatus(error.message||'Could not open captured page.','error')}
+});
+$('scannerImagePicker').addEventListener('change',async e=>{
+ const files=Array.from(e.target.files||[]);if(!files.length)return;
+ try{
+  if(scannerPages.length+files.length>8)throw new Error('A single request supports up to eight pages.');
+  for(const file of files){await openScannerImage(file);await addScannerPage()}
+  scannerStatus(files.length+' photo(s) added to the scanned document.','success');
+ }catch(error){scannerStatus(error.message||'Could not add these photos.','error')}
+ finally{e.target.value=''}
+});
+$('rotateScanLeft').addEventListener('click',()=>scannerCropper?.rotate(-90));
+$('rotateScanRight').addEventListener('click',()=>scannerCropper?.rotate(90));
+$('resetScanCrop').addEventListener('click',()=>scannerCropper?.reset());
+$('addScanPage').addEventListener('click',async()=>{
+ const b=$('addScanPage');b.disabled=true;
+ try{await addScannerPage()}catch(error){scannerStatus(error.message||'Page could not be added.','error')}
+ finally{b.disabled=false}
+});
+$('switchScanCamera').addEventListener('click',async()=>{
+ scannerFacing=scannerFacing==='environment'?'user':'environment';
+ try{await startScannerCamera()}catch(error){scannerStatus(error.message||'Could not switch camera.','error')}
+});
+$('discardScanPages').addEventListener('click',()=>{
+ if(!confirm('Discard the scanned pages? No files have been uploaded yet.'))return;
+ scannerPages.forEach(p=>URL.revokeObjectURL(p.previewUrl));scannerPages=[];
+ renderScannerPages();scannerStatus('Scanned pages discarded.');
+});
+$('closeScanner').addEventListener('click',()=>{
+ stopScannerCamera();
+ if(scannerCropper){scannerCropper.destroy();scannerCropper=null}
+ if(scannerImageUrl){URL.revokeObjectURL(scannerImageUrl);scannerImageUrl=null}
+ $('scannerWorkspace').classList.add('hidden');scannerRequestId=null;
+});
+$('finishScanPdf').addEventListener('click',async()=>{
+ const button=$('finishScanPdf');
+ if(!scannerRequestId||!scannerPages.length){scannerStatus('Add at least one scanned page before building the PDF.','error');return}
+ const card=document.querySelector('[data-phone-request="'+CSS.escape(scannerRequestId)+'"]');
+ if(!card){scannerStatus('The original request is no longer shown. Refresh and confirm that it is still active.','error');return}
+ button.disabled=true;button.textContent='Building PDF…';
+ try{
+  const JsPDF=await ensureJsPdf();
+  const first=scannerPages[0].blob,firstUrl=URL.createObjectURL(first);
+  const firstImage=new Image();firstImage.src=firstUrl;await firstImage.decode();URL.revokeObjectURL(firstUrl);
+  const firstLandscape=firstImage.naturalWidth>firstImage.naturalHeight;
+  const pdf=new JsPDF({orientation:firstLandscape?'landscape':'portrait',unit:'mm',format:'a4',compress:true});
+  for(let i=0;i<scannerPages.length;i++){
+   const imageUrl=URL.createObjectURL(scannerPages[i].blob);
+   const image=new Image();image.src=imageUrl;await image.decode();URL.revokeObjectURL(imageUrl);
+   const landscape=image.naturalWidth>image.naturalHeight;
+   if(i>0)pdf.addPage('a4',landscape?'landscape':'portrait');
+   const pageW=landscape?297:210,pageH=landscape?210:297,margin=8;
+   const scale=Math.min((pageW-2*margin)/image.naturalWidth,(pageH-2*margin)/image.naturalHeight);
+   const w=image.naturalWidth*scale,h=image.naturalHeight*scale;
+   pdf.addImage(image,'JPEG',(pageW-w)/2,(pageH-h)/2,w,h,undefined,'FAST');
+  }
+  const pdfBlob=pdf.output('blob');
+  if(pdfBlob.size>15728640)throw new Error('The combined PDF is larger than 15 MB. Reduce the number of pages or scan at a lower resolution.');
+  button.textContent='Extracting text…';
+  let ocrText='';
+  try{
+   const Tesseract=await ensureTesseract();
+   for(let i=0;i<scannerPages.length;i++){
+    const result=await Tesseract.recognize(scannerPages[i].blob,'eng');
+    const text=String(result?.data?.text||'').trim();
+    if(text)ocrText+='\n\n[Page '+(i+1)+']\n'+text;
+    scannerStatus('OCR page '+(i+1)+' of '+scannerPages.length+'…');
+   }
+  }catch(ocrError){scannerStatus('PDF is ready. OCR could not run: '+ocrError.message+' Upload will continue without OCR.','error')}
+  button.textContent='Uploading PDF…';
+  await uploadEvidenceFiles(scannerRequestId,[new File([pdfBlob],'CORNHILL-scan-'+new Date().toISOString().slice(0,10)+'.pdf',{type:'application/pdf'})],{
+   ocrText:ocrText.trim(),ocrFields:ocrText.trim()?{review_required:true,source:'evidence_capture_scanner'}:{review_required:true}
+  });
+  note('globalMsg','Scanned PDF uploaded and linked to the school record. The administrator can review it in Evidence Capture and the Records Centre.','success');
+  stopScannerCamera();
+  scannerPages.forEach(p=>URL.revokeObjectURL(p.previewUrl));scannerPages=[];
+  renderScannerPages();
+  $('scannerWorkspace').classList.add('hidden');scannerRequestId=null;
+  if(profile?.role==='Admin')await loadAdminRequests();
+  await loadPhoneRequests();
+ }catch(error){scannerStatus(error.message||'The scanner could not submit this document.','error')}
+ finally{button.disabled=scannerPages.length===0;button.textContent='Build PDF and submit evidence'}
+});
+window.addEventListener('pagehide',()=>stopScannerCamera());
+$('refreshDevices').addEventListener('click',loadDevices);$('refreshRequests').addEventListener('click',loadAdminRequests);$('refreshPhone').addEventListener('click',loadPhoneRequests);
+window.addEventListener('online',()=>{$('connectionBadge').textContent='Connected';$('connectionBadge').className='badge';if(user){loadPhoneRequests();if(profile?.role==='Admin'){loadDevices();loadAdminRequests()}}});
+window.addEventListener('offline',()=>{$('connectionBadge').textContent='Offline';$('connectionBadge').className='badge bad';note('globalMsg','You are offline. Do not assume evidence has uploaded; wait for the confirmation message before closing the page.','error')});
+function applyRequestContextFromLink(){const q=new URLSearchParams(location.search);const allowed=new Set(['general_attachment','bank_deposit','bank_transaction','school_expense','school_expense_request','staff_profile','school_staff_directory','academic_teacher_directory','learner_profile','parent_document','learner_bursary_award','inventory_item']);const type=q.get('contextType');if(type&&allowed.has(type))$('requestContextType').value=type;const recordId=q.get('recordId');if(recordId&&recordId.length<=100)$('requestRecordId').value=recordId;const purpose=q.get('purpose');if(purpose&&[...$('requestPurpose').options].some(o=>o.value===purpose))$('requestPurpose').value=purpose;const label=q.get('contextLabel');if(label)$('requestContext').value=label.slice(0,180);const amount=Number(q.get('amount'));if(Number.isSafeInteger(amount)&&amount>0)$('requestAmount').value=String(amount)}
+applyRequestContextFromLink();
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+(async()=>{const {data}=await db.auth.getSession();if(data.session){user=data.session.user;try{await enterApp()}catch(err){note('loginMsg',err.message||'Please sign in again.','error');await db.auth.signOut()}}})();
+</script>
+</body></html>

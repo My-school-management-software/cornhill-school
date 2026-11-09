@@ -1,0 +1,9 @@
+{
+  "name": "cornhill-native-shell",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tauri shell for the CORNHILL shared web application",
+  "scripts": {
+    "tauri": "tauri"
+  }
+}

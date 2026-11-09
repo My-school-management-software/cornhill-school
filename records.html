@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d"><meta name="description" content="CORNHILL private, searchable school document register">
+<link rel="manifest" href="/records.webmanifest"><link rel="apple-touch-icon" href="/assets/cornhill-school-badge.png">
+<title>CORNHILL · Records Centre</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#19271d;background:#f2f7f3}*{box-sizing:border-box}body{margin:0}
+.top{background:#14532d;color:#fff;padding:15px max(14px,calc((100% - 1200px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-weight:850}.sub{font-size:12px;opacity:.82;margin-top:3px}.top a{color:white;text-decoration:none;font-size:13px}.nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.wrap{max-width:1200px;margin:22px auto;padding:0 14px}.card{background:#fff;border:1px solid #dce7de;border-radius:15px;padding:17px;margin-bottom:14px;box-shadow:0 3px 14px #183d2010}
+h1,h2,h3{margin:0 0 8px;color:#183b27}.muted{font-size:13px;color:#657669;line-height:1.5}
+button,input,select,textarea{font:inherit}button{border:0;border-radius:9px;background:#e7efe8;color:#19452c;padding:10px 13px;font-weight:750;cursor:pointer}
+button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius:9px;background:#fff;color:#18251d}
+label{display:block;font-size:12px;font-weight:750;color:#405646;margin:8px 0 5px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.stat{border:1px solid #e0e9e1;background:#f8fbf8;padding:12px;border-radius:12px}.stat b{display:block;font-size:21px;color:#17452a}.stat span{font-size:12px;color:#66776a}
+.toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 170px 170px 170px auto;gap:8px;align-items:end}
+.records{display:grid;gap:10px}.record{border:1px solid #dfe9e1;border-radius:12px;padding:13px;background:#fff}
+.record.selected{border-color:#3d8b55;box-shadow:0 0 0 2px #d6ead9}.record-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.record-title{font-weight:850;font-size:15px;color:#1d3c29}.record-meta{font-size:11px;color:#6c7b70;margin-top:5px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-flex;padding:4px 8px;border-radius:24px;font-size:10px;font-weight:850;background:#edf3ee;color:#46634e}
+.pill.expired{background:#fee2e2;color:#991b1b}.pill.due{background:#fef3c7;color:#92400e}.pill.verified{background:#dcfce7;color:#166534}.pill.rejected{background:#fee2e2;color:#991b1b}
+.record-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.editor{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px}.full{grid-column:1/-1}
+.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:9px 0}.notice.error{background:#fff1f2;color:#9f1239}.notice.success{background:#ecfdf3;color:#166534}
+.empty{padding:28px;text-align:center;border:1px dashed #cbd8ce;border-radius:12px;color:#657669}.hidden{display:none!important}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.preview{width:100%;max-height:500px;object-fit:contain;background:#f3f6f3;border:1px solid #dfe9e1;border-radius:10px}
+.progress{font-size:12px;color:#627366}.links{display:flex;gap:9px;flex-wrap:wrap}
+@media(max-width:840px){.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.grid,.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.toolbar,.grid,.stats,.editor{grid-template-columns:1fr}.toolbar input{grid-column:auto}.card{padding:14px}.wrap{margin:12px auto}}
+</style>
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<script src="/assets/cornhill-appearance.js"></script>
+<script src="/assets/cornhill-offline.js"></script><script src="/assets/app-isolation-guard.js"></script></head>
+<body data-theme="warm-corporate">
+<header class="top">
+ <div><div class="brand">CORNHILL · RECORDS CENTRE</div><div class="sub">Private document index · OCR · verification · expiry monitoring</div></div>
+ <div class="nav"><a href="https://cornhill-school-swart.vercel.app/apps/school-management/">Main system</a><button id="installApp" type="button" class="hidden">Install app</button><a href="https://notifications-cornhill-school.vercel.app/apps/notifications/">Notification Centre</a><a href="https://evidence-cornhill-school.vercel.app/apps/evidence-capture/">Evidence Capture</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
+</header>
+<main class="wrap">
+ <div id="toast" class="notice hidden" role="status" aria-live="polite"></div>
+ <section id="loginCard" class="card" style="max-width:470px;margin:32px auto">
+  <h2>Administrator sign-in</h2><p class="muted">The Records Centre contains private school documents. Only an active CORNHILL administrator can open it.</p>
+  <form id="loginForm"><label>Email</label><input name="email" type="email" autocomplete="username" required><label>Password</label><input name="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">Sign in</button></form><p id="loginError" class="muted"></p>
+ </section>
+ <section id="app" class="hidden">
+  <section class="card">
+   <div class="row"><div><span class="pill verified">ADMINISTRATOR ONLY</span><h1>Searchable school records</h1><p class="muted">Every uploaded or scanned evidence file is indexed here automatically. The original remains in the existing private Evidence Capture bucket; this centre stores its metadata, OCR text, source link, verification and expiry fields.</p></div><div class="links"><button id="refresh" type="button">Refresh records</button><button class="primary" id="expiryCheck" type="button">Run expiry check</button></div></div>
+   <div class="stats" style="margin-top:12px">
+    <div class="stat"><b id="recordCount">0</b><span>Matching documents</span></div>
+    <div class="stat"><b id="pendingCount">0</b><span>Awaiting verification</span></div>
+    <div class="stat"><b id="dueCount">0</b><span>Expiring within 30 days</span></div>
+    <div class="stat"><b id="expiredCount">0</b><span>Expired documents</span></div>
+   </div>
+  </section>
+  <section class="card">
+   <div class="toolbar">
+    <div><label for="search">Search records</label><input id="search" type="search" placeholder="Title, filename, pupil code, ID, OCR text…"></div>
+    <div><label for="typeFilter">Document type</label><select id="typeFilter"><option value="">All types</option></select></div>
+    <div><label for="statusFilter">Verification</label><select id="statusFilter"><option value="">All statuses</option><option>Pending</option><option>Verified</option><option>Rejected</option><option>Archived</option></select></div>
+    <div><label for="expiryFilter">Expiry</label><select id="expiryFilter"><option value="">Any expiry</option><option value="expired">Expired</option><option value="7">Due within 7 days</option><option value="30">Due within 30 days</option><option value="valid">More than 30 days</option><option value="none">No expiry date</option></select></div>
+    <button id="clearFilters" type="button">Clear</button>
+   </div>
+   <p class="muted" id="loadStatus">Loading indexed documents…</p>
+   <div id="recordList" class="records"><div class="empty">Loading records…</div></div>
+  </section>
+  <section id="editorCard" class="card hidden">
+   <div class="row"><div><span class="pill">RECORD DETAILS</span><h2 id="editorTitle">Edit document record</h2><p class="muted" id="editorSource"></p></div><button id="closeEditor" type="button">Close editor</button></div>
+   <form id="recordForm" class="editor">
+    <div><label for="recordType">Document type</label><input id="recordType" maxlength="100" required></div>
+    <div><label for="recordTitle">Record title / holder</label><input id="recordTitle" maxlength="180" required></div>
+    <div><label for="recordIdentifier">Document number / learner code</label><input id="recordIdentifier" maxlength="120"></div>
+    <div><label for="issuingAuthority">Issuing authority</label><input id="issuingAuthority" maxlength="150" placeholder="e.g. NIRA, UNEB, Bank"></div>
+    <div><label for="issuedOn">Date issued</label><input id="issuedOn" type="date"></div>
+    <div><label for="expiresOn">Expiry date</label><input id="expiresOn" type="date"></div>
+    <div><label for="verificationStatus">Verification status</label><select id="verificationStatus"><option>Pending</option><option>Verified</option><option>Rejected</option><option>Archived</option></select></div>
+    <div><label for="ocrStatus">OCR status</label><input id="ocrStatus" readonly></div>
+    <div class="full"><label for="recordNotes">Administrator notes</label><textarea id="recordNotes" rows="3" maxlength="2000"></textarea></div>
+    <div class="full links"><button class="primary" type="submit">Save record details</button><button type="button" id="openOriginal">Open original file</button><button type="button" id="runOcr">Extract / refresh searchable text</button></div>
+    <p class="progress full" id="ocrProgress" role="status"></p>
+   </form>
+   <div id="filePreviewArea" class="hidden"><p class="muted">Private preview link expires after five minutes.</p><img id="imagePreview" class="preview hidden" alt="Private document preview"><iframe id="pdfPreview" class="preview hidden" title="Private PDF preview" style="height:480px"></iframe></div>
+   <div class="card"><h3>Indexed OCR text</h3><pre id="ocrText" style="white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.55 ui-monospace,monospace;max-height:260px;overflow:auto;background:#f6f9f6;padding:12px;border-radius:9px">No OCR text loaded.</pre></div>
+  </section>
+ </section>
+</main>
+<script>
+const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
+const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'cornhill-records-centre-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const $=id=>document.getElementById(id),bucket='cornhill-private-evidence';
+let user=null,profile=null,records=[],filesById=new Map(),selected=null,typeOptionsLoaded=false,searchTimer=null;
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg,error=false){$('toast').textContent=msg;$('toast').className='notice '+(error?'error':'success');$('toast').classList.remove('hidden')}
+function hideToast(){$('toast').classList.add('hidden')}
+function dateObj(value){return value?new Date(value+'T00:00:00'):null}
+function expiryStage(value){
+ if(!value)return 'none';
+ const exp=dateObj(value),today=new Date();today.setHours(0,0,0,0);
+ const days=Math.ceil((exp-today)/86400000);
+ if(days<0)return 'expired';if(days===0)return 'today';if(days<=7)return '7';if(days<=30)return '30';return 'valid';
+}
+function expiryLabel(value){const stage=expiryStage(value);return ({none:'No expiry date',expired:'Expired',today:'Expires today','7':'Due within 7 days','30':'Due within 30 days',valid:'Valid'})[stage]}
+function shortDate(value){return value?new Date(value+'T00:00:00').toLocaleDateString('en-UG',{timeZone:'Africa/Kampala'}):'Not set'}
+function showApp(){ $('loginCard').classList.add('hidden');$('app').classList.remove('hidden');$('signOut').classList.remove('hidden');$('who').textContent=(profile?.full_name||user?.email||'')+' · Admin' }
+async function enterApp(nextUser){
+ user=nextUser;
+ const {data,error}=await db.from('user_profiles').select('id,full_name,role,employment_status').eq('id',user.id).maybeSingle();
+ if(error||!data||data.role!=='Admin'||data.employment_status!=='Active'){await db.auth.signOut();throw new Error('Only an active CORNHILL administrator can access school records.')}
+ profile=data;window.CornhillAppearance?.applyForUser?.(profile.id);showApp();await loadRecords();
+}
+function updateStats(){
+ $('recordCount').textContent=records.length;
+ $('pendingCount').textContent=records.filter(r=>r.verification_status==='Pending').length;
+ $('dueCount').textContent=records.filter(r=>['today','7','30'].includes(expiryStage(r.expires_on))).length;
+ $('expiredCount').textContent=records.filter(r=>expiryStage(r.expires_on)==='expired').length;
+}
+function filteredRecords(){
+ const q=$('search').value.trim().toLowerCase(),type=$('typeFilter').value,status=$('statusFilter').value,expiry=$('expiryFilter').value;
+ return records.filter(r=>{
+  if(type&&r.record_type!==type)return false;
+  if(status&&r.verification_status!==status)return false;
+  const stage=expiryStage(r.expires_on);
+  if(expiry==='7'&&!['today','7'].includes(stage))return false;
+  if(expiry==='30'&&!['today','7','30'].includes(stage))return false;
+  if(expiry&& !['7','30'].includes(expiry)&&stage!==expiry)return false;
+  if(q&&!([r.record_title,r.record_type,r.original_file_name,r.record_identifier,r.issuing_authority,r.extracted_text,r.source_context_type,r.source_record_id].join(' ').toLowerCase().includes(q)))return false;
+  return true;
+ });
+}
+function renderRecords(){
+ const rows=filteredRecords();
+ if(!typeOptionsLoaded){
+  $('typeFilter').innerHTML='<option value="">All types</option>'+[...new Set(records.map(r=>r.record_type))].sort().map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('');
+  typeOptionsLoaded=true;
+ }
+ $('recordList').innerHTML=rows.length?rows.map(r=>{
+  const expiry=expiryStage(r.expires_on),status=r.verification_status.toLowerCase();
+  const isSelected=selected?.id===r.id;
+  return '<article class="record '+(isSelected?'selected':'')+'"><div class="record-head"><div><div class="record-title">'+esc(r.record_title)+'</div><div class="record-meta">'+esc(r.record_type)+' · '+esc(r.original_file_name)+' · Added '+new Date(r.created_at).toLocaleDateString('en-UG')+'</div></div><div class="pills"><span class="pill '+(status==='verified'?'verified':status==='rejected'?'rejected':'')+'">'+esc(r.verification_status)+'</span><span class="pill '+(expiry==='expired'?'expired':['today','7','30'].includes(expiry)?'due':'')+'">'+esc(expiryLabel(r.expires_on))+'</span><span class="pill">OCR: '+esc(r.ocr_status)+'</span></div></div>'+
+   '<div class="record-meta">Source: '+esc(r.source_context_type||'General')+' · Linked record: '+esc(r.source_record_id||'Not linked')+' · Identifier: '+esc(r.record_identifier||'Not captured')+(r.expires_on?' · Expires '+esc(shortDate(r.expires_on)):'')+'</div>'+
+   '<div class="record-actions"><button type="button" data-edit="'+esc(r.id)+'">Edit / verify</button><button type="button" data-open="'+esc(r.id)+'">Open original</button><button type="button" data-ocr="'+esc(r.id)+'">Run OCR</button></div></article>';
+ }).join(''):'<div class="empty">No documents match those filters. Newly uploaded Evidence Capture files appear here automatically.</div>';
+ $('loadStatus').textContent='Showing '+rows.length+' matching documents (maximum 500 per query). Original files remain private.';
+}
+async function loadRecords(){
+ hideToast();$('loadStatus').textContent='Loading records from the central index…';
+ const {data,error}=await db.rpc('search_school_records',{
+  p_query:$('search').value.trim()||null,
+  p_type:$('typeFilter').value||null,
+  p_status:$('statusFilter').value||null,
+  p_expiry_filter:$('expiryFilter').value||null,
+  p_limit:500
+ });
+ if(error){$('loadStatus').textContent='Records could not be loaded: '+error.message;toast('Could not load records: '+error.message,true);return}
+ records=data||[];updateStats();renderRecords();
+}
+async function getFileMeta(record){
+ if(filesById.has(record.evidence_file_id))return filesById.get(record.evidence_file_id);
+ const {data,error}=await db.from('evidence_capture_files').select('id,request_id,storage_path,original_file_name,content_type,size_bytes,captured_at,created_at').eq('id',record.evidence_file_id).maybeSingle();
+ if(error)throw error;if(!data)throw new Error('The original evidence metadata is missing.');
+ filesById.set(record.evidence_file_id,data);return data;
+}
+async function openOriginal(record){
+ const meta=await getFileMeta(record);
+ const {data,error}=await db.storage.from(bucket).createSignedUrl(meta.storage_path,300);
+ if(error)throw error;
+ const url=data.signedUrl;
+ $('filePreviewArea').classList.remove('hidden');$('imagePreview').classList.add('hidden');$('pdfPreview').classList.add('hidden');
+ if(meta.content_type==='application/pdf'){$('pdfPreview').src=url;$('pdfPreview').classList.remove('hidden')}
+ else if(meta.content_type?.startsWith('image/')){$('imagePreview').src=url;$('imagePreview').classList.remove('hidden')}
+ else window.open(url,'_blank','noopener,noreferrer');
+}
+function selectRecord(id){
+ selected=records.find(r=>r.id===id);if(!selected)return;
+ $('editorCard').classList.remove('hidden');
+ $('editorTitle').textContent=selected.record_title;
+ $('editorSource').textContent='Source '+(selected.source_context_type||'general')+' · linked record '+(selected.source_record_id||'—')+' · file '+selected.original_file_name;
+ $('recordType').value=selected.record_type||'';$('recordTitle').value=selected.record_title||'';
+ $('recordIdentifier').value=selected.record_identifier||'';$('issuingAuthority').value=selected.issuing_authority||'';
+ $('issuedOn').value=selected.issued_on||'';$('expiresOn').value=selected.expires_on||'';
+ $('verificationStatus').value=selected.verification_status||'Pending';$('ocrStatus').value=selected.ocr_status||'Not started';
+ $('recordNotes').value=selected.notes||'';$('ocrText').textContent=selected.extracted_text||'No OCR text stored yet.';
+ $('filePreviewArea').classList.add('hidden');$('ocrProgress').textContent='';renderRecords();
+}
+function loadScript(src,test){
+ if(test())return Promise.resolve();
+ return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=()=>test()?resolve():reject(new Error('Library did not initialise.'));s.onerror=()=>reject(new Error('Could not load document reader. Check internet access.'));document.head.appendChild(s)});
+}
+async function runOcr(record){
+ $('ocrProgress').textContent='Preparing the original private file…';
+ const meta=await getFileMeta(record);
+ const {data:blob,error}=await db.storage.from(bucket).download(meta.storage_path);if(error)throw error;
+ $('ocrStatus').value='Processing';
+ await db.from('school_record_index').update({ocr_status:'Processing'}).eq('id',record.id);
+ let extracted='';
+ if(meta.content_type==='application/pdf'){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',()=>!!window.pdfjsLib);
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',()=>!!window.Tesseract);
+  const pdf=await window.pdfjsLib.getDocument({data:await blob.arrayBuffer()}).promise;
+  const pageLimit=Math.min(pdf.numPages,10);
+  for(let n=1;n<=pageLimit;n++){
+   $('ocrProgress').textContent='Reading PDF page '+n+' of '+pageLimit+'…';
+   const page=await pdf.getPage(n),textContent=await page.getTextContent();
+   const embedded=textContent.items.map(x=>x.str||'').filter(Boolean).join(' ').trim();
+   let pageText=embedded;
+   if(!embedded){
+    const viewport=page.getViewport({scale:1.65}),canvas=document.createElement('canvas');
+    canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+    await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+    const result=await window.Tesseract.recognize(canvas,'eng');
+    pageText=String(result?.data?.text||'').trim();
+  }
+  if(pageText)extracted+='\n\n[Page '+n+']\n'+pageText;
+ }
+ }else if(meta.content_type?.startsWith('image/')){
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',()=>!!window.Tesseract);
+  const bitmap=await createImageBitmap(blob);
+  const canvas=document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap,0,0);bitmap.close();
+  const result=await window.Tesseract.recognize(canvas,'eng');extracted=String(result?.data?.text||'').trim();
+ }else throw new Error('OCR is supported for PDF, JPG, PNG and WebP files.');
+ $('ocrProgress').textContent='Saving extracted text into the searchable record index…';
+ const {error:saveError}=await db.rpc('save_school_record_ocr_text',{
+  p_evidence_file_id:record.evidence_file_id,p_extracted_text:extracted,
+  p_extracted_fields:{source:'records_centre_ocr',review_required:true,extracted_at:new Date().toISOString()}
+ });
+ if(saveError)throw saveError;
+ $('ocrProgress').textContent='OCR saved. Check the text for reading errors before relying on it.';
+ await loadRecords();selectRecord(record.id);
+}
+$('recordList').addEventListener('click',async e=>{
+ const edit=e.target.closest('[data-edit]'),open=e.target.closest('[data-open]'),ocr=e.target.closest('[data-ocr]');
+ try{
+  if(edit){selectRecord(edit.dataset.edit);return}
+  if(open){const row=records.find(x=>x.id===open.dataset.open);await openOriginal(row);return}
+  if(ocr){const row=records.find(x=>x.id===ocr.dataset.ocr);selectRecord(row.id);await runOcr(row);return}
+ }catch(error){toast('Document action failed: '+error.message,true);$('ocrProgress').textContent=error.message}
+});
+$('recordForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!selected)return;
+ const payload={
+  record_type:$('recordType').value.trim(),record_title:$('recordTitle').value.trim(),
+  record_identifier:$('recordIdentifier').value.trim()||null,issuing_authority:$('issuingAuthority').value.trim()||null,
+  issued_on:$('issuedOn').value||null,expires_on:$('expiresOn').value||null,
+  verification_status:$('verificationStatus').value,notes:$('recordNotes').value.trim()||null,
+  reviewed_by:user.id,reviewed_at:new Date().toISOString()
+ };
+ const {error}=await db.from('school_record_index').update(payload).eq('id',selected.id);
+ if(error){toast('Record details could not be saved: '+error.message,true);return}
+ toast('Record metadata and verification status saved.');await loadRecords();selectRecord(selected.id);
+});
+$('openOriginal').addEventListener('click',async()=>{if(!selected)return;try{await openOriginal(selected)}catch(e){toast(e.message,true)}});
+$('runOcr').addEventListener('click',async()=>{if(!selected)return;try{await runOcr(selected)}catch(e){$('ocrProgress').textContent=e.message;toast('OCR could not finish: '+e.message,true);await db.from('school_record_index').update({ocr_status:'Failed'}).eq('id',selected.id)}});
+$('expiryCheck').addEventListener('click',async()=>{
+ $('expiryCheck').disabled=true;
+ try{const {data,error}=await db.rpc('refresh_school_record_expiry_notifications');if(error)throw error;toast('Expiry check completed. '+Number(data||0)+' new alert(s) created.');}
+ catch(error){toast('Expiry check failed: '+error.message,true)}
+ finally{$('expiryCheck').disabled=false}
+});
+$('refresh').addEventListener('click',loadRecords);
+$('clearFilters').addEventListener('click',()=>{$('search').value='';$('typeFilter').value='';$('statusFilter').value='';$('expiryFilter').value='';loadRecords()});
+$('search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(loadRecords,300)});
+$('typeFilter').addEventListener('change',loadRecords);$('statusFilter').addEventListener('change',loadRecords);$('expiryFilter').addEventListener('change',loadRecords);
+$('closeEditor').addEventListener('click',()=>{$('editorCard').classList.add('hidden');selected=null;renderRecords()});
+$('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();const form=Object.fromEntries(new FormData(e.currentTarget));
+ const {data,error}=await db.auth.signInWithPassword({email:form.email,password:form.password});
+ if(error){$('loginError').textContent=error.message;return}
+ try{await enterApp(data.user)}catch(err){$('loginError').textContent=err.message}
+});
+$('signOut').addEventListener('click',async()=>{await db.auth.signOut();location.reload()});
+
+db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(data.session.user)}catch(err){$('loginError').textContent=err.message}}});
+db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')location.reload()});
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('installApp').classList.remove('hidden')});
+$('installApp').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installApp').classList.add('hidden')});
+window.addEventListener('appinstalled',()=>{$('installApp').classList.add('hidden');toast('Records Centre is installed on this device.')});
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+</script>
+</body></html>

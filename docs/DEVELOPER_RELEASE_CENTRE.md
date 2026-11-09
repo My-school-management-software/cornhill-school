@@ -1,0 +1,371 @@
+# CORNHILL Developer & Release Centre
+
+This document is the controlled project handover and update guide for CORNHILL NURSERY AND PRIMARY SCHOOL Management System.
+
+## Permanent application address
+
+- Production application: https://cornhill-school-cypher-projects1.vercel.app/
+- Parent portal: https://cornhill-school-cypher-projects1.vercel.app/parents.html
+
+The permanent address is an alias/domain. Do not replace it with a preview URL during ordinary updates. Production releases must be made to the existing Vercel project and the existing production domain must remain attached.
+
+## Project control links
+
+- GitHub repository: https://github.com/My-school-management-software/cornhill-school
+- Active development branch: https://github.com/My-school-management-software/cornhill-school/tree/feature/cornhill-v3-foundation
+- GitHub commits: https://github.com/My-school-management-software/cornhill-school/commits/feature/cornhill-v3-foundation/
+- Vercel project dashboard: https://vercel.com/cypher-projects1/cornhill-school
+- Supabase project dashboard: https://supabase.com/dashboard/project/yemhortbudwbcrzsoozk
+- ChatGPT: https://chatgpt.com/
+
+Conversation links: add the exact ChatGPT share/conversation URL for each important development thread when available. A general ChatGPT link does not identify a particular conversation. Do not fabricate conversation URLs or copy private conversations into a public repository.
+
+## Current development reference (7 November 2026)
+
+- Repository: `My-school-management-software/cornhill-school`
+- Branch: `feature/cornhill-v3-foundation`
+- Latest reviewed feature commit: `c58e5e620d733cc72371d8fe7148a47ed8fe61e0`
+- Commit message: `Fix guardian PIN failure handling and validation`
+- Latest preview deployment: https://cornhill-school-ebbsu8e3t-cypher-projects1.vercel.app/
+- Preview deployment ID: `dpl_EqSDUyhttQfraL37FeUStfH4bu6m`
+- Preview state at last check: READY; target was preview, not production.
+- Production deployment at last check used the `main` branch and an earlier commit. The latest feature commit had not been promoted to production.
+
+## Developer access and secrets
+
+The Developer & Release Centre must be restricted to a separately authorised developer identity, not merely every user with the ordinary school administrator role.
+
+- Do not put a developer password, Supabase service-role key, Vercel token, GitHub token, Google refresh token, backup encryption key, OTP secret, or recovery code in HTML, JavaScript, Git, browser storage, or this document.
+- Do not create a shared hard-coded master password.
+- Use the school account's secure authentication, a separate server-side developer allowlist/role, and multi-factor authentication for release access.
+- The developer identity must be provisioned through a trusted administrative process. The application must not allow a user to grant themselves developer privileges.
+- Show project identifiers and safe dashboard links; never display secret values.
+- Keep a private credential manager under the account owner's control for credentials. Never send passwords or secret keys in ChatGPT conversations.
+
+## Project knowledgebook and conversation records
+
+Maintain a curated, dated project knowledgebook containing:
+- agreed requirements and decisions;
+- module completion status and acceptance criteria;
+- important implementation notes and migration history;
+- release notes, test results, known limitations and rollback notes;
+- links to the exact relevant ChatGPT conversations, when the user supplies or saves those links.
+
+Do not claim this file contains every line of every ChatGPT conversation. The application/repository cannot automatically retrieve the user's full ChatGPT chat history. Preserve full conversations in the user's ChatGPT account/export; put only approved summaries and explicit conversation links in the project knowledgebook. Never publish private conversation transcripts or learner/staff personal information in the public repository.
+
+## Safe update and release procedure
+
+1. Work on a feature branch; do not develop directly on the production branch.
+2. Review the change and its database impact. Keep application code separate from school records.
+3. Add backward-compatible database migrations. Never drop, truncate, overwrite, or reseed real learner, guardian, staff, academic or finance records as part of a routine software update.
+4. Verify a recent encrypted backup and its table manifest. A successful backup validation is not proof of a successful restore. Test recovery in an isolated project before relying on it.
+5. Include Auth accounts and Storage files in a separate, documented recovery plan; the current application-level database snapshot does not cover them.
+6. Deploy a preview. Run automated checks and role-based acceptance tests with synthetic/test records; do not use real learner information for test transactions.
+7. Stage a production deployment using production configuration, verify it, and only then promote the tested production build.
+8. Confirm the existing permanent domain remains assigned. Do not send users a preview URL as the permanent address.
+9. Check runtime errors, sign-in, parent portal access, key workflows and data integrity after release.
+10. If a release fails, roll back the application deployment and apply a reviewed database recovery plan if needed. Never assume a code rollback reverses a database migration.
+11. Record the version, commit, deployment ID, date, test outcome, migration and rollback details in the release log.
+
+## Device updates and offline behaviour
+
+CORNHILL is a web application/PWA. When a new production release is published to the same permanent address, devices using that address can receive the new application files after refresh/service-worker update. A device may retain cached files until its service worker checks for an update or the user reconnects. Do not promise that every offline device updates immediately.
+
+The current offline support is limited to the application shell. Live database operations, authentication and synchronisation require connectivity; offline data-entry and conflict-safe synchronisation must be implemented and tested before claiming full offline operation.
+
+
+## Parent portal photographs and school communication (requirements added 7 November 2026)
+
+### Learner photographs
+- Admission already supports an optional JPEG, PNG or WebP learner photograph (maximum 4 MB) in the private `learner-photos` bucket. The `students.photo_path` field is present, and the administrator admission/edit workflow uploads and replaces photographs.
+- Staff learner profile and mark-sheet views already generate short-lived signed photo URLs under authenticated storage policies.
+- The parent portal currently does not display a learner photograph. Add it only after the guardian has successfully verified the pupil code, registered phone and 8-digit PIN.
+- Parent photo delivery must use a server-side, short-lived signed URL or equivalent narrowly scoped mechanism. Do not make the `learner-photos` bucket public and do not grant anonymous Storage access.
+- The parent must see only the photograph for the learner linked to that verified guardian contact.
+- Keep photo upload optional at admission. Administrators may add, replace or update the photo later as the learner grows. Preserve the previous photo until the new upload and database path update both succeed; remove obsolete objects only after the replacement is confirmed.
+- Keep upload validation (JPEG/PNG/WebP, 4 MB) and private bucket policies. Consider an audit entry for photo replacement (actor and timestamp), without exposing storage paths to parents.
+
+### Parent-to-school communication
+- Add a private “Contact the School” area inside the verified parent portal.
+- Parents may send typed text messages or recorded voice notes only. Do not add voice calls or video calls.
+- Provide recipient choices for the current active staff directory, grouped sensibly by role/office (e.g. Headteacher, Deputy Headteacher, DOS, Bursar, class teacher, administrator). Include a clear “Send to school administration” option.
+- Allow a parent to choose “Report an issue” and optionally select a relevant staff member. Messages must be routed to the chosen authorised recipient(s), with a school administration oversight queue for reports.
+- Display delivery/receipt status and a parent-visible conversation history for that guardian and learner. Staff must only see conversations addressed to them or explicitly routed to administration.
+- Voice notes need strict MIME/size/duration limits, private storage, signed playback URLs and retention controls. No public audio URLs.
+- No third-party SMS/WhatsApp/OTP provider is required for in-portal messaging. Do not activate paid providers or add calling features.
+
+### Required security architecture before enabling parent messaging
+- The existing parent PIN RPC returns learner information but does not establish an authenticated Supabase user session. Do not simply expose staff directories, message tables, or storage upload policies to the anonymous role.
+- Implement a short-lived, revocable parent portal session/token bound to the exact guardian contact, learner, and verified PIN event. Store only a hash of the token server-side; apply expiry, rate limits and revocation.
+- Route parent message creation, conversation listing, staff directory lookup and voice-note upload through server-side functions that validate that session token and enforce learner/guardian/recipient scope. Keep service-role credentials server-side only.
+- Add database tables, indexes, RLS and audit events for parent conversations/messages and attachments. Explicitly test that one guardian cannot read another learner's messages, and a parent cannot message arbitrary internal accounts outside the active staff directory.
+- Add abuse controls: message length limits, voice-note duration/size limits, rate limiting, reporting/blocking workflow and moderation/retention policy.
+- Test with synthetic guardian accounts and staff accounts before enabling in production. Do not use real family messages as test data.
+
+### Acceptance checks
+1. Photo absent at admission is accepted; all other admission validation still applies.
+2. Admin can add a photo later and replace it; the new image appears on staff learner profile and the verified parent portal.
+3. Failed upload leaves the existing photo path and file intact.
+4. A guardian sees only their linked learner's photo and approved published information.
+5. Parent can send text and a voice note to an active staff member or administration.
+6. Parent cannot view other learners, staff-only messages, internal directories beyond the intended contact list, or another guardian's conversation.
+7. Staff can reply only within permitted conversations; administration can triage issue reports.
+8. No video-call or audio-call controls are present in the parent portal.
+
+## Release log
+
+Add one entry for every production release with:
+- version and release date;
+- Git commit SHA;
+- Vercel production deployment ID;
+- database migration identifiers;
+- test batch and results;
+- backup verification reference;
+- known limitations and rollback deployment.
+
+No production release is recorded by this document itself. Update this log only after the corresponding production deployment and checks have actually succeeded.
+
+
+## Parent academic history and fee-gated report cards (requirements added 7 November 2026)
+
+### Full academic history
+- The verified parent account must show a chronological academic history for the learner from admission through the current year, covering every year and term for which CORNHILL has records.
+- Show the learner's full name and permanent pupil code as the heading for the history.
+- Organise results by academic year, term, assessment period and subject. Include Beginning-of-Term, Mid-Term and End-of-Term assessments where recorded; show marks, maximum marks, grades/aggregates/division/position where those values are actually stored or generated for that class level, plus approved teacher comments.
+- Include class progression over time, using the learner's class/enrolment history. Make missing terms or years explicit as "No recorded results" rather than inventing marks or implying the learner was absent.
+- Show teacher attribution for each subject/assessment wherever the records support it. Prefer the teacher who actually entered/approved that assessment (assessment score attribution such as `entered_by` / assessment creator) and retain historical class-subject teacher assignments with effective dates. Do not display only today's subject teacher as though they taught the learner in earlier years.
+- Include a teacher-history timeline grouped by academic year, term, class and subject, showing the teacher's name and role only where historical assignment/assessment records prove the relationship. If historic teacher assignment data was never captured, label it unavailable; do not guess.
+- Preserve all historical records when the learner changes class, leaves and is readmitted, or changes teachers. Use stable learner IDs, not names alone.
+- The parent view must only include that learner's approved/published academic records. Draft, unapproved or staff-only marks/comments must remain hidden.
+
+### Report-card and End-of-Term results fee rule
+- Beginning-of-Term and Mid-Term results may be shown to a verified guardian according to the school's publication settings.
+- End-of-Term results and the generated End-of-Term report card must remain unavailable until the learner has fully cleared the required school-fee charges for the relevant term.
+- A partially paid or unpaid school-fee balance means the End-of-Term result/report remains locked. Do not reveal the End-of-Term marks, grades, position, comments, report-card PDF or a direct download URL while locked.
+- When the finance ledger confirms the relevant term's required school-fee balance is zero (after valid posted payment allocations, bursary adjustments and approved credits), End-of-Term results and the approved report card become available automatically on the next parent request/refresh. No manual staff toggle should be required.
+- Fee clearance must be calculated from authoritative term-level learner charges and posted payment allocations, not a stale summary, a browser-calculated balance, or a parent-supplied value. Include the correct bursary amount/adjustment. For boarding learners, use the single inclusive boarding package charge (tuition/fees plus meals) and do not add a duplicate tuition charge.
+- Keep other optional/non-school-fee purchases separate unless the school's approved fee policy explicitly includes them in the clearance calculation. Any carried school-fee arrears that are part of the learner's required school-fee account must be included consistently.
+- Recheck fee clearance on every server-side request for protected End-of-Term data and report downloads. If a payment is reversed, voided or reallocated and the balance becomes outstanding again, access must lock again.
+- Record an audit event for unlock/lock decisions with learner, term, timestamp and decision reason, without exposing private finance data to other guardians.
+
+### Implementation and verification status
+- Database structures already include assessment scores, assessments, report-card publication approvals, student class history, fee charges, payment allocations, enrolment-period balances, and score-entry attribution. These are useful source records, but the parent PIN response currently returns published assessments and reports without the requested complete academic-history/teacher timeline and without a term-level fee gate for End-of-Term records.
+- Current class-subject teacher assignments represent assignments currently stored in `class_subjects`; they are not by themselves proof of who taught a learner in prior years. Historical assignment records must be retained/added before promising a complete teacher timeline.
+- The current parent PIN verification RPC returns learner data but does not establish a revocable authenticated parent session. Secure parent messaging, signed photo delivery and all protected academic-history/report-card reads must be routed through a scoped, expiring server-side parent session before exposing new parent-only data.
+- No existing historical marks, report cards or teacher records may be fabricated or overwritten to fill gaps. Backfill only from verifiable existing records and clearly label gaps.
+- Required tests include: full-fee payment unlocks End-of-Term results/report; partial payment keeps them locked; no payment keeps them locked; a posted payment allocation unlocks without a manual toggle; a reversed payment re-locks; bursary-adjusted charge clearance is correct; boarding package is not double-counted; parents cannot bypass the gate using direct RPC, API, cached links or report download URLs; Beginning/Mid-Term publication remains independent; guardian A cannot read learner B's history; teacher history is historically accurate or explicitly marked unavailable.
+
+
+
+## Workspace isolation correction — 7 November 2026
+
+- User reported that learner/database content appeared to remain visible while switching between Parent Access Links, Register Learner, and other sections in a preview.
+- The latest Vercel deployment visible during investigation was `cornhill-school-7tps2x7xp-cypher-projects1.vercel.app`, built from commit `230b323d67e7ad9c1d791f757ca9358510b0ebfd`. The previous `lrcw9fsan` preview was older still (`f2594842...`). The current GitHub branch contains later frontend changes that were not yet in either preview.
+- Existing navigation already attempted to hide inactive workspaces. To harden this, the latest `index.html` change adds an explicit active-workspace data marker, a high-priority CSS rule that hides every non-current top-level workspace panel, the native `hidden` state, and `inert` for inactive workspaces. It also hides any unregistered top-level panel rather than allowing it to remain stacked under the selected page.
+- Static JavaScript syntax checks passed for all seven script blocks after this change.
+- This is a source-level correction only. It has not yet been built into a new Vercel preview or tested interactively in a browser. Do not tell the school that the visual defect is resolved until the new preview is tested by switching repeatedly among Dashboard, Learner Register, Parent Access Links, and Register Learner on desktop and Android.
+
+## Parent-facing school contact directory — 7 November 2026
+
+- Added a **School Contacts** card to the authenticated Parent Portal. It displays official school telephone, email, website and physical address when administrators have entered those details, plus an ordered directory of active staff names and roles.
+- The school currently has no confirmed official telephone, email or website values in the project. The new contact fields are deliberately blank until CORNHILL supplies verified details; the portal explains that parents can use secure portal messaging meanwhile. No contact information or email address has been invented.
+- Added separate `parent_contact_phone` and `parent_contact_visible` fields to `user_profiles`. Existing `phone` remains the private staff phone field and is never used by the parent directory. A staff member's number appears to parents only when an administrator enters the approved school-facing number and explicitly enables visibility.
+- Added an administrator-only **School contact details shown to parents** form in Staff Profiles for official school phone, email, website and address. Blank values remain hidden.
+- Added parent directory API output through the authenticated parent session. The endpoint returns staff names/roles and only approved phone numbers, plus the school contact settings. Parent portal offers telephone and email links and only renders HTTPS website links.
+- Database changes applied as migrations `parent_public_contact_directory` and `school_public_contact_admin_access`; matching SQL files committed under `supabase/migrations/`.
+- Current staff directory data at implementation time contained one active Admin profile and no other active staff profiles. Staff contact entries will populate as accounts and approved numbers are added.
+- Static verification: all seven JavaScript blocks in `index.html` and the single Parent Portal JavaScript block parse successfully. `parent-portal-api` version 11 is ACTIVE. The endpoint does not return private `user_profiles.phone`.
+- Live parent-session visual testing remains pending. Vercel preview/production deployment remains blocked by the previously encountered free-tier deployment quota; do not claim these frontend changes are live until a current preview is deployed and checked.
+
+## Parent-school inbox implementation update — 7 November 2026
+
+- Added a dedicated **Parent Inbox** view to the school Communications Centre on the development branch.
+- Added staff-authenticated Edge Function actions: `staff-inbox`, `staff-reply`, and `staff-status`.
+- Staff access is verified server-side against the Supabase Auth access token and the current active `user_profiles` record. Administrators can oversee the school inbox; Teachers and Staff are restricted to messages addressed to their own user ID.
+- Inbox cards show the learner name, permanent pupil code, class, guardian name, message category, date, text or a short-lived signed voice-note URL, conversation replies, and status.
+- Staff replies are stored as private `parent_school_message_events` entries and are returned to the same verified guardian in Parent Portal message history. Sending a reply changes the message status to `answered`; status changes are also audited.
+- No anonymous or authenticated direct table grants were added. The message and event tables remain accessible to the server-side service role only; the Edge Function enforces staff identity and recipient ownership before reads or writes.
+- Supabase Edge Function `parent-portal-api` is active at version 10. Development branch commits: `230b323d67e7ad9c1d791f757ca9358510b0ebfd` (parent reply display) and `b0a0821d39e168ecad35290dc4d9935b62b6b272` (school inbox UI; later repository metadata showed index blob SHA `376d4a5bc460412556c04c6795001a00458e88f3`).
+- Static verification: all seven JavaScript blocks in `index.html` and the Parent Portal JavaScript block parse successfully; the deployed Edge Function bundle succeeded. Database grants confirm only `service_role` has table privileges on `parent_school_messages` and `parent_school_message_events`.
+- Live message/reply testing remains pending because the project currently has no parent message records or active guardian sessions available for a real conversation test. Do not claim a real guardian-to-staff reply has been completed until tested with a controlled test account.
+- The Vercel production site has not yet received these frontend commits. The previously encountered free-tier deployment quota block still applies; do not upgrade or change the permanent URL. Wait until deployment capacity resets, then build a preview, test, and promote safely.
+
+## Parent portal implementation progress — 7 November 2026
+
+### Implemented in the current development branch
+- Added private parent-session, parent-message, message-event and report-access audit tables. Row-level security is enabled; anonymous and ordinary authenticated roles have no direct table access. Server-side service-role access is used by the parent portal API.
+- Added the `parent-portal-api` Supabase Edge Function. Guardian PIN verification now creates a random, two-hour session token; only its SHA-256 hash is stored. Sessions can be revoked on sign-out and expire automatically.
+- Moved guardian PIN verification, PIN reset and PIN change behind the Edge Function. The corresponding PIN RPCs are no longer executable by `anon` or `authenticated`; only `service_role` can execute them.
+- Added parent text-message and voice-note submission, recipient selection for active staff or School Administration, message history, rate limits, private voice-note storage and five-minute signed playback URLs. Voice notes are limited to 3 minutes and 4 MB. Audio/video calling is not included.
+- Added private learner-photo retrieval through a five-minute signed URL scoped to the learner bound to the parent session. The `learner-photos` bucket remains private.
+- Added a class-subject teacher-history table and a trigger to record future teacher assignment changes. Existing current assignments were backfilled from their original `created_at` timestamps; this does not reconstruct undocumented historical teacher changes.
+- Added a parent academic-history database function for published assessment scores, published report-card metadata, class progression and recorded subject-teacher assignments.
+- Added server-side End-of-Term access checks. For day learners, required fee charges are those categorised as School fees; for boarding learners, the single Boarding package category is used. Prior required school-fee arrears are included. Only allocations linked to Posted, non-reversed payments count. The current term must have a required charge record; if the fee ledger is missing or cannot be verified, End-of-Term access fails closed. Beginning/Mid-Term assessment labels are allowed; End-of-Term and unclassified assessments remain locked until the term is cleared. Access decisions are written to a private audit table.
+- Parent portal UI now includes the learner photo area, academic history, class progression, recorded teacher history, report-card access status, and text/voice message composer and history. Session tokens remain in page memory and are not written to local storage.
+
+### Known gaps and release blockers
+- The staff/administration inbox, staff replies, and staff-side message status management have since been implemented in the development branch. Live guardian-to-staff conversation testing remains pending because no controlled parent test session/message was available; do not claim a real conversation has been completed until tested.
+- The active-staff directory only lists profiles whose employment status is explicitly Active. The School Administration destination remains available.
+- The current database has no assessment rows, no assessment scores, and no approved report-card publication rows. The parent academic-history and fee-gating logic therefore has not been demonstrated against real learner records.
+- No learner currently has a photo path recorded, so signed photo delivery has not been verified with a real image.
+- Teacher history backfill can only use the current `class_subjects` assignments and their creation timestamps. It cannot infer which teachers taught learners before history capture began.
+- The parent portal currently lists approved report-card publication records and locks them correctly in its response data, but the generated report-card document/PDF rendering and secure download link still need to be connected.
+- The fee gate must be tested with synthetic cases for day and boarding learners, full/partial/no payment, bursary charges, prior-term arrears, reversed payments and direct-link/API attempts. No synthetic parent accounts or payment test records have been created in production.
+- End-to-end browser tests with a guardian account, voice-note recording on Android, staff inbox/reply tests, and real learner photo verification remain pending. Do not promote this branch to the permanent production website until these tests pass.
+- No real learner, finance, attendance or payment records were modified by this work.
+
+
+## Database security review — 7 November 2026
+
+- The Supabase security advisor identified that `public.track_class_subject_teacher_history()` was a SECURITY DEFINER trigger function with default direct EXECUTE grants to public-facing roles.
+- Applied migration `restrict_teacher_history_trigger_function_execute` and committed matching SQL at `supabase/migrations/20261107131500_restrict_teacher_history_trigger_function_execute.sql`.
+- Verification after the migration: `anon` cannot execute the function; `authenticated` cannot execute it; `service_role` retains EXECUTE; the existing enabled trigger on `public.class_subjects` remains present.
+- The advisor's authenticated SECURITY DEFINER finding count reduced from 24 to 23. The remaining 23 functions are executable by authenticated users and reference `auth.uid()`; this is not by itself proof that every function is correctly authorized. Their function bodies and role checks require a separate, function-by-function review. Do not revoke them in bulk because some are intended authenticated school workflows.
+- The advisor also reports 12 RLS-enabled tables without policies, one extension (`pg_net`) in the public schema, and the remaining authenticated SECURITY DEFINER findings. These require review. No broad permission changes were made as part of this narrow fix.
+- This change is a database security hardening action and does not deploy the school frontend or alter the permanent website URL.
+
+- Guardian PIN generation hardening: replaced PostgreSQL `random()` with `extensions.gen_random_bytes(4)` plus rejection sampling, so generated eight-digit PINs use cryptographically secure randomness without modulo bias. Recovery codes continue to use secure random bytes. The function still requires an authenticated active school administrator, stores only bcrypt hashes, resets failed-attempt/lock state when issuing a new PIN, and returns the PIN/recovery code once to the authorized admin workflow.
+- Applied migration `use_cryptographic_randomness_for_guardian_pins`; matching repository migration is `supabase/migrations/20261107133000_use_cryptographic_randomness_for_guardian_pins.sql`. A read-only sample test generated 118 accepted values; all 118 matched the eight-digit format and were distinct. No real guardian PIN was issued or changed during testing.
+- Follow-up on the advisor's 12 RLS-enabled/no-policy findings: checked table privileges individually. All 12 tables deny SELECT/INSERT/UPDATE to both `anon` and `authenticated`; `service_role` has the expected backend access. These are currently service-role-only tables, so adding broad RLS policies would weaken their isolation. Keep the advisor findings documented and review again if client-side access is ever required.
+
+
+## Follow-up security review — 7 November 2026
+
+### Leaked-password protection
+- Supabase Security Advisor continues to report leaked-password protection disabled.
+- Current Supabase documentation states that the HaveIBeenPwned leaked-password check is available on the Pro plan and above. CORNHILL's standing requirement is to remain on free plans, so this feature was not enabled and no plan upgrade was made.
+- This warning does not mean that a CORNHILL account password has been found leaked. It means Supabase Auth is not checking newly set passwords against its known-compromised-password list.
+- The available database connection does not expose the Auth dashboard password-strength configuration. Minimum password length and character requirements therefore remain unverified; check those settings in Authentication → Sign In / Providers → Email without changing the subscription.
+- Reference: https://supabase.com/docs/guides/auth/password-security
+
+### pg_net extension placement and dependency review
+- Supabase reports pg_net 0.20.4 installed with extension metadata in the public schema. Its HTTP functions and queue tables live in the separate net schema.
+- The CORNHILL scheduled Google Drive backup job (cron job ID 2, schedule 0 2 * * *, Uganda time 05:00) calls net.http_post to invoke google-drive-backup. The extension must remain available for this scheduled backup trigger.
+- At review time, net.http_request_queue contained 0 pending requests. net._http_response contained one timeout response for the 7 November scheduled call. The corresponding backup run table nevertheless recorded the 7 November encrypted backup as success, with 236 records and completion at 02:00:11 UTC. Treat the HTTP timeout as an acknowledgement/transport discrepancy to monitor; it is not evidence that the backup file failed, and it is not proof of a restore.
+- No application function body referencing net.http_get or net.http_post was found; the scheduled cron command is the identified CORNHILL dependency. The extension's own helper event trigger grants the expected schema usage when the extension is created.
+- Supabase documents that pg_net is non-relocatable. Moving its extension registration requires dropping and recreating it in the extensions schema; this removes extension-owned queue/response objects and stored responses. The current queue is empty, but the one timeout response would be lost and the scheduled backup trigger depends on the extension remaining available.
+- No extension drop/recreate was performed. Keep the extension active. If the team later chooses to clear the advisor warning, schedule a controlled maintenance window, preserve any needed response evidence, verify the queue is empty immediately before the change, recreate the extension in extensions, and verify the cron job and a fresh scheduled backup afterward. Do not drop the extension as a routine or unreviewed security fix.
+- Reference: https://supabase.com/docs/guides/database/extensions/pg_net
+
+### Follow-up verification
+- Security advisor was rerun on 7 November 2026. It still reports 23 authenticated-callable SECURITY DEFINER functions, 12 service-role-only RLS tables with no client policies, the pg_net extension placement warning, and leaked-password protection disabled.
+- The 12 RLS/no-policy tables were previously verified to deny direct SELECT/INSERT/UPDATE to anon and authenticated; they remain intentionally backend-only. Do not add broad client policies just to remove informational advisor findings.
+- No learner, guardian, staff, academic, attendance or payment records were modified during this review. No production deployment, subscription change, extension drop, or Auth setting change was performed.
+
+
+## Reversible learner removal from active registers — 7 November 2026
+
+- Admins can remove a learner from active registers using the **Remove** action in the Student Register. A reason is required and a confirmation explains that this is an archive, not permanent deletion.
+- Archived learners are excluded from the active learner register, dashboard totals and class-register counts. They appear in the administrator-only **Removed / archived test learners** list and can be restored.
+- The database records archive/restore actor, reason, timestamp and previous status in a private audit table. The learner UUID and linked financial, academic, attendance and receipt history are preserved.
+- Archiving revokes existing parent portal sessions and blocks parent learner lookup and PIN change/reset for archived learners. Teachers' existing active-learner lookup already requires status Active.
+- No learner has been archived or deleted as part of implementation. No real learner data was changed.
+- Database migrations:
+  - `20261107134000_add_reversible_admin_learner_archiving.sql`
+  - `20261107134100_block_parent_portal_access_for_archived_learners.sql`
+- Static verification: all 7 inline JavaScript blocks in `index.html` parse; archive/restore controls and RPC references are present. Database verification confirms archive columns, admin-only function execution, no direct client access to the audit table, and archived-status checks in parent portal lookup/PIN functions.
+- Live archive/restore against a test learner and visual browser testing remain pending. Use only known test records and confirm identity before archiving. Permanent hard deletion is intentionally not provided because learner records have many financial and academic dependencies.
+
+
+## Whole-system appearance and navigation layouts — 7 November 2026
+
+- Expanded the colour theme collection from 8 to 12: Forest, Ocean, Royal, Sunrise, Ruby, Midnight, Slate, Teal, Emerald Luxury, Lavender Mist, Warm Sand and Graphite Dark.
+- Added four whole-administration navigation arrangements: left sidebar, top horizontal navigation, right sidebar and compact icon rail. On narrow phone screens, navigation returns to a horizontal scrollable strip for usability.
+- Navigation arrangement is stored with the existing device-local appearance preferences and restored to the left sidebar by the reset action.
+- Existing 24 font choices, 10 dashboard layouts, density, text size, motion and sign-in layouts remain available.
+- Theme/navigation preferences are device-local; this is not a school-wide forced setting. Parent Portal is a separate page and is not changed by this admin-interface update.
+- Static checks: all 7 inline JavaScript blocks in `index.html` parse. Verified the 12 theme options, navigation selector, save/apply/reset wiring and CSS layout selectors.
+- Visual browser testing across Android and desktop is still required before declaring the redesign fully approved.
+
+
+## Learner removal button visibility correction — 7 November 2026
+
+- The learner register placed its Actions column at the far right of a wide table. On phone screens, the Remove action could be outside the initial horizontal viewport.
+- Moved the Actions column to the first position, made it sticky at the left edge while horizontally scrolling, and gave the Remove button a clear high-contrast treatment.
+- The Remove action remains restricted to the Admin role and continues to call the same reversible archive workflow; this change does not alter data or archive any learner.
+- Static verification: all 7 inline JavaScript blocks parse; the Actions-first header, sticky first column and Remove button are present.
+- A new preview deployment and on-device visual confirmation are still pending.
+
+## Windows full-screen kiosk launcher — 7 November 2026
+
+- Added `windows/Launch-CORNHILL-Kiosk.cmd` to open the existing permanent CORNHILL URL in Microsoft Edge full-screen kiosk mode, with a Google Chrome kiosk/app fallback.
+- Added `docs/WINDOWS_KIOSK_SETUP.md` with cautious one-computer-first setup, Windows standard-user / Assigned Access guidance, and limits.
+- This hides normal browser chrome during the school session; it does not uninstall or modify the PWA and does not claim to prevent a Windows administrator from changing installed apps.
+- The web manifest already uses `display: standalone`; it was intentionally left unchanged.
+- Device-level Windows testing is still required. The script has not been run on a school PC in this development environment.
+
+
+## Central school notifications and term-scoped bursary reviews — 7 November 2026
+
+- Added a dedicated **Notifications** workspace to the school administration panel, with a navigation badge showing active notices.
+- The notification feed now includes staff attendance alerts (including existing unread alerts), parent/guardian messages routed to the assigned staff member or administration, and administrator bursary-review alerts. Private message bodies are not copied into the notification feed. Notifications are ordered by urgency and include a Review action.
+- Administrators and staff can archive notices using the X control or by swiping the notification card on a touch screen. Archiving removes the notice from the active feed; it does not delete the learner, attendance, finance, or audit record.
+- When an administrator changes from one active academic term to another, the database creates a high-priority bursary review notice for each active learner with a bursary admission or a previous bursary award that does not match the new term. The learner register shows a red BURSARY REVIEW badge until a valid approval is recorded for that term.
+- Existing-learner bursary approvals are now restricted to the active term: the effective dates must fit inside the active term, the billing period label must match that term, and the approval must have an end date. The approval form defaults to the active term dates and label.
+- A new approval automatically resolves the corresponding bursary review flag. Manually archiving a notification does not clear the learner's unresolved bursary flag.
+- Previous-term charges, posted payments, receipts and historic bursary award rows are not rewritten by term activation. The existing award record found with a Term 2 label and no end date was not silently edited; it is flagged for administrator review because the active calendar is Term 3 2026.
+- Database migrations:
+  - 20261107141000_add_central_school_notifications_and_bursary_term_reviews.sql
+  - 20261107141100_scope_bursary_awards_to_active_academic_term.sql
+  - 20261107141200_tighten_bursary_term_matching_and_persistent_review_flags.sql
+  - 20261107141300_flag_existing_bursary_term_mismatches.sql
+  - 20261107141400_notify_staff_and_admins_of_parent_messages.sql
+- Verification: RLS is enabled on school_notifications; direct table SELECT is denied to anon and authenticated roles; anonymous users cannot execute notification RPCs; authenticated users can call the controlled list/archive RPCs. All 7 inline JavaScript blocks in index.html pass syntax parsing. The UI includes the notification workspace, X archive action, swipe handling, learner badge and active-term defaults.
+- Live term switching, actual bursary approval, archive interaction and phone/desktop visual checks have not been exercised with a synthetic learner. No learner or financial records were changed by these implementation checks. Production deployment remains separate.
+
+
+### Security-advisor follow-up for notification changes
+- The post-change Security Advisor reports 16 RLS-enabled tables without client policies. The school_notifications, learner_code_aliases and learner_code_change_audit tables are intentionally included: direct SELECT is revoked from anon and authenticated. Notifications and historical-code search are available only through controlled RPC functions with sign-in and role/recipient checks.
+- The advisor reports 28 authenticated-callable SECURITY DEFINER functions across the project. The notification list/archive and bursary-review lookup RPCs are intentionally callable by signed-in users but check the current user and role before returning or changing anything. Trigger-only notification functions have direct EXECUTE revoked.
+- Existing warnings for pg_net in the public schema and leaked-password protection being disabled remain; no extension move or paid-plan change was made.
+
+
+## Correctable pupil codes, historical aliases and parent/teacher notices — 7 November 2026
+
+- Permanent pupil codes now regenerate only when an administrator corrects the learner's gender or effective year of birth. The original admission year is retained. Ordinary edits, class changes, name corrections and other profile changes do not regenerate the code.
+- When date of birth and year of birth are both supplied, their years must agree when either field is corrected. The learner-edit form synchronises the two fields when only one is changed and preserves unchanged legacy records if their existing values do not agree.
+- The learner's UUID remains unchanged. The previous pupil code is stored in a private alias table and the change is written to a private audit table. Old receipt snapshots and historical documents are not rewritten.
+- Parent sign-in, PIN reset/change and teacher visiting-day lookup resolve the current code or a historical alias, while still verifying the registered guardian contact, PIN, learner status and teacher's assigned class.
+- Parents who sign in with an earlier code see the current code after successful verification. The sign-in page also explains that a previous code may be accepted for this verified sign-in. Teachers who search an old code see the current code and receive a school notification; the assigned class teacher(s) also receive a notification automatically.
+- Administrators can search the learner register and payment selector using a previous code. Alias and audit tables are not directly readable by anon/authenticated clients; historical-code search is available through an administrator-checked RPC.
+- Database test: a synthetic learner was inserted and updated inside a rolled-back transaction. Gender correction, birth-year correction, two historical aliases, two audit entries, administrator notifications, unrelated-edit stability, and rejection of manual code edits all passed. No synthetic row or alias was retained and no real learner code was changed.
+- Parent Portal API version 12 is ACTIVE and includes the verified-parent code-change notice. The updated \`parents.html\` and \`index.html\` pass syntax parsing (1/1 and 7/7 inline scripts respectively). Live parent sign-in with an old alias and live teacher notification display remain pending visual/runtime tests.
+- Migrations recorded in Supabase:
+  - \`20261107142105_enable_safe_learner_code_regeneration_and_alias_lookup.sql\`
+  - \`20261107142133_fix_after_trigger_for_generated_learner_code_changes.sql\`
+  - \`20261107142150_remove_denormalized_view_update_from_code_change_trigger.sql\`
+  - \`20261107142249_allow_unchanged_legacy_dob_year_mismatch_during_other_edits.sql\`
+  - \`20261107142425_show_teacher_notice_when_old_pupil_code_is_used.sql\`
+  - \`20261107142641_add_admin_historical_learner_code_search.sql\`
+
+## Final active-term bursary charge safeguards — 7 November 2026
+
+- The active-term bursary label now matches the fee-schedule convention: \`Academic Year · Term\` (for example, \`2026 · Term 3\`). The approval form defaults to that exact label.
+- A new approval is attached to the learner's active enrolment period, current academic year and term, and the correct fee item. Day learners use the School fees item; boarding learners use the single inclusive Boarding package.
+- The fee-schedule routine skips the normal Boarding package when an active-term bursary award exists, preventing a second full boarding charge.
+- Full bursary awards (UGX 0 payable) remove an unpaid matching current-term charge rather than trying to set a charge to zero (charges must be positive). Partial awards update an unpaid matching charge or create a properly term-linked charge.
+- If a matching charge already has payment allocations and the approved amount would change it, the approval is blocked for bursar reconciliation. Existing receipts and allocations are not rewritten.
+- The existing Term 2 award was not changed. It remains flagged for review under the current Term 3 calendar. No new bursary approval or financial charge was created during these implementation checks.
+- Migration: \`20261107143153_correct_term_scoped_bursary_charge_and_boarding_package_handling.sql\`.
+- Verification: the database function now uses the active enrolment period, blocks changes to already-allocated charges, handles zero-payable charges without violating the positive-charge constraint, and keeps boarding bursaries on the inclusive package. Full live approval with an authenticated administrator and a synthetic learner remains pending.
+
+
+
+### Additional isolated database tests — 7 November 2026
+- Pupil-code teacher notification: passed using a synthetic learner in a class with an assigned teacher. The assigned teacher notification was created inside the test transaction; the transaction was rolled back.
+- Bursary approval/fee integration: passed under an isolated administrator test identity with three synthetic learners:
+  - Day learner with a partial bursary: one correctly linked School fees charge was created, and applying the normal fee schedule did not duplicate it.
+  - Day learner with a full bursary and an unpaid existing charge: the unpaid charge was removed and the original/adjusted amounts were retained in the bursary award record.
+  - Boarding learner with a partial bursary: one inclusive Boarding package charge was created, and applying the fee schedule did not create a second package.
+- These tests used database transactions and were rolled back. The live learner register, existing bursary award, posted receipts, payment allocations and real pupil codes were not changed.
+- The remaining live tests are browser-based parent sign-in with a historical code, teacher notification display, notification archive/swipe interaction, and administrator bursary approval through the actual form.
+- Added migration \`20261107143553_resolve_only_matching_current_term_bursary_notification.sql\` so approving a bursary for one term resolves only that term's reminder, not older unresolved term reminders.
+
+
+## Preview availability — 7 November 2026, 14:32 UTC
+- Vercel preview is READY at https://cornhill-school-fgnqriour-cypher-projects1.vercel.app/
+- Preview deployment ID: dpl_DofdxjjPAmGfU5xyyH3aX5hyptBj
+- Preview commit: 00a0996592b11eea43aac81c60b41286bbfd7cb5 on feature/cornhill-v3-foundation.
+- Comparing that deployment commit with the current branch head shows only documentation and Supabase migration files changed afterward; index.html and parents.html are unchanged after the preview commit. Therefore the preview contains the latest front-end work for notifications, term-specific bursary defaults, pupil-code editing, historical-code search and parent code-change notices.
+- The database migrations, including the follow-up that resolves only the matching term's bursary notification, are already applied in Supabase.
+- This is a preview deployment (target is not production). The permanent production URL and production alias were not changed. Browser interaction tests by the school administrator are still required before any production release.

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<meta name="description" content="CORNHILL secure banking, daily deposits and withdrawal control">
+<link rel="manifest" href="/banking.webmanifest">
+<title>CORNHILL · Banking & Daily Deposits</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:17px max(16px,calc((100% - 1120px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:19px;font-weight:850}.sub{font-size:12px;opacity:.82;margin-top:4px}.wrap{max-width:1120px;margin:22px auto;padding:0 14px}.panel,.stat{background:#fff;border:1px solid #dce7de;border-radius:14px;padding:17px;margin:0 0 14px;box-shadow:0 3px 14px #183d2010}.hidden{display:none!important}.muted{color:#647568;font-size:13px;line-height:1.5}.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf3;color:#166534}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.stat small{color:#647568}.num{font-size:25px;font-weight:850;margin-top:7px;font-variant-numeric:tabular-nums}label{display:block;font-size:13px;font-weight:750;color:#435449;margin:8px 0 5px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:white;font:inherit;margin:0 0 9px}button,.button{border:0;border-radius:9px;padding:11px 14px;background:#e6efe7;color:#17452a;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.5;cursor:not-allowed}form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}.full{grid-column:1/-1}.badge{display:inline-block;font-size:11px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:800}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#991b1b}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:780px;font-size:13px}th,td{text-align:left;padding:10px;border-bottom:1px solid #edf1ed;vertical-align:top}th{background:#f8faf8;color:#607265}.account,.txn{border:1px solid #e0e9e1;border-radius:12px;padding:13px;margin:10px 0}.account{background:#fbfdfb}.balance{font-size:22px;font-weight:850;color:#166534}.actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.actions select{min-width:180px;max-width:250px;margin:0}.help{border-left:4px solid #d97706;background:#fffbeb;padding:11px 13px;border-radius:8px;color:#854d0e;font-size:13px;line-height:1.5}.kicker{font-size:11px;font-weight:850;letter-spacing:.08em;color:#166534}.section-head{margin:0 0 4px;font-size:18px}.small{font-size:11px;color:#647568}.link{color:#166534;font-weight:750;text-decoration:underline}@media(max-width:700px){.grid{grid-template-columns:1fr 1fr}.top{align-items:flex-start}.wrap{margin:14px auto}.panel{padding:14px}form{grid-template-columns:1fr}.full{grid-column:auto}.num{font-size:21px}}@media(max-width:420px){.grid{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<script src="/assets/cornhill-appearance.js"></script>
+<script src="/assets/cornhill-offline.js"></script><script src="/assets/app-isolation-guard.js"></script></head>
+<body data-theme="warm-corporate">
+<header class="top"><div><div class="brand">CORNHILL · BANKING & DAILY DEPOSITS</div><div class="sub">Verified bank ledger · UGX · Administrator oversight</div></div><div class="row"><span id="userLabel" class="small" style="color:#e5f4e8"></span><button id="signOut" class="hidden">Sign out</button></div></header>
+<main class="wrap">
+<section id="loginPanel" class="panel" style="max-width:460px;margin:32px auto">
+<h2>Secure staff sign-in</h2><p class="muted">Use your own CORNHILL account. Access is restricted to administrators and active staff whose assigned job title is Bursar or Deputy Bursar.</p>
+<form id="loginForm"><div class="full"><label>Email address</label><input name="email" type="email" autocomplete="username" required></div><div class="full"><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div><button class="primary full" type="submit">Sign in securely</button></form><div id="loginMsg" class="notice hidden" role="status"></div>
+</section>
+<section id="appPanel" class="hidden">
+<div class="panel"><div class="row"><div><span class="kicker">SCHOOL FINANCIAL CONTROL</span><h2 id="welcome" class="section-head">Welcome</h2><p id="roleInfo" class="muted">Banking access</p></div><span id="connectionBadge" class="badge">Connected</span></div><div id="globalMsg" class="notice hidden" role="status"></div></div>
+<div class="panel"><div class="row"><div><h2 class="section-head">Bank accounts</h2><p class="muted">Only verified deposits and verified withdrawals affect the displayed bank balance.</p></div><button type="button" id="refreshAll">Refresh records</button></div><div id="accountCards"><p class="muted">Loading accounts…</p></div></div>
+<section id="accountAdmin" class="panel hidden"><h2 class="section-head">Register a school bank account</h2><p class="muted">Only the two school-approved institutions are available. Enter the exact account-holder name, last four account digits and verified opening balance from the bank record. Full account numbers and passwords must not be stored here.</p>
+<form id="accountForm"><div><label>Account label *</label><input name="account_label" required maxlength="100" readonly placeholder="Selected institution account"></div><div><label>Bank / financial institution *</label><select name="bank_name" required><option value="">Choose one of the school’s two institutions…</option><option value="KYAMUHUNGA JUBILEE SACCO">KYAMUHUNGA JUBILEE SACCO</option><option value="KYAPS">KYAPS</option></select></div><div><label>Account holder name *</label><input name="account_name" required maxlength="120" readonly placeholder="Select an institution to fill its registered account name"></div><div><label>Last four account digits</label><input name="account_number_last4" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="1234"></div><div><label>Opening balance (UGX) *</label><input name="opening_balance_ugx" type="number" min="0" step="1" value="0" required></div><div class="row" style="align-items:end"><button class="primary" type="submit">Save bank account</button></div></form><div id="accountMsg" class="notice hidden"></div></section>
+<section class="panel"><h2 class="section-head">Record a bank deposit or withdrawal request</h2><p class="muted">A deposit automatically requests a bank-slip photo from the selected authorised phone. A withdrawal is recorded as a request and cannot affect the verified balance until an administrator approves it and its evidence is reviewed.</p>
+<div class="help">Do not record the same deposit twice. Check the bank reference and the date before submitting. A photograph is supporting evidence; it is not automatic approval.</div>
+<form id="transactionForm">
+<div><label>Transaction type *</label><select id="direction" name="direction" required><option value="Deposit">Bank deposit</option><option value="Withdrawal">Withdrawal request (approval required)</option></select></div>
+<div><label>School bank account *</label><select id="bankAccount" name="bank_account_id" required><option value="">Loading accounts…</option></select></div>
+<div><label>Date *</label><input id="transactionDate" name="transaction_date" type="date" required></div>
+<div><label>Amount (UGX) *</label><input name="amount_ugx" type="number" min="1" step="1" inputmode="numeric" required placeholder="Enter the exact amount"></div>
+<div class="full"><label>Description / purpose *</label><textarea name="description" rows="2" minlength="3" maxlength="500" required placeholder="Explain the deposit source or withdrawal purpose"></textarea></div>
+<div><label>Bank transaction reference</label><input name="bank_reference" maxlength="120" placeholder="Reference on bank slip"></div>
+<div id="payeeWrap"><label>Recipient / payee (withdrawal)</label><input name="payee_name" maxlength="160" placeholder="Person or supplier receiving money"></div>
+<div id="deviceWrap" class="full"><label>Phone that will photograph the bank slip *</label><select id="captureDevice" name="device_id" required><option value="">Loading authorised phones…</option></select><small class="muted">The request is sent to the staff member assigned to this phone. The phone must be active and online to receive an immediate notification.</small></div>
+<div class="full"><button class="primary" id="saveTransaction" type="submit">Record deposit & request bank-slip photo</button></div>
+</form><div id="transactionMsg" class="notice hidden" role="status"></div></section>
+<section class="panel" id="expenseRequestPanel">
+<h2 class="section-head">Submit a small school expense for approval</h2>
+<p class="muted">The Deputy Bursar can submit expenses within limits set by an administrator. This is a request, not a posted expense. Do not pay the supplier until the request is approved. After payment, the authorised phone must photograph the receipt or invoice.</p>
+<div id="expenseLimitNotice" class="notice">Loading your expense limit…</div>
+<form id="expenseRequestForm">
+<div><label>Expense date *</label><input id="expenseRequestDate" name="expense_date" type="date" required></div>
+<div><label>Expense category *</label><select id="expenseCategory" name="category_id" required><option value="">Loading categories…</option></select></div>
+<div><label>Amount (UGX) *</label><input name="amount_ugx" type="number" min="1" step="1" inputmode="numeric" required placeholder="Enter amount"></div>
+<div><label>Payee / supplier</label><input name="payee_name" maxlength="160" placeholder="Person or supplier"></div>
+<div class="full"><label>Description / purpose *</label><textarea name="description" rows="2" minlength="3" maxlength="500" required placeholder="Explain what the school needs to pay for"></textarea></div>
+<div><label>Payment method *</label><select name="payment_method"><option>Cash</option><option>Bank transfer</option><option>Mobile Money</option><option>Cheque</option><option>Other</option></select></div>
+<div><label>Payment reference</label><input name="payment_reference" maxlength="120" placeholder="Optional bank / mobile reference"></div>
+<div class="full"><label>Receipt or invoice number (if already known)</label><input name="receipt_reference" maxlength="120" placeholder="Optional reference"></div>
+<div class="full"><button class="primary" id="submitExpenseRequest" type="submit">Submit expense for approval</button></div>
+</form><div id="expenseRequestMsg" class="notice hidden" role="status"></div>
+</section>
+<section id="financeLimitPanel" class="panel hidden">
+<h2 class="section-head">Administrator · Bursar expense limits</h2>
+<p class="muted">Enable an expense-request allowance for the Deputy Bursar or Bursar. Both limits are enforced by the database. Zero or disabled means no expense requests are accepted for that account.</p>
+<form id="operatorLimitForm">
+<div><label>Bursar account *</label><select id="limitStaff" name="user_id" required><option value="">Choose active bursar</option></select></div>
+<div><label>Maximum per expense (UGX) *</label><input id="limitSingle" name="max_single_expense_ugx" type="number" min="0" step="1" value="0" required></div>
+<div><label>Maximum per day (UGX) *</label><input id="limitDaily" name="daily_limit_ugx" type="number" min="0" step="1" value="0" required></div>
+<div><label><input id="limitEnabled" type="checkbox" style="width:auto;margin-right:7px">Enable expense requests</label></div>
+<div class="full"><button class="primary" type="submit">Save spending limits</button></div>
+</form><div id="limitMsg" class="notice hidden"></div>
+<div class="table-wrap"><table><thead><tr><th>Staff account</th><th>Maximum per expense</th><th>Daily maximum</th><th>Status</th></tr></thead><tbody id="limitRows"><tr><td colspan="4">Loading limits…</td></tr></tbody></table></div>
+</section>
+<section id="expenseApprovalPanel" class="panel hidden">
+<h2 class="section-head">Administrator · Expense requests awaiting approval</h2>
+<p class="muted">Approve before spending. Approval sends a ten-minute receipt-photo request to the chosen authorised phone. The expense enters the official expenditure ledger only after its evidence is approved.</p>
+<div id="expenseApprovalQueue"><p class="muted">No expense requests are awaiting approval.</p></div>
+</section>
+<section class="panel">
+<h2 class="section-head">Expense request register</h2>
+<p class="muted">Track requests through approval, receipt capture and verification. Verified requests are posted automatically to the existing School Expenses ledger.</p>
+<div class="table-wrap"><table><thead><tr><th>Date / request</th><th>Category / purpose</th><th>Amount (UGX)</th><th>Status</th><th>Action</th></tr></thead><tbody id="expenseRequestRows"><tr><td colspan="5">Loading requests…</td></tr></tbody></table></div>
+</section>
+<section id="approvalPanel" class="panel hidden"><h2 class="section-head">Withdrawals awaiting administrator approval</h2><p class="muted">Review the amount, account, purpose and person who requested it. Choose the authorised phone that will submit withdrawal and expense evidence.</p><div id="withdrawalQueue"><p class="muted">No withdrawal requests.</p></div></section>
+<section class="panel"><div class="row"><div><h2 class="section-head">Bank transaction register</h2><p class="muted">A permanent record of deposits, withdrawal requests, approvals and verification outcomes.</p></div><a class="link" href="https://evidence-cornhill-school.vercel.app/apps/evidence-capture/">Open Evidence Capture</a></div>
+<div class="table-wrap"><table><thead><tr><th>Date / reference</th><th>Account</th><th>Type</th><th>Amount (UGX)</th><th>Description / recipient</th><th>Entered by</th><th>Status</th><th>Action</th></tr></thead><tbody id="transactionRows"><tr><td colspan="8">Loading transactions…</td></tr></tbody></table></div>
+<div id="registerMsg" class="notice hidden"></div></section>
+<div class="panel"><h3 class="section-head">How verification works</h3><p class="muted">The phone user submits one or more clear photographs or PDFs. An administrator reviews the evidence separately in the Evidence Capture register. Only an administrator's recorded approval changes a deposit or withdrawal to Verified. Rejected evidence can be requested again.</p><div class="actions"><a class="button" href="https://evidence-cornhill-school.vercel.app/apps/evidence-capture/">Open Evidence Capture & review</a><a class="button" href="https://cornhill-school-swart.vercel.app/apps/school-management/">Return to school system</a></div></div>
+</section>
+</main>
+<script>
+const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
+const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
+const BANK_AUTH_TAB_ID_KEY='cornhill-bank-tab-id-v1';
+const makeBankAuthTabId=()=>window.crypto?.randomUUID?.()||('tab-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
+let bankAuthStorage=null,bankAuthStorageKey='';
+try{
+ const navEntry=performance.getEntriesByType('navigation')[0];
+ const sameTabReload=navEntry?.type==='reload';
+ const storedTabId=sessionStorage.getItem(BANK_AUTH_TAB_ID_KEY);
+ const tabId=storedTabId&&sameTabReload?storedTabId:makeBankAuthTabId();
+ sessionStorage.setItem(BANK_AUTH_TAB_ID_KEY,tabId);
+ bankAuthStorage=sessionStorage;
+ bankAuthStorageKey='cornhill-bank-tab-'+tabId;
+ sessionStorage.removeItem('cornhill-bank-tab-v1');
+}catch(_){
+ bankAuthStorageKey='cornhill-bank-ephemeral-'+makeBankAuthTabId();
+}
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{
+ storageKey:bankAuthStorageKey,
+ ...(bankAuthStorage?{storage:bankAuthStorage,persistSession:true}:{persistSession:false}),
+ autoRefreshToken:true,detectSessionInUrl:false
+}});
+const $=id=>document.getElementById(id);
+let user=null,profile=null,accounts=[],devices=[],transactions=[],staff=[],expenseCategories=[],expenseRequests=[],financeLimits=[],refreshTimer=null;
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>'UGX '+Number(v||0).toLocaleString('en-UG');
+const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Kampala',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+function notice(id,text,type='info'){const el=$(id);if(!el)return;el.textContent=text;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.classList.remove('hidden')}
+function clearNotice(id){$(id)?.classList.add('hidden')}
+function isFinanceOperator(p){return !!p&&p.employment_status==='Active'&&(p.role==='Admin'||(p.role==='Staff'&&['bursar','school bursar','deputy bursar','deputy school bursar'].includes(String(p.job_title||'').trim().toLowerCase())))}
+function statusClass(status){if(status==='Verified')return '';if(status==='Evidence rejected'||status==='Cancelled')return 'bad';return 'warn'}
+function optionLabel(d){const owner=staff.find(s=>s.id===d.assigned_user_id);return d.device_name+' · '+(owner?.full_name||'Assigned staff')}
+async function loadProfile(){const {data,error}=await db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('id',user.id).single();if(error)throw error;if(!data||!isFinanceOperator(data))throw new Error('This account is not authorised for Banking & Daily Deposits. Ask the administrator to assign the correct active Bursar or Deputy Bursar job title.');profile=data;window.CornhillAppearance?.applyForUser?.(profile.id)}
+async function enterApp(){await loadProfile();$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');$('signOut').classList.remove('hidden');$('userLabel').textContent=profile.full_name||'Staff';$('welcome').textContent='Welcome, '+(profile.full_name||'staff member');$('roleInfo').textContent=profile.role==='Admin'?'Administrator · Bank oversight, withdrawal approval and expense limits':'Finance operator · Deposits and limited expense requests';$('accountAdmin').classList.toggle('hidden',profile.role!=='Admin');$('approvalPanel').classList.toggle('hidden',profile.role!=='Admin');$('financeLimitPanel').classList.toggle('hidden',profile.role!=='Admin');$('expenseApprovalPanel').classList.toggle('hidden',profile.role!=='Admin');await loadAll();if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(()=>{if(user&&navigator.onLine)loadAll()},30000)}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const {data,error}=await db.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error){notice('loginMsg',error.message,'error');return}user=data.user;try{await enterApp()}catch(err){await db.auth.signOut({scope:'local'});user=null;notice('loginMsg',err.message||'Access denied.','error')}});
+$('signOut').addEventListener('click',async()=>{if(refreshTimer)clearInterval(refreshTimer);await db.auth.signOut({scope:'local'});user=null;profile=null;$('appPanel').classList.add('hidden');$('loginPanel').classList.remove('hidden');$('signOut').classList.add('hidden');$('userLabel').textContent=''});
+const schoolBankAccountDetails={
+ 'KYAMUHUNGA JUBILEE SACCO':{name:'CORNHILL NURSERY AND PRIMARY SCHOOL',label:'KYAMUHUNGA JUBILEE SACCO — CORNHILL NURSERY AND PRIMARY SCHOOL'},
+ 'KYAPS':{name:'NSHEMEREIRWE HERBERT',label:'KYAPS — NSHEMEREIRWE HERBERT'}
+};
+$('accountForm').querySelector('[name="bank_name"]').addEventListener('change',e=>{
+ const details=schoolBankAccountDetails[e.currentTarget.value];
+ $('accountForm').elements.account_name.value=details?.name||'';
+ $('accountForm').elements.account_label.value=details?.label||'';
+});
+$('accountForm').addEventListener('submit',async e=>{e.preventDefault();if(profile?.role!=='Admin')return;const f=new FormData(e.currentTarget);const expected=schoolBankAccountDetails[String(f.get('bank_name')||'')];if(!expected||f.get('account_name')!==expected.name||f.get('account_label')!==expected.label){notice('accountMsg','Select the correct approved institution so its registered account name is filled automatically.','error');return}const amount=Number(f.get('opening_balance_ugx'));if(!Number.isSafeInteger(amount)||amount<0){notice('accountMsg','Enter a valid opening balance in whole shillings.','error');return}const digits=String(f.get('account_number_last4')||'').trim();if(digits&&!/^\d{4}$/.test(digits)){notice('accountMsg','Enter exactly four digits or leave this field empty.','error');return}const {error}=await db.from('school_bank_accounts').insert({account_label:String(f.get('account_label')).trim(),bank_name:String(f.get('bank_name')).trim(),account_name:String(f.get('account_name')).trim(),account_number_last4:digits||null,opening_balance_ugx:amount,created_by:user.id});if(error){notice('accountMsg','Bank account could not be saved: '+error.message,'error');return}e.currentTarget.reset();notice('accountMsg','Bank account saved. No transaction has been recorded.','success');await loadAll()});
+async function loadAll(){if(!user)return;await loadAccounts();await loadDevices();updateFormOptions();await loadTransactions();if(profile?.role==='Admin')await loadWithdrawalQueue();await loadExpenseSupport()}
+async function loadAccounts(){const {data,error}=await db.from('school_bank_account_balances').select('*').order('account_label');if(error){notice('globalMsg','Bank accounts could not load: '+error.message,'error');return}accounts=data||[];$('accountCards').innerHTML=accounts.length?accounts.map(a=>'<div class="account"><div class="row"><strong>'+esc(a.account_label)+'</strong><span class="badge">'+(a.account_number_last4?'•••• '+esc(a.account_number_last4):'Account number not stored')+'</span></div><p class="muted">'+esc(a.bank_name)+' · '+esc(a.account_name)+(a.is_active?'':' · Inactive')+'</p><div class="balance">'+money(a.verified_balance_ugx)+'</div><div class="small">Verified balance · '+Number(a.pending_count||0)+' pending / rejected item(s) · Opening balance '+money(a.opening_balance_ugx)+'</div></div>').join(''):'<p class="muted">No school bank accounts have been registered yet. An administrator must add the bank account first.</p>'}
+async function loadDevices(){const {data,error}=await db.from('evidence_capture_devices').select('id,assigned_user_id,device_name,platform,status').eq('status','Active').order('device_name');if(error){notice('globalMsg','Authorised phones could not load: '+error.message,'error');return}devices=data||[];if(profile?.role==='Admin'){const {data:people}=await db.from('user_profiles').select('id,full_name,job_title,role,employment_status').eq('employment_status','Active');staff=people||[]}else staff=[{id:user.id,full_name:profile.full_name,job_title:profile.job_title,role:profile.role}]}
+function updateFormOptions(){const active=accounts.filter(a=>a.is_active!==false);$('bankAccount').innerHTML='<option value="">Choose a bank account…</option>'+active.map(a=>'<option value="'+esc(a.bank_account_id)+'">'+esc(a.account_label)+' · '+esc(a.bank_name)+'</option>').join('');let own=devices;if(profile?.role!=='Admin')own=devices.filter(d=>d.assigned_user_id===user.id);$('captureDevice').innerHTML='<option value="">Choose an authorised phone…</option>'+own.map(d=>'<option value="'+esc(d.id)+'">'+esc(optionLabel(d))+'</option>').join('');if(!own.length)$('captureDevice').innerHTML='<option value="">No active phone authorised for this account</option>'}
+async function loadTransactions(){const {data,error}=await db.from('school_bank_transactions').select('*').order('created_at',{ascending:false}).limit(150);if(error){$('transactionRows').innerHTML='<tr><td colspan="8">Could not load bank transactions: '+esc(error.message)+'</td></tr>';return}transactions=data||[];let staffMap={};if(profile?.role==='Admin'){const {data:people}=await db.from('user_profiles').select('id,full_name');for(const p of people||[])staffMap[p.id]=p.full_name}const accountName=id=>accounts.find(a=>a.bank_account_id===id)?.account_label||'School bank account';$('transactionRows').innerHTML=transactions.map(t=>'<tr><td>'+esc(t.transaction_date)+'<br><strong>'+esc(t.transaction_no)+'</strong>'+(t.bank_reference?'<br><span class="small">Ref: '+esc(t.bank_reference)+'</span>':'')+'</td><td>'+esc(accountName(t.bank_account_id))+'</td><td>'+esc(t.direction)+'</td><td><strong>'+money(t.amount_ugx)+'</strong></td><td>'+esc(t.description)+(t.payee_name?'<br><span class="small">Payee: '+esc(t.payee_name)+'</span>':'')+'</td><td>'+esc(staffMap[t.entered_by]||(t.entered_by===user.id?'You':'School staff'))+'</td><td><span class="badge '+statusClass(t.status)+'">'+esc(t.status)+'</span>'+(t.decision_note?'<br><span class="small">'+esc(t.decision_note)+'</span>':'')+'</td><td>'+(t.status==='Evidence rejected'&&profile?.role==='Admin'?'<button type="button" data-reissue="'+esc(t.id)+'">Request new evidence</button>':t.status==='Awaiting evidence'?'<a class="link" href="https://evidence-cornhill-school.vercel.app/apps/evidence-capture/">Evidence register</a>':'—')+'</td></tr>').join('')||'<tr><td colspan="8">No bank transactions recorded.</td></tr>'}
+async function loadWithdrawalQueue(){const rows=transactions.filter(t=>t.direction==='Withdrawal'&&t.status==='Awaiting approval');$('withdrawalQueue').innerHTML=rows.length?rows.map(t=>'<div class="txn"><div class="row"><strong>'+esc(t.transaction_no)+' · '+money(t.amount_ugx)+'</strong><span class="badge warn">Awaiting approval</span></div><p class="muted">'+esc(t.transaction_date)+' · '+esc(accounts.find(a=>a.bank_account_id===t.bank_account_id)?.account_label||'Bank account')+'</p><p>'+esc(t.description)+'</p><p class="small">Requested by '+esc(t.entered_by===user.id?'You':'Staff account')+(t.payee_name?' · Payee '+esc(t.payee_name):'')+'</p><div class="actions"><select data-approve-device="'+esc(t.id)+'"><option value="">Choose phone for evidence…</option>'+devices.map(d=>'<option value="'+esc(d.id)+'">'+esc(optionLabel(d))+'</option>').join('')+'</select><button class="primary" data-approve="'+esc(t.id)+'">Approve & request evidence</button><button class="danger" data-reject="'+esc(t.id)+'">Reject request</button></div></div>').join(''):'<p class="muted">No withdrawal requests are awaiting approval.</p>'}
+function isBursarProfile(p){return p?.role==='Staff'&&['bursar','school bursar','deputy bursar','deputy school bursar'].includes(String(p.job_title||'').trim().toLowerCase())}
+function renderExpenseRequests(){
+ const catName=id=>expenseCategories.find(c=>c.id===id)?.name||'Expense category';
+ $('expenseRequestRows').innerHTML=expenseRequests.length?expenseRequests.map(r=>{
+  const action=r.status==='Evidence rejected'&&profile?.role==='Admin'
+   ?'<div class="actions"><select data-reissue-expense-device="'+esc(r.id)+'"><option value="">Choose phone…</option>'+devices.map(d=>'<option value="'+esc(d.id)+'">'+esc(optionLabel(d))+'</option>').join('')+'</select><button type="button" data-reissue-expense="'+esc(r.id)+'">Request new photo</button></div>'
+   :r.status==='Awaiting evidence'?'<a class="link" href="https://evidence-cornhill-school.vercel.app/apps/evidence-capture/">Open evidence register</a>':'—';
+  const status=r.status==='Verified'?'Verified · Posted':r.status;
+  return '<tr><td>'+esc(r.expense_date)+'<br><strong>'+esc(r.request_no)+'</strong></td><td>'+esc(catName(r.category_id))+'<br><span class="small">'+esc(r.description)+'</span></td><td><strong>'+money(r.amount_ugx)+'</strong></td><td><span class="badge '+statusClass(r.status)+'">'+esc(status)+'</span>'+(r.decision_note?'<br><span class="small">'+esc(r.decision_note)+'</span>':'')+'</td><td>'+action+'</td></tr>'
+ }).join(''):'<tr><td colspan="5">No expense requests have been submitted.</td></tr>';
+}
+function renderFinanceLimits(){
+ const bursars=staff.filter(isBursarProfile);
+ if($('limitStaff'))$('limitStaff').innerHTML='<option value="">Choose active Bursar / Deputy Bursar</option>'+bursars.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.full_name||'Staff')+' · '+esc(p.job_title)+'</option>').join('');
+ if($('limitRows'))$('limitRows').innerHTML=financeLimits.length?financeLimits.map(l=>{
+  const who=bursars.find(p=>p.id===l.user_id);
+  return '<tr><td>'+esc(who?.full_name||'Bursar account')+'</td><td>'+money(l.max_single_expense_ugx)+'</td><td>'+money(l.daily_limit_ugx)+'</td><td>'+(l.is_enabled?'<span class="badge">Enabled</span>':'<span class="badge warn">Disabled</span>')+'</td></tr>'
+ }).join(''):'<tr><td colspan="4">No bursary expense limits have been configured.</td></tr>';
+}
+function renderExpenseApprovalQueue(){
+ if(profile?.role!=='Admin')return;
+ const pending=expenseRequests.filter(r=>r.status==='Awaiting approval');
+ $('expenseApprovalQueue').innerHTML=pending.length?pending.map(r=>'<div class="txn"><div class="row"><strong>'+esc(r.request_no)+' · '+money(r.amount_ugx)+'</strong><span class="badge warn">Awaiting approval</span></div><p class="muted">'+esc(r.expense_date)+' · '+esc(expenseCategories.find(c=>c.id===r.category_id)?.name||'Expense category')+'</p><p>'+esc(r.description)+'</p><p class="small">Requested by '+esc(staff.find(p=>p.id===r.entered_by)?.full_name||'Staff account')+(r.payee_name?' · Payee '+esc(r.payee_name):'')+'</p><div class="actions"><select data-approve-expense-device="'+esc(r.id)+'"><option value="">Choose phone for receipt photo…</option>'+devices.map(d=>'<option value="'+esc(d.id)+'">'+esc(optionLabel(d))+'</option>').join('')+'</select><button class="primary" data-approve-expense="'+esc(r.id)+'">Approve & request receipt</button><button class="danger" data-reject-expense="'+esc(r.id)+'">Reject request</button></div></div>').join(''):'<p class="muted">No expense requests are awaiting approval.</p>';
+}
+async function loadExpenseSupport(){
+ const [cats,requests]=await Promise.all([
+  db.from('expense_categories').select('id,name,is_active').eq('is_active',true).order('name'),
+  db.from('school_expense_requests').select('*').order('created_at',{ascending:false}).limit(100)
+ ]);
+ const bad=[cats,requests].find(x=>x.error);
+ if(bad){notice('expenseRequestMsg','Expense requests could not load: '+bad.error.message,'error');return}
+ expenseCategories=cats.data||[];expenseRequests=requests.data||[];
+ $('expenseCategory').innerHTML='<option value="">Choose expense category…</option>'+expenseCategories.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
+ $('expenseRequestDate').value=$('expenseRequestDate').value||today();
+ let limitResult;
+ if(profile?.role==='Admin')limitResult=await db.from('school_finance_operator_limits').select('*').order('updated_at',{ascending:false});
+ else limitResult=await db.from('school_finance_operator_limits').select('*').eq('user_id',user.id).maybeSingle();
+ if(limitResult.error){notice('expenseLimitNotice','Your expense limit could not be loaded: '+limitResult.error.message,'error');return}
+ financeLimits=profile?.role==='Admin'?(limitResult.data||[]):(limitResult.data?[limitResult.data]:[]);
+ const ownLimit=financeLimits.find(l=>l.user_id===user.id);
+ if(profile?.role==='Admin'){
+  $('expenseLimitNotice').textContent='Administrator account: you can submit expense requests. Every request still needs approval and receipt verification.';
+  $('submitExpenseRequest').disabled=false;
+ }else if(ownLimit?.is_enabled){
+  $('expenseLimitNotice').textContent='Your approved limit is '+money(ownLimit.max_single_expense_ugx)+' per expense and '+money(ownLimit.daily_limit_ugx)+' per day. Requests still require administrator approval.';
+  $('submitExpenseRequest').disabled=false;
+ }else{
+  $('expenseLimitNotice').textContent='Expense requests are disabled for this account until an administrator configures your spending limits.';
+  $('submitExpenseRequest').disabled=true;
+ }
+ renderFinanceLimits();renderExpenseRequests();renderExpenseApprovalQueue();
+}
+$('withdrawalQueue').addEventListener('click',async e=>{const approve=e.target.closest('[data-approve]'),reject=e.target.closest('[data-reject]');if(approve){const txn=approve.dataset.approve,device=$('withdrawalQueue').querySelector('[data-approve-device="'+txn+'"]')?.value;if(!device){notice('globalMsg','Choose an authorised phone before approving this withdrawal.','error');return}approve.disabled=true;const {data,error}=await db.rpc('approve_school_bank_withdrawal',{p_transaction_id:txn,p_device_id:device,p_note:'Approved by administrator; supporting evidence required.'});if(error)notice('globalMsg','Withdrawal was not approved: '+error.message,'error');else notice('globalMsg','Withdrawal approved. A ten-minute evidence request was sent to the selected phone.','success');await loadAll();return}if(reject){const why=prompt('Enter the reason for rejecting this withdrawal request (at least five characters):');if(!why||why.trim().length<5)return;reject.disabled=true;const {error}=await db.rpc('reject_school_bank_withdrawal',{p_transaction_id:reject.dataset.reject,p_note:why.trim()});if(error)notice('globalMsg','Withdrawal could not be rejected: '+error.message,'error');else notice('globalMsg','Withdrawal request rejected and recorded in the audit trail.','success');await loadAll()}});
+$('transactionRows').addEventListener('click',async e=>{const b=e.target.closest('[data-reissue]');if(!b)return;const deviceOptions=devices.map(d=>({id:d.id,label:optionLabel(d)}));if(!deviceOptions.length){notice('globalMsg','No active authorised phone is available.','error');return}const choice=prompt('Enter the number of the phone to request replacement evidence from:\n'+deviceOptions.map((d,i)=>(i+1)+'. '+d.label).join('\n'));const n=Number(choice);if(!Number.isInteger(n)||n<1||n>deviceOptions.length)return;b.disabled=true;const {data,error}=await db.rpc('reissue_school_bank_evidence',{p_transaction_id:b.dataset.reissue,p_device_id:deviceOptions[n-1].id,p_note:'Administrator requested replacement evidence.'});if(error)notice('globalMsg','Replacement request could not be sent: '+error.message,'error');else notice('globalMsg','Replacement evidence request sent to the selected phone.','success');await loadAll()});
+$('transactionForm').addEventListener('submit',async e=>{e.preventDefault();if(!profile)return;const f=new FormData(e.currentTarget),direction=f.get('direction'),amount=Number(f.get('amount_ugx')),device=direction==='Deposit'?f.get('device_id'):null;if(!Number.isSafeInteger(amount)||amount<=0){notice('transactionMsg','Enter a positive whole-shilling amount.','error');return}if(direction==='Deposit'&&!device){notice('transactionMsg','Choose an authorised phone to photograph the bank slip.','error');return}const btn=$('saveTransaction');btn.disabled=true;btn.textContent='Saving bank record…';try{const {data,error}=await db.rpc('create_school_bank_transaction',{p_bank_account_id:f.get('bank_account_id'),p_direction:direction,p_transaction_date:f.get('transaction_date'),p_amount_ugx:amount,p_description:String(f.get('description')).trim(),p_bank_reference:String(f.get('bank_reference')||'').trim()||null,p_payee_name:String(f.get('payee_name')||'').trim()||null,p_device_id:device});if(error)throw error;const result=Array.isArray(data)?data[0]:data;e.currentTarget.reset();$('transactionDate').value=today();updateDirection();notice('transactionMsg',direction==='Deposit'?'Deposit '+result.transaction_no+' recorded. The selected phone has a ten-minute bank-slip photo request. The amount is not counted in the verified bank balance until an administrator approves the evidence.':'Withdrawal '+result.transaction_no+' submitted for administrator approval. It is not counted as a verified withdrawal yet.','success');await loadAll()}catch(err){notice('transactionMsg','The bank transaction was not saved: '+(err.message||'Please check the form and try again.'),'error')}finally{btn.disabled=false;btn.textContent=direction==='Deposit'?'Record deposit & request bank-slip photo':'Submit withdrawal for approval'}});
+function updateDirection(){const deposit=$('direction').value==='Deposit';$('deviceWrap').classList.toggle('hidden',!deposit);$('payeeWrap').classList.toggle('hidden',deposit);$('captureDevice').required=deposit;$('saveTransaction').textContent=deposit?'Record deposit & request bank-slip photo':'Submit withdrawal for approval'}
+$('expenseRequestForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!profile)return;const f=new FormData(e.currentTarget),amount=Number(f.get('amount_ugx'));
+ if(!Number.isSafeInteger(amount)||amount<=0){notice('expenseRequestMsg','Enter a positive whole-shilling amount.','error');return}
+ const btn=$('submitExpenseRequest');btn.disabled=true;btn.textContent='Submitting for approval…';
+ try{
+  const {data,error}=await db.rpc('create_school_expense_request',{
+   p_expense_date:f.get('expense_date'),p_category_id:f.get('category_id'),p_amount_ugx:amount,
+   p_description:String(f.get('description')).trim(),p_payee_name:String(f.get('payee_name')||'').trim()||null,
+   p_payment_method:f.get('payment_method'),p_payment_reference:String(f.get('payment_reference')||'').trim()||null,
+   p_receipt_reference:String(f.get('receipt_reference')||'').trim()||null
+  });
+  if(error)throw error;const row=Array.isArray(data)?data[0]:data;e.currentTarget.reset();$('expenseRequestDate').value=today();
+  notice('expenseRequestMsg','Expense request '+row.request_no+' submitted. Do not pay the supplier until an administrator approves it.','success');await loadExpenseSupport();
+ }catch(err){notice('expenseRequestMsg','Expense request was not saved: '+(err.message||'Please check the form.'),'error')}
+ finally{btn.textContent='Submit expense for approval';btn.disabled=profile?.role!=='Admin'&&!financeLimits.some(l=>l.user_id===user.id&&l.is_enabled)}
+});
+$('operatorLimitForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(profile?.role!=='Admin')return;const userId=$('limitStaff').value,max=Number($('limitSingle').value),daily=Number($('limitDaily').value),enabled=$('limitEnabled').checked;
+ if(!userId||!Number.isSafeInteger(max)||!Number.isSafeInteger(daily)||max<0||daily<0){notice('limitMsg','Choose a bursar and enter valid whole-shilling limits.','error');return}
+ const {error}=await db.rpc('set_school_finance_operator_limit',{p_user_id:userId,p_max_single_expense_ugx:max,p_daily_limit_ugx:daily,p_is_enabled:enabled});
+ if(error){notice('limitMsg','Spending limit could not be saved: '+error.message,'error');return}
+ notice('limitMsg','Spending limits saved and enforced by the database.','success');await loadExpenseSupport();
+});
+$('limitStaff').addEventListener('change',()=>{
+ const row=financeLimits.find(l=>l.user_id===$('limitStaff').value);
+ $('limitSingle').value=row?.max_single_expense_ugx??0;$('limitDaily').value=row?.daily_limit_ugx??0;$('limitEnabled').checked=!!row?.is_enabled;
+});
+$('expenseApprovalQueue').addEventListener('click',async e=>{
+ const approve=e.target.closest('[data-approve-expense]'),reject=e.target.closest('[data-reject-expense]');
+ if(approve){const id=approve.dataset.approveExpense,device=$('expenseApprovalQueue').querySelector('[data-approve-expense-device="'+id+'"]')?.value;if(!device){notice('globalMsg','Choose an authorised phone before approving the expense.','error');return}approve.disabled=true;const {error}=await db.rpc('approve_school_expense_request',{p_request_id:id,p_device_id:device,p_note:'Approved by administrator; receipt evidence required before posting.'});if(error)notice('globalMsg','Expense request was not approved: '+error.message,'error');else notice('globalMsg','Expense approved. A ten-minute receipt-photo request was sent to the selected phone.','success');await loadAll();return}
+ if(reject){const why=prompt('Enter a reason for rejecting this expense request (at least five characters):');if(!why||why.trim().length<5)return;reject.disabled=true;const {error}=await db.rpc('reject_school_expense_request',{p_request_id:reject.dataset.rejectExpense,p_note:why.trim()});if(error)notice('globalMsg','Expense request could not be rejected: '+error.message,'error');else notice('globalMsg','Expense request rejected and recorded.','success');await loadAll()}
+});
+$('expenseRequestRows').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-reissue-expense]');if(!b)return;const id=b.dataset.reissueExpense,device=$('expenseRequestRows').querySelector('[data-reissue-expense-device="'+id+'"]')?.value;if(!device){notice('globalMsg','Choose an authorised phone for replacement evidence.','error');return}b.disabled=true;const {error}=await db.rpc('reissue_school_expense_evidence',{p_request_id:id,p_device_id:device,p_note:'Administrator requested clearer replacement evidence.'});if(error)notice('globalMsg','Replacement receipt request could not be sent: '+error.message,'error');else notice('globalMsg','Replacement receipt request sent.','success');await loadAll();
+});
+$('direction').addEventListener('change',updateDirection);
+$('refreshAll').addEventListener('click',loadAll);$('transactionDate').value=today();updateDirection();
+window.addEventListener('online',()=>{$('connectionBadge').textContent='Connected';$('connectionBadge').className='badge';loadAll()});
+window.addEventListener('offline',()=>{$('connectionBadge').textContent='Offline';$('connectionBadge').className='badge bad';notice('globalMsg','You are offline. Do not enter a bank transaction while offline. No bank record can be verified without a live connection.','error')});
+(async()=>{try{const {data}=await db.auth.getSession();if(data.session){user=data.session.user;await enterApp()}}catch(err){notice('loginMsg',err.message||'Please sign in again.','error');await db.auth.signOut()}})();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+</script>
+</body></html>

@@ -1,0 +1,241 @@
+name: Build CORNHILL native packages
+
+on:
+  push:
+    branches:
+      - feat/offline-first-workspaces-20261109
+    paths:
+      - "native/cornhill-shell/**"
+      - ".github/workflows/native-packages.yml"
+  workflow_dispatch:
+    inputs:
+      build_windows:
+        description: Build the Windows installer validation package
+        required: true
+        type: boolean
+        default: true
+      sign_windows:
+        description: Build and verify the trusted-publisher Windows release (requires school code-signing certificate secrets)
+        required: true
+        type: boolean
+        default: false
+      build_android:
+        description: Build the Android release APK (requires Android signing secrets)
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows installer validation build (UNSIGNED TEST ONLY)
+    if: github.event_name == 'push' || inputs.build_windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout CORNHILL
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install NSIS
+        run: choco install nsis --no-progress -y
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Generate native icons
+        working-directory: native/cornhill-shell
+        run: cargo tauri icon ../../assets/cornhill-school-pwa-512.svg --output src-tauri/icons
+
+      - name: Build unsigned validation installer
+        working-directory: native/cornhill-shell
+        run: cargo tauri build --bundles nsis --no-sign
+
+      - name: Upload unsigned test-only installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CORNHILL-Windows-UNSIGNED-TEST-ONLY
+          path: native/cornhill-shell/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-signed:
+    name: Windows Authenticode-signed release
+    if: github.event_name == 'workflow_dispatch' && inputs.build_windows && inputs.sign_windows
+    runs-on: windows-latest
+    environment:
+      name: school-signing
+    env:
+      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+    steps:
+      - name: Checkout CORNHILL
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install NSIS
+        run: choco install nsis --no-progress -y
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Import trusted code-signing certificate
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+            throw "Signed release is blocked: configure WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD as GitHub Actions secrets first."
+          }
+          $pfxPath = Join-Path $env:RUNNER_TEMP "cornhill-code-signing.pfx"
+          $pfxBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
+          [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          $securePassword = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certs = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword -Exportable
+          $cert = $certs | Where-Object { $_.HasPrivateKey } | Select-Object -First 1
+          if (-not $cert) { throw "The PFX did not import a certificate with its private signing key." }
+          "WINDOWS_CERTIFICATE_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WINDOWS_CERTIFICATE_PFX_PATH=$pfxPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Generate native icons
+        working-directory: native/cornhill-shell
+        run: cargo tauri icon ../../assets/cornhill-school-pwa-512.svg --output src-tauri/icons
+
+      - name: Configure Tauri to sign with the imported certificate
+        shell: pwsh
+        run: |
+          $configPath = "native/cornhill-shell/src-tauri/tauri.conf.json"
+          $config = Get-Content -Raw -Path $configPath | ConvertFrom-Json
+          if (-not $config.bundle.windows) {
+            $config.bundle | Add-Member -NotePropertyName windows -NotePropertyValue ([pscustomobject]@{}) -Force
+          }
+          $config.bundle.windows | Add-Member -NotePropertyName certificateThumbprint -NotePropertyValue $env:WINDOWS_CERTIFICATE_THUMBPRINT -Force
+          $config.bundle.windows | Add-Member -NotePropertyName digestAlgorithm -NotePropertyValue "sha256" -Force
+          $config.bundle.windows | Add-Member -NotePropertyName timestampUrl -NotePropertyValue "http://timestamp.digicert.com" -Force
+          $config | ConvertTo-Json -Depth 100 | Set-Content -Path $configPath -Encoding utf8
+
+      - name: Build signed Windows installer
+        working-directory: native/cornhill-shell
+        run: cargo tauri build --bundles nsis
+
+      - name: Verify Authenticode signature and create SHA-256 checksum
+        shell: pwsh
+        run: |
+          $installerDir = "native/cornhill-shell/src-tauri/target/release/bundle/nsis"
+          $installers = Get-ChildItem -Path $installerDir -Filter *.exe -File -Recurse
+          if (-not $installers) { throw "No Windows installer was produced." }
+          $checksumPath = Join-Path $installerDir "CORNHILL-Windows-SHA256.txt"
+          foreach ($installer in $installers) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+            if ($signature.Status -ne "Valid") {
+              throw "Installer signature is not valid: $($installer.Name) ($($signature.Status))"
+            }
+            if ($signature.SignerCertificate.Thumbprint -ne $env:WINDOWS_CERTIFICATE_THUMBPRINT) {
+              throw "Installer signer does not match the imported school certificate: $($installer.Name)"
+            }
+            $hash = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash
+            "$hash  $($installer.Name)" | Add-Content -Path $checksumPath -Encoding ascii
+          }
+
+      - name: Upload verified signed Windows release
+        uses: actions/upload-artifact@v4
+        with:
+          name: CORNHILL-Windows-SIGNED-VERIFIED
+          path: |
+            native/cornhill-shell/src-tauri/target/release/bundle/nsis/*.exe
+            native/cornhill-shell/src-tauri/target/release/bundle/nsis/CORNHILL-Windows-SHA256.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove temporary signing material
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:WINDOWS_CERTIFICATE_THUMBPRINT) {
+            Remove-Item -Path "Cert:\CurrentUser\My\$env:WINDOWS_CERTIFICATE_THUMBPRINT" -ErrorAction SilentlyContinue
+          }
+          if ($env:WINDOWS_CERTIFICATE_PFX_PATH) {
+            Remove-Item -LiteralPath $env:WINDOWS_CERTIFICATE_PFX_PATH -Force -ErrorAction SilentlyContinue
+          }
+
+  android:
+    name: Android ARM64 APK
+    if: inputs.build_android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CORNHILL
+        uses: actions/checkout@v4
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK and NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Install Rust Android target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Generate native icons
+        working-directory: native/cornhill-shell
+        run: cargo tauri icon ../../assets/cornhill-school-pwa-512.svg --output src-tauri/icons
+
+      - name: Initialize Android project
+        working-directory: native/cornhill-shell
+        run: cargo tauri android init --ci
+
+      - name: Require release signing secrets
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64 repository secret."; exit 1; }
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "Missing ANDROID_KEYSTORE_PASSWORD repository secret."; exit 1; }
+          test -n "$ANDROID_KEY_ALIAS" || { echo "Missing ANDROID_KEY_ALIAS repository secret."; exit 1; }
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/cornhill-upload-key.jks"
+          mkdir -p native/cornhill-shell/src-tauri/gen/android
+          {
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'password=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/cornhill-upload-key.jks"
+          } > native/cornhill-shell/src-tauri/gen/android/keystore.properties
+
+      - name: Configure Android release signing
+        working-directory: native/cornhill-shell
+        run: python scripts/configure-android-signing.py
+
+      - name: Build signed ARM64 APK
+        working-directory: native/cornhill-shell
+        run: cargo tauri android build --apk --target aarch64 --ci
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CORNHILL-Android-APK
+          path: native/cornhill-shell/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/cornhill-upload-key.jks"
+          rm -f native/cornhill-shell/src-tauri/gen/android/keystore.properties

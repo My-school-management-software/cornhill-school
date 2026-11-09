@@ -1,0 +1,66 @@
+name: CORNHILL appearance and workspace tests
+
+on:
+  push:
+    branches:
+      - feat/offline-first-workspaces-20261109
+    paths:
+      - "assets/cornhill-appearance.js"
+      - "assets/cornhill-design-system.css"
+      - "index.html"
+      - "assets/cornhill-draft-crypto.js"
+      - "assets/cornhill-offline.js"
+      - "service-worker.js"
+      - "tests/cornhill-offline-encryption.test.cjs"
+      - "banking.html"
+      - "evidence.html"
+      - "school-services.html"
+      - "notifications.html"
+      - "records.html"
+      - "parents.html"
+      - "admissions.html"
+      - "school.html"
+      - "tests/appearance-workspace.test.cjs"
+      - ".github/workflows/appearance-workspace-tests.yml"
+      - "*.html"
+      - "assets/*.js"
+      - "assets/*.css"
+      - "service-worker.js"
+      - "tests/*.test.cjs"
+  pull_request:
+    paths:
+      - "assets/cornhill-appearance.js"
+      - "assets/cornhill-design-system.css"
+      - "index.html"
+      - "banking.html"
+      - "evidence.html"
+      - "school-services.html"
+      - "notifications.html"
+      - "records.html"
+      - "parents.html"
+      - "admissions.html"
+      - "school.html"
+      - "tests/appearance-workspace.test.cjs"
+      - ".github/workflows/appearance-workspace-tests.yml"
+      - "*.html"
+      - "assets/*.js"
+      - "assets/*.css"
+      - "service-worker.js"
+      - "tests/*.test.cjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  appearance-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run appearance and workspace tests
+        run: node --test tests/*.test.cjs

@@ -1,0 +1,36 @@
+{
+  "id": "/apps/school-management/",
+  "name": "Cornhill Nursery and Primary School Management",
+  "short_name": "Cornhill School",
+  "description": "Secure school management for Cornhill Nursery and Primary School",
+  "start_url": "/apps/school-management/",
+  "scope": "/apps/school-management/",
+  "display": "fullscreen",
+  "background_color": "#f3f7f3",
+  "theme_color": "#14532d",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/assets/cornhill-school-pwa-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/cornhill-school-pwa-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/cornhill-school-badge.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ]
+}

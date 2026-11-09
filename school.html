@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d"><meta name="description" content="CORNHILL Nursery and Primary School — school information and admissions enquiries"><link rel="manifest" href="/school.webmanifest"><link rel="apple-touch-icon" href="/assets/cornhill-school-badge.png">
+<link rel="icon" href="/assets/cornhill-school-badge.png" type="image/png">
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<title>CORNHILL Nursery and Primary School</title>
+<style>
+:root{--green:#14532d;--green2:#17643b;--gold:#d6b45c;--ink:#1b2c22;--muted:#66766b;--line:#dce7de;--paper:#f5f8f4}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink)}
+header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 5px 20px #153c210a}
+nav{max-width:1200px;margin:auto;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:15px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;color:var(--green)}.brand img{width:50px;height:50px;object-fit:contain}
+.navlinks{display:flex;gap:17px;align-items:center}.navlinks a{font-size:12px;text-decoration:none;color:#43554a;font-weight:800}
+.cta{display:inline-flex;justify-content:center;align-items:center;gap:7px;border-radius:999px;padding:11px 17px;background:var(--green);color:#fff!important;text-decoration:none;font-size:13px;font-weight:850}
+.cta.light{background:#e9f3eb;color:var(--green)!important}.wrap{max-width:1200px;margin:auto;padding:0 18px}
+.hero{padding:clamp(34px,6vw,76px) 0 44px;background:radial-gradient(circle at 95% 0%,#d8ebdc 0,transparent 34%),linear-gradient(120deg,#f4f8f3,#fff 65%)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:28px;align-items:center}
+.eyebrow{font-size:11px;font-weight:900;letter-spacing:.18em;color:#367249}
+h1{font-size:clamp(36px,5.4vw,65px);line-height:1.02;letter-spacing:-.05em;margin:14px 0 16px;color:#183c27}
+.hero p{max-width:630px;line-height:1.7;color:#607265;font-size:16px}
+.hero-art{min-height:330px;border-radius:28px;padding:25px;background:linear-gradient(145deg,#14532d,#247648);color:#fff;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 24px 55px #14532d25;position:relative;overflow:hidden}
+.hero-art:before,.hero-art:after{content:"";position:absolute;border:1px solid #ffffff38;border-radius:50%;width:270px;height:270px;right:-70px;top:-90px}.hero-art:after{width:180px;height:180px;right:90px;top:160px}
+.hero-art img{width:105px;height:105px;background:#fff;padding:8px;border-radius:22px;object-fit:contain;z-index:1}
+.hero-art strong{font-size:23px;max-width:350px;line-height:1.3;z-index:1}.hero-art span{font-size:11px;letter-spacing:.16em;font-weight:900;color:#d9f1df;z-index:1}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}.stat{padding:15px;border-radius:15px;background:#fff;border:1px solid var(--line)}.stat strong{display:block;font-size:16px;color:var(--green)}.stat small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.section{padding:48px 0}.section h2{font-size:clamp(25px,3vw,35px);letter-spacing:-.03em;margin:5px 0 12px}.section-intro{max-width:680px;color:var(--muted);line-height:1.65}
+.bento{display:grid;grid-template-columns:1.2fr .8fr .8fr;grid-template-rows:auto auto;gap:13px;margin-top:22px}.tile{background:#fff;padding:21px;border:1px solid var(--line);border-radius:20px;min-height:150px}.tile.feature{grid-row:span 2;background:linear-gradient(145deg,#e9f4eb,#fff);display:flex;flex-direction:column;justify-content:space-between}.tile .symbol{font-size:26px}.tile h3{font-size:17px;margin:12px 0 7px}.tile p{font-size:13px;line-height:1.6;color:var(--muted);margin:0}
+.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:20px}.level{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff;font-size:13px;font-weight:850;color:var(--green)}
+.banner{padding:28px;border-radius:24px;background:linear-gradient(110deg,#123c28,#1b6a3d);color:#fff;display:flex;justify-content:space-between;gap:18px;align-items:center;flex-wrap:wrap}.banner h2{margin:0 0 7px;color:#fff}.banner p{margin:0;color:#d9ecdf;font-size:13px}
+footer{padding:30px 0;background:#102d1e;color:#d8e6dc}footer .row{justify-content:space-between;gap:16px;flex-wrap:wrap}footer a{color:#fff}
+@media(max-width:750px){nav{align-items:flex-start;flex-wrap:wrap}.navlinks{order:3;width:100%;overflow:auto;gap:14px;padding:3px 0 6px}.navlinks a{white-space:nowrap}.hero-grid{grid-template-columns:1fr}.hero-art{min-height:245px}.bento{grid-template-columns:1fr 1fr}.tile.feature{grid-column:1/-1;grid-row:auto}.levels{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:420px){.stats{grid-template-columns:1fr}.bento{grid-template-columns:1fr}.levels{grid-template-columns:repeat(2,1fr)}.hero p{font-size:14px}}
+</style>
+<script src="/assets/cornhill-offline.js"></script><script src="/assets/app-isolation-guard.js"></script></head>
+<body data-theme="warm-corporate">
+<header><nav>
+ <a class="brand" href="https://school-website-cornhill-school.vercel.app/apps/school-website/" aria-label="CORNHILL public website"><img src="/assets/cornhill-school-badge.png" alt=""><span>CORNHILL<br><small style="font-size:10px;font-weight:650;color:#65766b">NURSERY AND PRIMARY SCHOOL</small></span></a>
+ <div class="navlinks"><a href="#about">ABOUT</a><a href="#learning">LEARNING</a><a href="#classes">CLASSES</a><a href="#admissions">ADMISSIONS</a></div>
+ <div class="actions"><button class="cta light hidden" id="installSchoolWebsite" type="button">Install website</button><a class="cta" href="https://admissions-cornhill-school.vercel.app/apps/admissions/">Enquire / Apply</a></div>
+</nav></header>
+<main>
+<section class="hero"><div class="wrap hero-grid">
+ <div><span class="eyebrow">WELCOME TO CORNHILL</span><h1>One school.<br>One shared dream.</h1>
+ <p>Welcome to CORNHILL Nursery and Primary School. Explore our learning sections, discover how to enquire about admission, and connect with the school through the appropriate portal.</p>
+ <div class="actions"><a class="cta" href="https://admissions-cornhill-school.vercel.app/apps/admissions/">Start an admission enquiry</a><a class="cta light" href="https://parents-cornhill-school.vercel.app/apps/parent-guardian/">Parent & Guardian Portal</a></div>
+ <div class="stats"><div class="stat"><strong>Nursery</strong><small>Early learning section</small></div><div class="stat"><strong>Primary</strong><small>P.1 to P.7</small></div><div class="stat"><strong>UGX</strong><small>School fee currency</small></div></div></div>
+ <div class="hero-art"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL school badge"><strong>WE SHARE ONE DREAM</strong><span>LEARN · GROW · ACHIEVE</span></div>
+</div></section>
+<section class="section" id="about"><div class="wrap">
+ <span class="eyebrow">ABOUT THE SCHOOL</span><h2>A place for learning and growth</h2>
+ <p class="section-intro">CORNHILL serves nursery and primary learners. This public website provides school information and admission enquiries. Official fees, dates, contact details and current notices should be confirmed directly with the school administration.</p>
+ <div class="bento">
+  <article class="tile feature"><div><span class="symbol">🏫</span><h3>Our school community</h3><p>Families, learners, teachers and staff work together across the nursery and primary sections.</p></div><span class="eyebrow">WE SHARE ONE DREAM</span></article>
+  <article class="tile"><span class="symbol">📘</span><h3>Learning</h3><p>Class-based learning, assessment and progress reporting.</p></article>
+  <article class="tile"><span class="symbol">🤝</span><h3>Partnership</h3><p>Parents and guardians can use the secure portal for approved learner information.</p></article>
+  <article class="tile"><span class="symbol">🌱</span><h3>Early years</h3><p>Nursery classes: Baby, Middle and Top.</p></article>
+  <article class="tile"><span class="symbol">🎓</span><h3>Primary years</h3><p>Primary classes: P.1 through P.7.</p></article>
+ </div>
+</div></section>
+<section class="section" id="learning" style="background:#edf4ee"><div class="wrap">
+ <span class="eyebrow">LEARNING PATHWAY</span><h2>Our school sections</h2><p class="section-intro">The school is organised into nursery and primary learning levels.</p>
+ <div class="levels"><div class="level">Baby</div><div class="level">Middle</div><div class="level">Top</div><div class="level">P.1</div><div class="level">P.2</div><div class="level">P.3</div><div class="level">P.4</div><div class="level">P.5</div><div class="level">P.6</div><div class="level">P.7</div></div>
+</div></section>
+<section class="section" id="classes"><div class="wrap">
+ <span class="eyebrow">PARENTS & GUARDIANS</span><h2>Stay connected with your learner's progress</h2><p class="section-intro">The separate Parent & Guardian Portal is designed for verified guardians. It does not give parents access to the school's staff workspaces, class lists or administrative records.</p>
+ <div class="banner"><div><h2>Parent access</h2><p>Use your pupil code and approved guardian verification details.</p></div><a class="cta" href="https://parents-cornhill-school.vercel.app/apps/parent-guardian/" style="background:#fff;color:#14532d!important">Open Parent Portal</a></div>
+</div></section>
+<section class="section" id="admissions"><div class="wrap">
+ <div class="banner"><div><h2>Interested in CORNHILL?</h2><p>Send a basic admission enquiry. The school will contact you about the next steps.</p></div><a class="cta" href="https://admissions-cornhill-school.vercel.app/apps/admissions/" style="background:#fff;color:#14532d!important">Make an enquiry</a></div>
+</div></section>
+</main>
+<footer><div class="wrap row"><div><strong>CORNHILL NURSERY AND PRIMARY SCHOOL</strong><p style="font-size:12px;color:#c6d9cc">Uganda · WE SHARE ONE DREAM</p></div><div class="row"><a href="https://admissions-cornhill-school.vercel.app/apps/admissions/">Admissions</a><a href="https://parents-cornhill-school.vercel.app/apps/parent-guardian/">Parent Portal</a><a href="https://school-website-cornhill-school.vercel.app/apps/school-website/">Staff sign-in</a></div></div></footer>
+<script>
+
+let schoolInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();schoolInstallPrompt=event;document.getElementById('installSchoolWebsite')?.classList.remove('hidden')});
+document.getElementById('installSchoolWebsite')?.addEventListener('click',async()=>{if(!schoolInstallPrompt)return;schoolInstallPrompt.prompt();await schoolInstallPrompt.userChoice;schoolInstallPrompt=null;document.getElementById('installSchoolWebsite')?.classList.add('hidden')});
+window.addEventListener('appinstalled',()=>document.getElementById('installSchoolWebsite')?.classList.add('hidden'));
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+</script>
+</body></html>
