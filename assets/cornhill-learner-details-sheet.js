@@ -116,7 +116,7 @@
       '<section id="learnerDetailsEditor" class="hidden" aria-labelledby="learnerDetailsEditorTitle">' +
         '<div class="lds-editor-head"><div><div class="lds-kicker">SELECTED LEARNER</div><h3 id="learnerDetailsEditorTitle">Complete learner information</h3><p id="learnerDetailsEditorMeta" class="muted" style="margin:0"></p></div>' +
           '<button type="button" id="learnerDetailsClose" class="tab" aria-label="Close learner editor">Close editor</button></div>' +
-        '<form id="learnerDetailsQuickForm" novalidate>' +
+        '<form id="learnerDetailsQuickForm">' +
           '<div class="lds-editor-grid">' +
             '<div class="lds-field"><label for="ldsFirstName">First name *</label><input id="ldsFirstName" name="first_name" required maxlength="100"></div>' +
             '<div class="lds-field"><label for="ldsMiddleName">Middle name</label><input id="ldsMiddleName" name="middle_name" maxlength="100"></div>' +
@@ -444,6 +444,8 @@
       const id = selectedId;
       const button = id && document.querySelector('.editLearner[data-id="' + CSS.escape(id) + '"]');
       if (button) {
+        selectedId = null;
+        editor.dataset.saving = '0';
         editor.classList.add('hidden');
         dirty = false;
         button.click();
@@ -466,6 +468,7 @@
       }
     });
     $('learnerDetailsExport').addEventListener('click', () => {
+      if (state().role !== 'Admin') return;
       const rows = currentLearners();
       const headers = ['Pupil code', 'Learner name', 'Class', 'Date of birth', 'Birth year', 'Parent / guardian', 'Relationship', 'Guardian phone', 'Guardian email', 'Alternative guardian', 'Alternative phone', 'LIN', 'P7 index'];
       const st = state();
@@ -488,6 +491,7 @@
       URL.revokeObjectURL(url);
     });
     $('learnerDetailsPrint').addEventListener('click', () => {
+      if (state().role !== 'Admin') return;
       document.body.classList.add('lds-print-mode');
       window.print();
       document.body.classList.remove('lds-print-mode');
