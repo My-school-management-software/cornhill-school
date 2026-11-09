@@ -37,7 +37,7 @@ The direct-download Windows installer needs a genuine Authenticode code-signing 
 
 This certificate has to be obtained and identity-validated by the school's authorised adult/legal representative. Keep the PFX and its password private. Never commit them to the repository, upload them as workflow artifacts, or send them in chat.
 
-After the school has obtained the certificate, the authorised repository administrator adds these encrypted GitHub Actions repository secrets under **Settings → Secrets and variables → Actions**:
+After the school has obtained the certificate, the authorised repository administrator adds these encrypted GitHub Actions repository secrets under **Settings → Environments → school-signing**. Configure at least one trusted adult school administrator as a required reviewer and restrict deployments to this release branch, then add the following as environment secrets:
 
 - `WINDOWS_CERTIFICATE`: Base64-encoded contents of the PFX file, including its private key.
 - `WINDOWS_CERTIFICATE_PASSWORD`: the PFX export password.
@@ -50,7 +50,7 @@ On a trusted Windows computer, the authorised administrator can produce the one-
 
 Do not paste the output anywhere except the matching GitHub Actions secret field. Do not send the PFX or password to ChatGPT or add either value to source files.
 
-Then run **Actions → Build CORNHILL native packages → Run workflow**, select `build_windows = true` and `sign_windows = true`. The signed job:
+Then run **Actions → Build CORNHILL native packages → Run workflow**, select `build_windows = true` and `sign_windows = true`. The signed job uses the protected `school-signing` GitHub Environment, so the required reviewer must approve access before certificate secrets are exposed to the build. It:
 
 1. Imports the certificate only on the temporary Windows runner.
 2. Builds the NSIS installer with the certificate thumbprint.
