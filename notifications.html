@@ -29,14 +29,15 @@ input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius
 .empty{padding:28px;text-align:center;color:#637467;border:1px dashed #cbd8ce;border-radius:12px}
 @media(max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.controls{grid-template-columns:1fr 1fr}.controls input{grid-column:1/-1}}
 @media(max-width:460px){.controls{grid-template-columns:1fr}.controls input{grid-column:auto}.card{padding:14px}.wrap{margin:12px auto}}
+.source-app{background:#edf4ff;color:#24517c;border-color:#c8ddf4}.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.notice-actions button.primary{white-space:normal}.controls select{min-width:150px}@media(max-width:700px){.controls{display:grid;grid-template-columns:1fr 1fr}.controls input{grid-column:1/-1}.controls select{min-width:0;width:100%}}
 </style>
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
 <script src="/assets/cornhill-appearance.js"></script>
-<script src="/assets/cornhill-offline.js"></script></head>
+<script src="/assets/cornhill-offline.js"></script><script src="/assets/app-isolation-guard.js"></script></head>
 <body data-theme="warm-corporate">
 <header class="top">
  <div><div class="brand">CORNHILL · NOTIFICATION CENTRE</div><div class="sub">One school-wide attention and approvals inbox</div></div>
- <div class="top-actions"><a href="/">Main system</a><button id="installApp" type="button" class="hidden">Install app</button><a href="/evidence.html">Evidence Capture</a><a id="recordsLink" class="hidden" href="/records.html">Records Centre</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
+ <div class="top-actions"><a href="https://cornhill-school-swart.vercel.app/apps/school-management/">Main system</a><button id="installApp" type="button" class="hidden">Install app</button><a id="recordsLink" class="hidden" href="https://records-cornhill-school.vercel.app/apps/records/">Records Centre</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
 </header>
 <main class="wrap">
  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -68,7 +69,7 @@ input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius
    <div class="controls">
     <input id="search" type="search" placeholder="Search title, message or reference…" aria-label="Search notifications">
     <select id="severity"><option value="">All priorities</option><option value="urgent">Urgent</option><option value="warning">Needs attention</option><option value="info">Information</option></select>
-    <select id="category"><option value="">All categories</option></select>
+    <select id="category"><option value="">All categories</option></select><select id="sourceApp" aria-label="Filter by application"><option value="">All applications</option><option value="main">Main School System</option><option value="admissions">Admissions</option><option value="parents">Parent Portal</option><option value="evidence">Evidence Capture</option><option value="records">Records Centre</option><option value="banking">Banking</option><option value="noticeboard">Staff Notice Board</option><option value="calendar">School Calendar</option><option value="staff-feed">Staff Communication Feed</option><option value="hr">HR & Payroll</option><option value="learning">Learning Resources</option><option value="library">Library</option><option value="transport">School Transport</option><option value="welfare">Student Welfare</option><option value="integrations">Provider Integrations</option><option value="system-health">System Health & Recovery</option><option value="facilities">Assets & Maintenance</option><option value="visitors">Visitor & Gate</option></select>
     <button id="clearFilters" type="button">Clear filters</button>
    </div>
    <div class="muted" id="viewHint" style="margin:10px 0">Showing active notifications assigned to your account or school role.</div>
@@ -101,49 +102,86 @@ async function enterApp(nextUser){
  pollTimer=setInterval(()=>{if(document.visibilityState==='visible')loadNotifications({quiet:true})},20000);
 }
 function filteredRows(){
- const q=$('search').value.trim().toLowerCase(),severity=$('severity').value,category=$('category').value;
+ const q=$('search').value.trim().toLowerCase(),severity=$('severity').value,category=$('category').value,source=$('sourceApp').value;
  return rows.filter(r=>{
   if(severity&&r.severity!==severity)return false;
   if(category&&r.category!==category)return false;
-  if(q&&!([r.title,r.message,r.source_key,r.category,r.created_by_name].join(' ').toLowerCase().includes(q)))return false;
+  if(source&&notificationSource(r).key!==source)return false;
+  if(q&&!([r.title,r.message,r.source_key,r.category,r.created_by_name,notificationSource(r).label].join(' ').toLowerCase().includes(q)))return false;
   return true;
  });
 }
+const NOTIFICATION_APPS={
+ main:{key:'main',label:'Main School System',origin:'https://cornhill-school-swart.vercel.app',path:'/apps/school-management/'},
+ admissions:{key:'admissions',label:'Admissions',origin:'https://admissions-cornhill-school.vercel.app',path:'/apps/admissions/'},
+ parents:{key:'parents',label:'Parent Portal',origin:'https://parents-cornhill-school.vercel.app',path:'/apps/parent-guardian/'},
+ evidence:{key:'evidence',label:'Evidence Capture',origin:'https://evidence-cornhill-school.vercel.app',path:'/apps/evidence-capture/'},
+ records:{key:'records',label:'Records Centre',origin:'https://records-cornhill-school.vercel.app',path:'/apps/records/'},
+ banking:{key:'banking',label:'Banking',origin:'https://banking-cornhill-school.vercel.app',path:'/apps/banking/'},
+ noticeboard:{key:'noticeboard',label:'Staff Notice Board',origin:'https://noticeboard-cornhill-school.vercel.app',path:'/apps/notice-board/',hash:'#notices'},
+ calendar:{key:'calendar',label:'School Calendar',origin:'https://school-calendar-cornhill-school.vercel.app',path:'/apps/school-calendar/',hash:'#calendar'},
+ 'staff-feed':{key:'staff-feed',label:'Staff Communication Feed',origin:'https://staff-communications-cornhill-school.vercel.app',path:'/apps/staff-communications/',hash:'#staff-feed'},
+ hr:{key:'hr',label:'HR & Payroll',origin:'https://hr-payroll-cornhill-school.vercel.app',path:'/apps/hr-payroll/',hash:'#hr-payroll'},
+ learning:{key:'learning',label:'Learning Resources',origin:'https://learning-cornhill-school.vercel.app',path:'/apps/learning-resources/',hash:'#learning'},
+ library:{key:'library',label:'Library',origin:'https://library-cornhill-school.vercel.app',path:'/apps/school-library/',hash:'#library'},
+ transport:{key:'transport',label:'School Transport',origin:'https://transport-cornhill-school.vercel.app',path:'/apps/school-transport/',hash:'#transport'},
+ welfare:{key:'welfare',label:'Student Welfare',origin:'https://welfare-cornhill-school.vercel.app',path:'/apps/student-welfare/',hash:'#welfare'},
+ integrations:{key:'integrations',label:'Provider Integrations',origin:'https://integrations-cornhill-school.vercel.app',path:'/apps/provider-integrations/',hash:'#integrations'},
+ 'system-health':{key:'system-health',label:'System Health & Recovery',origin:'https://system-health-cornhill-school.vercel.app',path:'/apps/system-health/',hash:'#system-health'},
+ facilities:{key:'facilities',label:'Assets & Maintenance',origin:'https://assets-maintenance-cornhill-school.vercel.app',path:'/apps/asset-maintenance/',hash:'#facilities'},
+ visitors:{key:'visitors',label:'Visitor & Gate Register',origin:'https://visitor-register-cornhill-school.vercel.app',path:'/apps/visitor-register/',hash:'#visitor-register'}
+};
+function notificationSource(r){
+ const category=String(r.category||'').toLowerCase(),workspace=String(r.action_payload?.workspace||r.action_workspace||'').toLowerCase(),target=String(r.action_payload?.target_id||'').toLowerCase();
+ let hash='';try{hash=new URL(String(r.action_payload?.url||''),'https://cornhill-school-swart.vercel.app').hash.toLowerCase()}catch(_){}
+ if(category==='staff_notice'||target.includes('staff-notice')||hash.includes('notices'))return NOTIFICATION_APPS.noticeboard;
+ if(category==='school_calendar'||target.includes('calendar')||hash.includes('calendar'))return NOTIFICATION_APPS.calendar;
+ if(category.startsWith('staff_communication')||workspace==='communication'||target.includes('staff-feed'))return NOTIFICATION_APPS['staff-feed'];
+ if(category.includes('payroll')||category.includes('salary_advance')||category.includes('staff_leave')||target.includes('payroll')||workspace==='hr-payroll')return NOTIFICATION_APPS.hr;
+ if(category.includes('learning')||category.includes('resource')||workspace==='learning'||target.includes('learning'))return NOTIFICATION_APPS.learning;
+ if(category.includes('library')||workspace==='library'||target.includes('library'))return NOTIFICATION_APPS.library;
+ if(category.includes('transport')||workspace==='transport'||target.includes('transport'))return NOTIFICATION_APPS.transport;
+ if(category.includes('welfare')||workspace==='welfare'||target.includes('welfare'))return NOTIFICATION_APPS.welfare;
+ if(category.includes('provider')||workspace==='integrations'||target.includes('provider'))return NOTIFICATION_APPS.integrations;
+ if(category.includes('backup')||category.includes('system_health')||workspace==='system_health'||target.includes('backup-activity')||target.includes('system-health'))return NOTIFICATION_APPS['system-health'];
+ if(category.includes('asset')||category.includes('maintenance')||hash.includes('facilities')||target.includes('facilities'))return NOTIFICATION_APPS.facilities;
+ if(category.includes('visitor')||hash.includes('visitor-register')||target.includes('visitor'))return NOTIFICATION_APPS.visitors;
+ if(category.includes('evidence')||target.includes('evidence'))return NOTIFICATION_APPS.evidence;
+ if(category.includes('document_expiry')||target==='recordsvault'||workspace==='records')return NOTIFICATION_APPS.records;
+ if(category.startsWith('admission')||target.includes('admission')||workspace==='admissions')return NOTIFICATION_APPS.admissions;
+ if(category.includes('guardian')||category.includes('parent_message')||workspace==='parents')return NOTIFICATION_APPS.parents;
+ if(category.includes('bank_transaction')||workspace==='banking')return NOTIFICATION_APPS.banking;
+ if(workspace==='school'&&hash.includes('transport'))return NOTIFICATION_APPS.transport;
+ if(workspace==='school'&&hash.includes('welfare'))return NOTIFICATION_APPS.welfare;
+ if(workspace==='school'&&hash.includes('integrations'))return NOTIFICATION_APPS.integrations;
+ if(workspace==='school'&&hash.includes('system-health'))return NOTIFICATION_APPS['system-health'];
+ if(workspace==='school'&&hash.includes('facilities'))return NOTIFICATION_APPS.facilities;
+ if(workspace==='school'&&hash.includes('visitor-register'))return NOTIFICATION_APPS.visitors;
+ return NOTIFICATION_APPS.main;
+}
 function actionUrl(r){
- const raw=r.action_payload?.url;
- if(typeof raw==='string'&&raw.startsWith('/')&&!raw.startsWith('//')){
-  const u=new URL(raw,location.origin);if(u.origin===location.origin)return u.href;
- }
- const target=r.action_payload?.target_id||'';
- const workspace=r.action_payload?.workspace||r.action_workspace||'';
- if(target==='recordsVault'||workspace==='records')return '/records.html';
- if(workspace==='finance')return '/?workspace=finance';
- if(workspace==='attendance')return '/?workspace=attendance';
- if(workspace==='academics')return '/?workspace=academics';
- if(workspace==='school')return '/school-services.html';
- if(workspace==='reports')return '/admissions.html';
- return '/';
+ const app=notificationSource(r),url=new URL(app.path,app.origin);
+ if(app.hash)url.hash=app.hash;
+ const raw=String(r.action_payload?.url||'');
+ try{const parsed=new URL(raw,'https://cornhill-school-swart.vercel.app');if(app.key==='evidence'){const id=parsed.searchParams.get('requestId');if(id&&/^[0-9a-f-]{20,64}$/i.test(id))url.searchParams.set('requestId',id)}}catch(_){}
+ if(app.key==='main'){const workspace=String(r.action_payload?.workspace||r.action_workspace||'');const allowed=['finance','attendance','academics','students','learners','dashboard'];if(allowed.includes(workspace))url.searchParams.set('workspace',workspace==='learners'?'students':workspace)}
+ return url.href;
 }
 function render(){
  const filtered=filteredRows();
- $('totalCount').textContent=rows.length;
- $('unreadCount').textContent=rows.filter(r=>!r.read_at).length;
- $('urgentCount').textContent=rows.filter(r=>r.severity==='urgent').length;
- $('actionCount').textContent=rows.filter(r=>r.is_actionable&&!r.resolved_at).length;
- $('viewHint').textContent=view==='inbox'?'Open actions are shown first. Read and archived state belongs to your account.':view==='history'?'Previously resolved events remain available for reference.':'Items archived by your account; the original school record is retained.';
+ $('totalCount').textContent=rows.length;$('unreadCount').textContent=rows.filter(r=>!r.read_at).length;
+ $('urgentCount').textContent=rows.filter(r=>r.severity==='urgent').length;$('actionCount').textContent=rows.filter(r=>r.is_actionable&&!r.resolved_at).length;
+ $('viewHint').textContent=view==='inbox'?'All assigned school alerts, notices and service events appear here. Open an item to go directly to its application.':view==='history'?'Previously resolved events remain available for reference.':'Items archived by your account; the original school record is retained.';
  $('category').innerHTML='<option value="">All categories</option>'+[...new Set(rows.map(r=>r.category))].sort().map(v=>'<option value="'+esc(v)+'">'+esc(v.replaceAll('_',' '))+'</option>').join('');
  const currentCategory=$('category').dataset.selected||'';$('category').value=currentCategory;
  $('notificationsList').innerHTML=filtered.length?filtered.map(r=>{
-  const priority=r.severity==='urgent'?'urgent':r.severity==='warning'?'warning':'info';
-  const badges='<span class="badge '+priority+'">'+esc(priority==='info'?'Information':priority==='warning'?'Attention':'Urgent')+'</span>'+
-    (!r.read_at?'<span class="badge unread">Unread</span>':'')+
-    (r.is_actionable&&!r.resolved_at?'<span class="badge">Action required</span>':'')+
-    (r.resolved_at?'<span class="badge">Resolved</span>':'');
+  const priority=r.severity==='urgent'?'urgent':r.severity==='warning'?'warning':'info',source=notificationSource(r);
+  const badges='<span class="badge '+priority+'">'+esc(priority==='info'?'Information':priority==='warning'?'Attention':'Urgent')+'</span><span class="badge source-app">'+esc(source.label)+'</span>'+
+   (!r.read_at?'<span class="badge unread">Unread</span>':'')+(r.is_actionable&&!r.resolved_at?'<span class="badge">Action required</span>':'')+(r.resolved_at?'<span class="badge">Resolved</span>':'');
   return '<article class="notice '+priority+'"><div class="notice-head"><div><div class="notice-title">'+esc(r.title)+'</div><div class="notice-meta">'+esc(r.category.replaceAll('_',' '))+' · '+esc(when(r.created_at))+' · By '+esc(r.created_by_name||'School system')+'</div></div><div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">'+badges+'</div></div>'+
-   '<p>'+esc(r.message)+'</p>'+
-   '<div class="notice-actions">'+(!r.read_at?'<button type="button" data-read="'+esc(r.id)+'">Mark read</button>':'')+
-    (r.is_actionable&&!r.resolved_at?'<button class="primary" type="button" data-open="'+esc(r.id)+'">Open linked workspace</button>':'')+
-    (view!=='archived'?'<button type="button" data-archive="'+esc(r.id)+'">Archive for me</button>':'<button type="button" data-unarchive="'+esc(r.id)+'">Restore to inbox</button>')+
+   '<p>'+esc(r.message)+'</p><div class="notice-actions">'+(!r.read_at?'<button type="button" data-read="'+esc(r.id)+'">Mark read</button>':'')+
+   '<button class="primary" type="button" data-open="'+esc(r.id)+'">Open '+esc(source.label)+'</button>'+
+   (view!=='archived'?'<button type="button" data-archive="'+esc(r.id)+'">Archive for me</button>':'<button type="button" data-unarchive="'+esc(r.id)+'">Restore to inbox</button>')+
    '</div><div class="notice-meta">Reference: '+esc(r.source_key)+'</div></article>';
  }).join(''):'<div class="empty">No notifications match this view and filter.</div>';
  document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===view)));
@@ -168,8 +206,8 @@ async function markRead(id){const {error}=await db.rpc('mark_school_notification
 async function archive(id,reason){const {error}=await db.rpc('archive_school_notification',{p_notification_id:id,p_reason:reason});if(error)throw error}
 async function restore(id){const {error}=await db.rpc('restore_school_notification',{p_notification_id:id});if(error)throw error}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',async()=>{view=b.dataset.view;isFirstLoad=true;await loadNotifications()}));
-$('search').addEventListener('input',render);$('severity').addEventListener('change',render);$('category').addEventListener('change',()=>{$('category').dataset.selected=$('category').value;render()});
-$('clearFilters').addEventListener('click',()=>{$('search').value='';$('severity').value='';$('category').value='';$('category').dataset.selected='';render()});
+$('search').addEventListener('input',render);$('severity').addEventListener('change',render);$('sourceApp').addEventListener('change',render);$('category').addEventListener('change',()=>{$('category').dataset.selected=$('category').value;render()});
+$('clearFilters').addEventListener('click',()=>{$('search').value='';$('severity').value='';$('category').value='';$('category').dataset.selected='';$('sourceApp').value='';render()});
 $('refresh').addEventListener('click',()=>loadNotifications());
 $('enableBrowser').addEventListener('click',async()=>{
  if(!('Notification'in window)){toast('This browser does not support browser notifications. The in-app centre still refreshes while open.',true);return}

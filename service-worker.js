@@ -1,8 +1,8 @@
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
-const CACHE_NAME = 'cornhill-shell-v76';
-const STATIC_CACHE = 'cornhill-static-v76';
+const CACHE_NAME = 'cornhill-shell-v78';
+const STATIC_CACHE = 'cornhill-static-v78';
 const SHELL = [
   '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
   '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
@@ -14,15 +14,26 @@ const SHELL = [
   '/apps/notifications/', '/apps/notifications/manifest.webmanifest',
   '/apps/records/', '/apps/records/manifest.webmanifest',
   '/apps/banking/', '/apps/banking/manifest.webmanifest',
-  '/apps/school-services/', '/apps/school-services/manifest.webmanifest',
   '/apps/staff-communications/', '/apps/staff-communications/manifest.webmanifest',
   '/apps/school-website/', '/apps/school-website/manifest.webmanifest',
+  '/apps/hr-payroll/', '/apps/hr-payroll/manifest.webmanifest',
+  '/apps/learning-resources/', '/apps/learning-resources/manifest.webmanifest',
+  '/apps/school-library/', '/apps/school-library/manifest.webmanifest',
+  '/apps/school-transport/', '/apps/school-transport/manifest.webmanifest',
+  '/apps/student-welfare/', '/apps/student-welfare/manifest.webmanifest',
+  '/apps/provider-integrations/', '/apps/provider-integrations/manifest.webmanifest',
+  '/apps/system-health/', '/apps/system-health/manifest.webmanifest',
+  '/apps/asset-maintenance/', '/apps/asset-maintenance/manifest.webmanifest',
+  '/apps/visitor-register/', '/apps/visitor-register/manifest.webmanifest',
+  '/apps/notice-board/', '/apps/notice-board/manifest.webmanifest',
+  '/apps/school-calendar/', '/apps/school-calendar/manifest.webmanifest',
+  '/apps/staff-communications/', '/apps/staff-communications/manifest.webmanifest',
   '/manifest.webmanifest', '/school.webmanifest', '/admissions.webmanifest',
   '/parents.webmanifest', '/evidence.webmanifest', '/notifications.webmanifest',
   '/records.webmanifest', '/banking.webmanifest', '/school-services.webmanifest', '/staff-communications.webmanifest',
   '/service-worker.js', '/assets/cornhill-school-badge.png',
   '/assets/cornhill-school-pwa-192.svg', '/assets/cornhill-school-pwa-512.svg',
-  '/assets/cornhill-design-system.css', '/assets/cornhill-appearance.js',
+  '/assets/app-isolation-guard.js', '/assets/cornhill-design-system.css', '/assets/cornhill-appearance.js',
   '/assets/cornhill-mark-import-mapping.js',
   '/assets/cornhill-offline.js', '/assets/cornhill-draft-crypto.js', '/assets/main-school-workspace-bridge.js',
   '/assets/school-services-collaboration.js', '/assets/cornhill-document-pdf-ocr.js'

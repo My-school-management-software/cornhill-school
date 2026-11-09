@@ -1,0 +1,36 @@
+{
+  "id": "/apps/hr-payroll/",
+  "name": "CORNHILL · HR & Payroll Self-Service",
+  "short_name": "HR Payroll",
+  "description": "Staff leave requests, payslips and approved payroll information.",
+  "start_url": "/apps/hr-payroll/",
+  "scope": "/apps/hr-payroll/",
+  "display": "standalone",
+  "background_color": "#f4f7f4",
+  "theme_color": "#14532d",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/assets/cornhill-school-pwa-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/cornhill-school-pwa-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/cornhill-school-badge.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "display_override": [
+    "standalone",
+    "fullscreen"
+  ]
+}

@@ -105,28 +105,16 @@
       "destination": "/banking.html"
     },
     {
-      "source": "/apps/school-services/manifest.webmanifest",
-      "destination": "/school-services.webmanifest"
-    },
-    {
-      "source": "/apps/school-services/",
-      "destination": "/school-services.html"
-    },
-    {
-      "source": "/apps/school-services",
-      "destination": "/school-services.html"
-    },
-    {
       "source": "/apps/staff-communications/manifest.webmanifest",
       "destination": "/staff-communications.webmanifest"
     },
     {
       "source": "/apps/staff-communications/",
-      "destination": "/school-communications.html"
+      "destination": "/school-services.html?workspace=staff-feed"
     },
     {
       "source": "/apps/staff-communications",
-      "destination": "/school-communications.html"
+      "destination": "/school-services.html?workspace=staff-feed"
     },
     {
       "source": "/apps/school-website/manifest.webmanifest",
@@ -143,6 +131,150 @@
     {
       "source": "/p",
       "destination": "/parents.html"
+    },
+    {
+      "source": "/apps/hr-payroll/manifest.webmanifest",
+      "destination": "/hr-payroll.webmanifest"
+    },
+    {
+      "source": "/apps/hr-payroll/",
+      "destination": "/school-services.html?workspace=hr-payroll"
+    },
+    {
+      "source": "/apps/hr-payroll",
+      "destination": "/school-services.html?workspace=hr-payroll"
+    },
+    {
+      "source": "/apps/learning-resources/manifest.webmanifest",
+      "destination": "/learning-resources.webmanifest"
+    },
+    {
+      "source": "/apps/learning-resources/",
+      "destination": "/school-services.html?workspace=learning"
+    },
+    {
+      "source": "/apps/learning-resources",
+      "destination": "/school-services.html?workspace=learning"
+    },
+    {
+      "source": "/apps/school-library/manifest.webmanifest",
+      "destination": "/school-library.webmanifest"
+    },
+    {
+      "source": "/apps/school-library/",
+      "destination": "/school-services.html?workspace=library"
+    },
+    {
+      "source": "/apps/school-library",
+      "destination": "/school-services.html?workspace=library"
+    },
+    {
+      "source": "/apps/school-transport/manifest.webmanifest",
+      "destination": "/school-transport.webmanifest"
+    },
+    {
+      "source": "/apps/school-transport/",
+      "destination": "/school-services.html?workspace=transport"
+    },
+    {
+      "source": "/apps/school-transport",
+      "destination": "/school-services.html?workspace=transport"
+    },
+    {
+      "source": "/apps/student-welfare/manifest.webmanifest",
+      "destination": "/student-welfare.webmanifest"
+    },
+    {
+      "source": "/apps/student-welfare/",
+      "destination": "/school-services.html?workspace=welfare"
+    },
+    {
+      "source": "/apps/student-welfare",
+      "destination": "/school-services.html?workspace=welfare"
+    },
+    {
+      "source": "/apps/provider-integrations/manifest.webmanifest",
+      "destination": "/provider-integrations.webmanifest"
+    },
+    {
+      "source": "/apps/provider-integrations/",
+      "destination": "/school-services.html?workspace=integrations"
+    },
+    {
+      "source": "/apps/provider-integrations",
+      "destination": "/school-services.html?workspace=integrations"
+    },
+    {
+      "source": "/apps/system-health/manifest.webmanifest",
+      "destination": "/system-health.webmanifest"
+    },
+    {
+      "source": "/apps/system-health/",
+      "destination": "/school-services.html?workspace=system-health"
+    },
+    {
+      "source": "/apps/system-health",
+      "destination": "/school-services.html?workspace=system-health"
+    },
+    {
+      "source": "/apps/asset-maintenance/manifest.webmanifest",
+      "destination": "/asset-maintenance.webmanifest"
+    },
+    {
+      "source": "/apps/asset-maintenance/",
+      "destination": "/school-services.html?workspace=facilities"
+    },
+    {
+      "source": "/apps/asset-maintenance",
+      "destination": "/school-services.html?workspace=facilities"
+    },
+    {
+      "source": "/apps/visitor-register/manifest.webmanifest",
+      "destination": "/visitor-register.webmanifest"
+    },
+    {
+      "source": "/apps/visitor-register/",
+      "destination": "/school-services.html?workspace=visitor-register"
+    },
+    {
+      "source": "/apps/visitor-register",
+      "destination": "/school-services.html?workspace=visitor-register"
+    },
+    {
+      "source": "/apps/notice-board/manifest.webmanifest",
+      "destination": "/notice-board.webmanifest"
+    },
+    {
+      "source": "/apps/notice-board/",
+      "destination": "/school-services.html?workspace=notices"
+    },
+    {
+      "source": "/apps/notice-board",
+      "destination": "/school-services.html?workspace=notices"
+    },
+    {
+      "source": "/apps/school-calendar/manifest.webmanifest",
+      "destination": "/school-calendar.webmanifest"
+    },
+    {
+      "source": "/apps/school-calendar/",
+      "destination": "/school-services.html?workspace=calendar"
+    },
+    {
+      "source": "/apps/school-calendar",
+      "destination": "/school-services.html?workspace=calendar"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/apps/school-services",
+      "destination": "https://cornhill-school-swart.vercel.app/apps/school-management/",
+      "permanent": false
+    },
+    {
+      "source": "/apps/school-services/",
+      "destination": "https://cornhill-school-swart.vercel.app/apps/school-management/",
+      "permanent": false
     }
   ]
 }
