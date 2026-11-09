@@ -1,10 +1,10 @@
 {
-  "id": "/records.html",
+  "id": "/apps/records/",
   "name": "CORNHILL Records Centre",
   "short_name": "CORNHILL Records",
   "description": "Private school records, OCR and expiry tracking",
-  "start_url": "/records.html",
-  "scope": "/",
+  "start_url": "/apps/records/",
+  "scope": "/apps/records/",
   "display": "fullscreen",
   "background_color": "#f2f7f3",
   "theme_color": "#14532d",
