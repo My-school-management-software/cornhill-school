@@ -117,6 +117,6 @@ test('browser importer loads the tested helper and honours missing-subject state
  assert.ok(html.includes('match.matchedBySchoolAlias'));
  assert.ok(html.includes('The term label is read from the Excel worksheet tab name'));
  assert.ok(html.includes("science:'SCC1',socialstudies:'SST1'"));
- assert.ok(html.includes('Selected class: '+ "'"));
- assert.ok(html.includes('Excel worksheet tab: '+ "'"));
+ assert.ok(html.includes('Selected class: '));
+ assert.ok(html.includes('Excel worksheet tab: '));
 });
