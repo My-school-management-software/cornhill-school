@@ -115,8 +115,8 @@
         '<p class="lds-note">Enter only information confirmed by the learner’s parent / guardian or an official school record. When only the year is known, enter the year and leave the exact date blank. Do not guess a day or month. Corrections to verified birth year or gender may regenerate the pupil code; the system keeps the old code linked to the learner’s history.</p>' +
       '</section>' +
       '<section id="learnerDetailsEditor" class="hidden" aria-labelledby="learnerDetailsEditorTitle">' +
-        '<div class="lds-editor-head"><div><div class="lds-kicker">SELECTED LEARNER</div><h3 id="learnerDetailsEditorTitle">Complete learner information</h3><p id="learnerDetailsEditorMeta" class="muted" style="margin:0"></p></div>' +
-          '<button type="button" id="learnerDetailsClose" class="tab" aria-label="Close learner editor">Close editor</button></div>' +
+        '<div class="lds-editor-head"><div><div class="lds-kicker">SELECTED LEARNER</div><h3 id="learnerDetailsEditorTitle">Complete learner information</h3><p id="learnerDetailsEditorMeta" class="muted" style="margin:0"></p><p id="learnerDetailsEditorPosition" class="muted" style="margin:4px 0 0"></p></div>' +
+          '<div class="row" style="gap:7px;flex-wrap:wrap"><button type="button" id="learnerDetailsPrevious" class="tab">Previous learner</button><button type="button" id="learnerDetailsNext" class="tab">Next learner</button><button type="button" id="learnerDetailsClose" class="tab" aria-label="Close learner editor">Close editor</button></div></div>' +
         '<form id="learnerDetailsQuickForm">' +
           '<div class="lds-editor-grid">' +
             '<div class="lds-field"><label for="ldsFirstName">First name *</label><input id="ldsFirstName" name="first_name" required maxlength="100"></div>' +
@@ -138,7 +138,7 @@
             '<div class="lds-field"><label for="ldsWhatsappPhone">Parent / guardian WhatsApp number</label><input id="ldsWhatsappPhone" name="guardian_whatsapp_phone" type="tel" maxlength="30" placeholder="+256…"></div>' +
             '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsWhatsappOptIn" name="guardian_whatsapp_opt_in"> Parent / guardian has agreed to receive school WhatsApp messages.</label></div>' +
           '</div>' +
-          '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="button" id="learnerDetailsFullEdit" class="tab">Open full learner record</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
+          '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="button" id="learnerDetailsSaveNext" class="primary">Save &amp; open next learner</button><button type="button" id="learnerDetailsFullEdit" class="tab">Open full learner record</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
           '<p class="lds-note">Changes are saved using the existing administrator Learner Register workflow. This quick sheet does not change bursary awards, fees, payments, attendance or academic marks.</p>' +
         '</form>' +
       '</section>'
@@ -350,6 +350,12 @@
         $('learnerDetailsEditorTitle').textContent = [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') || 'Complete learner information';
         $('learnerDetailsEditorMeta').textContent = (learner.admission_number || 'Temporary / no pupil code') + ' · ' +
           (learner.school_classes && learner.school_classes.name ? learner.school_classes.name : (st.classes.find(c => c.id === learner.class_id)?.name || 'Unassigned'));
+        const ordered = currentLearners();
+        const position = ordered.findIndex(x => x.id === id);
+        $('learnerDetailsEditorPosition').textContent = position >= 0 ? 'Learner ' + (position + 1) + ' of ' + ordered.length + ' in the current sheet' : '';
+        $('learnerDetailsPrevious').disabled = position <= 0;
+        $('learnerDetailsNext').disabled = position < 0 || position >= ordered.length - 1;
+        editor.dataset.nextLearnerId = '';
         $('learnerDetailsSave').disabled = false;
         $('learnerDetailsSave').textContent = 'Save learner information';
         $('learnerDetailsSheetStatus').textContent = 'Editing ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. The class sheet remains available above.';
@@ -454,6 +460,26 @@
       window.setTimeout(() => { form.noValidate = priorNoValidate; }, 0);
     });
 
+    function moveToAdjacentLearner(direction) {
+      const list = currentLearners();
+      const index = list.findIndex(x => x.id === selectedId);
+      const target = list[index + direction];
+      if (!target) {
+        $('learnerDetailsSheetStatus').textContent = direction > 0 ? 'You are at the last learner in this sheet.' : 'You are at the first learner in this sheet.';
+        return;
+      }
+      openEditor(target.id);
+    }
+    $('learnerDetailsPrevious').addEventListener('click', () => moveToAdjacentLearner(-1));
+    $('learnerDetailsNext').addEventListener('click', () => moveToAdjacentLearner(1));
+    $('learnerDetailsSaveNext').addEventListener('click', () => {
+      const list = currentLearners();
+      const index = list.findIndex(x => x.id === selectedId);
+      const next = index >= 0 ? list[index + 1] : null;
+      editor.dataset.nextLearnerId = next ? next.id : '';
+      if (!next) $('learnerDetailsSheetStatus').textContent = 'This is the last learner in the current sheet. The record will be saved without moving to another learner.';
+      quickForm.requestSubmit();
+    });
     $('learnerDetailsClose').addEventListener('click', () => closeEditor(true));
     $('learnerDetailsCancel').addEventListener('click', () => closeEditor(true));
     $('learnerDetailsFullEdit').addEventListener('click', () => {
@@ -516,10 +542,13 @@
 
     const observer = new MutationObserver(() => {
       if (editor.dataset.saving === '1' && typeof editingStudentId !== 'undefined' && editingStudentId === null) {
+        const nextId = editor.dataset.nextLearnerId || '';
+        editor.dataset.nextLearnerId = '';
         selectedId = null;
         dirty = false;
         editor.dataset.saving = '0';
         editor.classList.add('hidden');
+        if (nextId) window.setTimeout(() => openEditor(nextId), 80);
       }
       renderSheet();
     });
