@@ -66,7 +66,7 @@ async function loadCryptoHelper() {
   const fake = createIndexedDb();
   const window = { indexedDB: fake.indexedDB, crypto: webcrypto };
   const source = fs.readFileSync(path.join(__dirname, '../assets/cornhill-draft-crypto.js'), 'utf8');
-  assert.match(index, /<script src="\\/assets\\/cornhill-offline\\.js"><\\/script>/);
+  assert.ok(index.includes('<script src="/assets/cornhill-offline.js"></script>'));
   assert.ok(index.indexOf("/assets/cornhill-offline.js") < index.indexOf("</head>"));
   assert.ok(index.indexOf("/assets/cornhill-draft-crypto.js") < index.indexOf("</head>"));
   vm.runInNewContext(source, {
