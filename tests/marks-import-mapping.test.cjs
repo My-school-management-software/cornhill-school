@@ -198,7 +198,7 @@ test('real worksheet tab names identify Term 1; generic Sheet 1 does not invent 
   assert.equal(mapping.workbookTermNumber(tab),null,tab);
 });
 
-test('JavaScript inside all school HTML pages parses without syntax errors',()=>{
+test('JavaScript inside all school HTML pages, assets and service worker parses without syntax errors',()=>{
  const vm=require('node:vm');
  const path=require('node:path');
  const root=path.join(__dirname,'..');
@@ -217,7 +217,16 @@ test('JavaScript inside all school HTML pages parses without syntax errors',()=>
    checked++;
   }
  }
- assert.ok(checked>0,'No inline application scripts were checked');
+ const assetDir=path.join(root,'assets');
+ for(const file of fs.readdirSync(assetDir).filter(name=>name.endsWith('.js'))){
+  const body=fs.readFileSync(path.join(assetDir,file),'utf8');
+  assert.doesNotThrow(()=>new vm.Script(body,{filename:'assets/'+file}),'assets/'+file+' contains a JavaScript syntax error');
+  checked++;
+ }
+ const worker=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
+ assert.doesNotThrow(()=>new vm.Script(worker,{filename:'service-worker.js'}),'service-worker.js contains a JavaScript syntax error');
+ checked++;
+ assert.ok(checked>0,'No application JavaScript files were checked');
 });
 
 test('browser importer loads the tested helper and honours missing-subject states',()=>{
