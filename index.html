@@ -5075,7 +5075,11 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
     }
     const match=mappedAssessment?{assessment:mappedAssessment}:matchImportAssessment(header,ctx,period);
     if(match.assessment){
-     const destinationName=match.assessment.subjects?.name||'Subject',directName=normaliseImportText(destinationName)===token||excelSubjectKey(destinationName)===excelSubjectKey(token);
+     const destinationName=match.assessment.subjects?.name||'Subject';
+     // A recognised school abbreviation (for example NU1/EN1 in Nursery)
+     // is a valid match even when its short code differs from the full subject name.
+     const recognisedAlias=importSubjectAliases(token,curriculumGroupForClass(clsName)).some(alias=>normaliseImportText(alias)===normaliseImportText(destinationName));
+     const directName=normaliseImportText(destinationName)===token||excelSubjectKey(destinationName)===excelSubjectKey(token)||recognisedAlias;
      if(!mappedId&&!directName){
       const detail='This workbook code currently suggests '+destinationName+'. Confirm the correct assigned subject and period before importing.';
       issues.push(info.name+' · '+header+': subject-code mapping needs confirmation.');
