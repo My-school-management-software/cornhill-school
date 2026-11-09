@@ -10,12 +10,40 @@
  let noticeRows=[],calendarRows=[];
  let bridgeReady=false;
  function buildDashboardPanels(){
-  const dashboard=$('dashboard'),intro=dashboard?.querySelector('.dashboard-intro');
-  if(!dashboard||!intro)return;
-  if(!$('dashboardWorkspacePanel')){
-   const panel=document.createElement('section');panel.id='dashboardWorkspacePanel';panel.className='panel';panel.style.margin='12px 0 16px';
-   panel.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><span class="dashboard-eyebrow">CONNECTED SCHOOL WORKSPACES</span><h3 style="margin:4px 0">My school applications</h3><p class="muted" style="margin:0">Open only the workspaces assigned to your account. They use the same CORNHILL records and role permissions.</p></div><button type="button" id="dashboardAllApps" class="primary">View App Centre</button></div><div id="dashboardWorkspaceLinks" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-top:12px"><div class="empty">Loading your assigned workspaces…</div></div><small class="muted">Administrator-shared links still require the user to sign in with an assigned school account.</small>';
-   intro.insertAdjacentElement('afterend',panel);
+  const dashboard=$('dashboard');
+  if(!dashboard)return;
+  // App shortcuts belong in the navigation's App Centre, never on the home dashboard.
+  $('dashboardWorkspacePanel')?.remove();
+  // Keep class boards available from navigation, but place them inside the Classes workspace.
+  const classBoardsPanel=$('dashboardClassBoardsPanel'),classesWorkspace=$('classes');
+  if(classBoardsPanel&&classesWorkspace&&!classesWorkspace.contains(classBoardsPanel)){
+   classBoardsPanel.style.margin='0 0 18px';
+   classBoardsPanel.style.borderRadius='18px';
+   const eyebrow=classBoardsPanel.querySelector('.dashboard-eyebrow');
+   if(eyebrow)eyebrow.textContent='CLASS REGISTERS';
+   const heading=classBoardsPanel.querySelector('h3');
+   if(heading)heading.textContent='Class boards & classroom overview';
+   const description=classBoardsPanel.querySelector('p.muted');
+   if(description)description.textContent='Choose a class to open its live learner register. Class boards are kept here instead of occupying the main dashboard.';
+   classesWorkspace.insertBefore(classBoardsPanel,classesWorkspace.firstChild);
+  }
+  const classesNav=document.querySelector('.tabs [data-tab="classes"]');
+  if(classesNav){
+   const label=classesNav.querySelector('span:last-child');
+   if(label)label.textContent='Classes & enrolment';
+   if(!$('classBoardsNav')){
+    const boardNav=document.createElement('button');
+    boardNav.type='button';boardNav.id='classBoardsNav';boardNav.className='tab';
+    boardNav.dataset.tab='classes';boardNav.innerHTML='<span class="nav-icon" aria-hidden="true">▦</span><span>Class Boards & overview</span>';
+    boardNav.title='Open class boards and classroom overview';
+    boardNav.style.paddingLeft='30px';
+    boardNav.addEventListener('click',()=>{
+     if(classesNav.classList.contains('hidden'))return;
+     tab('classes');
+     requestAnimationFrame(()=>classBoardsPanel?.scrollIntoView({block:'start',behavior:'instant'}));
+    });
+    classesNav.insertAdjacentElement('afterend',boardNav);
+   }
   }
   if(profile?.role==='Admin'&&!$('dashboardAdmissionEnquiriesPanel')){
    const panel=document.createElement('section');panel.id='dashboardAdmissionEnquiriesPanel';panel.className='panel';panel.style.margin='12px 0 16px';
@@ -28,7 +56,6 @@
    panel.innerHTML='<section class="panel" style="margin:0"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><span class="dashboard-eyebrow">CENTRAL STAFF NOTICE BOARD</span><h3 style="margin:4px 0">School notices</h3></div><button type="button" id="refreshMainStaffNotices">Refresh</button></div><div id="mainStaffNoticeRows"><p class="muted">Loading shared notices…</p></div><a class="button" href="/school-services.html#notices">Notice administration ↗</a></section><section class="panel" style="margin:0"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><span class="dashboard-eyebrow">CENTRAL SCHOOL CALENDAR</span><h3 style="margin:4px 0">Upcoming events</h3></div><button type="button" id="refreshMainCalendar">Refresh</button></div><div id="mainCalendarRows"><p class="muted">Loading shared events…</p></div><a class="button" href="/school-services.html#calendar">Calendar administration ↗</a></section>';
    feed.insertAdjacentElement('afterend',panel);
   }
-  $('dashboardAllApps')?.addEventListener('click',()=>tab('appCentre'),{once:true});
   $('dashboardRefreshEnquiries')?.addEventListener('click',loadDashboardAdmissionEnquiries);
   $('refreshMainStaffNotices')?.addEventListener('click',loadMainStaffNotices);
   $('refreshMainCalendar')?.addEventListener('click',loadMainCalendarEvents);
@@ -42,9 +69,8 @@
  function updateWorkspaceCards(){
   if(!Array.isArray(appCentreRows))return;
   const cards=appCentreRows.map(appCard).join('');
-  const centre=$('appCentreCards'),home=$('dashboardWorkspaceLinks');
+  const centre=$('appCentreCards');
   if(centre&&appCentreRows.length)centre.innerHTML=cards;
-  if(home)home.innerHTML=cards||'<div class="empty">No additional workspaces are assigned to this account.</div>';
  }
  async function loadDashboardAdmissionEnquiries(){
   const panel=$('dashboardAdmissionEnquiriesPanel'),host=$('dashboardAdmissionEnquiryRows'),status=$('dashboardAdmissionQueueStatus');
