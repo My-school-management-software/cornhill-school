@@ -136,7 +136,7 @@
  }
  function routeRequestedWorkspace(){
   const key=new URLSearchParams(location.search).get('workspace');if(!key)return;
-  const map={attendance:'attendance',communications:'communication',communication:'communication',notices:'communication',calendar:'communication',finance:'finance',apps:'appCentre',appcentre:'appCentre',register:'register'};
+  const map={attendance:'attendance',communications:'communication',communication:'communication',notices:'communication',calendar:'communication',finance:'finance',apps:'appCentre',appcentre:'appCentre',register:'register',academics:'academics',marks:'academics',learners:'students',learnerregister:'students',settings:'settings',backup:'settings'};
   if(key==='admissions'){
    if(profile?.role==='Admin')setTimeout(()=>{loadDashboardAdmissionEnquiries();$('dashboardAdmissionEnquiriesPanel')?.scrollIntoView({behavior:'instant',block:'start'})},40);
    return;
