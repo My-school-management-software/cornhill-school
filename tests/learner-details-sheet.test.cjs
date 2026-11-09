@@ -36,3 +36,13 @@ test('offline app shell includes the new learner details sheet and refreshes old
   assert.match(sw, /cornhill-static-v80/);
   assert.ok(sw.includes('/assets/cornhill-learner-details-sheet.js'));
 });
+
+
+test('full date of birth and verified birth year are tracked as separate completion states', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.ok(source.includes('Missing exact date of birth'));
+  assert.ok(source.includes('Missing birth year'));
+  assert.ok(source.includes('value="missing_year"'));
+  assert.match(source, /const hasDob = x => !!x\.date_of_birth/);
+  assert.match(source, /const hasBirthYear = x => !!\(x\.birth_year/);
+});
