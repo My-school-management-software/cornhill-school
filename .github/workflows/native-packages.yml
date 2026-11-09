@@ -1,0 +1,128 @@
+name: Build CORNHILL native packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_windows:
+        description: Build the Windows EXE installer
+        required: true
+        type: boolean
+        default: true
+      build_android:
+        description: Build the Android release APK (requires Android signing secrets)
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows 10/11 installer
+    if: inputs.build_windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout CORNHILL
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Generate native icons
+        working-directory: native/cornhill-shell
+        run: cargo tauri icon ../../assets/cornhill-school-pwa-512.svg --output src-tauri/icons
+
+      - name: Build unsigned NSIS installer
+        working-directory: native/cornhill-shell
+        run: cargo tauri build --bundles nsis --no-sign
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CORNHILL-Windows-Installer
+          path: native/cornhill-shell/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  android:
+    name: Android ARM64 APK
+    if: inputs.build_android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CORNHILL
+        uses: actions/checkout@v4
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK and NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Install Rust Android target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Generate native icons
+        working-directory: native/cornhill-shell
+        run: cargo tauri icon ../../assets/cornhill-school-pwa-512.svg --output src-tauri/icons
+
+      - name: Initialize Android project
+        working-directory: native/cornhill-shell
+        run: cargo tauri android init --ci
+
+      - name: Require release signing secrets
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Missing ANDROID_KEYSTORE_BASE64 repository secret."; exit 1; }
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "Missing ANDROID_KEYSTORE_PASSWORD repository secret."; exit 1; }
+          test -n "$ANDROID_KEY_ALIAS" || { echo "Missing ANDROID_KEY_ALIAS repository secret."; exit 1; }
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/cornhill-upload-key.jks"
+          mkdir -p native/cornhill-shell/src-tauri/gen/android
+          {
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'password=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/cornhill-upload-key.jks"
+          } > native/cornhill-shell/src-tauri/gen/android/keystore.properties
+
+      - name: Configure Android release signing
+        working-directory: native/cornhill-shell
+        run: python scripts/configure-android-signing.py
+
+      - name: Build signed ARM64 APK
+        working-directory: native/cornhill-shell
+        run: cargo tauri android build --apk --target aarch64 --ci
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CORNHILL-Android-APK
+          path: native/cornhill-shell/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/cornhill-upload-key.jks"
+          rm -f native/cornhill-shell/src-tauri/gen/android/keystore.properties
