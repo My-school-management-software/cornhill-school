@@ -4899,6 +4899,7 @@ function matchImportAssessment(header,ctx,period){
 let teacherExcelImportPlan=null;
 let teacherExcelImportPreviewRun=0;
 let teacherExcelHeadingMappings=Object.create(null);
+let teacherExcelTermConfirmationKey=null;
 function teacherExcelMappingKey(file,classId,termId,sheetName,header){return [classId,termId,file?.name||'',file?.size||0,file?.lastModified||0,sheetName,header].join('|')}
 function importSheetClassMatch(sheetName,className){
  const sheet=normaliseImportText(sheetName),cls=normaliseImportText(className);
@@ -5068,9 +5069,13 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   const unlabelledTermSheets=sheetInfos.filter(info=>!importWorkbookTermNumber(info.name));
   const selectedAcademicTerm=academic.terms.find(t=>t.id===termId);
   const destinationTermNumber=importWorkbookTermNumber(selectedAcademicTerm?.name||'');
-  if(unlabelledTermSheets.length){
-   issues.push('Academic term could not be verified for worksheet tab(s): '+unlabelledTermSheets.map(info=>info.name).join(', ')+'. No marks can be imported until each worksheet tab identifies its source term. Rename the Excel worksheet tab itself to include 1ST TERM, 2ND TERM or 3RD TERM (for example, P5 1ST TERM), then preview again. Changing a cell or the workbook filename does not rename the worksheet tab.');
-  }
+  const termConfirmationKey=[classId,termId,file?.name||'',file?.size||0,file?.lastModified||0,sheetInfos.map(info=>info.name).join(',')].join('|');
+  const requiresTermConfirmation=unlabelledTermSheets.length>0;
+  const termConfirmed=requiresTermConfirmation&&teacherExcelTermConfirmationKey===termConfirmationKey;
+  // Generic tabs (for example "Sheet 1") cannot prove their academic term.
+  // Require a deliberate confirmation of the selected destination term instead
+  // of either guessing or permanently blocking a valid school workbook.
+  
   if(sourceTermNumbers.length>1){
    issues.push('This workbook contains worksheets labelled for different academic terms. Separate the terms into different workbooks before importing.');
   }else if(sourceTermNumbers.length===1&&destinationTermNumber&&sourceTermNumbers[0]!==destinationTermNumber){
@@ -5169,7 +5174,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
   }
   if(!markColumns.length)issues.push('No assessment subject columns have been matched yet. Map the unfamiliar headings below, or check the selected class and workbook.');
   const display=[...displayMap.values()],existing=new Set([...ctx.savedMarks.keys()]),replaceExisting=$('replaceExistingImportedMarks').checked,filtered=plan.filter(x=>replaceExisting||!existing.has(x.assessment_id+'|'+x.student_id));
-  teacherExcelImportPlan={payload:filtered,all:plan,display,workbook:file.name,ctxKey:classId+'|'+termId,blockingIssues:issues};
+  teacherExcelImportPlan={payload:filtered,all:plan,display,workbook:file.name,ctxKey:classId+'|'+termId,blockingIssues:issues,requiresTermConfirmation,termConfirmationKey};
   $('teacherMarksImportRows').innerHTML=display.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.match)+'</td><td>'+x.count+'</td><td>'+esc(x.result)+'</td></tr>').join('');
   const review=$('teacherMarksCodeReview');
   if(review){
@@ -5206,12 +5211,20 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
      }).join('');
      return '<section class="excel-sheet-grid"><div class="excel-sheet-grid-title"><b>Selected class: '+esc(clsName)+'</b><span>Excel worksheet tab: '+esc(info.name)+' · '+(info.hidden?'Hidden worksheet':'Visible worksheet')+' · '+Math.max(0,info.matrix.length-info.headerRow-1)+' data row(s)</span></div><div class="table-wrap excel-grid-scroll"><table class="excel-import-grid"><thead><tr>'+letterHead+'</tr><tr>'+gridHead+'</tr></thead><tbody>'+gridRows+'</tbody></table></div></section>';;
    }).join('');
-   review.innerHTML=teacherScopeNote+'<strong>Workbook check · '+sheetInfos.length+' worksheet(s), including hidden sheets</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Check</th><th>Example contents</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(sampleFor(x))+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div><h3 style="margin-top:18px">Excel-style learner and marks preview</h3><p class="muted">Each row is a learner from the workbook. The first columns identify the learner; each following column shows the actual subject mark. Scroll sideways to see all subjects.</p>'+(mappingRows?'<div class="notice"><b>Subject headings and codes needing confirmation — choose the correct CORNHILL subject</b><p>Each unfamiliar heading or abbreviated subject code is shown with its worksheet, detected period and up to eight actual cell values with Excel row numbers. Even when a code has a possible match, confirm the exact destination subject AND period before importing. RR1, RR2 and RU3 are recognised as possible Local Language codes; if their period conflicts with the workbook’s grouped headings, the review asks you to choose the correct destination explicitly. You may ignore a column that contains a comment, total, position or note. Your mapping is applied only to this workbook preview; no marks are saved until every issue is resolved and you confirm the import.</p>'+mappingRows+'<button type="button" id="applyTeacherHeadingMappings" class="primary">Apply mappings and preview again</button></div>':'')+workbookGrid+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the workbook or map unfamiliar headings above. No marks have been imported.</p></div>':'<div class="notice">All detected subjects, periods and learner identifiers match this class.</div>');
+   const termConfirmationMarkup=requiresTermConfirmation?'<div class="notice error"><b>Academic term not printed on worksheet tab</b><p>These tab(s) do not identify a term: '+esc(unlabelledTermSheets.map(info=>info.name).join(', '))+'. The selected CORNHILL destination is <b>'+esc(selectedAcademicTerm?.name||'the selected term')+'</b>. Do not confirm unless you have checked the original school record and verified that this workbook belongs to that exact term. The importer will never guess the source term.</p><label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" id="confirmExcelSourceTerm" '+(termConfirmed?'checked':'')+' style="width:18px;min-width:18px;margin-top:2px"><span>I have verified that every unlabelled worksheet in this workbook belongs to '+esc(selectedAcademicTerm?.name||'the selected academic term')+' and I authorise importing only to that term.</span></label></div>':'';
+   review.innerHTML=teacherScopeNote+termConfirmationMarkup+'<strong>Workbook check · '+sheetInfos.length+' worksheet(s), including hidden sheets</strong><div class="table-wrap"><table><thead><tr><th>Excel heading</th><th>Period</th><th>Check</th><th>Example contents</th><th>Details</th></tr></thead><tbody>'+codeReview.map(x=>'<tr><td><b>'+esc(x.header)+'</b></td><td>'+esc(x.period)+'</td><td>'+esc(x.status)+'</td><td>'+esc(sampleFor(x))+'</td><td>'+esc(x.detail)+'</td></tr>').join('')+'</tbody></table></div><h3 style="margin-top:18px">Excel-style learner and marks preview</h3><p class="muted">Each row is a learner from the workbook. The first columns identify the learner; each following column shows the actual subject mark. Scroll sideways to see all subjects.</p>'+(mappingRows?'<div class="notice"><b>Subject headings and codes needing confirmation — choose the correct CORNHILL subject</b><p>Each unfamiliar heading or abbreviated subject code is shown with its worksheet, detected period and up to eight actual cell values with Excel row numbers. Even when a code has a possible match, confirm the exact destination subject AND period before importing. RR1, RR2 and RU3 are recognised as possible Local Language codes; if their period conflicts with the workbook’s grouped headings, the review asks you to choose the correct destination explicitly. You may ignore a column that contains a comment, total, position or note. Your mapping is applied only to this workbook preview; no marks are saved until every issue is resolved and you confirm the import.</p>'+mappingRows+'<button type="button" id="applyTeacherHeadingMappings" class="primary">Apply mappings and preview again</button></div>':'')+workbookGrid+(issues.length?'<div class="notice error"><b>Import paused · '+issues.length+' issue(s)</b><ul>'+issues.slice(0,30).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Correct the workbook or map unfamiliar headings above. No marks have been imported.</p></div>':'<div class="notice">All detected subjects, periods and learner identifiers match this class.</div>');
+   review.querySelector('#confirmExcelSourceTerm')?.addEventListener('change',event=>{
+    if(event.target.checked)teacherExcelTermConfirmationKey=termConfirmationKey;
+    else if(teacherExcelTermConfirmationKey===termConfirmationKey)teacherExcelTermConfirmationKey=null;
+    const confirmed=teacherExcelTermConfirmationKey===termConfirmationKey;
+    if(teacherExcelImportPlan)teacherExcelImportPlan.termConfirmed=confirmed;
+    confirm.disabled=!teacherExcelImportPlan?.payload?.length||!!teacherExcelImportPlan?.blockingIssues?.length||(requiresTermConfirmation&&!confirmed);
+   });
    review.querySelectorAll('[data-import-heading-map]').forEach(select=>select.addEventListener('change',()=>{const key=select.dataset.importHeadingMap;if(select.value)teacherExcelHeadingMappings[key]=select.value;else delete teacherExcelHeadingMappings[key]}));
    review.querySelector('#applyTeacherHeadingMappings')?.addEventListener('click',()=>{const missing=[...review.querySelectorAll('[data-import-heading-map]')].filter(x=>!x.value);if(missing.length){message('teacherMarksImportMsg','Choose a subject for each unfamiliar heading you want to import. Remove unrelated columns from the workbook or leave them unmapped.',true);return}$('previewTeacherMarksImport').click()});
   }
   message('teacherMarksImportMsg','Preview: '+display.length+' learner row(s), '+markColumns.length+' subject/period column(s), '+plan.length+' marks from '+sheetInfos.length+' worksheet(s). '+(issues.length?'Import paused until '+issues.length+' issue(s) are corrected.':filtered.length+' marks ready for confirmation.')+' Hidden sheets and columns were included.');
-  confirm.disabled=!filtered.length||issues.length>0;
+  confirm.disabled=!filtered.length||issues.length>0||(requiresTermConfirmation&&!termConfirmed);
  }catch(err){
   message('teacherMarksImportMsg','Import preview failed: '+(err?.message||String(err)),true);
   $('teacherMarksImportRows').innerHTML='<tr><td colspan="4">No import preview is available.</td></tr>';
@@ -5221,6 +5234,7 @@ $('previewTeacherMarksImport').addEventListener('click',async()=>{
 $('confirmTeacherMarksImport').addEventListener('click',async()=>{
  const plan=teacherExcelImportPlan,ctx=window.cornhillExcelMarksContext,button=$('confirmTeacherMarksImport');
  if(profile?.role!=='Teacher'||demoMode||!plan||plan.blockingIssues?.length||!ctx||plan.ctxKey!==ctx.classId+'|'+ctx.termId)return;
+ if(plan.requiresTermConfirmation&&teacherExcelTermConfirmationKey!==plan.termConfirmationKey){message('teacherMarksImportMsg','Import paused: confirm that every unlabelled worksheet belongs to the selected academic term before importing.',true);return}
  button.disabled=true;const cancelButton=$('cancelTeacherMarksImport');if(cancelButton)cancelButton.disabled=true;
  try{
   const importTermId=ctx.termId,importClassId=ctx.classId,auth=await db.auth.getUser(),user=auth.data?.user;
