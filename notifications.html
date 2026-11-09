@@ -9,16 +9,16 @@
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
 <style>
 :root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#18251d;background:#f3f7f3}*{box-sizing:border-box}body{margin:0}
-.top{background:#14532d;color:#fff;padding:15px max(14px,calc((100% - 1180px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.top{background:#14532d;color:#fff;padding:15px max(14px,calc((100% - 1480px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .brand{font-weight:850;letter-spacing:.02em}.sub{font-size:12px;opacity:.82;margin-top:3px}
 .top a{color:#fff;text-decoration:none;font-size:13px}.top-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.wrap{max-width:1180px;margin:22px auto;padding:0 14px}.card{background:white;border:1px solid #dce7de;border-radius:15px;padding:17px;margin-bottom:14px;box-shadow:0 3px 14px #183d2010}
+.wrap{max-width:1480px;margin:22px auto;padding:0 clamp(12px,2vw,26px)}.card{background:white;border:1px solid #dce7de;border-radius:15px;padding:17px;margin-bottom:14px;box-shadow:0 3px 14px #183d2010}
 h1,h2,h3{margin:0 0 8px;color:#183b27}.muted{font-size:13px;color:#647568;line-height:1.5}
 button,input,select{font:inherit}button{border:0;border-radius:9px;background:#e7efe8;color:#19452c;padding:10px 13px;font-weight:750;cursor:pointer}
 button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.5;cursor:not-allowed}
 input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius:9px;background:#fff;color:#19271e}
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stat{padding:12px;border:1px solid #e0e9e1;border-radius:12px;background:#f8fbf8}.stat b{font-size:22px;display:block;color:#17452a}.stat span{font-size:12px;color:#617367}
-.controls{display:grid;grid-template-columns:1fr 180px 180px auto;gap:9px;align-items:center}
+.controls{display:grid;grid-template-columns:minmax(220px,1fr) repeat(3,minmax(140px,180px)) auto;gap:9px;align-items:center}
 .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.tabs button[aria-selected=true]{background:#166534;color:#fff}
 .notice{border:1px solid #e1eae2;border-radius:12px;padding:13px;margin:9px 0;background:#fff}
 .notice.urgent{border-left:5px solid #b91c1c}.notice.warning{border-left:5px solid #c0841b}.notice.info{border-left:5px solid #3979ac}
@@ -36,7 +36,7 @@ input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius
 <script src="/assets/cornhill-offline.js"></script><script src="/assets/app-isolation-guard.js"></script></head>
 <body data-theme="warm-corporate">
 <header class="top">
- <div><div class="brand">CORNHILL · NOTIFICATION CENTRE</div><div class="sub">One school-wide attention and approvals inbox</div></div>
+ <div><div class="brand">CORNHILL · NOTIFICATION CENTRE</div><div class="sub">Updates from all connected CORNHILL applications</div></div>
  <div class="top-actions"><a href="https://cornhill-school-swart.vercel.app/apps/school-management/">Main system</a><button id="installApp" type="button" class="hidden">Install app</button><a id="recordsLink" class="hidden" href="https://records-cornhill-school.vercel.app/apps/records/">Records Centre</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
 </header>
 <main class="wrap">
@@ -49,7 +49,7 @@ input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius
  <section id="app" class="hidden">
   <section class="card">
    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-    <div><span class="badge">LIVE SCHOOL ATTENTION</span><h1>Notifications & approvals</h1><p class="muted">Admissions, finance, staff attendance, leave, welfare, records, maintenance and school operations are collected here. Opening or archiving an alert does not delete the original school record.</p></div>
+    <div><span class="badge">LIVE SCHOOL ATTENTION</span><h1>School-wide Notification Centre</h1><p class="muted">One inbox for administrator notices, school calendar events, staff communications, admissions, finance, payroll, attendance, backups, system checks, records, learning resources, library, transport, welfare and maintenance. Open any alert to go directly to the responsible application. Archiving never deletes the original school record.</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="enableBrowser" type="button">Enable browser alerts</button><button class="primary" id="refresh" type="button">Refresh now</button></div>
    </div>
    <div class="stats" style="margin-top:14px">
