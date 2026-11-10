@@ -43,3 +43,13 @@ test('parent portal login attempt records are protected by row-level security', 
   assert.match(migration, /revoke all on table private\.parent_portal_login_attempts from public, anon, authenticated/i);
   assert.match(migration, /grant all on table private\.parent_portal_login_attempts to service_role/i);
 });
+
+test('communication preference changes are synchronized without inventing WhatsApp consent', () => {
+  const followUp = fs.readFileSync(
+    path.join(__dirname, '..', 'supabase/migrations/20261110193505_guardian_contact_sync_opt_in_guard.sql'),
+    'utf8'
+  );
+  assert.match(followUp, /old\.guardian_sms_opt_in is distinct from new\.guardian_sms_opt_in/);
+  assert.match(followUp, /old\.guardian_whatsapp_opt_in is distinct from new\.guardian_whatsapp_opt_in/);
+  assert.match(followUp, /coalesce\(new\.guardian_whatsapp_opt_in,false\) and v_whatsapp is not null/);
+});
