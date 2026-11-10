@@ -74,3 +74,29 @@ test('learning, library and transport changes create notifications with app link
  assert.ok(sql.includes('library_loan'));
  assert.ok(sql.includes('transport_assignment'));
 });
+
+test('main Notification Centre resolves evidence, bank and guardian onboarding notifications',()=>{
+ const html=read('index.html');
+ const start=html.indexOf("$('notificationList')?.addEventListener('click'");
+ const end=html.indexOf("\n$('notificationList')?.addEventListener('touchstart'",start);
+ assert.ok(start>=0&&end>start,'main notification handler exists');
+ const handler=html.slice(start,end),payload=handler.indexOf('const payload='),payloadUrl=handler.indexOf('payload.url');
+ assert.ok(payload>=0&&payloadUrl>payload,'payload is defined before use');
+ assert.match(handler,/CornhillNotificationRouting\?\.resolve\(n,window\.location\.origin\)/);
+ assert.match(handler,/route\.workspace==='parentAccess'/);
+ assert.match(handler,/loadAdminParentPortalDirectory\(\)/);
+ assert.match(handler,/Could not open this notification:/);
+ assert.ok(html.includes('/assets/cornhill-notification-routing.js'));
+});
+test('Evidence Capture and Banking deep links focus the exact linked record',()=>{
+ const evidence=read('evidence.html'),bank=read('banking.html');
+ assert.match(evidence,/data-evidence-request-id=/);
+ assert.match(evidence,/function focusRequestedEvidenceRequest\(requestRows\)/);
+ assert.match(evidence,/get\('requestId'\)/);
+ assert.match(evidence,/focusRequestedEvidenceRequest\(rows\)/);
+ assert.match(bank,/id="bankTransactions"/);
+ assert.match(bank,/data-bank-transaction-id=/);
+ assert.match(bank,/function focusRequestedBankTransaction\(\)/);
+ assert.match(bank,/get\('transactionId'\)/);
+ assert.match(bank,/focusRequestedBankTransaction\(\)/);
+});
