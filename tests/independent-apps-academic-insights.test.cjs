@@ -201,7 +201,7 @@ test('class workspace grouping and ordering use complete numeric class levels',(
  assert.match(html,/\.sort\(compareAcademicClassWorkspaces\)/);
  assert.match(html,/requestId!==window\.cornhillAdminAcademicInsightsRequest/);
  assert.match(html,/cornhillAdminAcademicInsightsRequest/);
- assert.match(html,/classSearchEmpty\\.dataset\\.classSearchEmpty/);
+ assert.ok(html.includes('classSearchEmpty.dataset.classSearchEmpty'));
  assert.match(html,/No registered classes match/);
 });
 test('assessment-period matching respects complete P6 and P7 level numbers',()=>{
