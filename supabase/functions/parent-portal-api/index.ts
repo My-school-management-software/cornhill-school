@@ -123,38 +123,42 @@ async function handle(req: Request) {
   if (!input || typeof input !== "object") return jsonError("Invalid request");
   const action = String(input.action || "");
 
+  if (action === "auth-method") {
+    const { data, error } = await db.rpc("parent_portal_guardian_pin_required");
+    if (error || typeof data !== "boolean") {
+      return jsonError("Parent Portal sign-in settings are temporarily unavailable. Please try again.",503);
+    }
+    return reply({ guardian_pin_required: data });
+  }
+
   if (action === "verify") {
     const code = String(input.pupil_code || "").trim();
     const phone = normalizePhone(String(input.phone || ""));
     const pin = String(input.pin || "");
-    const origin = req.headers.get("origin") || "";
-    const isPreviewOrigin = /^https:\/\/cornhill-school-[a-z0-9-]+-cypher-projects1\.vercel\.app$/.test(origin);
+    if (!code || code.length > 32 || !phone) {
+      return jsonError("Enter the learner pupil code and registered guardian phone number.",400);
+    }
+
+    const { data: pinRequired, error: settingError } = await db.rpc("parent_portal_guardian_pin_required");
+    if (settingError || typeof pinRequired !== "boolean") {
+      return jsonError("Parent Portal sign-in settings are temporarily unavailable. Please try again.",503);
+    }
+
     let learnerData: any;
     let verifyError: any = null;
-
-    if (code && pin) {
-      // Stable production compatibility: keep the established code + phone + Guardian PIN check.
-      if (!phone || code.length > 32 || !/^\d{8}$/.test(pin)) return jsonError("Enter the learner pupil code, registered guardian phone number and 8-digit PIN.",400);
+    if (pinRequired) {
+      if (!/^\d{8}$/.test(pin)) {
+        return jsonError("Guardian PIN is now required by the school. Enter the 8-digit PIN and try again.",400);
+      }
       const result = await db.rpc("parent_portal_get_learner_with_pin", {
         p_pupil_code: code, p_registered_phone: phone, p_pin: pin
       });
       learnerData = result.data;
       verifyError = result.error;
-    } else if (code) {
-      // Temporary pupil-code + phone-only access is available only on a protected Vercel preview.
-      if (!isPreviewOrigin) return jsonError("This temporary sign-in method is available only on the Parent Portal test preview.",403);
-      if (!phone || code.length > 32) return jsonError("Enter the learner pupil code and registered guardian phone number.",400);
+    } else {
       const result = await db.rpc("parent_portal_get_learner_by_code_and_phone", {
         p_pupil_code: code,
         p_registered_phone: phone
-      });
-      learnerData = result.data;
-      verifyError = result.error;
-    } else {
-      // Compatibility for the intermediate phone + PIN preview.
-      if (!phone || !/^\d{8}$/.test(pin)) return jsonError("Enter the registered guardian phone number and 8-digit PIN.",400);
-      const result = await db.rpc("parent_portal_get_learner_with_pin_by_phone", {
-        p_registered_phone: phone, p_pin: pin
       });
       learnerData = result.data;
       verifyError = result.error;
@@ -163,7 +167,7 @@ async function handle(req: Request) {
     if (verifyError || learnerData?.error) return jsonError("Guardian verification failed. Check the learner code and registered phone number, or contact the school office.",401);
     const learnerCode = learnerData?.learner?.pupil_code;
     if (!learnerCode) return jsonError("Guardian verification could not be completed.",401);
-    if (code && code.toUpperCase() !== String(learnerCode).toUpperCase()) {
+    if (code.toUpperCase() !== String(learnerCode).toUpperCase()) {
       learnerData.code_change_notice = {
         previous_code_entered: code,
         current_pupil_code: learnerCode,
