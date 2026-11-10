@@ -172,6 +172,26 @@ test('class and learner package selection previews the current term school, boar
   assert.ok(source.includes("lunch.disabled = boarding"));
 });
 
+test('boarding learners see one all-inclusive boarding package without a separate school-fee line', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  const start = source.indexOf('const items = [];');
+  const end = source.indexOf('const total = items.reduce', start);
+  assert.ok(start >= 0 && end > start, 'fee preview item builder must exist');
+  const builder = source.slice(start, end);
+  const boardingStart = builder.indexOf('if (boarding) {');
+  const dayStart = builder.indexOf('} else {', boardingStart);
+  assert.ok(boardingStart >= 0 && dayStart > boardingStart, 'boarding and day fee logic must be separate');
+  const boardingBranch = builder.slice(boardingStart, dayStart);
+  const dayBranch = builder.slice(dayStart);
+  assert.ok(boardingBranch.includes("amountFor('Boarding')"));
+  assert.ok(boardingBranch.includes("currentAward.amount_payable_ugx"));
+  assert.ok(boardingBranch.includes('includes school fees'));
+  assert.doesNotMatch(boardingBranch, /schoolFee|Breakfast|Lunch/);
+  assert.match(dayBranch, /if \(schoolFee\)/);
+  assert.match(dayBranch, /amountFor\('Breakfast'\)/);
+  assert.match(dayBranch, /amountFor\('Lunch'\)/);
+});
+
 test('P7 class selection enforces the existing boarding package rule in the editor', () => {
   const source = read('assets/cornhill-learner-details-sheet.js');
   assert.match(source, /const isP7 = classItem && classItem\.name === 'P7'/);
