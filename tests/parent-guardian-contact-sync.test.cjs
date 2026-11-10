@@ -25,7 +25,7 @@ test('new learner admissions automatically create a primary guardian link when d
 
 test('guardian phone changes retire the old primary link and avoid inventing missing identities', () => {
   assert.match(migration, /Previous register-based primary contact/);
-  assert.match(migration, /nullif\(trim\(coalesce\(new\.guardian_name,''\)\),' '\)/);
+  assert.match(migration, /nullif\(trim\(coalesce\(new\.guardian_name,''\)\),''\)/);
 });
 
 test('archiving a learner disables the active primary guardian link', () => {
