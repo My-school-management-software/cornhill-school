@@ -7440,7 +7440,7 @@ async function ensureGuardianPinForAdmission(studentId,record){
   if(contact){
    const {error}=await db.rpc('admin_update_parent_contact',{p_contact_id:contact.id,p_guardian_name:name||contact.guardian_name,p_relationship:String(record.guardian_relationship||contact.relationship||'').trim()||null,p_phone_e164:formPhone||contact.phone_e164,p_whatsapp_e164:contact.whatsapp_e164||null,p_sms_opt_in:!!contact.sms_opt_in,p_whatsapp_opt_in:!!contact.whatsapp_opt_in,p_is_primary:true,p_change_reason:'Guardian contact reactivated during learner admission'});
    if(error)return {pending:true,reason:'Guardian contact could not be reactivated: '+error.message};
-   contact={...contact,is_active:true,guardian_pin_issued_at:null};
+   contact={...contact,is_active:true};
   }else{
    if(name.length<2||!formPhone)return {pending:true,reason:'Add a guardian name and valid Ugandan phone (+256 followed by nine digits) to issue a PIN.'};
    const wa=record.guardian_whatsapp_opt_in?normalizeUgParentPhone(record.guardian_whatsapp_phone):normalizeUgParentPhone(record.guardian_whatsapp_phone);
@@ -8243,6 +8243,7 @@ function openAdminParentGuardianContactForm(r){
 async function saveAdminParentGuardianContact(){
  const r=selectedAdminParentPortalLearner;if(!r||profile?.role!=='Admin'||demoMode||!currentUserId)return;
  const name=$('adminParentGuardianName').value.trim(),relationship=$('adminParentGuardianRelationship').value.trim(),phone=normalizeUgParentPhone($('adminParentGuardianPhone').value);
+ if(r.pin_active&&!window.confirm('This guardian already has a PIN. Saving these details will replace that PIN and revoke existing parent portal sessions. Continue?'))return;
  if(name.length<2){showStatus('adminParentPortalDirectoryStatus','Enter the parent or guardian name.',true);return}
  if(!phone){showStatus('adminParentPortalDirectoryStatus','Enter a valid Ugandan phone number, for example +2567XXXXXXXX.',true);return}
  const button=$('saveAdminParentGuardianContact');button.disabled=true;
@@ -8311,6 +8312,8 @@ async function loadAdminParentPortalDirectory(){
 }
 document.addEventListener('DOMContentLoaded',()=>{
   $('refreshAdminParentPortalDirectory')?.addEventListener('click',loadAdminParentPortalDirectory);
+  $('parentAccessTab')?.addEventListener('click',()=>{if(profile?.role==='Admin'&&!demoMode)loadAdminParentPortalDirectory()});
+  document.querySelectorAll('[data-tab]').forEach(navButton=>navButton.addEventListener('click',()=>{if(navButton.dataset.tab!=='parentAccess'){const box=$('adminParentPortalOneTimeCredentials');box?.replaceChildren();box?.classList.add('hidden')}}));
   $('adminParentPortalDirectoryTable')?.addEventListener('click',e=>{const b=e.target.closest('[data-add-guardian-contact]');if(b){const r=adminParentPortalRows.find(x=>x.student_id===b.dataset.addGuardianContact&&(!b.dataset.contactId||x.contact_id===b.dataset.contactId));if(r)openAdminParentGuardianContactForm(r)}});
   $('saveAdminParentGuardianContact')?.addEventListener('click',saveAdminParentGuardianContact);
   $('cancelAdminParentGuardianContact')?.addEventListener('click',()=>{$('adminParentGuardianContactForm').classList.add('hidden');selectedAdminParentPortalLearner=null});
