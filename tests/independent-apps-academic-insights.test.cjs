@@ -193,3 +193,19 @@ test('administrator teacher-submitted marks are grouped inside each class worksp
  assert.doesNotMatch(html,/loadAdminTeacherMarksRegister/);
  assert.doesNotMatch(html,/exportTeacherMarksRegister/);
 });
+
+test('class workspace grouping and ordering use complete numeric class levels',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.match(html,/function academicClassLevelNumber\(name\)/);
+ assert.match(html,/function compareAcademicClassWorkspaces\(a,b\)/);
+ assert.match(html,/\.sort\(compareAcademicClassWorkspaces\)/);
+ assert.match(html,/requestId!==window\.cornhillAdminAcademicInsightsRequest/);
+ assert.match(html,/cornhillAdminAcademicInsightsRequest/);
+ assert.match(html,/data-class-search-empty/);
+ assert.match(html,/No registered classes match/);
+});
+test('assessment-period matching respects complete P6 and P7 level numbers',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ assert.ok(html.includes('P7(?![0-9])|PRIMARY7(?![0-9])'));
+ assert.ok(html.includes('P6(?![0-9])|PRIMARY6(?![0-9])'));
+});
