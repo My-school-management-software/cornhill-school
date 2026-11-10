@@ -6,6 +6,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const page = fs.readFileSync(path.join(root, 'guardian-accounts.html'), 'utf8');
 const notifications = fs.readFileSync(path.join(root, 'notifications.html'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261110144000_parent_portal_guardian_pin_toggle.sql'), 'utf8');
 
 test('guardian PIN page exists as a standalone school application', () => {
   assert.match(page, /CORNHILL · GUARDIAN PIN ADMINISTRATION/);
@@ -98,4 +99,37 @@ test('the page has no unauthenticated HTTP endpoint for PIN issuance', () => {
 test('only active guardian contacts are displayed for issuance', () => {
   assert.match(page, /contacts=\(rows\|\|\[\]\)\.filter\(c=>c\.is_active\)/);
   assert.match(page, /c\.is_active&&/);
+});
+
+test('Parent Portal Settings includes an administrator-only Guardian PIN ON/OFF switch', () => {
+  assert.match(page, /id="guardianPinRequiredToggle"/);
+  assert.match(page, /role="switch"/);
+  assert.match(page, /Parent Portal sign-in settings/);
+  assert.match(page, /admin_get_parent_portal_security_settings/);
+  assert.match(page, /admin_set_parent_portal_guardian_pin_required/);
+});
+
+test('Guardian PIN setting displays OFF initially and warns before enabling with unissued contacts', () => {
+  assert.match(page, /guardianPinRequiredSetting = false/);
+  assert.match(page, /OFF — parents use pupil code \+ registered guardian phone/);
+  assert.match(page, /active guardian contact\(s\) do not yet have a PIN/);
+  assert.match(page, /Existing parent sessions will be signed out/);
+});
+
+test('database stores Guardian PIN as OFF by default and limits setting changes to active Admin', () => {
+  assert.match(migration, /guardian_pin_required boolean NOT NULL DEFAULT false/);
+  assert.match(migration, /auth\.uid\(\) IS NULL OR NOT public\.is_school_admin\(\)/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.admin_set_parent_portal_guardian_pin_required\(boolean\) TO authenticated/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.admin_set_parent_portal_guardian_pin_required\(boolean\) FROM PUBLIC, anon/);
+});
+
+test('enabling Guardian PIN revokes active Parent Portal sessions and records setting changes', () => {
+  assert.match(migration, /UPDATE public\.parent_portal_sessions/);
+  assert.match(migration, /private\.parent_portal_security_settings_audit/);
+  assert.match(migration, /old_guardian_pin_required/);
+  assert.match(migration, /new_guardian_pin_required/);
+});
+
+test('Notification Centre labels the administrator link Parent Portal Settings', () => {
+  assert.match(notifications, /href="\/guardian-accounts\.html">Parent Portal Settings/);
 });
