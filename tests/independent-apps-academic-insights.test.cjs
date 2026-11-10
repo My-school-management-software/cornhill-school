@@ -99,8 +99,8 @@ test('academic workspace quick navigation points to real sections and is role-sc
 });
 test('offline shell includes each standalone app entry and its own manifest route',()=>{
  const sw=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
- assert.match(sw,/cornhill-shell-v86/);
- assert.match(sw,/cornhill-static-v86/);
+ assert.match(sw,/cornhill-shell-v87/);
+ assert.match(sw,/cornhill-static-v87/);
  assert.match(sw,/app-isolation-guard\.js/);
  for(const [slug] of [...apps,...serviceApps.map(x=>[x[0]])]){
   assert.ok(sw.includes('/apps/'+slug+'/'));
