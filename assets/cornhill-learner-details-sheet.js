@@ -565,7 +565,7 @@
       host.innerHTML = '<strong>Current-term fee estimate · ' + htmlEscape(feeScheduleTermLabel) + '</strong>' +
         (items.length ? '<div class="lds-hint">' + items.map(item => '<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0"><span>' + htmlEscape(item[0]) + '</span><strong>' + htmlEscape(ugx(item[1])) + '</strong></div>').join('') +
           '<div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--cornhill-line,#dce7de);padding-top:8px;margin-top:5px"><strong>Estimated total</strong><strong>' + htmlEscape(ugx(total)) + '</strong></div></div>'
-          : '<div class="lds-hint">No matching fee schedule rows were found for this class and package. Check Finance → Fee items / Fee schedules before saving charges.');
+          : '<div class="lds-hint">No matching fee schedule rows were found for this class and package. Check Finance → Fee items / Fee schedules before saving charges.</div>');
       if ($('ldsFeeArrangement').value === 'bursary' && !currentAward) {
         host.insertAdjacentHTML('beforeend', '<div class="lds-hint">Bursary is selected but not yet approved. This estimate is provisional; the approved payable amount will be set in Finance.</div>');
       }
@@ -674,7 +674,7 @@
         $('learnerDetailsSave').disabled = false;
         $('learnerDetailsSave').textContent = 'Save learner information';
         updateBursaryEditor(learner);
-        $('learnerDetailsSheetStatus').textContent = 'Editing ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. The class sheet remains available above.';
+        $('learnerDetailsSheetStatus').textContent = 'Editing ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. Assign class and package here; the current-term fee estimate updates automatically.';
         try { quickForm.elements.first_name.focus({ preventScroll: true }); }
         catch (_) { quickForm.elements.first_name.focus(); }
       } catch (error) {
@@ -755,7 +755,8 @@
         }
         action.disabled = false;
         action.textContent = 'Open bursary approval';
-        note.textContent = 'Bursary / sponsored learner selected. Open the Finance approval form below and complete the effective dates, category, approved payable amount and reason. The learner remains on regular fees until that approval is submitted.';
+        note.textContent = 'Bursary / sponsored learner selected. The class and package are shown above. Open Finance approval below and complete the effective dates, category, approved payable amount and reason. The learner remains on regular fees until that approval is submitted.';
+        renderLearnerFeePreview();
         return;
       }
       action.hidden = true;
@@ -825,6 +826,11 @@
       if (!['Male', 'Female'].includes(gender)) {
         $('learnerDetailsSheetStatus').textContent = 'Choose the verified gender before saving.';
         quickForm.elements.gender.focus();
+        return;
+      }
+      if (!quickForm.elements.class_id.value) {
+        $('learnerDetailsSheetStatus').textContent = 'Choose the learner’s class before saving. The class is used to calculate the correct school fee and meal / boarding package.';
+        $('ldsClassId').focus();
         return;
       }
       const year = quickForm.elements.birth_year.value.trim();
