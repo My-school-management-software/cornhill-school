@@ -190,6 +190,10 @@ let parentInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();parentInstallPrompt=event;el('installParentPortal').classList.remove('hidden')});
 el('installParentPortal').addEventListener('click',async()=>{if(!parentInstallPrompt)return;parentInstallPrompt.prompt();await parentInstallPrompt.userChoice;parentInstallPrompt=null;el('installParentPortal').classList.add('hidden')});
 window.addEventListener('appinstalled',()=>el('installParentPortal').classList.add('hidden'));
+
+// Read the server-controlled PIN requirement as soon as the portal opens.
+loadGuardianAuthSettings();
+
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
 </body></html>
