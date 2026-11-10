@@ -7438,7 +7438,7 @@ async function ensureGuardianPinForAdmission(studentId,record){
  if(!contact){
   contact=(existingRows||[]).find(x=>formPhone&&x.phone_e164===formPhone)||null;
   if(contact){
-   const {error}=await db.rpc('admin_update_parent_contact',{p_contact_id:contact.id,p_guardian_name:name||contact.guardian_name,p_relationship:String(record.guardian_relationship||contact.relationship||'').trim()||null,p_phone_e164:formPhone||contact.phone_e164,p_whatsapp_e164:contact.whatsapp_e164||null,p_sms_opt_in:!!contact.sms_opt_in,p_whatsapp_opt_in:!!contact.whatsapp_opt_in,p_is_primary:true,p_change_reason:'Guardian contact reactivated during learner admission'});
+   const {error}=await db.rpc('admin_update_parent_contact',{p_contact_id:contact.id,p_guardian_name:name||contact.guardian_name,p_relationship:String(record.guardian_relationship||contact.relationship||'').trim()||null,p_phone_e164:formPhone||contact.phone_e164,p_whatsapp_e164:contact.whatsapp_e164||null,p_sms_opt_in:!!contact.sms_opt_in,p_whatsapp_opt_in:!!contact.whatsapp_opt_in,p_is_primary:true,p_is_active:true,p_change_reason:'Guardian contact reactivated during learner admission'});
    if(error)return {pending:true,reason:'Guardian contact could not be reactivated: '+error.message};
    contact={...contact,is_active:true};
   }else{
@@ -7449,7 +7449,7 @@ async function ensureGuardianPinForAdmission(studentId,record){
    contact=created;
   }
  }else if(!normalizeUgParentPhone(contact.phone_e164)&&formPhone){
-  const {error}=await db.rpc('admin_update_parent_contact',{p_contact_id:contact.id,p_guardian_name:name||contact.guardian_name,p_relationship:String(record.guardian_relationship||contact.relationship||'').trim()||null,p_phone_e164:formPhone,p_whatsapp_e164:contact.whatsapp_e164||null,p_sms_opt_in:!!contact.sms_opt_in,p_whatsapp_opt_in:!!contact.whatsapp_opt_in,p_is_primary:!!contact.is_primary,p_change_reason:'Guardian phone confirmed during learner admission'});
+  const {error}=await db.rpc('admin_update_parent_contact',{p_contact_id:contact.id,p_guardian_name:name||contact.guardian_name,p_relationship:String(record.guardian_relationship||contact.relationship||'').trim()||null,p_phone_e164:formPhone,p_whatsapp_e164:contact.whatsapp_e164||null,p_sms_opt_in:!!contact.sms_opt_in,p_whatsapp_opt_in:!!contact.whatsapp_opt_in,p_is_primary:!!contact.is_primary,p_is_active:true,p_change_reason:'Guardian phone confirmed during learner admission'});
   if(error)return {pending:true,reason:'Guardian phone could not be added: '+error.message};
   contact={...contact,phone_e164:formPhone,guardian_pin_issued_at:null};
  }
@@ -8252,7 +8252,7 @@ async function saveAdminParentGuardianContact(){
   if(contactId){
    const {data:old,error:oldError}=await db.from('parent_guardian_contacts').select('whatsapp_e164,sms_opt_in,whatsapp_opt_in,is_primary').eq('id',contactId).maybeSingle();
    if(oldError)throw oldError;
-   const {error}=await db.rpc('admin_update_parent_contact',{p_contact_id:contactId,p_guardian_name:name,p_relationship:relationship||null,p_phone_e164:phone,p_whatsapp_e164:old?.whatsapp_e164||null,p_sms_opt_in:!!old?.sms_opt_in,p_whatsapp_opt_in:!!old?.whatsapp_opt_in,p_is_primary:!!old?.is_primary,p_change_reason:'Guardian details confirmed for Parent Portal access'});
+   const {error}=await db.rpc('admin_update_parent_contact',{p_contact_id:contactId,p_guardian_name:name,p_relationship:relationship||null,p_phone_e164:phone,p_whatsapp_e164:old?.whatsapp_e164||null,p_sms_opt_in:!!old?.sms_opt_in,p_whatsapp_opt_in:!!old?.whatsapp_opt_in,p_is_primary:!!old?.is_primary,p_is_active:true,p_change_reason:'Guardian details confirmed for Parent Portal access'});
    if(error)throw error;
   }else{
    const {data,error}=await db.from('parent_guardian_contacts').insert({student_id:r.student_id,guardian_name:name,relationship:relationship||null,phone_e164:phone,is_primary:true,is_active:true,sms_opt_in:false,whatsapp_opt_in:false}).select('id').single();
