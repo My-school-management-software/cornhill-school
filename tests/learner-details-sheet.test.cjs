@@ -62,22 +62,22 @@ test('class-sheet data entry supports previous, next and validated save-and-next
 test('select opens the same learner in a centered accessible editor instead of jumping below the sheet', () => {
   const source = read('assets/cornhill-learner-details-sheet.js');
   assert.match(source, /role="dialog" aria-modal="true" aria-hidden="true"/);
-  assert.match(source, /#learnerDetailsEditor\\{position:fixed/);
-  assert.match(source, /body\\.lds-editor-open::before/);
-  assert.match(source, /document\\.body\\.classList\\.add\\('lds-editor-open'\\)/);
-  assert.match(source, /quickForm\\.elements\\.first_name\\.focus/);
-  assert.doesNotMatch(source, /editor\\.scrollIntoView/);
-  assert.match(source, /event\\.key === 'Escape'/);
-  assert.match(source, /event\\.key === 'Tab'/);
+  assert.match(source, /#learnerDetailsEditor\{position:fixed/);
+  assert.match(source, /body\.lds-editor-open::before/);
+  assert.match(source, /document\.body\.classList\.add\('lds-editor-open'\)/);
+  assert.match(source, /quickForm\.elements\.first_name\.focus/);
+  assert.doesNotMatch(source, /editor\.scrollIntoView/);
+  assert.match(source, /event\.key === 'Escape'/);
+  assert.match(source, /event\.key === 'Tab'/);
   assert.match(source, /restoreEditorFocus/);
 });
 
 test('learner editor action buttons use compact sizing on desktop and mobile', () => {
   const source = read('assets/cornhill-learner-details-sheet.js');
-  assert.match(source, /\\.lds-actions button\\{[^}]*width:auto!important/);
-  assert.match(source, /\\.lds-actions button\\{[^}]*min-height:36px/);
-  assert.match(source, /grid-template-columns:repeat\\(2,minmax\\(0,1fr\\)\\)/);
-  assert.match(source, /\\.lds-actions button\\{width:100%!important;min-height:38px/);
+  assert.match(source, /\.lds-actions button\{[^}]*width:auto!important/);
+  assert.match(source, /\.lds-actions button\{[^}]*min-height:36px/);
+  assert.match(source, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(source, /\.lds-actions button\{width:100%!important;min-height:38px/);
 });
 
 
