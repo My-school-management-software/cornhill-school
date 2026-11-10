@@ -32,8 +32,8 @@ test('the class sheet supports DOB, verified birth year, guardian details and sa
 
 test('offline app shell includes the new learner details sheet and refreshes old caches', () => {
   const sw = read('service-worker.js');
-  assert.match(sw, /cornhill-shell-v84/);
-  assert.match(sw, /cornhill-static-v84/);
+  assert.match(sw, /cornhill-shell-v85/);
+  assert.match(sw, /cornhill-static-v85/);
   assert.ok(sw.includes('/assets/cornhill-learner-details-sheet.js'));
 });
 
@@ -131,7 +131,7 @@ test('bursary approval is blocked with a clear class-assignment instruction when
   const source = read('assets/cornhill-learner-details-sheet.js');
   assert.match(source, /if \(!learner\.class_id\)/);
   assert.ok(source.includes('Assign class first'));
-  assert.ok(source.includes('Open full learner record'));
+  assert.ok(source.includes('Choose the correct class'));
   assert.ok(source.includes('Finance needs the class to identify the correct current-term fee'));
   assert.ok(source.includes('No bursary has been recorded'));
 });
@@ -150,4 +150,41 @@ test('a successful bursary award refreshes and reopens the same learner completi
   assert.match(source, /await refreshBursaryAwards\(\);/);
   assert.match(source, /tab\('students'\)/);
   assert.match(source, /openEditor\(returnLearnerId\)/);
+});
+
+
+test('class assignment is available directly in the completion editor and saves through the protected learner form', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.ok(source.includes('id="ldsClassId" name="class_id"'));
+  assert.ok(source.includes('populateEditorClasses(learner.class_id)'));
+  assert.ok(source.includes("writeMainValue(form, 'class_id', $('ldsClassId').value)"));
+  assert.ok(source.includes("quickForm.elements.class_id.value"));
+  assert.ok(source.includes("form.requestSubmit(submit)"));
+});
+
+test('class and learner package selection previews the current term school, boarding and meal fees', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  for (const value of ["db.from('fee_schedules')", "db.from('academic_terms')", "fee_items(name)",
+    "fee_items.name === 'School fees'", "fee_items.name === 'Boarding'", "fee_items.name === 'Breakfast'",
+    "fee_items.name === 'Lunch'", "id=\"ldsLearnerType\"", "id=\"ldsBreakfast\"", "id=\"ldsLunch\"",
+    "Current-term fee estimate", "Estimated total"]) assert.ok(source.includes(value), value);
+  assert.ok(source.includes("if (isP7) type.value = 'Boarding'"));
+  assert.ok(source.includes("breakfast.disabled = boarding"));
+  assert.ok(source.includes("lunch.disabled = boarding"));
+});
+
+test('P7 class selection enforces the existing boarding package rule in the editor', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.match(source, /const isP7 = classItem && classItem\.name === 'P7'/);
+  assert.match(source, /if \(isP7\) type\.value = 'Boarding'/);
+  assert.ok(source.includes("writeMainValue(form, 'takes_breakfast', breakfast.checked)"));
+  assert.ok(source.includes("writeMainValue(form, 'takes_lunch', lunch.checked)"));
+});
+
+test('broken legacy full-record handoff is removed; learner details remain in the working editor', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.doesNotMatch(source, /document\.querySelector\('\.editLearner\[data-id=/);
+  assert.ok(source.includes('id="ldsClassId"'));
+  assert.ok(source.includes('id="ldsAdmissionDate"'));
+  assert.ok(source.includes('id="ldsPreviousSchool"'));
 });
