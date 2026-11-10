@@ -9,11 +9,17 @@
   function normalise(value) {
     return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   }
+  function classLevelNumber(className) {
+    const n = normalise(className);
+    const match = n.match(/PRIMARY([0-9]{1,2})(?![0-9])/) || n.match(/P([0-9]{1,2})(?![0-9])/);
+    return match ? Number(match[1]) : null;
+  }
   function curriculumGroup(className) {
     const n = normalise(className);
     if (n.includes('BABY') || n.includes('MIDDLE') || n.includes('TOP') || n.includes('NURSERY')) return 'Nursery';
-    if (/P[123]/.test(n) || /PRIMARY[123]/.test(n)) return 'P1-P3';
-    if (/P[4567]/.test(n) || /PRIMARY[4567]/.test(n)) return 'P4-P7';
+    const level = classLevelNumber(className);
+    if (level !== null && level >= 1 && level <= 3) return 'P1-P3';
+    if (level !== null && level >= 4 && level <= 7) return 'P4-P7';
     return null;
   }
   function subjectKey(raw) {
@@ -176,5 +182,5 @@
     }
     return missing;
   }
-  return {normalise,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod,parseMarkValue,isSummaryLearnerRow,missingAssessmentPairs};
+  return {normalise,classLevelNumber,curriculumGroup,subjectKey,subjectAliases,codeDistance,matchAssessment,workbookTermNumber,phaseNumber,columnPeriod,parseMarkValue,isSummaryLearnerRow,missingAssessmentPairs};
 });
