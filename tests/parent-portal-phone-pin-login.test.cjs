@@ -27,6 +27,11 @@ test('Guardian PIN input remains hidden unless the administrator setting is ON',
   assert.match(parents, /classList\.toggle\('hidden',!guardianPinRequired\)/);
 });
 
+test('Parent Portal loads the server-controlled sign-in setting when the page opens', () => {
+  assert.match(parents, /loadGuardianAuthSettings\(\);/);
+  assert.ok(parents.indexOf('loadGuardianAuthSettings();') > parents.indexOf("el('signInGuardian').addEventListener('click',signInGuardian)"));
+});
+
 test('Parent API exposes only the Guardian PIN requirement status for the portal display', () => {
   assert.match(api, /action === "auth-method"/);
   assert.match(api, /parent_portal_guardian_pin_required/);
