@@ -117,7 +117,7 @@
           '<option value="missing_contact">Missing guardian contact</option><option value="missing_lin">Missing Ministry LIN</option>' +
           '<option value="complete">All selected details recorded</option></select></div>' +
           '<p id="learnerDetailsSheetStatus" class="muted" style="margin:0" role="status">Choose a class above or use the existing register search.</p></div>' +
-        '<div class="lds-table-wrap"><table><thead><tr><th>No.</th><th>Learner</th><th>Class</th><th>Date of birth</th><th>Birth year</th><th>Parent / guardian</th><th>Relationship</th><th>Guardian contact</th><th>LIN</th><th>Profile</th><th>Open</th></tr></thead>' +
+        '<div class="lds-table-wrap"><table><thead><tr><th>No.</th><th>Learner</th><th>Class</th><th>Date of birth</th><th>Birth year</th><th>Parent / guardian</th><th>Relationship</th><th>Guardian contact</th><th>LIN</th><th>Fee arrangement</th><th>Profile</th><th>Open</th></tr></thead>' +
         '<tbody id="learnerDetailsSheetRows"><tr><td colspan="11">Learner records will appear after the register loads.</td></tr></tbody></table></div>' +
         '<p class="lds-note">Enter only information confirmed by the learner’s parent / guardian or an official school record. When only the year is known, enter the year and leave the exact date blank. Do not guess a day or month. Corrections to verified birth year or gender may regenerate the pupil code; the system keeps the old code linked to the learner’s history.</p>' +
       '</section>' +
@@ -144,9 +144,10 @@
             '<div class="lds-field full"><label class="lds-checkbox"><input type="checkbox" id="ldsSmsOptIn" name="guardian_sms_opt_in"> Parent / guardian has agreed to receive SMS notifications on this number.</label></div>' +
             '<div class="lds-field"><label for="ldsWhatsappPhone">Parent / guardian WhatsApp number</label><input id="ldsWhatsappPhone" name="guardian_whatsapp_phone" type="tel" maxlength="30" placeholder="+256…"></div>' +
             '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsWhatsappOptIn" name="guardian_whatsapp_opt_in"> Parent / guardian has agreed to receive school WhatsApp messages.</label></div>' +
+            '<div class="lds-field full" id="ldsBursaryArrangementField"><label for="ldsFeeArrangement">School fee arrangement</label><select id="ldsFeeArrangement"><option value="regular">Regular fees</option><option value="bursary">Bursary / sponsored learner</option></select><div id="ldsBursaryArrangementStatus" class="lds-hint" role="status">Loading the learner’s current bursary status…</div><button type="button" id="ldsOpenBursaryApproval" class="tab" hidden style="margin-top:9px">Open bursary approval</button><div class="lds-hint">Selecting bursary opens the approved Finance workflow. It does not directly change fees, receipts or previous payment allocations.</div></div>' +
           '</div>' +
           '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="submit" id="learnerDetailsSaveNext" class="primary">Save &amp; open next learner</button><button type="button" id="learnerDetailsFullEdit" class="tab">Open full learner record</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
-          '<p class="lds-note">Changes are saved using the existing administrator Learner Register workflow. This quick sheet does not change bursary awards, fees, payments, attendance or academic marks.</p>' +
+          '<p class="lds-note">Learner details are saved through the protected Learner Register. Bursary awards are managed separately through Finance approval so previous charges, receipts and payment allocations remain protected.</p>' +
         '</form>' +
       '</section>'
     );
@@ -176,6 +177,113 @@
       if (toggle) {
         toggle.textContent = advancedVisible ? 'Hide advanced register actions' : 'Show advanced register actions';
         toggle.setAttribute('aria-expanded', String(advancedVisible));
+      }
+    }
+
+    let activeBursaryAwards = new Map();
+    let activeBursaryAwardsLoaded = false;
+    let activeBursaryAwardsLoading = false;
+
+    function currentBursaryArrangement(learner) {
+      const award = activeBursaryAwards.get(learner.id) || null;
+      if (award) {
+        return {
+          value: 'bursary',
+          label: award.bursary_category + ' · UGX ' + Number(award.amount_payable_ugx || 0).toLocaleString('en-UG') + ' payable',
+          description: 'Approved for ' + award.billing_period_label + ' · valid ' + fmtDate(award.effective_from) + ' to ' + fmtDate(award.effective_until) + '.'
+        };
+      }
+      if (learner.is_bursary) {
+        return {
+          value: 'bursary',
+          label: (learner.bursary_category || 'Bursary recorded at admission') + ' · UGX ' + Number(learner.bursary_fee_ugx || 0).toLocaleString('en-UG') + ' payable',
+          description: 'This learner was admitted on a bursary. The current term approval should be confirmed in Finance before changing the arrangement.'
+        };
+      }
+      return {
+        value: 'regular',
+        label: 'Regular fees',
+        description: 'Regular school fees currently apply. A bursary can be requested through the school’s approved Finance workflow.'
+      };
+    }
+
+    function updateBursaryEditor(learner) {
+      const select = $('ldsFeeArrangement');
+      const note = $('ldsBursaryArrangementStatus');
+      const action = $('ldsOpenBursaryApproval');
+      if (!select || !note || !action || !learner) return;
+      const current = currentBursaryArrangement(learner);
+      select.value = current.value;
+      select.dataset.currentValue = current.value;
+      note.textContent = current.label + '. ' + current.description;
+      action.hidden = true;
+    }
+
+    async function refreshBursaryAwards() {
+      if (activeBursaryAwardsLoading || state().role !== 'Admin' || typeof db === 'undefined' || !db) return;
+      activeBursaryAwardsLoading = true;
+      try {
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Kampala' });
+        const { data, error } = await db.from('learner_bursary_awards')
+          .select('id,student_id,bursary_category,amount_payable_ugx,billing_period_label,effective_from,effective_until,approved_at')
+          .lte('effective_from', today)
+          .or('effective_until.is.null,effective_until.gte.' + today)
+          .order('effective_from', { ascending: false })
+          .limit(1000);
+        if (error) throw error;
+        const next = new Map();
+        (data || []).forEach(award => {
+          if (award.student_id && !next.has(award.student_id)) next.set(award.student_id, award);
+        });
+        activeBursaryAwards = next;
+        activeBursaryAwardsLoaded = true;
+        renderSheet();
+        if (selectedId) {
+          const learner = state().students.find(x => x.id === selectedId);
+          if (learner) updateBursaryEditor(learner);
+        }
+      } catch (error) {
+        activeBursaryAwardsLoaded = false;
+        const note = $('ldsBursaryArrangementStatus');
+        if (note) note.textContent = 'Current bursary approval details could not be loaded. No fee arrangement was changed. Refresh the learner register or check Finance.';
+      } finally {
+        activeBursaryAwardsLoading = false;
+      }
+    }
+
+    async function openExistingBursaryApproval() {
+      if (!selectedId || state().role !== 'Admin' || state().demo) return;
+      if (dirty) {
+        $('ldsBursaryArrangementStatus').textContent = 'Save or cancel the learner information edits first. The bursary approval screen is separate so fee decisions are not mixed with profile edits.';
+        $('ldsOpenBursaryApproval').hidden = true;
+        return;
+      }
+      const learner = state().students.find(x => x.id === selectedId);
+      if (!learner) return;
+      if (currentBursaryArrangement(learner).value === 'bursary') {
+        updateBursaryEditor(learner);
+        return;
+      }
+      try {
+        if (typeof loadFinance === 'function') await loadFinance();
+        const select = $('existingBursaryStudent');
+        if (!select) throw new Error('The Finance bursary approval form is unavailable.');
+        const option = Array.from(select.options).find(item => item.value === learner.id);
+        if (!option) throw new Error('Finance did not return this active learner. Refresh the learner register and try again.');
+        select.value = learner.id;
+        closeEditor(false);
+        if (typeof tab === 'function') tab('finance');
+        window.setTimeout(() => {
+          const refreshedSelect = $('existingBursaryStudent');
+          if (refreshedSelect && Array.from(refreshedSelect.options).some(item => item.value === learner.id)) refreshedSelect.value = learner.id;
+          const form = $('existingBursaryAwardForm');
+          if (form) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const category = $('existingBursaryCategory');
+          if (category) category.focus({ preventScroll: true });
+          if (typeof message === 'function') message('financeMsg', 'Selected ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. Complete the approved bursary details and submit to record the award. No change has been made yet.');
+        }, 450);
+      } catch (error) {
+        if (typeof message === 'function') message('appMsg', 'Could not open bursary approval: ' + (error.message || 'Please try again.'), true);
       }
     }
 
@@ -224,6 +332,7 @@
       const panel = $('learnerDetailsWorkspace');
       if (!panel) return;
       panel.classList.toggle('hidden', st.role !== 'Admin');
+      if (st.role === 'Admin' && !activeBursaryAwardsLoaded && !activeBursaryAwardsLoading) refreshBursaryAwards();
       if (st.role !== 'Admin') {
         if (st.role) setAdvancedVisible(true);
         editor.classList.add('hidden');
@@ -257,14 +366,16 @@
         const year = x.birth_year || (x.date_of_birth ? String(x.date_of_birth).slice(0, 4) : '—');
         const guardian = String(x.guardian_name || '').trim() || 'Not recorded';
         const contact = [x.guardian_phone, x.guardian_email].filter(Boolean).join(' · ') || 'Not recorded';
+        const feeArrangement = currentBursaryArrangement(x);
         return '<tr tabindex="0" data-learner-sheet-id="' + htmlEscape(x.id) + '" aria-label="Open details for ' + htmlEscape(fullName) + '">' +
           '<td>' + (i + 1) + '</td><td><span class="lds-name">' + htmlEscape(fullName || 'Unnamed learner') + '</span><span class="lds-sub">' + htmlEscape(x.admission_number || 'No pupil code') + '</span></td>' +
           '<td>' + htmlEscape(className(x.class_id)) + '</td><td>' + htmlEscape(dob) + '</td><td>' + htmlEscape(year) + '</td>' +
           '<td>' + htmlEscape(guardian) + (x.alternate_guardian_name ? '<span class="lds-sub">Alternative: ' + htmlEscape(x.alternate_guardian_name) + '</span>' : '') + '</td>' +
           '<td>' + htmlEscape(x.guardian_relationship || '—') + '</td><td>' + htmlEscape(contact) + '</td><td>' + htmlEscape(x.lin || 'Not entered') + '</td>' +
+          '<td><span class="lds-state ' + (feeArrangement.value === 'bursary' ? 'pending' : '') + '">' + htmlEscape(feeArrangement.value === 'bursary' ? 'Bursary' : 'Regular fees') + '</span><span class="lds-sub">' + htmlEscape(feeArrangement.label) + '</span></td>' +
           '<td><span class="lds-state ' + (missing ? 'pending' : '') + '">' + (missing ? 'Needs details' : 'Recorded') + '</span></td>' +
           '<td><button type="button" class="lds-open" data-learner-sheet-open="' + htmlEscape(x.id) + '">Select</button></td></tr>';
-      }).join('') || '<tr><td colspan="11">No learners match this class, search and information filter.</td></tr>';
+      }).join('') || '<tr><td colspan="12">No learners match this class, search and information filter.</td></tr>';
       const activeClass = st.classFilter === 'all' ? 'all classes' : st.classFilter === 'unassigned' ? 'unassigned learners' : className(st.classFilter);
       $('learnerDetailsSheetStatus').textContent = shown.length.toLocaleString() + ' learner(s) shown · ' + activeClass +
         ' · Search using the existing Learner Register search box above.';
@@ -382,6 +493,7 @@
         editor.dataset.nextLearnerId = '';
         $('learnerDetailsSave').disabled = false;
         $('learnerDetailsSave').textContent = 'Save learner information';
+        updateBursaryEditor(learner);
         $('learnerDetailsSheetStatus').textContent = 'Editing ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. The class sheet remains available above.';
         try { quickForm.elements.first_name.focus({ preventScroll: true }); }
         catch (_) { quickForm.elements.first_name.focus(); }
@@ -422,6 +534,29 @@
       if (askDiscard && dirty && !window.confirm('Close this editor and discard unsaved changes?')) return;
       discardMainDraft();
     }
+
+    $('ldsFeeArrangement').addEventListener('change', event => {
+      const learner = state().students.find(x => x.id === selectedId);
+      if (!learner) return;
+      const current = currentBursaryArrangement(learner);
+      const action = $('ldsOpenBursaryApproval');
+      const note = $('ldsBursaryArrangementStatus');
+      if (event.target.value === 'regular' && current.value === 'bursary') {
+        event.target.value = 'bursary';
+        action.hidden = true;
+        note.textContent = 'This learner has a bursary recorded. The award cannot be cancelled by changing this selector. A return to regular fees needs an approved amendment and reconciliation of the current term charges; no fee or receipt has been changed.';
+        return;
+      }
+      if (event.target.value === 'bursary' && current.value === 'regular') {
+        action.hidden = false;
+        note.textContent = 'Bursary / sponsored learner selected. Open the Finance approval form below and complete the effective dates, category, approved payable amount and reason. The learner remains on regular fees until that approval is submitted.';
+        return;
+      }
+      action.hidden = true;
+      note.textContent = current.label + '. ' + current.description;
+    });
+    $('ldsOpenBursaryApproval').addEventListener('click', openExistingBursaryApproval);
+    window.addEventListener('cornhill:bursary-award-updated', refreshBursaryAwards);
 
     quickForm.addEventListener('input', event => {
       if (syncing) return;
@@ -607,6 +742,7 @@
     observer.observe(rowsHost, { childList: true, subtree: true });
     observer.observe($('studentRegisterClassCards'), { childList: true, subtree: true });
     renderSheet();
+    window.addEventListener('cornhill:bursary-award-updated', refreshBursaryAwards);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
