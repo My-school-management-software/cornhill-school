@@ -35,13 +35,26 @@ input{width:100%;padding:11px;border:1px solid #cbd8ce;border-radius:9px;backgro
 .modal{width:min(100%,520px);background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 70px #0004;max-height:90vh;overflow:auto}
 .secret{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:25px;letter-spacing:.12em;font-weight:850;color:#173f29;background:#f0f7f1;border:1px dashed #a9c6ad;padding:14px;border-radius:10px;word-break:break-all}
 .secret.small{font-size:18px;letter-spacing:.08em}.secret-row{display:flex;gap:8px;align-items:center}.secret-row .secret{flex:1}
+
+.pin-switch{position:relative;display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.pin-switch input{position:absolute;opacity:0;width:1px;height:1px}
+.pin-switch .track{width:56px;height:31px;border-radius:99px;background:#cbd5ce;display:inline-block;position:relative;transition:background .15s ease}
+.pin-switch .track:after{content:"";position:absolute;width:23px;height:23px;left:4px;top:4px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0003;transition:transform .15s ease}
+.pin-switch input:checked+.track{background:#166534}
+.pin-switch input:checked+.track:after{transform:translateX(25px)}
+.pin-switch input:focus-visible+.track{outline:3px solid #86efac;outline-offset:3px}
+.pin-switch input:disabled+.track{opacity:.5;cursor:wait}
+.pin-switch .toggle-word{font-size:13px;font-weight:850;min-width:30px;color:#647568}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.settings-copy{max-width:760px}
+.settings-status{margin-top:12px}
 @media(max-width:760px){.contact{grid-template-columns:1fr}.action{justify-content:flex-start}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:440px){.stats{gap:6px}.stat{padding:9px}.stat b{font-size:19px}.wrap{margin:12px auto}.card{padding:14px}.secret{font-size:22px}}
 </style>
 </head>
 <body data-theme="warm-corporate">
 <header class="top">
- <div><div class="brand">CORNHILL · GUARDIAN PIN ADMINISTRATION</div><div class="sub">Secure credentials for the isolated Parent & Guardian Portal</div></div>
+ <div><div class="brand">CORNHILL · PARENT PORTAL SETTINGS</div><div class="sub">Administrator controls for parent sign-in and guardian credentials</div></div>
  <div class="top-actions"><a href="/notifications.html">Notification Centre</a><a href="/parents.html">Open Parent Portal</a><span id="who" class="sub"></span><button id="signOut" class="hidden" type="button">Sign out</button></div>
 </header>
 <main class="wrap">
@@ -57,9 +70,25 @@ input{width:100%;padding:11px;border:1px solid #cbd8ce;border-radius:9px;backgro
   <p id="loginError" class="muted" role="alert"></p>
  </section>
  <section id="app" class="hidden">
+  <section class="card" id="parentPortalSecurityCard">
+   <div class="settings-row">
+    <div class="settings-copy">
+     <h1>Parent Portal sign-in settings</h1>
+     <p class="muted">Choose whether parents must enter the separate Guardian PIN. The learner pupil code and registered guardian phone number remain mandatory in both modes.</p>
+    </div>
+    <label class="pin-switch" for="guardianPinRequiredToggle">
+     <input id="guardianPinRequiredToggle" type="checkbox" role="switch" aria-label="Require Guardian PIN" aria-checked="false" disabled>
+     <span class="track" aria-hidden="true"></span>
+     <span id="guardianPinToggleWord" class="toggle-word">OFF</span>
+    </label>
+   </div>
+   <div id="guardianPinSettingStatus" class="notice settings-status" role="status" aria-live="polite">Checking the current Parent Portal setting…</div>
+   <p class="muted">OFF: parents sign in with the permanent pupil code and registered guardian phone only. ON: parents must also enter the Guardian PIN. Before switching ON, issue a PIN to each guardian who needs portal access. Enabling the PIN requirement signs out existing parent sessions so the new rule applies immediately. Switching OFF does not delete PIN records.</p>
+  </section>
+
   <section class="card">
    <div class="toolbar">
-    <div><h1>Parent Portal credentials</h1><p class="muted">Issue or replace an 8-digit guardian PIN for an active, registered guardian contact.</p></div>
+    <div><h2>Guardian PIN register</h2><p class="muted">Issue or replace an 8-digit Guardian PIN for an active, registered guardian contact. PINs are required only while the switch above is ON.</p></div>
     <button class="primary" id="refresh" type="button">Refresh contacts</button>
    </div>
    <div class="stats">
@@ -86,7 +115,7 @@ input{width:100%;padding:11px;border:1px solid #cbd8ce;border-radius:9px;backgro
   <div class="secret-row"><div id="issuedPin" class="secret" aria-live="polite"></div><button type="button" data-copy="pin">Copy</button></div>
   <label style="display:block;font-size:12px;font-weight:800;margin:14px 0 6px">Recovery code (keep privately)</label>
   <div class="secret-row"><div id="issuedRecovery" class="secret small" aria-live="polite"></div><button type="button" data-copy="recovery">Copy</button></div>
-  <p class="muted">The guardian uses the PIN with the learner's permanent pupil code and registered phone number. The recovery code is needed only if the guardian later resets a forgotten PIN. This screen cannot retrieve either value after it is closed.</p>
+  <p class="muted">The guardian uses the PIN with the learner's permanent pupil code and registered phone number when the Parent Portal switch above is ON. The recovery code is needed only if the guardian later resets a forgotten PIN. This screen cannot retrieve either value after it is closed.</p>
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button id="closeCredentials" class="primary" type="button">Done — hide credentials</button></div>
  </section>
 </div>
@@ -126,6 +155,59 @@ async function loadContacts(){
  render();
  $('connection').textContent='Secure connection active · '+contacts.length+' active guardian contact(s) · checked '+when(new Date().toISOString());
 }
+let guardianPinRequiredSetting = false;
+function renderPortalSettings(updatedAt){
+  const toggle=$('guardianPinRequiredToggle');
+  toggle.checked=guardianPinRequiredSetting;
+  toggle.disabled=false;
+  toggle.setAttribute('aria-checked',String(guardianPinRequiredSetting));
+  $('guardianPinToggleWord').textContent=guardianPinRequiredSetting?'ON':'OFF';
+  const pending=contacts.filter(c=>c.is_active&&!pinStatus.get(c.contact_id)).length;
+  $('guardianPinSettingStatus').textContent=guardianPinRequiredSetting
+    ? 'ON — Guardian PIN is required in addition to pupil code and registered phone. '+pending+' active guardian contact(s) do not yet have a PIN.'
+    : 'OFF — parents use pupil code + registered guardian phone. Guardian PIN is not requested.';
+  $('guardianPinSettingStatus').style.background=guardianPinRequiredSetting?'#fff7ed':'#ecfdf3';
+  $('guardianPinSettingStatus').style.color=guardianPinRequiredSetting?'#9a3412':'#166534';
+  $('guardianPinSettingStatus').dataset.updatedAt=updatedAt||'';
+}
+async function loadPortalSettings(){
+  $('guardianPinSettingStatus').textContent='Checking the current Parent Portal setting…';
+  $('guardianPinRequiredToggle').disabled=true;
+  const {data,error}=await db.rpc('admin_get_parent_portal_security_settings');
+  if(error||!data||typeof data.guardian_pin_required!=='boolean')throw error||new Error('Parent Portal setting could not be read.');
+  guardianPinRequiredSetting=data.guardian_pin_required;
+  renderPortalSettings(data.updated_at);
+}
+async function setGuardianPinRequired(nextValue){
+  const previous=guardianPinRequiredSetting;
+  const next=nextValue===true;
+  if(next===previous){renderPortalSettings();return}
+  const pending=contacts.filter(c=>c.is_active&&!pinStatus.get(c.contact_id)).length;
+  const confirmation=next
+    ? 'Enable Guardian PIN for Parent Portal sign-in? The pupil code and registered phone will still be required. '+pending+' active guardian contact(s) do not yet have a PIN and will be unable to sign in until one is issued. Existing parent sessions will be signed out. Continue?'
+    : 'Disable the Guardian PIN requirement? Parents will sign in with the learner pupil code and registered phone number only. Existing PIN records will be kept. Continue?';
+  if(!window.confirm(confirmation)){
+    $('guardianPinRequiredToggle').checked=previous;
+    return;
+  }
+  $('guardianPinRequiredToggle').disabled=true;
+  $('guardianPinSettingStatus').textContent='Saving Parent Portal sign-in setting…';
+  try{
+    const {data,error}=await db.rpc('admin_set_parent_portal_guardian_pin_required',{p_required:next});
+    if(error)throw error;
+    if(!data||data.guardian_pin_required!==next)throw new Error('The Parent Portal setting was not confirmed by the database.');
+    guardianPinRequiredSetting=next;
+    renderPortalSettings(data.updated_at);
+    const revoked=Number(data.revoked_sessions||0);
+    toast(next
+      ? 'Guardian PIN requirement enabled. '+revoked+' existing parent session(s) signed out.'
+      : 'Guardian PIN requirement disabled. Existing PIN records remain saved.');
+  }catch(error){
+    guardianPinRequiredSetting=previous;
+    renderPortalSettings();
+    toast(error.message||'Could not update Parent Portal setting. Please try again.',true);
+  }
+}
 async function enterApp(nextUser){
  user=nextUser;
  const {data:account,error}=await db.from('user_profiles').select('id,full_name,role,employment_status,job_title').eq('id',user.id).maybeSingle();
@@ -133,6 +215,7 @@ async function enterApp(nextUser){
  profile=account;
  // This administrator-only RPC is the authoritative access check (the function also checks auth.uid()).
  await loadContacts();
+ await loadPortalSettings();
  $('loginCard').classList.add('hidden');$('app').classList.remove('hidden');$('signOut').classList.remove('hidden');
  $('who').textContent=(profile.full_name||user.email||'')+' · '+(profile.job_title||profile.role||'Staff');
 }
@@ -170,7 +253,8 @@ $('loginForm').addEventListener('submit',async e=>{
  try{await enterApp(data.user)}catch(err){await db.auth.signOut();showLogin('Administrator access is required to manage guardian PINs. '+(err.message||''))}
 });
 $('signOut').addEventListener('click',async()=>{closeCredentials();await db.auth.signOut();location.reload()});
-$('refresh').addEventListener('click',async()=>{try{await loadContacts();toast('Guardian contact register refreshed.')}catch(e){toast(e.message||'Refresh failed.',true)}});
+$('refresh').addEventListener('click',async()=>{try{await loadContacts();await loadPortalSettings();toast('Guardian contact register and Parent Portal settings refreshed.')}catch(e){toast(e.message||'Refresh failed.',true)}});
+$('guardianPinRequiredToggle').addEventListener('change',e=>setGuardianPinRequired(e.target.checked));
 $('search').addEventListener('input',render);
 $('contactList').addEventListener('click',e=>{const b=e.target.closest('[data-issue]');if(b)issuePin(b.dataset.issue)});
 $('credentialModal').addEventListener('click',e=>{if(e.target===$('credentialModal'))closeCredentials();const b=e.target.closest('[data-copy]');if(b)copySecret(b.dataset.copy)});
