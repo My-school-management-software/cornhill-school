@@ -46,7 +46,10 @@
     '#learnerDetailsWorkspace .lds-state{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:800;background:#ecfdf3;color:#166534;white-space:nowrap}',
     '#learnerDetailsWorkspace .lds-state.pending{background:#fff7e6;color:#92400e}',
     '#learnerDetailsWorkspace .lds-open{padding:7px 10px;border:1px solid var(--cornhill-line,#dce7de);border-radius:9px;background:var(--cornhill-panel,#fff);color:var(--cornhill-accent-dark,#14532d);font-size:11px;font-weight:850}',
-    '#learnerDetailsEditor{margin:14px 0 18px;padding:clamp(15px,2vw,24px);border:1px solid var(--cornhill-line,#dce7de);border-left:4px solid var(--cornhill-accent,#176b48);border-radius:17px;background:var(--cornhill-panel,#fff)}',
+    'body.lds-editor-open{overflow:hidden}',
+    'body.lds-editor-open::before{content:"";position:fixed;inset:0;z-index:999;background:rgba(11,25,17,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}',
+    '#learnerDetailsEditor{position:fixed;z-index:1000;top:50%;left:50%;transform:translate(-50%,-50%);width:min(920px,calc(100vw - 32px));max-height:min(90vh,860px);overflow:auto;overscroll-behavior:contain;margin:0;padding:clamp(15px,2vw,24px);border:1px solid var(--cornhill-line,#dce7de);border-left:4px solid var(--cornhill-accent,#176b48);border-radius:17px;background:var(--cornhill-panel,#fff);box-shadow:0 24px 80px rgba(0,0,0,.28)}',
+    '#learnerDetailsEditor:focus{outline:none}',
     '#learnerDetailsEditor .lds-editor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}',
     '#learnerDetailsEditor .lds-editor-head h3{margin:3px 0 4px}',
     '#learnerDetailsEditor .lds-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin-top:14px}',
@@ -55,12 +58,15 @@
     '#learnerDetailsEditor .lds-field label{display:block;font-size:12px;font-weight:800;margin:0 0 5px}',
     '#learnerDetailsEditor .lds-field input,#learnerDetailsEditor .lds-field select{width:100%;min-width:0;margin:0}',
     '#learnerDetailsEditor .lds-hint{font-size:11px;line-height:1.45;color:var(--cornhill-muted,#647568);margin-top:5px}',
-    '#learnerDetailsEditor .lds-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}',
+    '#learnerDetailsEditor .lds-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:15px}',
+    '#learnerDetailsEditor .lds-actions button{display:inline-flex!important;align-items:center;justify-content:center;width:auto!important;min-width:0!important;min-height:36px;padding:8px 12px!important;border-radius:9px;font-size:12px!important;line-height:1.2!important;font-weight:750;white-space:normal;flex:0 1 auto}',
+    '#learnerDetailsEditor .lds-actions button:disabled{opacity:.55;cursor:not-allowed}',
+    '#learnerDetailsEditor .lds-actions #learnerDetailsSave{font-weight:850}',
     '#learnerDetailsEditor .lds-note{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--cornhill-page,#f4f7f4);font-size:12px;line-height:1.5;color:var(--cornhill-muted,#647568)}',
     '#learnerDetailsEditor .lds-checkbox{display:flex;gap:8px;align-items:flex-start;font-size:12px;font-weight:650}',
     '#learnerDetailsEditor .lds-checkbox input{width:17px;height:17px;flex:0 0 auto;margin:1px 0 0}',
     '@media(max-width:900px){#learnerDetailsWorkspace .lds-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}',
-    '@media(max-width:620px){#learnerDetailsWorkspace .lds-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}#learnerDetailsEditor .lds-editor-grid{grid-template-columns:1fr}#learnerDetailsEditor .lds-field.full{grid-column:auto}#learnerDetailsWorkspace .lds-toolbar select{width:100%;min-width:0}}',
+    '@media(max-width:620px){#learnerDetailsWorkspace .lds-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}#learnerDetailsEditor{top:8px;left:8px;transform:none;width:calc(100vw - 16px);max-height:calc(100dvh - 16px);padding:14px;border-radius:14px}#learnerDetailsEditor .lds-editor-grid{grid-template-columns:1fr}#learnerDetailsEditor .lds-field.full{grid-column:auto}#learnerDetailsEditor .lds-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#learnerDetailsEditor .lds-actions button{width:100%!important;min-height:38px;padding:8px 9px!important}#learnerDetailsWorkspace .lds-toolbar select{width:100%;min-width:0}}',
     '@media print{body.lds-print-mode #app *{visibility:hidden!important}body.lds-print-mode #learnerDetailsWorkspace,body.lds-print-mode #learnerDetailsWorkspace *{visibility:visible!important}body.lds-print-mode #learnerDetailsWorkspace{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;box-shadow:none!important;border:0!important}body.lds-print-mode #learnerDetailsWorkspace .lds-toolbar button,body.lds-print-mode #learnerDetailsWorkspace .lds-open{display:none!important}body.lds-print-mode #learnerDetailsWorkspace table{min-width:0!important;font-size:9px!important}body.lds-print-mode #learnerDetailsWorkspace th,body.lds-print-mode #learnerDetailsWorkspace td{padding:5px!important}}'
   ].join('\n');
 
@@ -115,7 +121,7 @@
         '<tbody id="learnerDetailsSheetRows"><tr><td colspan="11">Learner records will appear after the register loads.</td></tr></tbody></table></div>' +
         '<p class="lds-note">Enter only information confirmed by the learner’s parent / guardian or an official school record. When only the year is known, enter the year and leave the exact date blank. Do not guess a day or month. Corrections to verified birth year or gender may regenerate the pupil code; the system keeps the old code linked to the learner’s history.</p>' +
       '</section>' +
-      '<section id="learnerDetailsEditor" class="hidden" aria-labelledby="learnerDetailsEditorTitle">' +
+      '<section id="learnerDetailsEditor" class="hidden" role="dialog" aria-modal="true" aria-labelledby="learnerDetailsEditorTitle" tabindex="-1">' +
         '<div class="lds-editor-head"><div><div class="lds-kicker">SELECTED LEARNER</div><h3 id="learnerDetailsEditorTitle">Complete learner information</h3><p id="learnerDetailsEditorMeta" class="muted" style="margin:0"></p><p id="learnerDetailsEditorPosition" class="muted" style="margin:4px 0 0"></p></div>' +
           '<div class="row" style="gap:7px;flex-wrap:wrap"><button type="button" id="learnerDetailsPrevious" class="tab">Previous learner</button><button type="button" id="learnerDetailsNext" class="tab">Next learner</button><button type="button" id="learnerDetailsClose" class="tab" aria-label="Close learner editor">Close editor</button></div></div>' +
         '<form id="learnerDetailsQuickForm">' +
@@ -150,6 +156,14 @@
     const quickForm = $('learnerDetailsQuickForm');
     let selectedId = null;
     let dirty = false;
+    let returnFocusElement = null;
+    function restoreEditorFocus() {
+      const target = returnFocusElement;
+      returnFocusElement = null;
+      if (target && target.isConnected && typeof target.focus === 'function') {
+        try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
+      }
+    }
     let syncing = false;
     let advancedVisible = false;
     const legacyBulkPanel = $('bulkPromotionPanel');
@@ -346,12 +360,17 @@
         if (!discard) return;
         await discardMainDraft();
       }
+      if (editor.classList.contains('hidden') && !editor.contains(document.activeElement)) {
+        returnFocusElement = document.activeElement;
+      }
       try {
         await prepareExistingEdit(learner);
         selectedId = id;
         dirty = false;
         editor.dataset.saving = '0';
         editor.classList.remove('hidden');
+        document.body.classList.add('lds-editor-open');
+        editor.setAttribute('aria-hidden', 'false');
         $('learnerDetailsEditorTitle').textContent = [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') || 'Complete learner information';
         $('learnerDetailsEditorMeta').textContent = (learner.admission_number || 'Temporary / no pupil code') + ' · ' +
           (learner.school_classes && learner.school_classes.name ? learner.school_classes.name : (st.classes.find(c => c.id === learner.class_id)?.name || 'Unassigned'));
@@ -364,7 +383,8 @@
         $('learnerDetailsSave').disabled = false;
         $('learnerDetailsSave').textContent = 'Save learner information';
         $('learnerDetailsSheetStatus').textContent = 'Editing ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. The class sheet remains available above.';
-        editor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        try { quickForm.elements.first_name.focus({ preventScroll: true }); }
+        catch (_) { quickForm.elements.first_name.focus(); }
       } catch (error) {
         if (typeof message === 'function') message('appMsg', 'Could not open learner information: ' + (error.message || 'Please refresh the register.'), true);
       }
@@ -389,6 +409,9 @@
       dirty = false;
       editor.dataset.saving = '0';
       editor.classList.add('hidden');
+      editor.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('lds-editor-open');
+      restoreEditorFocus();
     }
 
     function closeEditor(askDiscard) {
@@ -487,6 +510,12 @@
     $('learnerDetailsPrevious').addEventListener('click', () => moveToAdjacentLearner(-1));
     $('learnerDetailsNext').addEventListener('click', () => moveToAdjacentLearner(1));
     $('learnerDetailsClose').addEventListener('click', () => closeEditor(true));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !editor.classList.contains('hidden')) {
+        event.preventDefault();
+        closeEditor(true);
+      }
+    });
     $('learnerDetailsCancel').addEventListener('click', () => closeEditor(true));
     $('learnerDetailsFullEdit').addEventListener('click', () => {
       const id = selectedId;
@@ -554,7 +583,10 @@
         dirty = false;
         editor.dataset.saving = '0';
         editor.classList.add('hidden');
+        editor.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('lds-editor-open');
         if (nextId) window.setTimeout(() => openEditor(nextId), 80);
+        else restoreEditorFocus();
       }
       renderSheet();
     });
