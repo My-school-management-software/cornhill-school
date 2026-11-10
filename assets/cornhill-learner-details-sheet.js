@@ -35,7 +35,7 @@
     '#learnerDetailsWorkspace .lds-toolbar label{display:block;font-size:12px;font-weight:750;margin:0 0 5px}',
     '#learnerDetailsWorkspace .lds-toolbar select{min-width:220px;margin:0}',
     '#learnerDetailsWorkspace .lds-table-wrap{width:100%;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;border:1px solid var(--cornhill-line,#dce7de);border-radius:12px}',
-    '#learnerDetailsWorkspace table{width:100%;min-width:940px;border-collapse:collapse;font-size:12px}',
+    '#learnerDetailsWorkspace table{width:100%;min-width:1100px;border-collapse:collapse;font-size:12px}',
     '#learnerDetailsWorkspace th,#learnerDetailsWorkspace td{padding:10px 11px;text-align:left;vertical-align:top;border-bottom:1px solid var(--cornhill-line,#dce7de);overflow-wrap:anywhere}',
     '#learnerDetailsWorkspace th{position:sticky;top:0;background:var(--cornhill-page,#f4f7f4);color:var(--cornhill-muted,#647568);font-size:10px;text-transform:uppercase;letter-spacing:.05em}',
     '#learnerDetailsWorkspace tbody tr{cursor:pointer}',
@@ -144,7 +144,7 @@
             '<div class="lds-field full"><label class="lds-checkbox"><input type="checkbox" id="ldsSmsOptIn" name="guardian_sms_opt_in"> Parent / guardian has agreed to receive SMS notifications on this number.</label></div>' +
             '<div class="lds-field"><label for="ldsWhatsappPhone">Parent / guardian WhatsApp number</label><input id="ldsWhatsappPhone" name="guardian_whatsapp_phone" type="tel" maxlength="30" placeholder="+256…"></div>' +
             '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsWhatsappOptIn" name="guardian_whatsapp_opt_in"> Parent / guardian has agreed to receive school WhatsApp messages.</label></div>' +
-            '<div class="lds-field full" id="ldsBursaryArrangementField"><label for="ldsFeeArrangement">School fee arrangement</label><select id="ldsFeeArrangement"><option value="regular">Regular fees</option><option value="bursary">Bursary / sponsored learner</option></select><div id="ldsBursaryArrangementStatus" class="lds-hint" role="status">Loading the learner’s current bursary status…</div><button type="button" id="ldsOpenBursaryApproval" class="tab" hidden style="margin-top:9px">Open bursary approval</button><div class="lds-hint">Selecting bursary opens the approved Finance workflow. It does not directly change fees, receipts or previous payment allocations.</div></div>' +
+            '<div class="lds-field full" id="ldsBursaryArrangementField"><label for="ldsFeeArrangement">School fee arrangement</label><select id="ldsFeeArrangement"><option value="regular">Regular fees</option><option value="bursary">Bursary / sponsored learner</option></select><div id="ldsBursaryArrangementStatus" class="lds-hint" role="status">Loading the learner’s current bursary status…</div><button type="button" id="ldsOpenBursaryApproval" class="tab" hidden style="margin-top:9px">Open bursary approval</button><div class="lds-hint">Selecting bursary reveals an action to open the approved Finance workflow. It does not directly change fees, receipts or previous payment allocations.</div></div>' +
           '</div>' +
           '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="submit" id="learnerDetailsSaveNext" class="primary">Save &amp; open next learner</button><button type="button" id="learnerDetailsFullEdit" class="tab">Open full learner record</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
           '<p class="lds-note">Learner details are saved through the protected Learner Register. Bursary awards are managed separately through Finance approval so previous charges, receipts and payment allocations remain protected.</p>' +
@@ -269,6 +269,7 @@
         return;
       }
       if (dirty) {
+        $('ldsFeeArrangement').value = currentBursaryArrangement(state().students.find(x => x.id === selectedId)).value;
         $('ldsBursaryArrangementStatus').textContent = 'Save or cancel the learner information edits first. The bursary approval screen is separate so fee decisions are not mixed with profile edits.';
         $('ldsOpenBursaryApproval').hidden = true;
         return;
