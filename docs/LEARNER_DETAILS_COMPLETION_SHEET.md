@@ -8,8 +8,8 @@ The main administrator Learner Register includes a class-wise information comple
 2. Open **Learner register** and choose a class card (Baby, Middle, Top, P.1–P.7, a stream, or All learners).
 3. Use the existing register search to find a learner by name, pupil code or LIN.
 4. Use the information filter to show all learners or only learners missing a date/year of birth, parent/guardian name, contact details or LIN.
-5. Select a learner in the new **Learner information completion sheet**.
-6. Enter verified details and save. Use **Previous learner**, **Next learner**, or **Save & open next learner** to move through the class list while interviewing families. The editor remains in the register workspace; the full admission editor remains available for additional fields.
+5. Select a learner in the new **Learner information completion sheet**. A centered, keyboard-accessible editor opens for that exact learner; the class sheet remains in place and the page does not jump to the bottom.
+6. Enter verified details and save. Use **Previous learner**, **Next learner**, or **Save & open next learner** to move through the class list while interviewing families. The editor uses compact action buttons and can be closed with **Close editor**, **Cancel**, or Escape. The full admission editor remains available for additional fields.
 
 ## Information available in the quick editor
 - Learner's first, middle and last names and gender
