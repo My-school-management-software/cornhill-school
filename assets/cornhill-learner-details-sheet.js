@@ -139,7 +139,7 @@
             '<div class="lds-field"><label for="ldsAdmissionDate">Admission date</label><input id="ldsAdmissionDate" name="admission_date" type="date"></div>' +
             '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsBreakfast" name="takes_breakfast"> Takes breakfast</label></div>' +
             '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsLunch" name="takes_lunch"> Takes lunch</label></div>' +
-            '<div class="lds-field full" id="ldsFeePreview" aria-live="polite"><strong>Current-term fee estimate</strong><div class="lds-hint">Choose a class to view its school fees and meal / boarding package.</div></div>' +
+            '<div class="lds-field full" id="ldsFeePreview" aria-live="polite"><strong>Current-term fee estimate</strong><div class="lds-hint">Choose a class to view day fees or the complete boarding package.</div></div>' +
             '<div class="lds-field full"><label for="ldsPreviousSchool">Previous school (if any)</label><input id="ldsPreviousSchool" name="previous_school" maxlength="180"></div>' +
             '<div class="lds-field"><label for="ldsLin">Ministry LIN</label><input id="ldsLin" name="lin" maxlength="40" placeholder="Enter the official LIN"></div>' +
             '<div class="lds-field"><label for="ldsP7Index">P7 examination index number</label><input id="ldsP7Index" name="p7_index_number" maxlength="40"></div>' +
@@ -568,10 +568,16 @@
         ($('ldsFeeArrangement').value === 'bursary' && learner && learner.is_bursary
           ? Number(learner.bursary_fee_ugx) || amountFor('School fees') : amountFor('School fees'));
       const items = [];
-      if (schoolFee) items.push(['School fees' + (isAwarded || $('ldsFeeArrangement').value === 'bursary' ? ' / bursary payable' : ''), schoolFee]);
-      if (boarding && amountFor('Boarding')) items.push(['Boarding package', amountFor('Boarding')]);
-      if (!boarding && $('ldsBreakfast').checked && amountFor('Breakfast')) items.push(['Breakfast', amountFor('Breakfast')]);
-      if (!boarding && $('ldsLunch').checked && amountFor('Lunch')) items.push(['Lunch', amountFor('Lunch')]);
+      if (boarding) {
+        const packageAmount = isAwarded ? Number(currentAward.amount_payable_ugx) || 0 : amountFor('Boarding');
+        if (isAwarded || packageAmount) {
+          items.push(['Boarding package' + (isAwarded ? ' / bursary payable' : ' (includes school fees)'), packageAmount]);
+        }
+      } else {
+        if (schoolFee) items.push(['School fees' + (isAwarded || $('ldsFeeArrangement').value === 'bursary' ? ' / bursary payable' : ''), schoolFee]);
+        if ($('ldsBreakfast').checked && amountFor('Breakfast')) items.push(['Breakfast', amountFor('Breakfast')]);
+        if ($('ldsLunch').checked && amountFor('Lunch')) items.push(['Lunch', amountFor('Lunch')]);
+      }
       const total = items.reduce((sum, item) => sum + item[1], 0);
       host.innerHTML = '<strong>Current-term fee estimate · ' + htmlEscape(feeScheduleTermLabel) + '</strong>' +
         (items.length ? '<div class="lds-hint">' + items.map(item => '<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0"><span>' + htmlEscape(item[0]) + '</span><strong>' + htmlEscape(ugx(item[1])) + '</strong></div>').join('') +
@@ -580,7 +586,7 @@
       if ($('ldsFeeArrangement').value === 'bursary' && !currentAward) {
         host.insertAdjacentHTML('beforeend', '<div class="lds-hint">Bursary is selected but not yet approved. This estimate is provisional; the approved payable amount will be set in Finance.</div>');
       }
-      if (boarding) host.insertAdjacentHTML('beforeend', '<div class="lds-hint">Boarding includes breakfast and lunch; separate meal selections are disabled for boarders.</div>');
+      if (boarding) host.insertAdjacentHTML('beforeend', '<div class="lds-hint">The boarding package already includes school fees. It is the single total for a boarder; no separate school-fees charge is added.</div>');
     }
 
     function syncLearnerPackageControls() {
