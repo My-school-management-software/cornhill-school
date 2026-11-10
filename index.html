@@ -1055,6 +1055,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 @media(prefers-reduced-motion:reduce){.app-centre-card{transition:none}.app-centre-card:hover{transform:none}}
 </style>
 <link rel="stylesheet" href="/assets/cornhill-design-system.css">
+  <script src="/assets/cornhill-notification-routing.js"></script>
   <script src="/assets/cornhill-mark-import-mapping.js"></script>
 <script src="/assets/cornhill-appearance.js"></script> <script src="/assets/cornhill-offline.js"></script> <script src="/assets/cornhill-draft-crypto.js"></script>
 <script src="/assets/app-isolation-guard.js"></script></head>
@@ -2572,16 +2573,36 @@ $('notificationList')?.addEventListener('click',async e=>{
  if(!open)return;
  const n=(window.schoolNotifications||[]).find(x=>x.id===open.dataset.openNotification);
  if(!n)return;
+ const payload=n.action_payload&&typeof n.action_payload==='object'?n.action_payload:{};
  const owner=currentUserId,generation=window.cornhillSessionGeneration||0;
  const stillOwner=()=>!!owner&&currentUserId===owner&&generation===(window.cornhillSessionGeneration||0)&&!!profile;
- if(n.category==='bursary_review'&&profile?.role!=='Admin'){message('appMsg','Only an administrator can review bursary approvals.',true);return}
- try{await db.rpc('mark_school_notification_read',{p_notification_id:n.id})}catch(_){}
- if(!stillOwner())return;
- n.read_at=n.read_at||new Date().toISOString();
- const unreadNow=(window.schoolNotifications||[]).filter(item=>!item.read_at).length;
- const navBadge=$('notificationsNavBadge');if(navBadge){navBadge.textContent=String(unreadNow);navBadge.classList.toggle('hidden',unreadNow===0)}
- const currentCard=open.closest('[data-notification-card]');if(currentCard){currentCard.classList.add('is-read');const status=currentCard.querySelector('.notification-meta .muted');if(status)status.textContent='Read'}
- const notificationUrl=payload.url;
+ try{
+  if(n.category==='bursary_review'&&profile?.role!=='Admin'){message('appMsg','Only an administrator can review bursary approvals.',true);return}
+  const readResult=await db.rpc('mark_school_notification_read',{p_notification_id:n.id});
+  if(!stillOwner())return;
+  n.read_at=n.read_at||new Date().toISOString();
+  const unreadNow=(window.schoolNotifications||[]).filter(item=>!item.read_at).length;
+  const navBadge=$('notificationsNavBadge');
+  if(navBadge){navBadge.textContent=String(unreadNow);navBadge.classList.toggle('hidden',unreadNow===0)}
+  const currentCard=open.closest('[data-notification-card]');
+  if(currentCard){currentCard.classList.add('is-read');const status=currentCard.querySelector('.notification-meta .muted');if(status)status.textContent='Read'}
+  if(readResult?.error)message('appMsg','The notification was opened, but its read receipt could not be saved: '+readResult.error.message,true);
+
+  const route=window.CornhillNotificationRouting?.resolve(n,window.location.origin);
+  if(route?.kind==='navigate'&&route.href){window.location.href=route.href;return}
+  if(route?.kind==='workspace'){
+   if(route.workspace==='parentAccess'&&profile?.role!=='Admin'){message('appMsg','Parent and guardian portal onboarding is restricted to school administrators.',true);return}
+   tab(route.workspace);
+   if(route.workspace==='parentAccess'&&profile?.role==='Admin')await loadAdminParentPortalDirectory();
+   if(!stillOwner())return;
+   if(route.targetId)setTimeout(()=>{
+    if(!stillOwner())return;
+    const target=document.getElementById(route.targetId);
+    if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus?.({preventScroll:true})}
+   },250);
+   return;
+  }
+  const notificationUrl=payload.url;
   if(typeof notificationUrl==='string'){
    try{
     const targetUrl=new URL(notificationUrl,window.location.origin);
@@ -2591,49 +2612,61 @@ $('notificationList')?.addEventListener('click',async e=>{
     }
    }catch(_){}
   }
- if(n.student_id){
-  const learner=students.find(x=>x.id===n.student_id);
-  if(!learner){message('appMsg','The linked learner is not in this account’s permitted register. Refresh the learner records or ask an administrator to verify access.',true);return}
-  tab('students');studentRegisterClassFilter='all';if($('search'))$('search').value='';
-  if(n.category==='bursary_review'){window.pendingBursaryReviewStudentId=learner.id;window.pendingBursaryReviewNotificationId=n.id}
-  else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null}
-  render();
-  const target=document.querySelector('#studentRows .viewLearner[data-id="'+n.student_id+'"]');
-  if(target){target.click()}else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null;message('appMsg','The learner was found, but the register record could not be opened. Refresh the learner register and try Review again.',true)}
-  return;
- }
- const payload=n.action_payload&&typeof n.action_payload==='object'?n.action_payload:{};
- const assessmentId=payload.assessment_id||payload.assessmentId||null;
- if(assessmentId){
-  const assessment=(academic.assessments||[]).find(x=>x.id===assessmentId);
-  if(!assessment){message('appMsg','This academic review points to an assessment that is not loaded or is no longer available to this account. Refresh Academics or ask the administrator to verify the assignment.',true);return}
-  if(profile?.role==='Teacher'){
-   const allowedClasses=new Set(window.teacherClassIds||[]);
-   const permittedSubjectRows=Array.isArray(window.teacherAssignments)?window.teacherAssignments:(academic.classSubjects||[]);
-   const hasSubject=permittedSubjectRows.some(x=>x.class_id===assessment.class_id&&x.subject_id===assessment.subject_id);
-   if(!allowedClasses.has(assessment.class_id)||!hasSubject){message('appMsg','This assessment is outside your assigned teaching access.',true);return}
+  if(n.student_id){
+   const learner=students.find(x=>x.id===n.student_id);
+   if(!learner){message('appMsg','The linked learner is not in this account’s permitted register. Refresh the learner records or ask an administrator to verify access.',true);return}
+   tab('students');studentRegisterClassFilter='all';if($('search'))$('search').value='';
+   if(n.category==='bursary_review'){window.pendingBursaryReviewStudentId=learner.id;window.pendingBursaryReviewNotificationId=n.id}
+   else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null}
+   render();
+   const target=document.querySelector('#studentRows .viewLearner[data-id="'+n.student_id+'"]');
+   if(target){target.click()}else{window.pendingBursaryReviewStudentId=null;window.pendingBursaryReviewNotificationId=null;message('appMsg','The learner was found, but the register record could not be opened. Refresh the learner register and try Review again.',true)}
+   return;
   }
-  tab('academics');
-  const subjectSelector=$('scoreSubjectSelect');
-  if(subjectSelector){subjectSelector.value=assessment.class_id+'|'+assessment.subject_id;subjectSelector.dispatchEvent(new Event('change',{bubbles:true}))}
-  const selector=$('scoreAssessmentSelect');
-  if(selector){selector.value=assessmentId;selector.dispatchEvent(new Event('change',{bubbles:true}))}
-  setTimeout(()=>{
+  const assessmentId=payload.assessment_id||payload.assessmentId||null;
+  if(assessmentId){
+   const assessment=(academic.assessments||[]).find(x=>x.id===assessmentId);
+   if(!assessment){message('appMsg','This academic review points to an assessment that is not loaded or is no longer available to this account. Refresh Academics or ask the administrator to verify the assignment.',true);return}
+   if(profile?.role==='Teacher'){
+    const allowedClasses=new Set(window.teacherClassIds||[]);
+    const permittedSubjectRows=Array.isArray(window.teacherAssignments)?window.teacherAssignments:(academic.classSubjects||[]);
+    const hasSubject=permittedSubjectRows.some(x=>x.class_id===assessment.class_id&&x.subject_id===assessment.subject_id);
+    if(!allowedClasses.has(assessment.class_id)||!hasSubject){message('appMsg','This assessment is outside your assigned teaching access.',true);return}
+   }
+   tab('academics');
+   const subjectSelector=$('scoreSubjectSelect');
+   if(subjectSelector){subjectSelector.value=assessment.class_id+'|'+assessment.subject_id;subjectSelector.dispatchEvent(new Event('change',{bubbles:true}))}
+   const selector=$('scoreAssessmentSelect');
+   if(selector){selector.value=assessmentId;selector.dispatchEvent(new Event('change',{bubbles:true}))}
+   setTimeout(()=>{
+    if(!stillOwner())return;
+    const learnerId=payload.student_id||n.student_id;
+    const target=learnerId?document.querySelector('[data-bulk-score="'+CSS.escape(String(learnerId))+'"]'):null;
+    if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus({preventScroll:true})}
+    else if($('bulkMarkRows'))$('bulkMarkRows').scrollIntoView({behavior:'smooth',block:'center'});
+   },450);
+   return;
+  }
+  if(n.category==='attendance'&&n.source_id)window.pendingAttendanceNotificationSourceId=n.source_id;
+  const allowedWorkspaces=new Set(['dashboard','academics','students','staff','attendance','finance','communications','connect','media','settings','reports']);
+  const workspace=payload.workspace||n.action_workspace||'dashboard';
+  tab(allowedWorkspaces.has(workspace)?workspace:'dashboard');
+  const targetId=payload.target_id||payload.targetId;
+  if(typeof targetId==='string'&&/^[A-Za-z][A-Za-z0-9_:-]{0,79}$/.test(targetId)){
+   setTimeout(()=>{
+    if(!stillOwner())return;
+    const target=document.getElementById(targetId);
+    if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus?.({preventScroll:true})}
+   },350);
+  }
+  if(n.category==='attendance'&&n.source_id)setTimeout(()=>{
    if(!stillOwner())return;
-   const learnerId=payload.student_id||n.student_id;
-   const target=learnerId?document.querySelector('[data-bulk-score="'+CSS.escape(String(learnerId))+'"]'):null;
-   if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus({preventScroll:true})}
-   else if($('bulkMarkRows'))$('bulkMarkRows').scrollIntoView({behavior:'smooth',block:'center'});
-  },450);
-  return;
+   const target=[...document.querySelectorAll('[data-attendance-source-id]')].find(el=>el.dataset.attendanceSourceId===String(n.source_id));
+   if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.setAttribute('tabindex','-1');target.focus({preventScroll:true})}
+  },350);
+ }catch(error){
+  message('appMsg','Could not open this notification: '+(error?.message||'Please refresh and try again.'),true);
  }
- if(n.category==='attendance'&&n.source_id)window.pendingAttendanceNotificationSourceId=n.source_id;
- const allowedWorkspaces=new Set(['dashboard','academics','students','staff','attendance','finance','communications','connect','media','settings','reports']);
- const workspace=payload.workspace||n.action_workspace||'dashboard';
- tab(allowedWorkspaces.has(workspace)?workspace:'dashboard');
- const targetId=payload.target_id||payload.targetId;
- if(typeof targetId==='string'&&/^[A-Za-z][A-Za-z0-9_:-]{0,79}$/.test(targetId))setTimeout(()=>{if(!stillOwner())return;const target=document.getElementById(targetId);if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus?.({preventScroll:true})}},350);
- if(n.category==='attendance'&&n.source_id)setTimeout(()=>{if(!stillOwner())return;const target=[...document.querySelectorAll('[data-attendance-source-id]')].find(el=>el.dataset.attendanceSourceId===String(n.source_id));if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.setAttribute('tabindex','-1');target.focus({preventScroll:true})}},350);
 });
 $('notificationList')?.addEventListener('touchstart',e=>{
  const card=e.target.closest('[data-notification-card]');
