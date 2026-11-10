@@ -124,23 +124,15 @@ async function handle(req: Request) {
   const action = String(input.action || "");
 
   if (action === "verify") {
-    const code = String(input.pupil_code || "").trim();
     const phone = normalizePhone(String(input.phone || ""));
     const pin = String(input.pin || "");
-    if (!code || code.length > 32 || !phone || !/^\d{8}$/.test(pin)) return jsonError("Enter a valid pupil code, registered phone number and 8-digit PIN.");
-    const { data: learnerData, error: verifyError } = await db.rpc("parent_portal_get_learner_with_pin", {
-      p_pupil_code: code, p_registered_phone: phone, p_pin: pin
+    if (!phone || !/^\d{8}$/.test(pin)) return jsonError("Enter the registered guardian phone number and 8-digit PIN.");
+    const { data: learnerData, error: verifyError } = await db.rpc("parent_portal_get_learner_with_pin_by_phone", {
+      p_registered_phone: phone, p_pin: pin
     });
-    if (verifyError || learnerData?.error) return jsonError("Guardian verification failed. Check your details or contact the school office.",401);
+    if (verifyError || learnerData?.error) return jsonError("Guardian verification failed. Check your registered phone number and PIN, or contact the school office.",401);
     const learnerCode = learnerData?.learner?.pupil_code;
     if (!learnerCode) return jsonError("Guardian verification could not be completed.",401);
-    if (code.toUpperCase() !== String(learnerCode).toUpperCase()) {
-      learnerData.code_change_notice = {
-        previous_code_entered: code,
-        current_pupil_code: learnerCode,
-        message: "The code entered is an older school code that remains linked to this learner’s record. Please use the current permanent pupil code shown here for future sign-ins. The learner’s history and parent access remain linked."
-      };
-    }
     const { data: student, error: studentError } = await db.from("students").select("id").eq("admission_number",learnerCode).maybeSingle();
     if (studentError || !student) return jsonError("Guardian verification failed.",401);
     const { data: contact, error: contactError } = await db.from("parent_guardian_contacts")
@@ -165,39 +157,35 @@ async function handle(req: Request) {
     });
     learnerData.published_reports = reportTerms.filter((row:any)=>termStatus(row.term_id).cleared===true);
     learnerData.locked_reports = reportTerms.filter((row:any)=>termStatus(row.term_id).cleared!==true).map((row:any)=>({
-      term:row.term,academic_year:row.academic_year,lock_reason:termStatus(row.term_id).configured?"End-of-Term report is not available until required school fees are fully cleared.":"End-of-Term report is waiting for a complete school-fee account."
+      term:row.term,academic_year:row.academic_year,lock_reason:termStatus(row.term_id).configured?"End-of-Term report is not available until required school fees are fully cleared.":"End-of-Term report is waiting for the school's fee-clearance policy to be configured."
     }));
-    learnerData.teacher_history = academicHistory.teacher_history || [];
-    learnerData.class_history = academicHistory.class_history || [];
-    learnerData.fee_clearance = feeStatus;
-    const token = randomToken(), tokenHash = await sha256(token);
-    const expires = new Date(Date.now() + 2*60*60*1000).toISOString();
-    const ua = req.headers.get("user-agent") || "";
-    const { error: sessionError } = await db.from("parent_portal_sessions").insert({
-      token_hash: tokenHash, guardian_contact_id: contact.id, student_id: student.id,
-      expires_at: expires, user_agent_hash: await sha256(ua.slice(0,512))
+    const token=randomToken(),tokenHash=await sha256(token),expires=new Date(Date.now()+12*60*60*1000).toISOString();
+    const ua=req.headers.get("user-agent")||"";
+    const {error:sessionError}=await db.from("parent_portal_sessions").insert({
+      token_hash:tokenHash,guardian_contact_id:contact.id,student_id:student.id,
+      expires_at:expires,user_agent_hash:await sha256(ua.slice(0,512))
     });
-    if (sessionError) return jsonError("A secure parent session could not be created. Please try again.",503);
-    return reply({ session_token: token, expires_at: expires, learner: learnerData });
+    if(sessionError)return jsonError("A secure parent session could not be created. Please try again.",503);
+    return reply({session_token:token,expires_at:expires,learner:learnerData});
   }
 
   if (action === "reset-pin") {
-    const code = String(input.pupil_code || "").trim(), phone = normalizePhone(String(input.phone || ""));
+    const phone = normalizePhone(String(input.phone || ""));
     const recovery = String(input.recovery_code || "").trim(), nextPin = String(input.new_pin || "");
-    if (!code || !phone || !recovery || !/^\d{8}$/.test(nextPin)) return jsonError("Check the pupil code, registered number, recovery code and new 8-digit PIN.");
-    const { data, error } = await db.rpc("parent_reset_guardian_pin", {
-      p_pupil_code:code, p_registered_phone:phone, p_recovery_code:recovery, p_new_pin:nextPin
+    if (!phone || !recovery || !/^\d{8}$/.test(nextPin)) return jsonError("Check the registered phone number, recovery code and new 8-digit PIN.");
+    const { data, error } = await db.rpc("parent_reset_guardian_pin_by_phone", {
+      p_registered_phone:phone, p_recovery_code:recovery, p_new_pin:nextPin
     });
     if (error || data !== true) return jsonError("PIN reset failed. Check the registered number and recovery code, or contact the school office.",401);
     return reply({ success:true });
   }
 
   if (action === "change-pin") {
-    const code = String(input.pupil_code || "").trim(), phone = normalizePhone(String(input.phone || ""));
+    const phone = normalizePhone(String(input.phone || ""));
     const currentPin = String(input.current_pin || ""), nextPin = String(input.new_pin || "");
-    if (!code || !phone || !/^\d{8}$/.test(currentPin) || !/^\d{8}$/.test(nextPin)) return jsonError("Enter valid current and new 8-digit PINs.");
-    const { data, error } = await db.rpc("parent_change_guardian_pin", {
-      p_pupil_code:code, p_registered_phone:phone, p_current_pin:currentPin, p_new_pin:nextPin
+    if (!phone || !/^\d{8}$/.test(currentPin) || !/^\d{8}$/.test(nextPin)) return jsonError("Enter the registered phone number and valid current/new 8-digit PINs.");
+    const { data, error } = await db.rpc("parent_change_guardian_pin_by_phone", {
+      p_registered_phone:phone, p_current_pin:currentPin, p_new_pin:nextPin
     });
     if (error || data !== true) return jsonError("PIN could not be changed. Check your current PIN or contact the school office.",401);
     return reply({ success:true });
