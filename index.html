@@ -2578,7 +2578,9 @@ $('notificationList')?.addEventListener('click',async e=>{
  const stillOwner=()=>!!owner&&currentUserId===owner&&generation===(window.cornhillSessionGeneration||0)&&!!profile;
  try{
   if(n.category==='bursary_review'&&profile?.role!=='Admin'){message('appMsg','Only an administrator can review bursary approvals.',true);return}
-  const readResult=await db.rpc('mark_school_notification_read',{p_notification_id:n.id});
+  let readError=null;
+  try{const readResult=await db.rpc('mark_school_notification_read',{p_notification_id:n.id});readError=readResult?.error||null}
+  catch(error){readError=error}
   if(!stillOwner())return;
   n.read_at=n.read_at||new Date().toISOString();
   const unreadNow=(window.schoolNotifications||[]).filter(item=>!item.read_at).length;
@@ -2586,7 +2588,7 @@ $('notificationList')?.addEventListener('click',async e=>{
   if(navBadge){navBadge.textContent=String(unreadNow);navBadge.classList.toggle('hidden',unreadNow===0)}
   const currentCard=open.closest('[data-notification-card]');
   if(currentCard){currentCard.classList.add('is-read');const status=currentCard.querySelector('.notification-meta .muted');if(status)status.textContent='Read'}
-  if(readResult?.error)message('appMsg','The notification was opened, but its read receipt could not be saved: '+readResult.error.message,true);
+  if(readError)message('appMsg','The notification was opened, but its read receipt could not be saved: '+(readError.message||String(readError)),true);
 
   const route=window.CornhillNotificationRouting?.resolve(n,window.location.origin);
   if(route?.kind==='navigate'&&route.href){window.location.href=route.href;return}
