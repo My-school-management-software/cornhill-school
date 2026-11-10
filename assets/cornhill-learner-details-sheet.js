@@ -141,7 +141,7 @@
             '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsLunch" name="takes_lunch"> Takes lunch</label></div>' +
             '<div class="lds-field full" id="ldsFeePreview" aria-live="polite"><strong>Current-term fee estimate</strong><div class="lds-hint">Choose a class to view its school fees and meal / boarding package.</div></div>' +
             '<div class="lds-field full"><label for="ldsPreviousSchool">Previous school (if any)</label><input id="ldsPreviousSchool" name="previous_school" maxlength="180"></div>' +
-            '<div class="lds-field"><label for="ldsLin">Ministry LIN</label><input id="ldsLin" name="lin" maxlength="40" placeholder="Enter the official LIN"></div>'
+            '<div class="lds-field"><label for="ldsLin">Ministry LIN</label><input id="ldsLin" name="lin" maxlength="40" placeholder="Enter the official LIN"></div>' +
             '<div class="lds-field"><label for="ldsP7Index">P7 examination index number</label><input id="ldsP7Index" name="p7_index_number" maxlength="40"></div>' +
             '<div class="lds-field"><label for="ldsGuardian">Parent / guardian name</label><input id="ldsGuardian" name="guardian_name" maxlength="160" placeholder="Name of parent or guardian"></div>' +
             '<div class="lds-field"><label for="ldsRelationship">Relationship to learner</label><input id="ldsRelationship" name="guardian_relationship" maxlength="80" placeholder="Mother, Father, Guardian…"></div>' +
