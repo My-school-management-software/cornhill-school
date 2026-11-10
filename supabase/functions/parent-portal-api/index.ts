@@ -200,14 +200,32 @@ async function handle(req: Request) {
     learnerData.locked_reports = reportTerms.filter((row:any)=>termStatus(row.term_id).cleared!==true).map((row:any)=>({
       term:row.term,academic_year:row.academic_year,lock_reason:termStatus(row.term_id).configured?"End-of-Term report is not available until required school fees are fully cleared.":"End-of-Term report is waiting for the school's fee-clearance policy to be configured."
     }));
-    const token=randomToken(),tokenHash=await sha256(token),expires=new Date(Date.now()+12*60*60*1000).toISOString();
+    const token=randomToken(),tokenHash=await sha256(token);
     const ua=req.headers.get("user-agent")||"";
-    const {error:sessionError}=await db.from("parent_portal_sessions").insert({
-      token_hash:tokenHash,guardian_contact_id:contact.id,student_id:student.id,
-      expires_at:expires,user_agent_hash:await sha256(ua.slice(0,512))
+    // Session creation rechecks and locks the active PIN policy, guardian contact and
+    // learner status in one database transaction, closing policy/contact/archive races.
+    const {data:session,error:sessionError}=await db.rpc("parent_portal_create_session",{
+      p_token_hash:tokenHash,
+      p_guardian_contact_id:contact.id,
+      p_student_id:student.id,
+      p_registered_phone:phone,
+      p_user_agent_hash:await sha256(ua.slice(0,512)),
+      p_pin:pinRequired?pin:null
     });
     if(sessionError)return jsonError("A secure parent session could not be created. Please try again.",503);
-    return reply({session_token:token,expires_at:expires,learner:learnerData});
+    if(!session||session.ok!==true||!session.expires_at){
+      if(session?.code==="guardian_pin_required"){
+        return jsonError("The school’s Guardian PIN requirement or your PIN changed during sign-in. Refresh and enter the current 8-digit Guardian PIN to continue.",409);
+      }
+      if(session?.code==="guardian_contact_changed"){
+        return jsonError("The registered guardian contact changed during sign-in. Refresh the page and try again, or contact the school office.",409);
+      }
+      if(session?.code==="learner_unavailable"){
+        return jsonError("This learner record is no longer available for Parent Portal access. Contact the school office.",401);
+      }
+      return jsonError("Parent Portal sign-in settings could not be confirmed. Refresh the page and try again.",503);
+    }
+    return reply({session_token:token,expires_at:session.expires_at,learner:learnerData});
   }
 
   if (action === "reset-pin") {
