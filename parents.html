@@ -14,28 +14,15 @@
 <main class="wrap">
 <section class="card" id="loginCard">
 <h1>Parent & Guardian Sign In</h1>
-<p class="muted">Enter the guardian phone number registered with CORNHILL and the private 8-digit Guardian PIN issued by the school.</p><div class="notice" role="note"><strong>Temporary sign-in method:</strong> Use the guardian phone number registered with CORNHILL and the 8-digit Guardian PIN issued by the school. The learner pupil code is temporarily not required for sign-in. It remains stored in the learner’s school record and will be re-enabled only when the school authorises it.</div>
+<p class="muted">Enter the learner’s permanent pupil code and the guardian phone number registered with CORNHILL.</p>
+<div class="notice" role="note"><strong>Temporary sign-in method:</strong> The pupil code is mandatory. Use the registered guardian phone number for that learner. The separate Guardian PIN is temporarily inactive on this portal; existing PIN records are retained for future reactivation.</div>
+<label for="pupilCodeBeforeVerify">Learner pupil code</label><input id="pupilCodeBeforeVerify" autocomplete="off" maxlength="32" placeholder="Enter learner pupil code">
 <label for="phone">Registered guardian phone number</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+2567XXXXXXXX or 07XXXXXXXX">
-<label for="guardianPin">Guardian PIN</label><input id="guardianPin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="8-digit PIN">
 <button id="signInGuardian">View learner information</button>
-<button class="secondary" id="futureOtp" type="button" aria-disabled="true" style="margin-top:8px;background:#eef1ee;color:#667568">SMS OTP · Coming later</button>
 <div id="loginMessage" class="notice hidden" role="status"></div>
-<button class="secondary" id="showPinReset" type="button">Forgot PIN?</button>
-<div id="pinResetPanel" class="hidden"><h2>Reset Guardian PIN</h2><p class="muted">The recovery code is a separate one-time code issued by the school together with the guardian PIN. It is not the pupil code or phone number. If you were never given a recovery code, ask the school administrator to issue/reset your guardian credentials.</p>
-
-<label for="resetPhone">Registered guardian phone number</label><input id="resetPhone" type="tel" inputmode="tel" placeholder="+2567XXXXXXXX or 07XXXXXXXX">
-<label for="recoveryCode">Guardian recovery code</label><input id="recoveryCode">
-<label for="resetNewPin">New 8-digit PIN</label><input id="resetNewPin" type="password" inputmode="numeric" maxlength="8">
-<label for="resetConfirmPin">Confirm new PIN</label><input id="resetConfirmPin" type="password" inputmode="numeric" maxlength="8">
-<button id="resetPinButton" type="button">Confirm PIN reset</button><div id="resetMessage" class="notice hidden"></div></div>
 </section>
 
 <section id="learnerResult" class="hidden"></section>
-<section id="guardianPinSettings" class="card hidden"><h2>Guardian PIN settings</h2><p class="muted">Change your private PIN here. Do not share it with anyone.</p>
-<label for="currentGuardianPin">Current PIN</label><input id="currentGuardianPin" type="password" inputmode="numeric" maxlength="8">
-<label for="newGuardianPin">New 8-digit PIN</label><input id="newGuardianPin" type="password" inputmode="numeric" maxlength="8">
-<label for="confirmGuardianPin">Confirm new PIN</label><input id="confirmGuardianPin" type="password" inputmode="numeric" maxlength="8">
-<button id="changeGuardianPin" type="button">Change my PIN</button><div id="changePinMessage" class="notice hidden"></div></section>
 <section class="card hidden" id="parentMessages">
 <div class="row"><h2>Contact CORNHILL</h2><button class="secondary" id="signOut" type="button">Sign out</button></div><p class="muted">Send a private text message or a voice note to an active staff member or school administration. This is messaging only, not an audio or video call.</p>
 <label for="messageRecipient">Send to</label><select id="messageRecipient" style="width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:10px;font:inherit"><option value="administration">School Administration</option></select>
@@ -75,9 +62,31 @@ function ugx(v){return 'UGX '+Number(v||0).toLocaleString('en-UG')}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function table(headers,rows){if(!rows.length)return '<div class="empty">No published information is available yet.</div>';return '<div class="table-wrap"><table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>'}
 async function parentApi(action,payload={}){const headers={'Content-Type':'application/json'};if(parentSessionToken)headers.Authorization='Bearer '+parentSessionToken;const response=await fetch(PARENT_API,{method:'POST',headers,body:JSON.stringify({action,...payload})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Parent portal request failed');return data}
-async function signInGuardian(){const phone=normalizePhone(el('phone').value),pin=el('guardianPin').value.trim();if(!phone||!/^\d{8}$/.test(pin)){message('loginMessage','Enter the registered Ugandan guardian phone number and 8-digit PIN.','error');return}el('phone').value=phone;el('signInGuardian').disabled=true;try{const data=await parentApi('verify',{phone,pin});parentSessionToken=data.session_token;renderLearner(data.learner);el('loginCard').classList.add('hidden');el('guardianPinSettings').classList.remove('hidden');el('parentMessages').classList.remove('hidden');clearMessage('loginMessage');await Promise.all([loadParentPhoto(),loadParentDirectory(),loadParentMessages()])}catch(e){parentSessionToken=null;message('loginMessage',e.message||'Guardian verification failed. Check your details or contact the school office.','error')}finally{el('signInGuardian').disabled=false}}
-async function resetGuardianPin(){const phone=normalizePhone(el('resetPhone').value),recovery=el('recoveryCode').value.trim(),pin=el('resetNewPin').value,confirmPin=el('resetConfirmPin').value;if(!phone||!recovery||!/^\d{8}$/.test(pin)||pin!==confirmPin){message('resetMessage','Check the registered number, recovery code and matching 8-digit PINs.','error');return}el('resetPinButton').disabled=true;try{const data=await parentApi('reset-pin',{phone,recovery_code:recovery,new_pin:pin});if(data.success!==true)throw new Error('Recovery confirmation failed or access is temporarily locked. Contact the school office.');message('resetMessage','Your PIN has been reset. Sign in using your registered phone number and new PIN.','success');el('phone').value=phone;el('guardianPin').value=pin;el('pinResetPanel').classList.add('hidden')}catch(e){message('resetMessage','PIN reset failed. Check the registered number and recovery code, or contact the school office.','error')}finally{el('resetPinButton').disabled=false}}
-async function changeGuardianPin(){const phone=normalizePhone(el('phone').value),current=el('currentGuardianPin').value,next=el('newGuardianPin').value,confirmPin=el('confirmGuardianPin').value;if(!phone||!/^\d{8}$/.test(next)||next!==confirmPin){message('changePinMessage','Enter a valid registered phone number and matching new 8-digit PINs.','error');return}try{const data=await parentApi('change-pin',{phone,current_pin:current,new_pin:next});if(data.success!==true)throw new Error('Current PIN is incorrect or access is temporarily locked.');parentSessionToken=null;clearVoiceNote();el('learnerResult').classList.add('hidden');el('parentMessages').classList.add('hidden');el('parentSchoolContacts').classList.add('hidden');el('guardianPinSettings').classList.add('hidden');el('loginCard').classList.remove('hidden');el('guardianPin').value=next;el('currentGuardianPin').value='';el('newGuardianPin').value='';el('confirmGuardianPin').value='';message('loginMessage','Your PIN has been changed. Other sessions have been signed out. Sign in again using your registered phone number and new PIN.','success')}catch(e){message('changePinMessage','PIN could not be changed. Check your current PIN or contact the school office.','error')}}
+async function signInGuardian(){
+  const code=el('pupilCodeBeforeVerify').value.trim();
+  const phone=normalizePhone(el('phone').value);
+  if(!code||code.length>32||!phone){
+    message('loginMessage','Enter the learner pupil code and the registered guardian phone number.','error');
+    return;
+  }
+  el('pupilCodeBeforeVerify').value=code;
+  el('phone').value=phone;
+  el('signInGuardian').disabled=true;
+  try{
+    const data=await parentApi('verify',{pupil_code:code,phone});
+    parentSessionToken=data.session_token;
+    renderLearner(data.learner);
+    el('loginCard').classList.add('hidden');
+    el('parentMessages').classList.remove('hidden');
+    clearMessage('loginMessage');
+    await Promise.all([loadParentPhoto(),loadParentDirectory(),loadParentMessages()]);
+  }catch(e){
+    parentSessionToken=null;
+    message('loginMessage',e.message||'Guardian verification failed. Check the learner code and registered phone number, or contact the school office.','error');
+  }finally{
+    el('signInGuardian').disabled=false;
+  }
+}
 function renderLearner(d){
 const l=d.learner||{},name=[l.first_name,l.middle_name,l.last_name].filter(Boolean).join(' '),codeNotice=d.code_change_notice?'<div class="notice warn" role="alert"><strong>Important: learner pupil code updated</strong><p>'+escapeHtml(d.code_change_notice.message)+'</p><p>Previous code entered: <strong>'+escapeHtml(d.code_change_notice.previous_code_entered)+'</strong><br>Current pupil code: <strong>'+escapeHtml(d.code_change_notice.current_pupil_code)+'</strong></p></div>':'';
 const academic=(d.assessments||[]).map(a=>'<tr><td>'+escapeHtml(a.academic_year)+' · '+escapeHtml(a.term)+'</td><td>'+escapeHtml(a.class_name)+'</td><td>'+escapeHtml(a.subject)+'</td><td>'+escapeHtml(a.assessment)+' ('+escapeHtml(a.assessment_type)+')</td><td>'+escapeHtml(a.score)+' / '+escapeHtml(a.maximum_score)+'</td><td>'+escapeHtml(a.teacher_name||'Teacher not recorded')+'</td><td>'+escapeHtml(a.teacher_comment)+'</td></tr>');
@@ -117,8 +126,23 @@ function clearVoiceNote(){voiceBlob=null;voiceDurationSeconds=0;el('voicePreview
 async function startVoiceRecording(){if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){message('messageStatus','Voice recording is not supported by this browser. You can still send a typed message.','error');return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const candidates=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];const mime=candidates.find(t=>MediaRecorder.isTypeSupported(t));if(!mime){stream.getTracks().forEach(t=>t.stop());message('messageStatus','This browser does not provide a supported voice-note format. Please type your message.','error');return}voiceChunks=[];voiceRecorder=new MediaRecorder(stream,{mimeType:mime});voiceStartedAt=Date.now();voiceRecorder.ondataavailable=e=>{if(e.data?.size)voiceChunks.push(e.data)};voiceRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());voiceDurationSeconds=Math.max(1,Math.round((Date.now()-voiceStartedAt)/1000));voiceBlob=new Blob(voiceChunks,{type:voiceRecorder.mimeType.split(';')[0]});if(voiceBlob.size>4194304){clearVoiceNote();message('messageStatus','That recording exceeded 4 MB. Please record a shorter voice note.','error');return}el('voicePreview').src=URL.createObjectURL(voiceBlob);el('voicePreview').classList.remove('hidden');el('clearVoice').classList.remove('hidden');el('voiceStatus').textContent='Voice note ready · '+Math.round(voiceBlob.size/1024)+' KB'};voiceRecorder.start();el('startVoice').classList.add('hidden');el('stopVoice').classList.remove('hidden');el('voiceStatus').textContent='Recording… maximum 3 minutes';voiceTimer=setTimeout(()=>stopVoiceRecording(),180000)}catch(e){message('messageStatus','Microphone permission was not granted. You can still send a typed message.','error')}}
 function stopVoiceRecording(){if(voiceTimer)clearTimeout(voiceTimer);voiceTimer=null;if(voiceRecorder&&voiceRecorder.state!=='inactive')voiceRecorder.stop();el('startVoice').classList.remove('hidden');el('stopVoice').classList.add('hidden')}
 
-el('signInGuardian').addEventListener('click',signInGuardian);el('sendParentMessage').addEventListener('click',sendParentMessage);el('startVoice').addEventListener('click',startVoiceRecording);el('stopVoice').addEventListener('click',stopVoiceRecording);el('clearVoice').addEventListener('click',clearVoiceNote);el('changeGuardianPin').addEventListener('click',changeGuardianPin);el('resetPinButton').addEventListener('click',resetGuardianPin);el('showPinReset').addEventListener('click',()=>el('pinResetPanel').classList.toggle('hidden'));el('futureOtp').addEventListener('click',()=>message('loginMessage','SMS OTP will be available in a future CORNHILL upgrade. Please use Guardian PIN for now.'));el('signOut').addEventListener('click',async()=>{try{if(parentSessionToken)await parentApi('signout')}catch(e){}parentSessionToken=null;clearVoiceNote();el('learnerResult').classList.add('hidden');el('parentMessages').classList.add('hidden');el('parentSchoolContacts').classList.add('hidden');el('guardianPinSettings').classList.add('hidden');el('loginCard').classList.remove('hidden');el('phone').value='';el('guardianPin').value='';});
-// Guardian PIN verification is handled by the protected server-side RPC. SMS OTP remains inactive.
+el('signInGuardian').addEventListener('click',signInGuardian);
+el('sendParentMessage').addEventListener('click',sendParentMessage);
+el('startVoice').addEventListener('click',startVoiceRecording);
+el('stopVoice').addEventListener('click',stopVoiceRecording);
+el('clearVoice').addEventListener('click',clearVoiceNote);
+el('signOut').addEventListener('click',async()=>{
+  try{if(parentSessionToken)await parentApi('signout')}catch(e){}
+  parentSessionToken=null;
+  clearVoiceNote();
+  el('learnerResult').classList.add('hidden');
+  el('parentMessages').classList.add('hidden');
+  el('parentSchoolContacts').classList.add('hidden');
+  el('loginCard').classList.remove('hidden');
+  el('pupilCodeBeforeVerify').value='';
+  el('phone').value='';
+});
+// Parent sign-in temporarily requires the learner pupil code and registered guardian phone only.
 
 let parentInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();parentInstallPrompt=event;el('installParentPortal').classList.remove('hidden')});
