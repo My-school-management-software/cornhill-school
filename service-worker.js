@@ -1,9 +1,9 @@
-/* CORNHILL preview refresh: learner class and fee package editor. */
+/* CORNHILL preview refresh: guardian phone + PIN sign-in and admission PIN issuance. */
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
-const CACHE_NAME = 'cornhill-shell-v86';
-const STATIC_CACHE = 'cornhill-static-v86';
+const CACHE_NAME = 'cornhill-shell-v87';
+const STATIC_CACHE = 'cornhill-static-v87';
 const SHELL = [
   '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
   '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
