@@ -124,13 +124,31 @@ async function handle(req: Request) {
   const action = String(input.action || "");
 
   if (action === "verify") {
+    const code = String(input.pupil_code || "").trim();
     const phone = normalizePhone(String(input.phone || ""));
-    const pin = String(input.pin || "");
-    if (!phone || !/^\d{8}$/.test(pin)) return jsonError("Enter the registered guardian phone number and 8-digit PIN.");
-    const { data: learnerData, error: verifyError } = await db.rpc("parent_portal_get_learner_with_pin_by_phone", {
-      p_registered_phone: phone, p_pin: pin
-    });
-    if (verifyError || learnerData?.error) return jsonError("Guardian verification failed. Check your registered phone number and PIN, or contact the school office.",401);
+    let learnerData: any;
+    let verifyError: any = null;
+
+    if (code) {
+      if (!phone || code.length > 32) return jsonError("Enter the learner pupil code and registered guardian phone number.",400);
+      const result = await db.rpc("parent_portal_get_learner_by_code_and_phone", {
+        p_pupil_code: code,
+        p_registered_phone: phone
+      });
+      learnerData = result.data;
+      verifyError = result.error;
+    } else {
+      // Compatibility path for the previously deployed portal until the corrected preview is approved.
+      const pin = String(input.pin || "");
+      if (!phone || !/^\d{8}$/.test(pin)) return jsonError("Enter the registered guardian phone number and 8-digit PIN.",400);
+      const result = await db.rpc("parent_portal_get_learner_with_pin_by_phone", {
+        p_registered_phone: phone, p_pin: pin
+      });
+      learnerData = result.data;
+      verifyError = result.error;
+    }
+
+    if (verifyError || learnerData?.error) return jsonError("Guardian verification failed. Check the learner code and registered phone number, or contact the school office.",401);
     const learnerCode = learnerData?.learner?.pupil_code;
     if (!learnerCode) return jsonError("Guardian verification could not be completed.",401);
     const { data: student, error: studentError } = await db.from("students").select("id").eq("admission_number",learnerCode).maybeSingle();
