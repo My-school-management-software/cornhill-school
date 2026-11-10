@@ -61,6 +61,7 @@
     '#learnerDetailsEditor .lds-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:15px}',
     '#learnerDetailsEditor .lds-actions button{display:inline-flex!important;align-items:center;justify-content:center;width:auto!important;min-width:0!important;min-height:36px;padding:8px 12px!important;border-radius:9px;font-size:12px!important;line-height:1.2!important;font-weight:750;white-space:normal;flex:0 1 auto}',
     '#learnerDetailsEditor .lds-actions button:disabled{opacity:.55;cursor:not-allowed}',
+    '#learnerDetailsEditor #ldsOpenBursaryApproval:disabled{opacity:.55;cursor:not-allowed}',
     '#learnerDetailsEditor .lds-actions #learnerDetailsSave{font-weight:850}',
     '#learnerDetailsEditor .lds-note{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--cornhill-page,#f4f7f4);font-size:12px;line-height:1.5;color:var(--cornhill-muted,#647568)}',
     '#learnerDetailsEditor .lds-checkbox{display:flex;gap:8px;align-items:flex-start;font-size:12px;font-weight:650}',
@@ -185,6 +186,8 @@
     let activeBursaryAwardsLoading = false;
     let activeBursaryAwardsError = null;
     let activeBursaryAwardsOwner = null;
+    let bursaryApprovalOpening = false;
+    let bursaryReturnLearnerId = null;
 
     function currentBursaryArrangement(learner) {
       if (!activeBursaryAwardsLoaded || activeBursaryAwardsError || activeBursaryAwardsOwner !== state().userId) {
@@ -223,6 +226,8 @@
       select.dataset.currentValue = current.value;
       note.textContent = current.label + '. ' + current.description;
       action.hidden = true;
+      action.disabled = false;
+      action.textContent = 'Open bursary approval';
     }
 
     async function refreshBursaryAwards() {
@@ -262,16 +267,18 @@
     }
 
     async function openExistingBursaryApproval() {
-      if (!selectedId || state().role !== 'Admin' || state().demo) return;
+      const action = $('ldsOpenBursaryApproval');
+      const note = $('ldsBursaryArrangementStatus');
+      if (!selectedId || state().role !== 'Admin' || state().demo || bursaryApprovalOpening) return;
       if (!activeBursaryAwardsLoaded || activeBursaryAwardsError) {
-        $('ldsBursaryArrangementStatus').textContent = 'The current bursary register has not been verified. Refresh the learner register or check Finance before starting a new award.';
-        $('ldsOpenBursaryApproval').hidden = true;
+        note.textContent = 'The current bursary register has not been verified. Refresh the learner register or check Finance before starting a new award.';
+        action.hidden = true;
         return;
       }
       if (dirty) {
         $('ldsFeeArrangement').value = currentBursaryArrangement(state().students.find(x => x.id === selectedId)).value;
-        $('ldsBursaryArrangementStatus').textContent = 'Save or cancel the learner information edits first. The bursary approval screen is separate so fee decisions are not mixed with profile edits.';
-        $('ldsOpenBursaryApproval').hidden = true;
+        note.textContent = 'Save or cancel the learner information edits first. The bursary approval screen is separate so fee decisions are not mixed with profile edits.';
+        action.hidden = true;
         return;
       }
       const learner = state().students.find(x => x.id === selectedId);
@@ -280,6 +287,16 @@
         updateBursaryEditor(learner);
         return;
       }
+      if (!learner.class_id) {
+        action.hidden = false;
+        action.disabled = true;
+        action.textContent = 'Assign class first';
+        note.textContent = 'Bursary approval has not started. This learner has no class assigned. Use “Open full learner record” below, assign the correct class, save the learner, then return here. Finance needs the class to identify the correct current-term fee. No bursary has been recorded.';
+        return;
+      }
+      bursaryApprovalOpening = true;
+      action.disabled = true;
+      action.textContent = 'Opening Finance…';
       try {
         if (typeof loadFinance === 'function') await loadFinance();
         const select = $('existingBursaryStudent');
@@ -287,6 +304,7 @@
         const option = Array.from(select.options).find(item => item.value === learner.id);
         if (!option) throw new Error('Finance did not return this active learner. Refresh the learner register and try again.');
         select.value = learner.id;
+        bursaryReturnLearnerId = learner.id;
         closeEditor(false);
         if (typeof tab === 'function') tab('finance');
         window.setTimeout(() => {
@@ -296,10 +314,19 @@
           if (form) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
           const category = $('existingBursaryCategory');
           if (category) category.focus({ preventScroll: true });
-          if (typeof message === 'function') message('financeMsg', 'Selected ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. Complete the approved bursary details and submit to record the award. No change has been made yet.');
+          if (typeof message === 'function') message('financeMsg', 'Selected ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. Complete the approved bursary details and submit to record the award. The learner sheet will reopen after a successful approval.');
         }, 450);
       } catch (error) {
+        bursaryReturnLearnerId = null;
+        action.disabled = false;
+        action.textContent = 'Open bursary approval';
         if (typeof message === 'function') message('appMsg', 'Could not open bursary approval: ' + (error.message || 'Please try again.'), true);
+      } finally {
+        bursaryApprovalOpening = false;
+        if (editor.contains(action) && !editor.classList.contains('hidden')) {
+          action.disabled = false;
+          if (action.textContent === 'Opening Finance…') action.textContent = 'Open bursary approval';
+        }
       }
     }
 
@@ -564,15 +591,37 @@
         return;
       }
       if (event.target.value === 'bursary' && current.value === 'regular') {
+        const learner = state().students.find(x => x.id === selectedId);
         action.hidden = false;
+        if (!learner || !learner.class_id) {
+          action.disabled = true;
+          action.textContent = 'Assign class first';
+          note.textContent = 'This learner has not been assigned to a class. Before approving a bursary, use “Open full learner record” below to assign the correct class and save. The Finance system needs the class to calculate the correct current-term fee. No approval has been submitted.';
+          return;
+        }
+        action.disabled = false;
+        action.textContent = 'Open bursary approval';
         note.textContent = 'Bursary / sponsored learner selected. Open the Finance approval form below and complete the effective dates, category, approved payable amount and reason. The learner remains on regular fees until that approval is submitted.';
         return;
       }
       action.hidden = true;
+      action.disabled = false;
+      action.textContent = 'Open bursary approval';
       note.textContent = current.label + '. ' + current.description;
     });
     $('ldsOpenBursaryApproval').addEventListener('click', openExistingBursaryApproval);
-    window.addEventListener('cornhill:bursary-award-updated', refreshBursaryAwards);
+    window.addEventListener('cornhill:bursary-award-updated', async () => {
+      const returnLearnerId = bursaryReturnLearnerId;
+      await refreshBursaryAwards();
+      if (!returnLearnerId) return;
+      bursaryReturnLearnerId = null;
+      if (typeof tab === 'function') tab('students');
+      window.setTimeout(() => {
+        const learner = state().students.find(item => item.id === returnLearnerId);
+        if (learner) openEditor(returnLearnerId);
+        else if (typeof message === 'function') message('appMsg', 'The bursary was recorded, but this learner is no longer available in the active register. Refresh the register to continue.');
+      }, 180);
+    });
 
     quickForm.addEventListener('input', event => {
       if (syncing) return;
