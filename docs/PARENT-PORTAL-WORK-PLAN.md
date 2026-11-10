@@ -14,6 +14,14 @@ Last updated: 10 November 2026
 - [x] Staff and administrator authentication, staff PINs, and all other application sign-in systems are unchanged.
 - [x] Server verification always checks the learner's permanent or recorded historical pupil code against the registered, active guardian phone contact. Archived learners remain blocked; repeated wrong code/phone pairs are throttled.
 
+## Atomic parent-session security
+
+- [x] Parent Portal session creation now locks the current Guardian PIN setting while it writes the session. This serializes a sign-in against an administrator enabling the PIN requirement: either the session is created first and then revoked by the setting change, or the sign-in sees the new ON setting and must verify the PIN.
+- [x] Session issuance rechecks the active registered guardian contact and learner archive status in the same transaction.
+- [x] When Guardian PIN is ON, the session transaction verifies the current PIN hash again under the guardian-contact row lock, preventing a PIN reset/change during sign-in from issuing a session with the old PIN.
+- [x] The session-creation database function is executable only by the server service role; the browser cannot call it directly.
+- [x] Automated regression coverage checks the policy-row lock, contact/learner locks, server-side PIN recheck, and restricted function privileges.
+
 ## How to operate the switch
 
 1. Sign in with an active administrator account.
