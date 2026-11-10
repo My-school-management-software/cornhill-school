@@ -126,10 +126,23 @@ async function handle(req: Request) {
   if (action === "verify") {
     const code = String(input.pupil_code || "").trim();
     const phone = normalizePhone(String(input.phone || ""));
+    const pin = String(input.pin || "");
+    const origin = req.headers.get("origin") || "";
+    const isPreviewOrigin = /^https:\/\/cornhill-school-[a-z0-9-]+-cypher-projects1\.vercel\.app$/.test(origin);
     let learnerData: any;
     let verifyError: any = null;
 
-    if (code) {
+    if (code && pin) {
+      // Stable production compatibility: keep the established code + phone + Guardian PIN check.
+      if (!phone || code.length > 32 || !/^\d{8}$/.test(pin)) return jsonError("Enter the learner pupil code, registered guardian phone number and 8-digit PIN.",400);
+      const result = await db.rpc("parent_portal_get_learner_with_pin", {
+        p_pupil_code: code, p_registered_phone: phone, p_pin: pin
+      });
+      learnerData = result.data;
+      verifyError = result.error;
+    } else if (code) {
+      // Temporary pupil-code + phone-only access is available only on a protected Vercel preview.
+      if (!isPreviewOrigin) return jsonError("This temporary sign-in method is available only on the Parent Portal test preview.",403);
       if (!phone || code.length > 32) return jsonError("Enter the learner pupil code and registered guardian phone number.",400);
       const result = await db.rpc("parent_portal_get_learner_by_code_and_phone", {
         p_pupil_code: code,
@@ -138,8 +151,7 @@ async function handle(req: Request) {
       learnerData = result.data;
       verifyError = result.error;
     } else {
-      // Compatibility path for the previously deployed portal until the corrected preview is approved.
-      const pin = String(input.pin || "");
+      // Compatibility for the intermediate phone + PIN preview.
       if (!phone || !/^\d{8}$/.test(pin)) return jsonError("Enter the registered guardian phone number and 8-digit PIN.",400);
       const result = await db.rpc("parent_portal_get_learner_with_pin_by_phone", {
         p_registered_phone: phone, p_pin: pin
@@ -151,6 +163,13 @@ async function handle(req: Request) {
     if (verifyError || learnerData?.error) return jsonError("Guardian verification failed. Check the learner code and registered phone number, or contact the school office.",401);
     const learnerCode = learnerData?.learner?.pupil_code;
     if (!learnerCode) return jsonError("Guardian verification could not be completed.",401);
+    if (code && code.toUpperCase() !== String(learnerCode).toUpperCase()) {
+      learnerData.code_change_notice = {
+        previous_code_entered: code,
+        current_pupil_code: learnerCode,
+        message: "The code entered is an older school code that remains linked to this learner’s record. Please use the current permanent pupil code shown here for future sign-ins. The learner’s history and parent access remain linked."
+      };
+    }
     const { data: student, error: studentError } = await db.from("students").select("id").eq("admission_number",learnerCode).maybeSingle();
     if (studentError || !student) return jsonError("Guardian verification failed.",401);
     const { data: contact, error: contactError } = await db.from("parent_guardian_contacts")
