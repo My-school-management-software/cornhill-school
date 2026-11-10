@@ -41,3 +41,23 @@ Last updated: 10 November 2026
 - [ ] Test siblings sharing one phone; each pupil code must open only its matching learner.
 - [ ] Verify parent profile, LIN, published results, fee balances, approved reports, parent messages, learner photo, and sign-out.
 - [ ] Verify the setting page is visible only to an active administrator and the database rejects setting changes from other roles.
+
+
+## Guardian contact data repair — 10 November 2026
+
+- [x] Audited all 486 non-archived learner records for guardian names and phone numbers.
+- [x] Created and reconciled active primary Parent Portal links for all 8 learners whose existing register records contain both a guardian name and a valid Ugandan phone number.
+- [x] Confirmed all 8 repaired links match the source learner's normalized registered phone and permanent pupil code.
+- [x] Executed the server-side code + phone verification function against all 8 repaired pairs with the Guardian PIN requirement OFF; all 8 returned their matching learner records. Test login-attempt writes were rolled back.
+- [x] Deactivated 2 previously active guardian links that belonged to archived learners. Credential hashes were retained; archived learners remain blocked.
+- [x] Added a database trigger so future learner admissions and changes to guardian name/phone automatically synchronize the primary guardian link. Invalid or incomplete source details do not create a fabricated guardian identity.
+- [x] Added automatic guardian-link deactivation when a learner is archived.
+- [x] Enabled row-level security on private parent login-attempt records and removed browser-role table access; the server service role retains the required access.
+- [x] Added regression tests for phone normalization, admission sync, contact changes, archive handling, messaging-consent defaults, and login-attempt security.
+- [x] GitHub Actions regression suite passed: 172 tests, 0 failures.
+- [x] Vercel preview for the updated branch is READY.
+- [ ] Three active learner records have a guardian phone but no guardian name; the school must confirm the correct guardian names before they can be linked.
+- [ ] The remaining 475 active learner records have no registered guardian phone; the school must collect and verify the guardian contact details before Parent Portal access can be enabled for them.
+- [ ] Complete manual sign-in checks on Android and desktop browsers, including the specific P.2 learner and published marks/results.
+
+The current Guardian PIN requirement remains **OFF**. No SMS or WhatsApp consent was enabled by this repair.
