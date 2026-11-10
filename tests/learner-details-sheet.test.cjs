@@ -32,8 +32,8 @@ test('the class sheet supports DOB, verified birth year, guardian details and sa
 
 test('offline app shell includes the new learner details sheet and refreshes old caches', () => {
   const sw = read('service-worker.js');
-  assert.match(sw, /cornhill-shell-v81/);
-  assert.match(sw, /cornhill-static-v81/);
+  assert.match(sw, /cornhill-shell-v82/);
+  assert.match(sw, /cornhill-static-v82/);
   assert.ok(sw.includes('/assets/cornhill-learner-details-sheet.js'));
 });
 
@@ -62,20 +62,66 @@ test('class-sheet data entry supports previous, next and validated save-and-next
 test('select opens the same learner in a centered accessible editor instead of jumping below the sheet', () => {
   const source = read('assets/cornhill-learner-details-sheet.js');
   assert.match(source, /role="dialog" aria-modal="true" aria-hidden="true"/);
-  assert.match(source, /#learnerDetailsEditor\\{position:fixed/);
-  assert.match(source, /body\\.lds-editor-open::before/);
-  assert.match(source, /document\\.body\\.classList\\.add\\('lds-editor-open'\\)/);
-  assert.match(source, /quickForm\\.elements\\.first_name\\.focus/);
-  assert.doesNotMatch(source, /editor\\.scrollIntoView/);
-  assert.match(source, /event\\.key === 'Escape'/);
-  assert.match(source, /event\\.key === 'Tab'/);
+  assert.match(source, /#learnerDetailsEditor\{position:fixed/);
+  assert.match(source, /body\.lds-editor-open::before/);
+  assert.match(source, /document\.body\.classList\.add\('lds-editor-open'\)/);
+  assert.match(source, /quickForm\.elements\.first_name\.focus/);
+  assert.doesNotMatch(source, /editor\.scrollIntoView/);
+  assert.match(source, /event\.key === 'Escape'/);
+  assert.match(source, /event\.key === 'Tab'/);
   assert.match(source, /restoreEditorFocus/);
 });
 
 test('learner editor action buttons use compact sizing on desktop and mobile', () => {
   const source = read('assets/cornhill-learner-details-sheet.js');
-  assert.match(source, /\\.lds-actions button\\{[^}]*width:auto!important/);
-  assert.match(source, /\\.lds-actions button\\{[^}]*min-height:36px/);
-  assert.match(source, /grid-template-columns:repeat\\(2,minmax\\(0,1fr\\)\\)/);
-  assert.match(source, /\\.lds-actions button\\{width:100%!important;min-height:38px/);
+  assert.match(source, /\.lds-actions button\{[^}]*width:auto!important/);
+  assert.match(source, /\.lds-actions button\{[^}]*min-height:36px/);
+  assert.match(source, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(source, /\.lds-actions button\{width:100%!important;min-height:38px/);
+});
+
+
+test('completion sheet shows regular-fee and bursary status from current approved awards', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  for (const text of [
+    'id="ldsFeeArrangement"',
+    'value="regular">Regular fees',
+    'value="bursary">Bursary / sponsored learner',
+    "db.from('learner_bursary_awards')",
+    ".lte('effective_from', today)",
+    ".or('effective_until.is.null,effective_until.gte.' + today)",
+    'Fee arrangement'
+  ]) assert.ok(source.includes(text), text + ' must be present in the learner editor');
+});
+
+test('bursary selection routes to the existing Finance approval instead of directly changing learner fees', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  const index = read('index.html');
+  assert.ok(source.includes('openExistingBursaryApproval'));
+  assert.ok(source.includes("tab('finance')"));
+  assert.ok(source.includes("select.value = learner.id"));
+  assert.ok(source.includes('learner remains on regular fees until that approval is submitted'));
+  assert.doesNotMatch(source, /db\.from\('students'\)\.update/);
+  assert.ok(index.includes("db.rpc('admin_award_bursary_to_existing_learner'"));
+  assert.ok(index.includes("cornhill:bursary-award-updated"));
+});
+
+test('an active bursary cannot be switched to regular fees by editing the profile selector', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.ok(source.includes("event.target.value === 'regular' && current.value === 'bursary'"));
+  assert.ok(source.includes('The award cannot be cancelled by changing this selector'));
+  assert.ok(source.includes('no fee or receipt has been changed'));
+  const fieldNames = source.match(/const fieldNames = \[([\s\S]*?)\];/)[1];
+  assert.doesNotMatch(fieldNames, /is_bursary|bursary_category|bursary_fee_ugx|bursary_reason/);
+});
+
+test('learner photographs on report cards remain inactive and are tracked in the private work plan', () => {
+  const index = read('index.html');
+  const start = index.indexOf('<section id="workPlan"');
+  const end = index.indexOf('</section>', start);
+  const workPlan = index.slice(start, end);
+  assert.ok(workPlan.includes('Learner photographs on report cards'));
+  assert.ok(workPlan.includes('Inactive · Not enabled'));
+  assert.ok(workPlan.includes('Do not display or print learner photographs on report cards'));
+  assert.ok(workPlan.includes('Pending / inactive'));
 });
