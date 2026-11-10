@@ -14,11 +14,14 @@
 <main class="wrap">
 <section class="card" id="loginCard">
 <h1>Parent & Guardian Sign In</h1>
-<p class="muted">Enter the learner’s permanent pupil code and the guardian phone number registered with CORNHILL.</p>
-<div class="notice" role="note"><strong>Temporary sign-in method:</strong> The pupil code is mandatory. Use the registered guardian phone number for that learner. The separate Guardian PIN is temporarily inactive on this portal; existing PIN records are retained for future reactivation.</div>
+<p class="muted">Enter the learner’s permanent pupil code and the guardian phone number registered with CORNHILL. The school may also require a Guardian PIN.</p>
+<div class="notice" id="guardianPinModeNotice" role="status" aria-live="polite">Checking the school's Parent Portal sign-in setting…</div>
 <label for="pupilCodeBeforeVerify">Learner pupil code</label><input id="pupilCodeBeforeVerify" autocomplete="off" maxlength="32" placeholder="Enter learner pupil code">
 <label for="phone">Registered guardian phone number</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+2567XXXXXXXX or 07XXXXXXXX">
-<button id="signInGuardian">View learner information</button>
+<div id="guardianPinEntry" class="hidden">
+ <label for="guardianPin">Guardian PIN</label><input id="guardianPin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="8-digit Guardian PIN">
+</div>
+<button id="signInGuardian" disabled>View learner information</button>
 <div id="loginMessage" class="notice hidden" role="status"></div>
 </section>
 
@@ -52,7 +55,7 @@ const SUPABASE_URL="https://yemhortbudwbcrzsoozk.supabase.co";
 
 
 const PARENT_API=SUPABASE_URL+'/functions/v1/parent-portal-api';
-let parentSessionToken=null,voiceRecorder=null,voiceChunks=[],voiceBlob=null,voiceStartedAt=0,voiceDurationSeconds=0,voiceTimer=null;
+let parentSessionToken=null,voiceRecorder=null,voiceChunks=[],voiceBlob=null,voiceStartedAt=0,voiceDurationSeconds=0,voiceTimer=null,guardianPinRequired=null;
 const el=id=>document.getElementById(id);
 function message(id,text,type='notice'){const n=el(id);n.textContent=text;n.className='notice'+(type==='error'?' error':type==='success'?' success':'');n.classList.remove('hidden')}
 function clearMessage(id){el(id).classList.add('hidden')}
@@ -62,18 +65,55 @@ function ugx(v){return 'UGX '+Number(v||0).toLocaleString('en-UG')}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function table(headers,rows){if(!rows.length)return '<div class="empty">No published information is available yet.</div>';return '<div class="table-wrap"><table><thead><tr>'+headers.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>'}
 async function parentApi(action,payload={}){const headers={'Content-Type':'application/json'};if(parentSessionToken)headers.Authorization='Bearer '+parentSessionToken;const response=await fetch(PARENT_API,{method:'POST',headers,body:JSON.stringify({action,...payload})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Parent portal request failed');return data}
+async function loadGuardianAuthSettings(){
+  const button=el('signInGuardian');
+  button.disabled=true;
+  try{
+    const data=await parentApi('auth-method');
+    if(typeof data.guardian_pin_required!=='boolean')throw new Error('The Parent Portal sign-in setting could not be verified.');
+    guardianPinRequired=data.guardian_pin_required;
+    el('guardianPinEntry').classList.toggle('hidden',!guardianPinRequired);
+    el('guardianPinModeNotice').textContent=guardianPinRequired
+      ? 'Guardian PIN requirement is ON. Enter the learner pupil code, registered guardian phone number and 8-digit Guardian PIN.'
+      : 'Guardian PIN requirement is OFF. Enter only the learner pupil code and registered guardian phone number.';
+    el('guardianPinModeNotice').className='notice';
+    button.disabled=false;
+    clearMessage('loginMessage');
+  }catch(error){
+    guardianPinRequired=null;
+    el('guardianPinEntry').classList.add('hidden');
+    el('guardianPinModeNotice').textContent='The school sign-in setting could not be loaded. Refresh this page before signing in.';
+    el('guardianPinModeNotice').className='notice error';
+    message('loginMessage',error.message||'Parent Portal settings are unavailable. Please refresh.','error');
+  }
+}
 async function signInGuardian(){
   const code=el('pupilCodeBeforeVerify').value.trim();
   const phone=normalizePhone(el('phone').value);
+  if(typeof guardianPinRequired!=='boolean'){
+    message('loginMessage','The school sign-in setting is not available. Refresh this page and try again.','error');
+    return;
+  }
   if(!code||code.length>32||!phone){
     message('loginMessage','Enter the learner pupil code and the registered guardian phone number.','error');
     return;
+  }
+  const payload={pupil_code:code,phone};
+  if(guardianPinRequired){
+    const pin=el('guardianPin').value.trim();
+    if(!/^\d{8}$/.test(pin)){
+      message('loginMessage','The school currently requires your 8-digit Guardian PIN.','error');
+      return;
+    }
+    payload.pin=pin;
+  }else{
+    el('guardianPin').value='';
   }
   el('pupilCodeBeforeVerify').value=code;
   el('phone').value=phone;
   el('signInGuardian').disabled=true;
   try{
-    const data=await parentApi('verify',{pupil_code:code,phone});
+    const data=await parentApi('verify',payload);
     parentSessionToken=data.session_token;
     renderLearner(data.learner);
     el('loginCard').classList.add('hidden');
@@ -83,8 +123,9 @@ async function signInGuardian(){
   }catch(e){
     parentSessionToken=null;
     message('loginMessage',e.message||'Guardian verification failed. Check the learner code and registered phone number, or contact the school office.','error');
+    if(/setting changed|Guardian PIN is now required/i.test(e.message||''))await loadGuardianAuthSettings();
   }finally{
-    el('signInGuardian').disabled=false;
+    el('signInGuardian').disabled=typeof guardianPinRequired!=='boolean';
   }
 }
 function renderLearner(d){
@@ -141,8 +182,9 @@ el('signOut').addEventListener('click',async()=>{
   el('loginCard').classList.remove('hidden');
   el('pupilCodeBeforeVerify').value='';
   el('phone').value='';
+  el('guardianPin').value='';
 });
-// Parent sign-in temporarily requires the learner pupil code and registered guardian phone only.
+// The server decides whether Guardian PIN is required; the page only displays the configured choice.
 
 let parentInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();parentInstallPrompt=event;el('installParentPortal').classList.remove('hidden')});
