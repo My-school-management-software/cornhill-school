@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<meta name="description" content="Administrator-only guardian PIN issuance for the CORNHILL Parent Portal">
+<link rel="apple-touch-icon" href="/assets/cornhill-school-badge.png">
+<title>CORNHILL · Guardian PIN Administration</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/assets/cornhill-design-system.css">
+<script src="/assets/cornhill-appearance.js"></script>
+<script src="/assets/cornhill-offline.js"></script>
+<script src="/assets/app-isolation-guard.js"></script>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#18251d;background:#f3f7f3}
+*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:#fff;padding:15px max(14px,calc((100% - 1220px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-weight:850;letter-spacing:.02em}.sub{font-size:12px;opacity:.82;margin-top:3px}.top a{color:#fff;text-decoration:none;font-size:13px}
+.top-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.top button{background:#e6f0e8;color:#17442a}
+.wrap{max-width:1220px;margin:22px auto;padding:0 clamp(12px,2vw,26px)}
+.card{background:#fff;border:1px solid #dce7de;border-radius:15px;padding:17px;margin-bottom:14px;box-shadow:0 3px 14px #183d2010}
+h1,h2,h3{margin:0 0 8px;color:#183b27}.muted{font-size:13px;color:#647568;line-height:1.5}
+button,input,select{font:inherit}button{border:0;border-radius:9px;background:#e7efe8;color:#19452c;padding:10px 13px;font-weight:750;cursor:pointer}
+button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.5;cursor:not-allowed}
+input{width:100%;padding:11px;border:1px solid #cbd8ce;border-radius:9px;background:#fff;color:#19271e}
+.hidden{display:none!important}.toast{position:sticky;top:8px;z-index:5;padding:10px 13px;border-radius:9px;background:#ecfdf3;color:#166534;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.stat{padding:13px;border:1px solid #e0e9e1;border-radius:12px;background:#f8fbf8}.stat b{font-size:23px;display:block;color:#17452a}.stat span{font-size:12px;color:#617367}
+.toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.toolbar input{max-width:440px}
+.list{display:grid;gap:10px;margin-top:13px}.contact{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(170px,.85fr) auto;gap:14px;align-items:center;border:1px solid #e0e9e1;border-radius:12px;padding:14px;background:#fff}
+.name{font-weight:850;color:#183b27}.meta{font-size:12px;color:#647568;line-height:1.55;margin-top:3px}.pill{display:inline-block;border-radius:30px;padding:4px 9px;font-size:11px;font-weight:800;background:#e9f0ea;color:#385c43}
+.pill.pending{background:#fef3c7;color:#92400e}.pill.issued{background:#dcfce7;color:#166534}.action{display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.notice{border:1px solid #e1eae2;border-radius:12px;padding:13px;margin:9px 0;background:#fbfdfb}.empty{padding:24px;text-align:center;color:#637467;border:1px dashed #cbd8ce;border-radius:12px}
+.login{max-width:460px;margin:32px auto}.login label{display:block;margin:12px 0 5px;font-size:13px;font-weight:700}.login input{margin-bottom:4px}
+.modal-backdrop{position:fixed;inset:0;background:#102316b8;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{width:min(100%,520px);background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 70px #0004;max-height:90vh;overflow:auto}
+.secret{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:25px;letter-spacing:.12em;font-weight:850;color:#173f29;background:#f0f7f1;border:1px dashed #a9c6ad;padding:14px;border-radius:10px;word-break:break-all}
+.secret.small{font-size:18px;letter-spacing:.08em}.secret-row{display:flex;gap:8px;align-items:center}.secret-row .secret{flex:1}
+@media(max-width:760px){.contact{grid-template-columns:1fr}.action{justify-content:flex-start}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:440px){.stats{gap:6px}.stat{padding:9px}.stat b{font-size:19px}.wrap{margin:12px auto}.card{padding:14px}.secret{font-size:22px}}
+</style>
+</head>
+<body data-theme="warm-corporate">
+<header class="top">
+ <div><div class="brand">CORNHILL · GUARDIAN PIN ADMINISTRATION</div><div class="sub">Secure credentials for the isolated Parent & Guardian Portal</div></div>
+ <div class="top-actions"><a href="/notifications.html">Notification Centre</a><a href="/parents.html">Open Parent Portal</a><span id="who" class="sub"></span><button id="signOut" class="hidden" type="button">Sign out</button></div>
+</header>
+<main class="wrap">
+ <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+ <section id="loginCard" class="card login">
+  <h2>Administrator sign-in</h2>
+  <p class="muted">Sign in with your CORNHILL staff account. The database independently verifies administrator permissions before displaying contacts or issuing credentials.</p>
+  <form id="loginForm">
+   <label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="username" required>
+   <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required>
+   <button class="primary" type="submit" style="margin-top:12px">Sign in securely</button>
+  </form>
+  <p id="loginError" class="muted" role="alert"></p>
+ </section>
+ <section id="app" class="hidden">
+  <section class="card">
+   <div class="toolbar">
+    <div><h1>Parent Portal credentials</h1><p class="muted">Issue or replace an 8-digit guardian PIN for an active, registered guardian contact.</p></div>
+    <button class="primary" id="refresh" type="button">Refresh contacts</button>
+   </div>
+   <div class="stats">
+    <div class="stat"><b id="totalCount">0</b><span>Active guardian contacts</span></div>
+    <div class="stat"><b id="pendingCount">0</b><span>Awaiting first PIN</span></div>
+    <div class="stat"><b id="issuedCount">0</b><span>PIN already issued</span></div>
+   </div>
+   <div class="notice"><strong>Credential handling:</strong> The PIN and recovery code appear only once after issuance. They are not saved in this page, browser storage, or logs. Give them directly to the verified guardian through a private channel. A new issue replaces the former PIN and recovery code.</div>
+   <p id="connection" class="muted">Checking administrator access…</p>
+  </section>
+  <section class="card">
+   <div class="toolbar"><div><h2>Guardian contact register</h2><p class="muted">Phone numbers are masked here; only the last four digits are displayed.</p></div><input id="search" type="search" placeholder="Search learner, pupil code or guardian…" aria-label="Search guardian contacts"></div>
+   <div class="list" id="contactList"><div class="empty">Loading registered guardian contacts…</div></div>
+  </section>
+ </section>
+ <footer class="muted" style="text-align:center;padding:12px">CORNHILL Parent Portal access remains limited to each verified guardian and their approved learner.</footer>
+</main>
+<div id="credentialModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="credentialTitle">
+ <section class="modal">
+  <span class="pill issued">Issued successfully</span>
+  <h2 id="credentialTitle" style="margin-top:10px">Guardian credentials — show once</h2>
+  <p class="muted" id="credentialContext"></p>
+  <label style="display:block;font-size:12px;font-weight:800;margin:14px 0 6px">8-digit guardian PIN</label>
+  <div class="secret-row"><div id="issuedPin" class="secret" aria-live="polite"></div><button type="button" data-copy="pin">Copy</button></div>
+  <label style="display:block;font-size:12px;font-weight:800;margin:14px 0 6px">Recovery code (keep privately)</label>
+  <div class="secret-row"><div id="issuedRecovery" class="secret small" aria-live="polite"></div><button type="button" data-copy="recovery">Copy</button></div>
+  <p class="muted">The guardian uses the PIN with the learner's permanent pupil code and registered phone number. The recovery code is needed only if the guardian later resets a forgotten PIN. This screen cannot retrieve either value after it is closed.</p>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button id="closeCredentials" class="primary" type="button">Done — hide credentials</button></div>
+ </section>
+</div>
+<script>
+const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
+const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'cornhill-notifications-v1',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const $=id=>document.getElementById(id);
+let user=null,profile=null,contacts=[],pinStatus=new Map(),busyIds=new Set(),secrets={pin:'',recovery:''};
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(value,error=false){$('toast').textContent=value;$('toast').classList.remove('hidden');$('toast').style.background=error?'#fff1f2':'#ecfdf3';$('toast').style.color=error?'#9f1239':'#166534'}
+function showLogin(message=''){$('app').classList.add('hidden');$('loginCard').classList.remove('hidden');$('signOut').classList.add('hidden');$('loginError').textContent=message}
+function when(value){return value?new Date(value).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}):'—'}
+function maskedPhone(value){const p=String(value||'');return p.length>=4?'•••• '+p.slice(-4):'Not registered'}
+function counts(){
+ const active=contacts.filter(c=>c.is_active),issued=active.filter(c=>pinStatus.get(c.contact_id));
+ $('totalCount').textContent=active.length;$('pendingCount').textContent=active.length-issued.length;$('issuedCount').textContent=issued.length;
+}
+function render(){
+ const q=$('search').value.trim().toLowerCase();
+ const rows=contacts.filter(c=>c.is_active&&[c.learner_name,c.pupil_code,c.class_name,c.guardian_name,c.relationship].some(v=>String(v||'').toLowerCase().includes(q)));
+ counts();
+ $('contactList').innerHTML=rows.length?rows.map(c=>{
+   const issued=!!pinStatus.get(c.contact_id),busy=busyIds.has(c.contact_id);
+   return '<article class="contact"><div><div class="name">'+esc(c.learner_name||'Learner')+' <span class="muted">· '+esc(c.class_name||'Class not set')+'</span></div><div class="meta">Pupil code: <strong>'+esc(c.pupil_code||'—')+'</strong><br>Guardian: '+esc(c.guardian_name||'—')+(c.relationship?' · '+esc(c.relationship):'')+(c.is_primary?' · Primary contact':'')+'<br>Registered phone: '+esc(maskedPhone(c.phone_e164))+'</div></div><div><span class="pill '+(issued?'issued':'pending')+'">'+(issued?'PIN issued':'PIN not issued')+'</span><div class="meta">'+(issued?'Issued '+esc(when(pinStatus.get(c.contact_id))):'Ready for first issuance')+'</div></div><div class="action"><button type="button" class="'+(issued?'danger':'primary')+'" data-issue="'+esc(c.contact_id)+'" '+(busy||!c.phone_e164?'disabled':'')+'>'+(busy?'Issuing…':issued?'Replace PIN':'Issue PIN')+'</button></div></article>';
+ }).join(''):'<div class="empty">No active guardian contacts match this search.</div>';
+}
+async function loadContacts(){
+ $('connection').textContent='Loading administrator-approved guardian contacts…';
+ const [{data:rows,error:directoryError},{data:statuses,error:statusError}]=await Promise.all([
+  db.rpc('admin_parent_contact_directory'),
+  db.from('parent_guardian_contacts').select('id,guardian_pin_issued_at').eq('is_active',true)
+ ]);
+ if(directoryError)throw directoryError;if(statusError)throw statusError;
+ contacts=(rows||[]).filter(c=>c.is_active);
+ pinStatus=new Map((statuses||[]).filter(s=>s.guardian_pin_issued_at).map(s=>[s.id,s.guardian_pin_issued_at]));
+ render();
+ $('connection').textContent='Secure connection active · '+contacts.length+' active guardian contact(s) · checked '+when(new Date().toISOString());
+}
+async function enterApp(nextUser){
+ user=nextUser;
+ const {data:account,error}=await db.from('user_profiles').select('id,full_name,role,employment_status,job_title').eq('id',user.id).maybeSingle();
+ if(error||!account||account.employment_status!=='Active')throw new Error('An active CORNHILL staff account is required.');
+ profile=account;
+ // This administrator-only RPC is the authoritative access check (the function also checks auth.uid()).
+ await loadContacts();
+ $('loginCard').classList.add('hidden');$('app').classList.remove('hidden');$('signOut').classList.remove('hidden');
+ $('who').textContent=(profile.full_name||user.email||'')+' · '+(profile.job_title||profile.role||'Staff');
+}
+async function issuePin(contactId){
+ const c=contacts.find(x=>x.contact_id===contactId);if(!c)return;
+ const already=!!pinStatus.get(contactId);
+ if(already&&!window.confirm('Replace the existing PIN and recovery code for '+c.guardian_name+'? The old credentials will stop working.'))return;
+ busyIds.add(contactId);render();
+ try{
+  const {data,error}=await db.rpc('admin_issue_guardian_pin',{p_contact_id:contactId});
+  if(error)throw error;
+  if(!data||!/^\d{8}$/.test(String(data.pin||''))||!String(data.recovery_code||''))throw new Error('The database did not return a complete one-time credential.');
+  secrets={pin:String(data.pin),recovery:String(data.recovery_code)};
+  pinStatus.set(contactId,data.issued_at||new Date().toISOString());
+  render();
+  $('credentialContext').textContent=[c.learner_name,c.pupil_code,c.guardian_name].filter(Boolean).join(' · ');
+  $('issuedPin').textContent=secrets.pin;$('issuedRecovery').textContent=secrets.recovery;
+  $('credentialModal').classList.remove('hidden');$('closeCredentials').focus();
+  $('connection').textContent='PIN issued · credentials displayed once · '+when(data.issued_at||new Date().toISOString());
+ }catch(error){toast(error.message||'PIN issuance failed. Please refresh and try again.',true)}
+ finally{busyIds.delete(contactId);render()}
+}
+async function copySecret(kind){
+ const value=kind==='pin'?secrets.pin:secrets.recovery;if(!value)return;
+ try{await navigator.clipboard.writeText(value);toast(kind==='pin'?'Guardian PIN copied.':'Recovery code copied.')}
+ catch{toast('Clipboard is unavailable on this device. You can still read the credential here.',true)}
+}
+function closeCredentials(){
+ secrets={pin:'',recovery:''};$('issuedPin').textContent='';$('issuedRecovery').textContent='';$('credentialContext').textContent='';$('credentialModal').classList.add('hidden');
+}
+$('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();const email=$('email').value.trim(),password=$('password').value;
+ const {data,error}=await db.auth.signInWithPassword({email,password});
+ if(error){showLogin(error.message);return}
+ try{await enterApp(data.user)}catch(err){await db.auth.signOut();showLogin('Administrator access is required to manage guardian PINs. '+(err.message||''))}
+});
+$('signOut').addEventListener('click',async()=>{closeCredentials();await db.auth.signOut();location.reload()});
+$('refresh').addEventListener('click',async()=>{try{await loadContacts();toast('Guardian contact register refreshed.')}catch(e){toast(e.message||'Refresh failed.',true)}});
+$('search').addEventListener('input',render);
+$('contactList').addEventListener('click',e=>{const b=e.target.closest('[data-issue]');if(b)issuePin(b.dataset.issue)});
+$('credentialModal').addEventListener('click',e=>{if(e.target===$('credentialModal'))closeCredentials();const b=e.target.closest('[data-copy]');if(b)copySecret(b.dataset.copy)});
+$('closeCredentials').addEventListener('click',closeCredentials);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('credentialModal').classList.contains('hidden'))closeCredentials()});
+db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(data.session.user)}catch(e){await db.auth.signOut();showLogin('Administrator access is required to manage guardian PINs. '+(e.message||''))}}});
+db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){user=null;profile=null;contacts=[];pinStatus.clear();closeCredentials();showLogin() }});
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+</script>
+</body>
+</html>
