@@ -16,7 +16,8 @@
   };
   const fieldNames = [
     'first_name', 'middle_name', 'last_name', 'gender', 'birth_year',
-    'date_of_birth', 'lin', 'p7_index_number', 'guardian_name',
+    'date_of_birth', 'admission_date', 'previous_school', 'class_id', 'learner_type',
+    'takes_breakfast', 'takes_lunch', 'lin', 'p7_index_number', 'guardian_name',
     'guardian_relationship', 'guardian_phone', 'guardian_email',
     'alternate_guardian_name', 'alternate_guardian_phone', 'address',
     'guardian_whatsapp_phone'
@@ -133,7 +134,14 @@
             '<div class="lds-field"><label for="ldsGender">Gender *</label><select id="ldsGender" name="gender" required><option value="">Choose gender</option><option>Male</option><option>Female</option></select></div>' +
             '<div class="lds-field"><label for="ldsDob">Full date of birth</label><input id="ldsDob" name="date_of_birth" type="date"><div class="lds-hint">Use the full date only when day, month and year have been confirmed.</div></div>' +
             '<div class="lds-field"><label for="ldsBirthYear">Verified year of birth</label><input id="ldsBirthYear" name="birth_year" type="number" min="1900" max="' + new Date().getFullYear() + '" step="1" inputmode="numeric" placeholder="e.g. 2017"><div class="lds-hint">This year is used when issuing a permanent pupil code. Do not estimate it.</div></div>' +
-            '<div class="lds-field"><label for="ldsLin">Ministry LIN</label><input id="ldsLin" name="lin" maxlength="40" placeholder="Enter the official LIN"></div>' +
+            '<div class="lds-field full"><label for="ldsClassId">Class assignment *</label><select id="ldsClassId" name="class_id" required><option value="">Choose class</option></select><div class="lds-hint">Assign the learner here. The selected class is saved together with the other learner details.</div></div>' +
+            '<div class="lds-field"><label for="ldsLearnerType">Learner package</label><select id="ldsLearnerType" name="learner_type"><option value="Day">Day learner</option><option value="Boarding">Boarding learner</option></select></div>' +
+            '<div class="lds-field"><label for="ldsAdmissionDate">Admission date</label><input id="ldsAdmissionDate" name="admission_date" type="date"></div>' +
+            '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsBreakfast" name="takes_breakfast"> Takes breakfast</label></div>' +
+            '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsLunch" name="takes_lunch"> Takes lunch</label></div>' +
+            '<div class="lds-field full" id="ldsFeePreview" aria-live="polite"><strong>Current-term fee estimate</strong><div class="lds-hint">Choose a class to view its school fees and meal / boarding package.</div></div>' +
+            '<div class="lds-field full"><label for="ldsPreviousSchool">Previous school (if any)</label><input id="ldsPreviousSchool" name="previous_school" maxlength="180"></div>' +
+            '<div class="lds-field"><label for="ldsLin">Ministry LIN</label><input id="ldsLin" name="lin" maxlength="40" placeholder="Enter the official LIN"></div>'
             '<div class="lds-field"><label for="ldsP7Index">P7 examination index number</label><input id="ldsP7Index" name="p7_index_number" maxlength="40"></div>' +
             '<div class="lds-field"><label for="ldsGuardian">Parent / guardian name</label><input id="ldsGuardian" name="guardian_name" maxlength="160" placeholder="Name of parent or guardian"></div>' +
             '<div class="lds-field"><label for="ldsRelationship">Relationship to learner</label><input id="ldsRelationship" name="guardian_relationship" maxlength="80" placeholder="Mother, Father, Guardian…"></div>' +
@@ -147,7 +155,7 @@
             '<div class="lds-field"><label class="lds-checkbox"><input type="checkbox" id="ldsWhatsappOptIn" name="guardian_whatsapp_opt_in"> Parent / guardian has agreed to receive school WhatsApp messages.</label></div>' +
             '<div class="lds-field full" id="ldsBursaryArrangementField"><label for="ldsFeeArrangement">School fee arrangement</label><select id="ldsFeeArrangement"><option value="regular">Regular fees</option><option value="bursary">Bursary / sponsored learner</option></select><div id="ldsBursaryArrangementStatus" class="lds-hint" role="status">Loading the learner’s current bursary status…</div><button type="button" id="ldsOpenBursaryApproval" class="tab" hidden style="margin-top:9px">Open bursary approval</button><div class="lds-hint">Selecting bursary reveals an action to open the approved Finance workflow. It does not directly change fees, receipts or previous payment allocations.</div></div>' +
           '</div>' +
-          '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="submit" id="learnerDetailsSaveNext" class="primary">Save &amp; open next learner</button><button type="button" id="learnerDetailsFullEdit" class="tab">Open full learner record</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
+          '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="submit" id="learnerDetailsSaveNext" class="primary">Save &amp; open next learner</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
           '<p class="lds-note">Learner details are saved through the protected Learner Register. Bursary awards are managed separately through Finance approval so previous charges, receipts and payment allocations remain protected.</p>' +
         '</form>' +
       '</section>'
@@ -188,6 +196,11 @@
     let activeBursaryAwardsOwner = null;
     let bursaryApprovalOpening = false;
     let bursaryReturnLearnerId = null;
+    let feeScheduleRows = null;
+    let feeScheduleLoading = false;
+    let feeScheduleError = null;
+    let feeScheduleTermLabel = '';
+    let feePreviewRequest = 0;
 
     function currentBursaryArrangement(learner) {
       if (!activeBursaryAwardsLoaded || activeBursaryAwardsError || activeBursaryAwardsOwner !== state().userId) {
@@ -464,6 +477,125 @@
       });
     }
 
+    function populateEditorClasses(selectedClassId) {
+      const control = $('ldsClassId');
+      const classesList = state().classes || [];
+      if (!control) return;
+      control.innerHTML = '<option value="">Choose class</option>' + classesList
+        .slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+        .map(item => '<option value="' + htmlEscape(item.id) + '">' + htmlEscape(item.name + (item.stream ? ' · ' + item.stream : '')) + '</option>').join('');
+      control.value = selectedClassId || '';
+    }
+
+    function ugx(value) {
+      return 'UGX ' + Math.round(Number(value) || 0).toLocaleString('en-UG');
+    }
+
+    async function loadFeeScheduleRows() {
+      if (feeScheduleRows || feeScheduleLoading || feeScheduleError) return;
+      if (typeof db === 'undefined' || !db) {
+        feeScheduleError = new Error('Finance connection is unavailable.');
+        return;
+      }
+      feeScheduleLoading = true;
+      try {
+        const { data: terms, error: termError } = await db.from('academic_terms')
+          .select('id,name,academic_year_id').eq('is_current', true).eq('is_closed', false)
+          .order('starts_on', { ascending: false }).limit(1);
+        if (termError) throw termError;
+        const term = (terms || [])[0];
+        if (!term) throw new Error('There is no open current academic term.');
+        const { data, error } = await db.from('fee_schedules')
+          .select('class_group,learner_type,amount_ugx,fee_items(name)')
+          .eq('is_active', true)
+          .or('term_id.is.null,term_id.eq.' + term.id)
+          .or('academic_year_id.is.null,academic_year_id.eq.' + term.academic_year_id);
+        if (error) throw error;
+        feeScheduleRows = data || [];
+        feeScheduleTermLabel = term.name || 'Current term';
+      } catch (error) {
+        feeScheduleError = error;
+      } finally {
+        feeScheduleLoading = false;
+      }
+    }
+
+    async function renderLearnerFeePreview() {
+      const host = $('ldsFeePreview');
+      if (!host) return;
+      const requestId = ++feePreviewRequest;
+      const classId = $('ldsClassId').value;
+      const selectedClass = state().classes.find(item => item.id === classId);
+      if (!selectedClass) {
+        host.innerHTML = '<strong>Current-term fee estimate</strong><div class="lds-hint">Choose a class to view the applicable fee schedule.</div>';
+        return;
+      }
+      host.innerHTML = '<strong>Current-term fee estimate</strong><div class="lds-hint">Loading the approved fee schedule…</div>';
+      await loadFeeScheduleRows();
+      if (requestId !== feePreviewRequest) return;
+      if (feeScheduleError) {
+        host.innerHTML = '<strong>Current-term fee estimate</strong><div class="lds-hint">Could not verify the current fee schedule: ' + htmlEscape(feeScheduleError.message || 'Please check Finance.') + '</div>';
+        return;
+      }
+      const type = $('ldsLearnerType').value || 'Day';
+      const boarding = type === 'Boarding';
+      const meals = !boarding;
+      const rows = feeScheduleRows.filter(row =>
+        row.class_group === selectedClass.name &&
+        (row.learner_type === 'Any' || row.learner_type === type) &&
+        (row.fee_items && ['School fees', 'Boarding', 'Breakfast', 'Lunch'].includes(row.fee_items.name))
+      );
+      const amountFor = name => {
+        const match = rows.filter(row => row.fee_items.name === name)
+          .sort((a, b) => (a.learner_type === type ? -1 : 1) - (b.learner_type === type ? -1 : 1))[0];
+        return match ? Number(match.amount_ugx) || 0 : 0;
+      };
+      const learner = state().students.find(item => item.id === selectedId);
+      const currentAward = learner && activeBursaryAwards.get(learner.id);
+      const isAwarded = $('ldsFeeArrangement').value === 'bursary' && currentAward;
+      const schoolFee = isAwarded ? Number(currentAward.amount_payable_ugx) || 0 :
+        ($('ldsFeeArrangement').value === 'bursary' && learner && learner.is_bursary
+          ? Number(learner.bursary_fee_ugx) || amountFor('School fees') : amountFor('School fees'));
+      const items = [];
+      if (schoolFee) items.push(['School fees' + (isAwarded || $('ldsFeeArrangement').value === 'bursary' ? ' / bursary payable' : ''), schoolFee]);
+      if (boarding && amountFor('Boarding')) items.push(['Boarding package', amountFor('Boarding')]);
+      if (!boarding && $('ldsBreakfast').checked && amountFor('Breakfast')) items.push(['Breakfast', amountFor('Breakfast')]);
+      if (!boarding && $('ldsLunch').checked && amountFor('Lunch')) items.push(['Lunch', amountFor('Lunch')]);
+      const total = items.reduce((sum, item) => sum + item[1], 0);
+      host.innerHTML = '<strong>Current-term fee estimate · ' + htmlEscape(feeScheduleTermLabel) + '</strong>' +
+        (items.length ? '<div class="lds-hint">' + items.map(item => '<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0"><span>' + htmlEscape(item[0]) + '</span><strong>' + htmlEscape(ugx(item[1])) + '</strong></div>').join('') +
+          '<div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--cornhill-line,#dce7de);padding-top:8px;margin-top:5px"><strong>Estimated total</strong><strong>' + htmlEscape(ugx(total)) + '</strong></div></div>'
+          : '<div class="lds-hint">No matching fee schedule rows were found for this class and package. Check Finance → Fee items / Fee schedules before saving charges.');
+      if ($('ldsFeeArrangement').value === 'bursary' && !currentAward) {
+        host.insertAdjacentHTML('beforeend', '<div class="lds-hint">Bursary is selected but not yet approved. This estimate is provisional; the approved payable amount will be set in Finance.</div>');
+      }
+      if (boarding) host.insertAdjacentHTML('beforeend', '<div class="lds-hint">Boarding includes breakfast and lunch; separate meal selections are disabled for boarders.</div>');
+    }
+
+    function syncLearnerPackageControls() {
+      const type = $('ldsLearnerType');
+      const breakfast = $('ldsBreakfast');
+      const lunch = $('ldsLunch');
+      const classId = $('ldsClassId').value;
+      const classItem = state().classes.find(item => item.id === classId);
+      const isP7 = classItem && classItem.name === 'P7';
+      if (isP7) type.value = 'Boarding';
+      const boarding = type.value === 'Boarding';
+      breakfast.disabled = boarding;
+      lunch.disabled = boarding;
+      if (boarding) {
+        breakfast.checked = false;
+        lunch.checked = false;
+      }
+      const form = $('studentForm');
+      if (form) {
+        writeMainValue(form, 'learner_type', type.value);
+        writeMainValue(form, 'takes_breakfast', breakfast.checked);
+        writeMainValue(form, 'takes_lunch', lunch.checked);
+      }
+      renderLearnerFeePreview();
+    }
+
     async function prepareExistingEdit(learner) {
       const form = $('studentForm');
       if (!form) throw new Error('The main Learner Register form is not available.');
@@ -502,6 +634,11 @@
         try { await restoreLocalAutosaveForm(form, 'learner-edit-' + learner.id, 'appMsg'); } catch (_) {}
       }
       syncEditorFromMain();
+      populateEditorClasses(learner.class_id);
+      $('ldsLearnerType').value = learner.learner_type || 'Day';
+      $('ldsBreakfast').checked = !!learner.takes_breakfast;
+      $('ldsLunch').checked = !!learner.takes_lunch;
+      syncLearnerPackageControls();
     }
 
     async function openEditor(id) {
@@ -578,6 +715,23 @@
       discardMainDraft();
     }
 
+    $('ldsClassId').addEventListener('change', () => {
+      const form = $('studentForm');
+      if (form) writeMainValue(form, 'class_id', $('ldsClassId').value);
+      syncLearnerPackageControls();
+    });
+    $('ldsLearnerType').addEventListener('change', syncLearnerPackageControls);
+    $('ldsBreakfast').addEventListener('change', () => {
+      const form = $('studentForm');
+      if (form) writeMainValue(form, 'takes_breakfast', $('ldsBreakfast').checked);
+      renderLearnerFeePreview();
+    });
+    $('ldsLunch').addEventListener('change', () => {
+      const form = $('studentForm');
+      if (form) writeMainValue(form, 'takes_lunch', $('ldsLunch').checked);
+      renderLearnerFeePreview();
+    });
+
     $('ldsFeeArrangement').addEventListener('change', event => {
       const learner = state().students.find(x => x.id === selectedId);
       if (!learner) return;
@@ -608,6 +762,7 @@
       action.disabled = false;
       action.textContent = 'Open bursary approval';
       note.textContent = current.label + '. ' + current.description;
+      renderLearnerFeePreview();
     });
     $('ldsOpenBursaryApproval').addEventListener('click', openExistingBursaryApproval);
     window.addEventListener('cornhill:bursary-award-updated', async () => {
@@ -731,17 +886,7 @@
       }
     });
     $('learnerDetailsCancel').addEventListener('click', () => closeEditor(true));
-    $('learnerDetailsFullEdit').addEventListener('click', () => {
-      const id = selectedId;
-      const button = id && document.querySelector('.editLearner[data-id="' + CSS.escape(id) + '"]');
-      if (button) {
-        selectedId = null;
-        editor.dataset.saving = '0';
-        editor.classList.add('hidden');
-        dirty = false;
-        button.click();
-      }
-    });
+
     $('learnerDetailsAdvancedToggle').addEventListener('click', () => setAdvancedVisible(!advancedVisible));
     $('learnerDetailsFilter').addEventListener('change', renderSheet);
     $('studentRegisterClassCards').addEventListener('click', () => window.setTimeout(renderSheet, 0));
