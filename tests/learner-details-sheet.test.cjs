@@ -32,8 +32,8 @@ test('the class sheet supports DOB, verified birth year, guardian details and sa
 
 test('offline app shell includes the new learner details sheet and refreshes old caches', () => {
   const sw = read('service-worker.js');
-  assert.match(sw, /cornhill-shell-v85/);
-  assert.match(sw, /cornhill-static-v85/);
+  assert.match(sw, /cornhill-shell-v86/);
+  assert.match(sw, /cornhill-static-v86/);
   assert.ok(sw.includes('/assets/cornhill-learner-details-sheet.js'));
 });
 
