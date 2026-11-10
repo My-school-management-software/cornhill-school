@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { isScheduledBackupDue } from "./schedule.ts";
 
 const cors = {
   ...corsHeaders,
@@ -224,11 +225,32 @@ async function makeBackup(userId: string, connection: any) {
     });
     const file = await uploaded.json();
     if (!uploaded.ok || !file.id) throw new Error("Google Drive upload failed: "+(file.error?.message||uploaded.status));
-    await adminDb.from("google_drive_backup_runs").update({status:"success",drive_file_id:file.id,file_name:fileName,record_counts:counts,total_records:total,completed_at:new Date().toISOString()}).eq("id",runId);
-    await adminDb.from("google_drive_backup_connections").update({updated_at:new Date().toISOString()}).eq("id",connection.id);
+    const { data: finalizedRun, error: finalizeError } = await adminDb
+      .from("google_drive_backup_runs")
+      .update({status:"success",drive_file_id:file.id,file_name:fileName,record_counts:counts,total_records:total,completed_at:new Date().toISOString()})
+      .eq("id",runId)
+      .select("id")
+      .maybeSingle();
+    if (finalizeError || !finalizedRun) {
+      throw new Error("Google Drive upload completed, but the backup success audit could not be finalized: " +
+        (finalizeError?.message || "backup run row was not updated"));
+    }
+    const { error: connectionUpdateError } = await adminDb
+      .from("google_drive_backup_connections")
+      .update({updated_at:new Date().toISOString()})
+      .eq("id",connection.id);
+    if (connectionUpdateError) {
+      console.error("Backup uploaded and audited, but the Drive connection timestamp could not be refreshed:", connectionUpdateError.message);
+    }
     return {run_id:runId,file_name:fileName,record_counts:counts,total_records:total,drive_file_id:file.id,created_at:file.createdTime};
   } catch(error) {
-    await adminDb.from("google_drive_backup_runs").update({status:"failed",error_message:String(error).slice(0,1000),completed_at:new Date().toISOString()}).eq("id",runId);
+    const { error: failureAuditError } = await adminDb
+      .from("google_drive_backup_runs")
+      .update({status:"failed",error_message:String(error).slice(0,1000),completed_at:new Date().toISOString()})
+      .eq("id",runId);
+    if (failureAuditError) {
+      console.error("Could not mark the backup run as failed:", failureAuditError.message);
+    }
     throw error;
   }
 }
@@ -300,16 +322,31 @@ Deno.serve(async (req: Request) => {
       if (!intervalDays) throw new Error("The saved automatic backup frequency is not supported.");
       const { data: scheduleState, error: scheduleReadError } = await adminDb.from("google_drive_backup_settings").select("last_scheduled_at").eq("id",true).single();
       if (scheduleReadError) throw new Error("Could not read the last successful backup schedule: "+scheduleReadError.message);
-      const lastRun = scheduleState?.last_scheduled_at ? Date.parse(scheduleState.last_scheduled_at) : 0;
-      if (lastRun && Date.now() - lastRun < intervalDays * 24 * 60 * 60 * 1000) {
+      const now = new Date();
+      if (!isScheduledBackupDue(scheduleState?.last_scheduled_at ?? null, frequency, now)) {
+        console.info("CORNHILL scheduled backup skipped because this Uganda calendar-day interval is not due.", {
+          frequency,
+          lastScheduledAt: scheduleState?.last_scheduled_at ?? null,
+          checkedAt: now.toISOString()
+        });
         return json({success:true,skipped:true,reason:"The next "+frequency+" backup is not due yet."});
       }
+      console.info("CORNHILL scheduled backup started.", {
+        frequency,
+        checkedAt: now.toISOString()
+      });
       const connection = await getConnection();
       if (!connection) throw new Error("Connect the dedicated school Google account before enabling automatic backups.");
       const backup = await makeBackup(connection.connected_by, connection);
       const scheduledAt = new Date().toISOString();
       const { error: updateError } = await adminDb.from("google_drive_backup_settings").update({last_scheduled_at:scheduledAt}).eq("id",true);
       if (updateError) throw new Error("Backup succeeded but schedule timestamp could not be saved: "+updateError.message);
+      console.info("CORNHILL scheduled backup completed.", {
+        runId: backup.run_id,
+        fileName: backup.file_name,
+        totalRecords: backup.total_records,
+        completedAt: scheduledAt
+      });
       return json({success:true,scheduled:true,backup});
     }
     const user = await requireAdmin(req);
