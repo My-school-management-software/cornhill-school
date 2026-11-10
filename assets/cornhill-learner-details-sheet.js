@@ -67,6 +67,11 @@
     '#learnerDetailsEditor .lds-note{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--cornhill-page,#f4f7f4);font-size:12px;line-height:1.5;color:var(--cornhill-muted,#647568)}',
     '#learnerDetailsEditor .lds-checkbox{display:flex;gap:8px;align-items:flex-start;font-size:12px;font-weight:650}',
     '#learnerDetailsEditor .lds-checkbox input{width:17px;height:17px;flex:0 0 auto;margin:1px 0 0}',
+    '#learnerDetailsLifecycle{margin-top:14px;padding:14px;border:1px solid var(--cornhill-line,#dce7de);border-radius:13px;background:var(--cornhill-page,#f4f7f4)}',
+    '#learnerDetailsLifecycle .lds-lifecycle-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start}',
+    '#learnerDetailsLifecycle textarea{width:100%;min-height:64px;margin:6px 0 0}',
+    '#learnerDetailsLifecycle .lds-danger{border:1px solid #b42318!important;color:#b42318!important;background:#fff!important}',
+    '#learnerDetailsLifecycle .lds-lifecycle-note{font-size:11px;line-height:1.5;color:var(--cornhill-muted,#647568);margin:9px 0 0}',
     '@media(max-width:900px){#learnerDetailsWorkspace .lds-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}',
     '@media(max-width:620px){#learnerDetailsWorkspace .lds-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}#learnerDetailsEditor{top:8px;left:8px;transform:none;width:calc(100vw - 16px);max-height:calc(100dvh - 16px);padding:14px;border-radius:14px}#learnerDetailsEditor .lds-editor-grid{grid-template-columns:1fr}#learnerDetailsEditor .lds-field.full{grid-column:auto}#learnerDetailsEditor .lds-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#learnerDetailsEditor .lds-actions button{width:100%!important;min-height:38px;padding:8px 9px!important}#learnerDetailsWorkspace .lds-toolbar select{width:100%;min-width:0}}',
     '@media print{body.lds-print-mode #app *{visibility:hidden!important}body.lds-print-mode #learnerDetailsWorkspace,body.lds-print-mode #learnerDetailsWorkspace *{visibility:visible!important}body.lds-print-mode #learnerDetailsWorkspace{display:block!important;position:absolute!important;left:0!important;top:0!important;width:100%!important;box-shadow:none!important;border:0!important}body.lds-print-mode #learnerDetailsWorkspace .lds-toolbar button,body.lds-print-mode #learnerDetailsWorkspace .lds-open{display:none!important}body.lds-print-mode #learnerDetailsWorkspace table{min-width:0!important;font-size:9px!important}body.lds-print-mode #learnerDetailsWorkspace th,body.lds-print-mode #learnerDetailsWorkspace td{padding:5px!important}}'
@@ -113,7 +118,7 @@
           '<div class="lds-metric"><strong id="ldsContactMissing">0</strong><span>Missing guardian contact</span></div>' +
           '<div class="lds-metric"><strong id="ldsLinMissing">0</strong><span>Missing Ministry LIN</span></div>' +
         '</div>' +
-        '<div class="lds-toolbar"><div><label for="learnerDetailsFilter">Show learners</label><select id="learnerDetailsFilter">' +
+        '<div class="lds-toolbar"><div><label for="ldsRecordStatusFilter">Record status</label><select id="ldsRecordStatusFilter"><option value="active">Non-archived records</option><option value="archived">Archived records</option><option value="all">All records</option></select></div><div><label for="learnerDetailsFilter">Show learners</label><select id="learnerDetailsFilter">' +
           '<option value="all">All learners in this class</option><option value="needs_attention">Any missing information</option>' +
           '<option value="missing_dob">Missing full date of birth</option><option value="missing_year">Missing birth year</option><option value="missing_guardian">Missing parent / guardian name</option>' +
           '<option value="missing_contact">Missing guardian contact</option><option value="missing_lin">Missing Ministry LIN</option>' +
@@ -158,6 +163,13 @@
           '<div class="lds-actions"><button type="submit" class="primary" id="learnerDetailsSave">Save learner information</button><button type="submit" id="learnerDetailsSaveNext" class="primary">Save &amp; open next learner</button><button type="button" id="learnerDetailsCancel" class="tab">Cancel</button></div>' +
           '<p class="lds-note">Learner details are saved through the protected Learner Register. Bursary awards are managed separately through Finance approval so previous charges, receipts and payment allocations remain protected.</p>' +
         '</form>' +
+        '<section id="learnerDetailsLifecycle" aria-labelledby="ldsLifecycleHeading">' +
+          '<div class="lds-lifecycle-head"><div><h4 id="ldsLifecycleHeading" style="margin:0 0 4px">Archive or permanently delete this learner</h4><p id="ldsLifecycleStatus" class="muted" role="status" style="margin:0">Choose an action for the selected learner.</p></div></div>' +
+          '<label for="ldsLifecycleReason" style="display:block;font-size:12px;font-weight:800;margin-top:10px">Reason for this action (required)</label>' +
+          '<textarea id="ldsLifecycleReason" rows="2" maxlength="500" placeholder="Enter at least 5 characters explaining why this action is needed"></textarea>' +
+          '<div class="lds-actions"><button type="button" id="ldsArchiveRestore" class="tab">Archive learner</button><button type="button" id="ldsDeletePermanently" class="lds-danger">Delete permanently</button></div>' +
+          '<p class="lds-lifecycle-note">Archive hides a learner from the normal register while retaining school history; an administrator can restore an archived learner. Permanent deletion removes the learner and linked guardian, academic, attendance, fee, payment, receipt and history records. It cannot be undone. Use it only for confirmed test records, duplicates or records created in error. Any attached private files must also be removed successfully.</p>' +
+        '</section>' +
       '</section>'
     );
 
@@ -348,7 +360,10 @@
       const st = state();
       if (st.role !== 'Admin') return [];
       const q = String($('search') && $('search').value || '').trim().toLowerCase();
-      let list = st.students.filter(item => item.status !== 'Archived');
+      let list = st.students.slice();
+      const statusMode = $('ldsRecordStatusFilter') && $('ldsRecordStatusFilter').value || 'active';
+      if (statusMode === 'active') list = list.filter(item => item.status !== 'Archived');
+      else if (statusMode === 'archived') list = list.filter(item => item.status === 'Archived');
       if (st.classFilter === 'unassigned') list = list.filter(item => !item.class_id);
       else if (st.classFilter !== 'all') list = list.filter(item => item.class_id === st.classFilter);
       if (q) list = list.filter(item => {
@@ -691,11 +706,184 @@
         $('learnerDetailsSave').disabled = false;
         $('learnerDetailsSave').textContent = 'Save learner information';
         updateBursaryEditor(learner);
+        updateLifecycleControls(learner);
+        $('ldsLifecycleReason').value = '';
+        $('ldsLifecycleStatus').textContent = 'Selected record status: ' + (learner.status || 'Unknown') + '.';
         $('learnerDetailsSheetStatus').textContent = 'Editing ' + [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ') + '. Assign class and package here; the current-term fee estimate updates automatically.';
         try { quickForm.elements.first_name.focus({ preventScroll: true }); }
         catch (_) { quickForm.elements.first_name.focus(); }
       } catch (error) {
         if (typeof message === 'function') message('appMsg', 'Could not open learner information: ' + (error.message || 'Please refresh the register.'), true);
+      }
+    }
+
+
+    function updateLifecycleControls(learner) {
+      const archiveButton = $('ldsArchiveRestore');
+      const deleteButton = $('ldsDeletePermanently');
+      const status = $('ldsLifecycleStatus');
+      if (!archiveButton || !deleteButton || !learner) return;
+      const archived = learner.status === 'Archived';
+      archiveButton.textContent = archived ? 'Restore learner' : 'Archive learner';
+      archiveButton.disabled = state().role !== 'Admin' || state().demo;
+      deleteButton.disabled = state().role !== 'Admin' || state().demo;
+      if (status) status.textContent = archived
+        ? 'This learner is archived. You can restore the record or permanently delete it.'
+        : 'This learner is not archived. You can archive it or permanently delete it.';
+    }
+
+    function lifecycleStoragePath(bucket, value) {
+      const rawValue = String(value || '').trim();
+      if (!rawValue) return null;
+      let path = rawValue;
+      if (/^https?:\/\//i.test(rawValue)) {
+        let parsed;
+        try { parsed = new URL(rawValue); } catch (_) {
+          throw new Error('An attached file has an unreadable storage URL. No learner data was deleted.');
+        }
+        const marker = '/storage/v1/object/';
+        const start = parsed.pathname.indexOf(marker);
+        if (start < 0) throw new Error('An attached file is outside the supported private storage location. No learner data was deleted.');
+        const parts = parsed.pathname.slice(start + marker.length).split('/');
+        if (!['public', 'sign', 'authenticated'].includes(parts[0]) || parts[1] !== bucket || parts.length < 3) {
+          throw new Error('An attached file is not in the expected ' + bucket + ' storage bucket. No learner data was deleted.');
+        }
+        path = parts.slice(2).join('/');
+        try { path = decodeURIComponent(path); } catch (_) {}
+      } else {
+        path = path.replace(/^\/+/, '');
+        if (path.startsWith(bucket + '/')) path = path.slice(bucket.length + 1);
+      }
+      if (!path || path.includes('..')) throw new Error('An attached file has an invalid storage path. No learner data was deleted.');
+      return path;
+    }
+
+    async function removeLearnerStorageAttachments(learnerId) {
+      if (typeof db === 'undefined' || !db || !db.storage) throw new Error('Private file storage is unavailable. No learner data was deleted.');
+      const [studentResult, awardsResult] = await Promise.all([
+        db.from('students').select('photo_path').eq('id', learnerId).single(),
+        db.from('learner_bursary_awards').select('support_document_path').eq('student_id', learnerId)
+      ]);
+      if (studentResult.error) throw studentResult.error;
+      if (awardsResult.error) throw awardsResult.error;
+      const groups = new Map();
+      const add = (bucket, value) => {
+        const path = lifecycleStoragePath(bucket, value);
+        if (!path) return;
+        if (!groups.has(bucket)) groups.set(bucket, new Set());
+        groups.get(bucket).add(path);
+      };
+      add('learner-photos', studentResult.data && studentResult.data.photo_path);
+      (awardsResult.data || []).forEach(row => add('bursary-evidence', row.support_document_path));
+      let removed = 0;
+      for (const [bucket, paths] of groups.entries()) {
+        const list = Array.from(paths);
+        const { error } = await db.storage.from(bucket).remove(list);
+        if (error) throw new Error('Could not remove attached files from ' + bucket + ': ' + error.message + '. The learner record was not deleted.');
+        removed += list.length;
+      }
+      return removed;
+    }
+
+    async function runLearnerLifecycleAction(action) {
+      const st = state();
+      if (st.role !== 'Admin' || st.demo || !selectedId) return;
+      if (dirty) {
+        $('ldsLifecycleStatus').textContent = 'Save or cancel your unsaved profile edits before archiving or deleting this learner.';
+        return;
+      }
+      if (typeof db === 'undefined' || !db || typeof db.rpc !== 'function') {
+        $('ldsLifecycleStatus').textContent = 'The secure school database connection is unavailable.';
+        return;
+      }
+      const learner = st.students.find(item => item.id === selectedId);
+      if (!learner) {
+        $('ldsLifecycleStatus').textContent = 'Refresh the register. This learner is no longer available.';
+        return;
+      }
+      const reason = String($('ldsLifecycleReason').value || '').trim();
+      if (reason.length < 5 || reason.length > 500) {
+        $('ldsLifecycleStatus').textContent = 'Enter a reason between 5 and 500 characters.';
+        $('ldsLifecycleReason').focus();
+        return;
+      }
+      const archiveButton = $('ldsArchiveRestore');
+      const deleteButton = $('ldsDeletePermanently');
+      archiveButton.disabled = true;
+      deleteButton.disabled = true;
+      $('ldsLifecycleStatus').textContent = 'Checking the learner record and linked data…';
+      let attachmentsRemoved = false;
+      try {
+        if (action === 'archive') {
+          const archived = learner.status !== 'Archived';
+          const { error } = await db.rpc('admin_set_learner_archived', {
+            p_student_id: learner.id,
+            p_archived: archived,
+            p_reason: reason
+          });
+          if (error) throw error;
+          $('ldsLifecycleStatus').textContent = archived
+            ? 'Learner archived. Refreshing the register…'
+            : 'Learner restored. Refreshing the register…';
+          window.location.reload();
+          return;
+        }
+
+        if (action !== 'delete') return;
+        const code = String(learner.admission_number || '').trim();
+        if (!code) throw new Error('This learner has no pupil code to confirm against. Ask the administrator to correct the identity record first.');
+
+        const [paymentsResult, chargesResult] = await Promise.all([
+          db.from('school_payments').select('amount_ugx,status,receipt_no').eq('student_id', learner.id),
+          db.from('learner_charges').select('amount_ugx,description').eq('student_id', learner.id)
+        ]);
+        if (paymentsResult.error) throw paymentsResult.error;
+        if (chargesResult.error) throw chargesResult.error;
+        const payments = paymentsResult.data || [];
+        const charges = chargesResult.data || [];
+        const paymentTotal = payments.reduce((sum, row) => sum + (Number(row.amount_ugx) || 0), 0);
+        const chargeTotal = charges.reduce((sum, row) => sum + (Number(row.amount_ugx) || 0), 0);
+        const fullName = [learner.first_name, learner.middle_name, learner.last_name].filter(Boolean).join(' ');
+        const confirmation = [
+          'PERMANENTLY DELETE THIS LEARNER?',
+          '',
+          fullName + ' · ' + code,
+          '',
+          payments.length + ' payment/receipt record(s): UGX ' + paymentTotal.toLocaleString('en-UG'),
+          charges.length + ' fee/bursary charge(s): UGX ' + chargeTotal.toLocaleString('en-UG'),
+          '',
+          'This also removes guardian links, parent portal sessions, marks, report links, attendance/operational records and the learner history. Daily collection summaries will be recalculated so other learners remain.',
+          'This cannot be undone. Use Archive instead when the learner record may be needed later.',
+          '',
+          'Continue to the exact-code confirmation?'
+        ].join('\n');
+        if (!window.confirm(confirmation)) return;
+        const typedCode = window.prompt('Type this exact pupil code to confirm permanent deletion:\n' + code);
+        if (typedCode !== code) {
+          $('ldsLifecycleStatus').textContent = 'The exact code did not match. No learner records were deleted.';
+          return;
+        }
+        if (!window.confirm('Final confirmation: permanently delete ' + fullName + ' (' + code + ') and the linked transactions/history?')) return;
+
+        $('ldsLifecycleStatus').textContent = 'Removing attached private files and learner records…';
+        const attachmentCount = await removeLearnerStorageAttachments(learner.id);
+        attachmentsRemoved = attachmentCount > 0;
+        const { data, error } = await db.rpc('admin_delete_learner_permanently', {
+          p_student_id: learner.id,
+          p_confirmation_code: typedCode,
+          p_reason: reason,
+          p_storage_cleanup_confirmed: attachmentCount > 0
+        });
+        if (error) {
+          const note = attachmentsRemoved ? ' Private attachments were removed, but the database record was not deleted.' : '';
+          throw new Error((error.message || 'Permanent deletion failed.') + note);
+        }
+        $('ldsLifecycleStatus').textContent = 'Permanent deletion completed. Refreshing the register…';
+        window.location.reload();
+      } catch (error) {
+        $('ldsLifecycleStatus').textContent = (error && error.message ? error.message : 'The learner action failed. No database deletion was confirmed.');
+        archiveButton.disabled = false;
+        deleteButton.disabled = false;
       }
     }
 
@@ -732,6 +920,9 @@
       discardMainDraft();
     }
 
+    $('ldsArchiveRestore').addEventListener('click', () => runLearnerLifecycleAction('archive'));
+    $('ldsDeletePermanently').addEventListener('click', () => runLearnerLifecycleAction('delete'));
+    $('ldsRecordStatusFilter').addEventListener('change', renderSheet);
     $('ldsClassId').addEventListener('change', () => {
       const form = $('studentForm');
       if (form) writeMainValue(form, 'class_id', $('ldsClassId').value);

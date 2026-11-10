@@ -37,7 +37,7 @@ input,select{width:100%;padding:10px 11px;border:1px solid #cbd8ce;border-radius
 <body data-theme="warm-corporate">
 <header class="top">
  <div><div class="brand">CORNHILL · NOTIFICATION CENTRE</div><div class="sub">Updates from all connected CORNHILL applications</div></div>
- <div class="top-actions"><a href="https://cornhill-school-swart.vercel.app/apps/school-management/">Main system</a><button id="installApp" type="button" class="hidden">Install app</button><a id="recordsLink" class="hidden" href="https://records-cornhill-school.vercel.app/apps/records/">Records Centre</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
+ <div class="top-actions"><a href="https://cornhill-school-swart.vercel.app/apps/school-management/">Main system</a><button id="installApp" type="button" class="hidden">Install app</button><a id="recordsLink" class="hidden" href="https://records-cornhill-school.vercel.app/apps/records/">Records Centre</a><a id="guardianAccountsLink" class="hidden" href="/guardian-accounts.html">Parent Portal Settings</a><span id="who" class="sub"></span><button id="signOut" class="hidden">Sign out</button></div>
 </header>
 <main class="wrap">
  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -90,7 +90,7 @@ function setBusy(msg){$('connection').textContent=msg}
 function when(value){return value?new Date(value).toLocaleString('en-UG',{timeZone:'Africa/Kampala'}):'—'}
 function showApp(){
  $('loginCard').classList.add('hidden');$('app').classList.remove('hidden');$('signOut').classList.remove('hidden');
- $('recordsLink').classList.toggle('hidden',profile?.role!=='Admin');
+ $('recordsLink').classList.toggle('hidden',profile?.role!=='Admin'); $('guardianAccountsLink').classList.toggle('hidden',profile?.role!=='Admin');
  $('who').textContent=(profile?.full_name||user?.email||'')+' · '+(profile?.role||'');
 }
 async function enterApp(nextUser){
