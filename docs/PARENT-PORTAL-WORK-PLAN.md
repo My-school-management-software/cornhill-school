@@ -52,9 +52,10 @@ Last updated: 10 November 2026
 - [x] Deactivated 2 previously active guardian links that belonged to archived learners. Credential hashes were retained; archived learners remain blocked.
 - [x] Added a database trigger so future learner admissions and changes to guardian name/phone automatically synchronize the primary guardian link. Invalid or incomplete source details do not create a fabricated guardian identity.
 - [x] Added automatic guardian-link deactivation when a learner is archived.
+- [x] Guardian SMS/WhatsApp preference changes are synchronized; WhatsApp opt-in remains false unless a valid WhatsApp number is present.
 - [x] Enabled row-level security on private parent login-attempt records and removed browser-role table access; the server service role retains the required access.
 - [x] Added regression tests for phone normalization, admission sync, contact changes, archive handling, messaging-consent defaults, and login-attempt security.
-- [x] GitHub Actions regression suite passed: 172 tests, 0 failures.
+- [x] GitHub Actions regression suite passed: 173 tests, 0 failures.
 - [x] Vercel preview for the updated branch is READY.
 - [ ] Three active learner records have a guardian phone but no guardian name; the school must confirm the correct guardian names before they can be linked.
 - [ ] The remaining 475 active learner records have no registered guardian phone; the school must collect and verify the guardian contact details before Parent Portal access can be enabled for them.
