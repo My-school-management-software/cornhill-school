@@ -10,7 +10,7 @@ const migration = fs.readFileSync(path.join(root, 'supabase/migrations/202611101
 
 test('guardian PIN page exists as a standalone school application', () => {
   assert.match(page, /CORNHILL · PARENT PORTAL SETTINGS/);
-  assert.match(page, /guardian-accounts\.html|Parent Portal credentials/);
+  assert.match(page, /Guardian PIN register/);
 });
 
 test('administrator must authenticate with a CORNHILL staff account', () => {
