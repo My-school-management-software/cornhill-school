@@ -32,8 +32,8 @@ test('the class sheet supports DOB, verified birth year, guardian details and sa
 
 test('offline app shell includes the new learner details sheet and refreshes old caches', () => {
   const sw = read('service-worker.js');
-  assert.match(sw, /cornhill-shell-v82/);
-  assert.match(sw, /cornhill-static-v82/);
+  assert.match(sw, /cornhill-shell-v83/);
+  assert.match(sw, /cornhill-static-v83/);
   assert.ok(sw.includes('/assets/cornhill-learner-details-sheet.js'));
 });
 
@@ -124,4 +124,30 @@ test('learner photographs on report cards remain inactive and are tracked in the
   assert.ok(workPlan.includes('Inactive · Not enabled'));
   assert.ok(workPlan.includes('Do not display or print learner photographs on report cards'));
   assert.ok(workPlan.includes('Pending / inactive'));
+});
+
+
+test('bursary approval is blocked with a clear class-assignment instruction when the learner has no class', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.match(source, /if \(!learner\.class_id\)/);
+  assert.ok(source.includes('Assign class first'));
+  assert.ok(source.includes('Open full learner record'));
+  assert.ok(source.includes('Finance needs the class to identify the correct current-term fee'));
+  assert.ok(source.includes('No bursary has been recorded'));
+});
+
+test('repeated bursary approval taps cannot start overlapping Finance loads', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.match(source, /let bursaryApprovalOpening = false/);
+  assert.match(source, /state\(\)\.demo \|\| bursaryApprovalOpening\) return/);
+  assert.ok(source.includes("action.textContent = 'Opening Finance…'"));
+  assert.ok(source.includes('bursaryApprovalOpening = false'));
+});
+
+test('a successful bursary award refreshes and reopens the same learner completion sheet', () => {
+  const source = read('assets/cornhill-learner-details-sheet.js');
+  assert.match(source, /window\.addEventListener\('cornhill:bursary-award-updated', async \(\) => \{/);
+  assert.match(source, /await refreshBursaryAwards\(\);/);
+  assert.match(source, /tab\('students'\)/);
+  assert.match(source, /openEditor\(returnLearnerId\)/);
 });
