@@ -198,6 +198,7 @@
     let bursaryReturnLearnerId = null;
     let feeScheduleRows = null;
     let feeScheduleLoading = false;
+    let feeSchedulePromise = null;
     let feeScheduleError = null;
     let feeScheduleTermLabel = '';
     let feePreviewRequest = 0;
@@ -492,31 +493,41 @@
     }
 
     async function loadFeeScheduleRows() {
-      if (feeScheduleRows || feeScheduleLoading || feeScheduleError) return;
+      if (feeScheduleRows || feeScheduleError) return;
+      if (feeSchedulePromise) {
+        await feeSchedulePromise;
+        return;
+      }
       if (typeof db === 'undefined' || !db) {
         feeScheduleError = new Error('Finance connection is unavailable.');
         return;
       }
       feeScheduleLoading = true;
+      feeSchedulePromise = (async () => {
+        try {
+          const { data: terms, error: termError } = await db.from('academic_terms')
+            .select('id,name,academic_year_id').eq('is_current', true).eq('is_closed', false)
+            .order('starts_on', { ascending: false }).limit(1);
+          if (termError) throw termError;
+          const term = (terms || [])[0];
+          if (!term) throw new Error('There is no open current academic term.');
+          const { data, error } = await db.from('fee_schedules')
+            .select('class_group,learner_type,amount_ugx,fee_items(name)')
+            .eq('is_active', true)
+            .or('term_id.is.null,term_id.eq.' + term.id)
+            .or('academic_year_id.is.null,academic_year_id.eq.' + term.academic_year_id);
+          if (error) throw error;
+          feeScheduleRows = data || [];
+          feeScheduleTermLabel = term.name || 'Current term';
+        } catch (error) {
+          feeScheduleError = error;
+        }
+      })();
       try {
-        const { data: terms, error: termError } = await db.from('academic_terms')
-          .select('id,name,academic_year_id').eq('is_current', true).eq('is_closed', false)
-          .order('starts_on', { ascending: false }).limit(1);
-        if (termError) throw termError;
-        const term = (terms || [])[0];
-        if (!term) throw new Error('There is no open current academic term.');
-        const { data, error } = await db.from('fee_schedules')
-          .select('class_group,learner_type,amount_ugx,fee_items(name)')
-          .eq('is_active', true)
-          .or('term_id.is.null,term_id.eq.' + term.id)
-          .or('academic_year_id.is.null,academic_year_id.eq.' + term.academic_year_id);
-        if (error) throw error;
-        feeScheduleRows = data || [];
-        feeScheduleTermLabel = term.name || 'Current term';
-      } catch (error) {
-        feeScheduleError = error;
+        await feeSchedulePromise;
       } finally {
         feeScheduleLoading = false;
+        feeSchedulePromise = null;
       }
     }
 
