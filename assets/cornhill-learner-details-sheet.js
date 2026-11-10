@@ -183,8 +183,12 @@
     let activeBursaryAwards = new Map();
     let activeBursaryAwardsLoaded = false;
     let activeBursaryAwardsLoading = false;
+    let activeBursaryAwardsError = null;
 
     function currentBursaryArrangement(learner) {
+      if (!activeBursaryAwardsLoaded || activeBursaryAwardsError) {
+        return { value: 'unknown', label: 'Fee status unavailable', description: 'The current bursary register could not be verified. Refresh or check Finance before changing this learner’s fee arrangement.' };
+      }
       const award = activeBursaryAwards.get(learner.id) || null;
       if (award) {
         return {
@@ -213,7 +217,8 @@
       const action = $('ldsOpenBursaryApproval');
       if (!select || !note || !action || !learner) return;
       const current = currentBursaryArrangement(learner);
-      select.value = current.value;
+      select.value = current.value === 'unknown' ? '' : current.value;
+      select.disabled = current.value === 'unknown';
       select.dataset.currentValue = current.value;
       note.textContent = current.label + '. ' + current.description;
       action.hidden = true;
@@ -236,6 +241,7 @@
           if (award.student_id && !next.has(award.student_id)) next.set(award.student_id, award);
         });
         activeBursaryAwards = next;
+        activeBursaryAwardsError = null;
         activeBursaryAwardsLoaded = true;
         renderSheet();
         if (selectedId) {
@@ -243,7 +249,8 @@
           if (learner) updateBursaryEditor(learner);
         }
       } catch (error) {
-        activeBursaryAwardsLoaded = false;
+        activeBursaryAwardsError = error;
+        activeBursaryAwardsLoaded = true;
         const note = $('ldsBursaryArrangementStatus');
         if (note) note.textContent = 'Current bursary approval details could not be loaded. No fee arrangement was changed. Refresh the learner register or check Finance.';
       } finally {
@@ -253,6 +260,11 @@
 
     async function openExistingBursaryApproval() {
       if (!selectedId || state().role !== 'Admin' || state().demo) return;
+      if (!activeBursaryAwardsLoaded || activeBursaryAwardsError) {
+        $('ldsBursaryArrangementStatus').textContent = 'The current bursary register has not been verified. Refresh the learner register or check Finance before starting a new award.';
+        $('ldsOpenBursaryApproval').hidden = true;
+        return;
+      }
       if (dirty) {
         $('ldsBursaryArrangementStatus').textContent = 'Save or cancel the learner information edits first. The bursary approval screen is separate so fee decisions are not mixed with profile edits.';
         $('ldsOpenBursaryApproval').hidden = true;
@@ -372,7 +384,7 @@
           '<td>' + htmlEscape(className(x.class_id)) + '</td><td>' + htmlEscape(dob) + '</td><td>' + htmlEscape(year) + '</td>' +
           '<td>' + htmlEscape(guardian) + (x.alternate_guardian_name ? '<span class="lds-sub">Alternative: ' + htmlEscape(x.alternate_guardian_name) + '</span>' : '') + '</td>' +
           '<td>' + htmlEscape(x.guardian_relationship || '—') + '</td><td>' + htmlEscape(contact) + '</td><td>' + htmlEscape(x.lin || 'Not entered') + '</td>' +
-          '<td><span class="lds-state ' + (feeArrangement.value === 'bursary' ? 'pending' : '') + '">' + htmlEscape(feeArrangement.value === 'bursary' ? 'Bursary' : 'Regular fees') + '</span><span class="lds-sub">' + htmlEscape(feeArrangement.label) + '</span></td>' +
+          '<td><span class="lds-state ' + (feeArrangement.value !== 'regular' ? 'pending' : '') + '">' + htmlEscape(feeArrangement.value === 'bursary' ? 'Bursary' : (feeArrangement.value === 'regular' ? 'Regular fees' : 'Review')) + '</span><span class="lds-sub">' + htmlEscape(feeArrangement.label) + '</span></td>' +
           '<td><span class="lds-state ' + (missing ? 'pending' : '') + '">' + (missing ? 'Needs details' : 'Recorded') + '</span></td>' +
           '<td><button type="button" class="lds-open" data-learner-sheet-open="' + htmlEscape(x.id) + '">Select</button></td></tr>';
       }).join('') || '<tr><td colspan="12">No learners match this class, search and information filter.</td></tr>';
@@ -742,7 +754,6 @@
     observer.observe(rowsHost, { childList: true, subtree: true });
     observer.observe($('studentRegisterClassCards'), { childList: true, subtree: true });
     renderSheet();
-    window.addEventListener('cornhill:bursary-award-updated', refreshBursaryAwards);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
