@@ -409,12 +409,22 @@ Deno.serve(async (req: Request) => {
                 Number(snapshot.record_counts?.[name]) !== 0))
             throw new Error("Backup privacy-scope verification failed. No restore was attempted.");
         }
-        const allowed = new Set(TABLES);
+        // Validate against this backup's authenticated manifest and matching DB audit,
+        // not only today's table list: older valid snapshots can have a different schema version.
+        const LEGACY_DATASETS = ["class_login_directory", "class_teacher_access",
+          "communication_provider_settings", "guardian_pin_audit"];
+        const allowed = new Set([...TABLES, ...LEGACY_DATASETS]);
         const names = Object.keys(snapshot.records);
-        if (names.length !== TABLES.length || names.some(name => !allowed.has(name)))
-          throw new Error("Backup dataset list does not match the current CORNHILL backup format.");
+        const manifestNames = Object.keys(snapshot.record_counts ?? {});
+        const auditedNames = Object.keys(run.record_counts ?? {});
+        const sorted = (values: string[]) => [...values].sort();
+        const sameNames = (left: string[], right: string[]) =>
+          JSON.stringify(sorted(left)) === JSON.stringify(sorted(right));
+        if (!names.length || names.some(name => !allowed.has(name)) ||
+            !sameNames(names, manifestNames) || !sameNames(names, auditedNames))
+          throw new Error("Backup dataset manifest does not match its authenticated backup audit or supported CORNHILL datasets.");
         let counted = 0;
-        for (const name of TABLES) {
+        for (const name of names) {
           const rows = snapshot.records[name];
           if (!Array.isArray(rows) || Number(snapshot.record_counts?.[name]) !== rows.length ||
               Number(run.record_counts?.[name]) !== rows.length)
