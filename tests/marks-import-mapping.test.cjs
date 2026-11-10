@@ -98,6 +98,24 @@ test('unknown headings remain for manual review',()=>{
  assert.equal(result.unavailableSubject,undefined);
 });
 
+test('class names use complete level numbers so P10 and P12 are not misclassified',()=>{
+ assert.equal(mapping.classLevelNumber('P1'),1);
+ assert.equal(mapping.classLevelNumber('P.7'),7);
+ assert.equal(mapping.classLevelNumber('Primary 4'),4);
+ assert.equal(mapping.classLevelNumber('P10'),10);
+ assert.equal(mapping.classLevelNumber('P12'),12);
+ assert.equal(mapping.curriculumGroup('Baby'),'Nursery');
+ assert.equal(mapping.curriculumGroup('Middle'),'Nursery');
+ assert.equal(mapping.curriculumGroup('Top'),'Nursery');
+ assert.equal(mapping.curriculumGroup('P1'),'P1-P3');
+ assert.equal(mapping.curriculumGroup('Primary 3'),'P1-P3');
+ assert.equal(mapping.curriculumGroup('P4'),'P4-P7');
+ assert.equal(mapping.curriculumGroup('P.7'),'P4-P7');
+ assert.equal(mapping.curriculumGroup('P8'),null);
+ assert.equal(mapping.curriculumGroup('P10'),null);
+ assert.equal(mapping.curriculumGroup('P12'),null);
+});
+
 test('academic-term labels are separate from assessment-period labels',()=>{
  assert.equal(mapping.workbookTermNumber('MIDDLE 1ST TERM'),1);
  assert.equal(mapping.workbookTermNumber('TERM 3'),3);
