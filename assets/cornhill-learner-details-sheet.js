@@ -121,7 +121,7 @@
         '<tbody id="learnerDetailsSheetRows"><tr><td colspan="11">Learner records will appear after the register loads.</td></tr></tbody></table></div>' +
         '<p class="lds-note">Enter only information confirmed by the learner’s parent / guardian or an official school record. When only the year is known, enter the year and leave the exact date blank. Do not guess a day or month. Corrections to verified birth year or gender may regenerate the pupil code; the system keeps the old code linked to the learner’s history.</p>' +
       '</section>' +
-      '<section id="learnerDetailsEditor" class="hidden" role="dialog" aria-modal="true" aria-labelledby="learnerDetailsEditorTitle" tabindex="-1">' +
+      '<section id="learnerDetailsEditor" class="hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="learnerDetailsEditorTitle" tabindex="-1">' +
         '<div class="lds-editor-head"><div><div class="lds-kicker">SELECTED LEARNER</div><h3 id="learnerDetailsEditorTitle">Complete learner information</h3><p id="learnerDetailsEditorMeta" class="muted" style="margin:0"></p><p id="learnerDetailsEditorPosition" class="muted" style="margin:4px 0 0"></p></div>' +
           '<div class="row" style="gap:7px;flex-wrap:wrap"><button type="button" id="learnerDetailsPrevious" class="tab">Previous learner</button><button type="button" id="learnerDetailsNext" class="tab">Next learner</button><button type="button" id="learnerDetailsClose" class="tab" aria-label="Close learner editor">Close editor</button></div></div>' +
         '<form id="learnerDetailsQuickForm">' +
@@ -511,9 +511,23 @@
     $('learnerDetailsNext').addEventListener('click', () => moveToAdjacentLearner(1));
     $('learnerDetailsClose').addEventListener('click', () => closeEditor(true));
     document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && !editor.classList.contains('hidden')) {
+      if (editor.classList.contains('hidden')) return;
+      if (event.key === 'Escape') {
         event.preventDefault();
         closeEditor(true);
+        return;
+      }
+      if (event.key === 'Tab') {
+        const focusable = Array.from(editor.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]'))
+          .filter(node => node.getAttribute('aria-hidden') !== 'true' && node.offsetParent !== null);
+        if (!focusable.length) { event.preventDefault(); editor.focus(); return; }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && (document.activeElement === first || !editor.contains(document.activeElement))) {
+          event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault(); first.focus();
+        }
       }
     });
     $('learnerDetailsCancel').addEventListener('click', () => closeEditor(true));
