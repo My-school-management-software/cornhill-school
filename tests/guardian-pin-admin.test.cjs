@@ -9,7 +9,7 @@ const notifications = fs.readFileSync(path.join(root, 'notifications.html'), 'ut
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261110144000_parent_portal_guardian_pin_toggle.sql'), 'utf8');
 
 test('guardian PIN page exists as a standalone school application', () => {
-  assert.match(page, /CORNHILL · GUARDIAN PIN ADMINISTRATION/);
+  assert.match(page, /CORNHILL · PARENT PORTAL SETTINGS/);
   assert.match(page, /guardian-accounts\.html|Parent Portal credentials/);
 });
 
@@ -75,7 +75,7 @@ test('the guardian credential copy action requires an explicit button interactio
 
 test('the page links to the separate Parent Portal, not the school admin session', () => {
   assert.match(page, /href="\/parents\.html"/);
-  assert.match(page, /isolated Parent & Guardian Portal/);
+  assert.match(page, /Administrator controls for parent sign-in and guardian credentials/);
 });
 
 test('the Notification Centre contains the guardian administration link', () => {
