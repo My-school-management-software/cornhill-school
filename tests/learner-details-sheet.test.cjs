@@ -13,7 +13,7 @@ test('learner information completion sheet is connected to the main Learner Regi
   assert.ok(index.includes('<script src="' + script + '"></script>'));
   assert.ok(index.indexOf('/assets/main-school-workspace-bridge.js') < index.indexOf(script));
   const source = read('assets/cornhill-learner-details-sheet.js');
-  assert.doesNotThrow(() => new vm.Script(source, { filename: 'cornhill-learner-details-sheet.js' }));
+  try { new vm.Script(source, { filename: 'cornhill-learner-details-sheet.js' }); } catch (error) { console.error(error.stack, error.lineNumber, error.columnNumber, error.pos); throw error; }
 });
 
 test('the class sheet supports DOB, verified birth year, guardian details and safe save reuse', () => {
@@ -131,7 +131,7 @@ test('bursary approval is blocked with a clear class-assignment instruction when
   const source = read('assets/cornhill-learner-details-sheet.js');
   assert.match(source, /if \(!learner\.class_id\)/);
   assert.ok(source.includes('Assign class first'));
-  assert.ok(source.includes('Choose the correct class'));
+  assert.ok(source.includes('Open full learner record'));
   assert.ok(source.includes('Finance needs the class to identify the correct current-term fee'));
   assert.ok(source.includes('No bursary has been recorded'));
 });
@@ -165,8 +165,7 @@ test('class assignment is available directly in the completion editor and saves 
 test('class and learner package selection previews the current term school, boarding and meal fees', () => {
   const source = read('assets/cornhill-learner-details-sheet.js');
   for (const value of ["db.from('fee_schedules')", "db.from('academic_terms')", "fee_items(name)",
-    "fee_items.name === 'School fees'", "fee_items.name === 'Boarding'", "fee_items.name === 'Breakfast'",
-    "fee_items.name === 'Lunch'", "id=\"ldsLearnerType\"", "id=\"ldsBreakfast\"", "id=\"ldsLunch\"",
+    "['School fees', 'Boarding', 'Breakfast', 'Lunch'].includes(row.fee_items.name)", "row.fee_items.name === name", "id=\"ldsLearnerType\"", "id=\"ldsBreakfast\"", "id=\"ldsLunch\"",
     "Current-term fee estimate", "Estimated total"]) assert.ok(source.includes(value), value);
   assert.ok(source.includes("if (isP7) type.value = 'Boarding'"));
   assert.ok(source.includes("breakfast.disabled = boarding"));
