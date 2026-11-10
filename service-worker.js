@@ -1,9 +1,9 @@
-/* CORNHILL preview refresh: guardian phone + PIN sign-in and admission PIN issuance. */
+/* CORNHILL preview refresh: Parent Portal Guardian PIN setting toggle and administrator controls. */
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
-const CACHE_NAME = 'cornhill-shell-v88';
-const STATIC_CACHE = 'cornhill-static-v88';
+const CACHE_NAME = 'cornhill-shell-v89';
+const STATIC_CACHE = 'cornhill-static-v89';
 const SHELL = [
   '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
   '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
