@@ -8212,7 +8212,7 @@ function renderAdminParentPortalDirectory(){
   const tr=document.createElement('tr'),status=!r.contact_id?'No guardian contact':!r.pin_active?'PIN not issued':r.pin_locked?'Temporarily locked':'Active';
   [r.learner_name+' · '+(r.class_name||'Unassigned')+' · '+(r.learner_status||''),r.pupil_code||'Not recorded',r.guardian_name||'No guardian linked',r.guardian_phone||'Not recorded',status,r.pin_changed_at?'Changed '+new Date(r.pin_changed_at).toLocaleDateString('en-UG',{timeZone:'Africa/Kampala'}):r.pin_issued_at?'Issued '+new Date(r.pin_issued_at).toLocaleDateString('en-UG',{timeZone:'Africa/Kampala'}):'—'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});
   const td=document.createElement('td');
-  const validGuardianPhone=/^\\+256[0-9]{9}$/.test(String(r.guardian_phone||''));
+  const validGuardianPhone=/^\+256[0-9]{9}$/.test(String(r.guardian_phone||''));
   const archivedLearner=String(r.learner_status||'').toLowerCase()==='archived';
   if(r.contact_id&&r.guardian_is_active&&validGuardianPhone&&!archivedLearner){
    const btn=document.createElement('button');btn.type='button';btn.className='primary';btn.textContent=r.pin_active?'Issue / reset PIN':'Issue PIN';
