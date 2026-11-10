@@ -2284,7 +2284,7 @@ async function readLocalFormDraft(owner,key){
 async function clearLocalFormDraft(owner,key){if(!owner)return;const d=await localFormDraftDb();await new Promise((resolve,reject)=>{const tx=d.transaction('formDrafts','readwrite');tx.objectStore('formDrafts').delete(owner+'|'+key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});d.close()}
 function localFormValues(form){const values={};[...form.elements].forEach(el=>{if(!el.name||el.type==='file'||['submit','button','reset','password'].includes(el.type))return;if(el.type==='checkbox')values[el.name]=!!el.checked;else if(el.type==='radio'){if(el.checked)values[el.name]=el.value}else values[el.name]=el.value});return values}
 function bindLocalAutosaveForm(form,key,statusId,allowed){if(!form||form.dataset.localAutosaveBound==='1')return;form.dataset.localAutosaveBound='1';let timer=null;const save=()=>{clearTimeout(timer);timer=setTimeout(async()=>{if(!currentUserId||!allowed())return;try{await saveLocalFormDraft(currentUserId,key,localFormValues(form));const box=$(statusId);if(box){box.textContent='Draft autosaved on this device · '+new Date().toLocaleTimeString();box.className='notice';box.classList.remove('hidden')}}catch(error){const box=$(statusId);if(box){box.textContent='Autosave could not store this draft. Keep the form open and retry. '+(error?.message||'');box.className='notice error';box.classList.remove('hidden')}}},450)};form.addEventListener('input',save);form.addEventListener('change',save)}
-async function restoreLocalAutosaveForm(form,key,statusId){const owner=currentUserId,generation=window.cornhillSessionGeneration||0;if(!form||!owner)return;try{const draft=await readLocalFormDraft(owner,key);if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;if(!draft)return;const hasTyped=[...form.elements].some(el=>el.name&&['text','email','tel','number','date','datetime-local','textarea'].includes(el.type||el.tagName.toLowerCase())&&String(el.value||'').trim()!=='');if(hasTyped)return;for(const [name,value] of Object.entries(draft.values||{})){const fields=[...form.elements].filter(el=>el.name===name);fields.forEach(el=>{if(el.type==='checkbox')el.checked=!!value;else if(el.type==='radio')el.checked=el.value===value;else if(el.type!=='file')el.value=value??''})}const box=$(statusId);if(box){box.textContent='Recovered an unfinished draft saved on this device ('+new Date(draft.updated_at).toLocaleString()+'). Review it before submitting.';box.className='notice';box.classList.remove('hidden')}}catch(_){}}
+async function restoreLocalAutosaveForm(form,key,statusId){const owner=currentUserId,generation=window.cornhillSessionGeneration||0;if(!form||!owner)return;try{const draft=await readLocalFormDraft(owner,key);if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0)||requestId!==window.cornhillAdminAcademicInsightsRequest)return;if(!draft)return;const hasTyped=[...form.elements].some(el=>el.name&&['text','email','tel','number','date','datetime-local','textarea'].includes(el.type||el.tagName.toLowerCase())&&String(el.value||'').trim()!=='');if(hasTyped)return;for(const [name,value] of Object.entries(draft.values||{})){const fields=[...form.elements].filter(el=>el.name===name);fields.forEach(el=>{if(el.type==='checkbox')el.checked=!!value;else if(el.type==='radio')el.checked=el.value===value;else if(el.type!=='file')el.value=value??''})}const box=$(statusId);if(box){box.textContent='Recovered an unfinished draft saved on this device ('+new Date(draft.updated_at).toLocaleString()+'). Review it before submitting.';box.className='notice';box.classList.remove('hidden')}}catch(_){}}
 
 function bindLocalAutosaveDynamicForm(form,keyForForm,statusId,allowed){if(!form||form.dataset.localAutosaveDynamicBound==='1')return;form.dataset.localAutosaveDynamicBound='1';let timer=null;const save=()=>{clearTimeout(timer);timer=setTimeout(async()=>{const key=keyForForm();if(!currentUserId||!key||!allowed())return;try{await saveLocalFormDraft(currentUserId,key,localFormValues(form));const box=$(statusId);if(box){box.textContent='Edit draft autosaved on this device · '+new Date().toLocaleTimeString();box.className='notice';box.classList.remove('hidden')}}catch(error){const box=$(statusId);if(box){box.textContent='Could not autosave this edit. Keep the form open and retry. '+(error?.message||'');box.className='notice error';box.classList.remove('hidden')} }},450)};form.addEventListener('input',save);form.addEventListener('change',save)}
 
@@ -3854,14 +3854,34 @@ function curriculumGroupForClass(name){
  if(shared?.curriculumGroup)return shared.curriculumGroup(name);
  const n=String(name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
  if(n.includes('BABY')||n.includes('MIDDLE')||n.includes('TOP')||n.includes('NURSERY'))return 'Nursery';
- if(/P[123]/.test(n)||/PRIMARY[123]/.test(n))return 'P1-P3';
- if(/P[4567]/.test(n)||/PRIMARY[4567]/.test(n))return 'P4-P7';
+ const match=n.match(/PRIMARY([0-9]{1,2})(?![0-9])/)||n.match(/P([0-9]{1,2})(?![0-9])/);
+ const level=match?Number(match[1]):null;
+ if(level!==null&&level>=1&&level<=3)return 'P1-P3';
+ if(level!==null&&level>=4&&level<=7)return 'P4-P7';
  return null;
 }
+function academicClassLevelNumber(name){
+ const shared=window.CornhillMarkImportMapping;
+ if(typeof shared?.classLevelNumber==='function')return shared.classLevelNumber(name);
+ const n=String(name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ const match=n.match(/PRIMARY([0-9]{1,2})(?![0-9])/)||n.match(/P([0-9]{1,2})(?![0-9])/);
+ return match?Number(match[1]):null;
+}
+function compareAcademicClassWorkspaces(a,b){
+ const rank={Nursery:0,'P1-P3':1,'P4-P7':2};
+ const groupA=curriculumGroupForClass(a.name),groupB=curriculumGroupForClass(b.name);
+ const groupRankA=groupA===null?3:rank[groupA],groupRankB=groupB===null?3:rank[groupB];
+ if(groupRankA!==groupRankB)return groupRankA-groupRankB;
+ const levelA=academicClassLevelNumber(a.name),levelB=academicClassLevelNumber(b.name);
+ if(levelA!==null&&levelB!==null&&levelA!==levelB)return levelA-levelB;
+ if(levelA!==null&&levelB===null)return -1;
+ if(levelA===null&&levelB!==null)return 1;
+ return String(a.name||'').localeCompare(String(b.name||''))||String(a.stream||'').localeCompare(String(b.stream||''));
+}
 function assessmentPeriodsForClassName(name){
- const value=String(name||'');
- if(/P\.?\s*7|PRIMARY\s*7/i.test(value))return ['Set I','Set II','Set III','Set IV'];
- if(/P\.?\s*6|PRIMARY\s*6/i.test(value))return ['Set I','Set II','Set III'];
+ const value=String(name||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ if(/P7(?![0-9])|PRIMARY7(?![0-9])/.test(value))return ['Set I','Set II','Set III','Set IV'];
+ if(/P6(?![0-9])|PRIMARY6(?![0-9])/.test(value))return ['Set I','Set II','Set III'];
  return ['Beginning','Midterm','End'];
 }
 function assessmentPeriodsForClass(classId){
@@ -4397,6 +4417,8 @@ async function renderReportCard(options={}){
 async function loadAdminAcademicInsights(){
  const panel=$('adminAcademicInsights');
  if(profile?.role!=='Admin'||demoMode){panel?.classList.add('hidden');return}
+ const requestId=(window.cornhillAdminAcademicInsightsRequest||0)+1;
+ window.cornhillAdminAcademicInsightsRequest=requestId;
  panel?.classList.remove('hidden');
  const termId=$('adminAcademicTerm')?.value,note=$('adminAcademicInsightMsg'),kpis=$('adminAcademicKpis'),classBars=$('adminAcademicClassBars'),subjectBars=$('adminAcademicSubjectBars'),cards=$('adminAcademicClassRows'),detail=$('adminAcademicClassDetail');
  if(detail){detail.classList.add('hidden');detail.innerHTML=''}
@@ -4464,7 +4486,7 @@ async function loadAdminAcademicInsights(){
    marked.add(mark.student_id);
   });
   const classesForTerm=[...classMap.values()].map(cls=>({...cls,average:cls.max?cls.sum/cls.max*100:null}))
-   .sort((a,b)=>a.name.localeCompare(b.name)||String(a.stream||'').localeCompare(String(b.stream||'')));
+   .sort(compareAcademicClassWorkspaces);
   const subjectsForTerm=[...subjectMap.values()].map(x=>({...x,average:x.max?x.sum/x.max*100:null}))
    .sort((a,b)=>(a.average??101)-(b.average??101));
   const totalScore=classesForTerm.reduce((n,x)=>n+x.sum,0),totalMax=classesForTerm.reduce((n,x)=>n+x.max,0);
@@ -4525,6 +4547,11 @@ async function loadAdminAcademicInsights(){
   const otherMarkup=otherClasses.length?'<section class="academic-class-band" style="margin-top:16px"><h4 style="margin:0 0 10px">Other registered classes</h4><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px">'+otherClasses.map(renderClassCard).join('')+'</div></section>':'';
   cards.innerHTML=bandMarkup+otherMarkup||'<div class="notice">No classes have been registered. Create classes before viewing class performance.</div>';
   const classSearch=$('adminAcademicClassSearch');
+  const classSearchEmpty=document.createElement('div');
+  classSearchEmpty.className='notice hidden';
+  classSearchEmpty.dataset.classSearchEmpty='1';
+  classSearchEmpty.setAttribute('role','status');
+  cards.appendChild(classSearchEmpty);
   if(classSearch&&!classSearch.dataset.bound){
    classSearch.dataset.bound='1';
    classSearch.addEventListener('input',()=>{
@@ -4537,6 +4564,9 @@ async function loadAdminAcademicInsights(){
      });
      section.classList.toggle('hidden',visible===0);
     });
+    const visibleCards=cards.querySelectorAll('.academic-class-workspace-card:not(.hidden)').length;
+    classSearchEmpty.textContent=query&&!visibleCards?'No registered classes match "'+classSearch.value.trim()+'".':'';
+    classSearchEmpty.classList.toggle('hidden',!query||visibleCards>0);
    });
   }
   if(classSearch){classSearch.value='';classSearch.dispatchEvent(new Event('input'));}
