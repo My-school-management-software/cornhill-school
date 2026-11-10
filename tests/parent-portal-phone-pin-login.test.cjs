@@ -9,44 +9,53 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const parents = read('parents.html');
 const api = read('supabase/functions/parent-portal-api/index.ts');
 const migration = read('supabase/migrations/20261110124500_parent_portal_pupil_code_phone_access.sql');
+const toggleMigration = read('supabase/migrations/20261110144000_parent_portal_guardian_pin_toggle.sql');
 const plan = read('docs/PARENT-PORTAL-WORK-PLAN.md');
 
-test('Parent Portal requires learner pupil code and registered guardian phone', () => {
+test('Parent Portal always requires the learner pupil code and registered guardian phone', () => {
   assert.match(parents, /id="pupilCodeBeforeVerify"/);
   assert.match(parents, /id="phone"/);
-  assert.match(parents, /parentApi\('verify',\{pupil_code:code,phone\}\)/);
-  assert.doesNotMatch(parents, /id="guardianPin"/);
+  assert.match(parents, /parentApi\('verify',payload\)/);
+  assert.match(parents, /pupil_code:code/);
 });
 
-test('Guardian PIN is absent from parent-facing sign-in, reset, and change controls', () => {
-  assert.doesNotMatch(parents, /id="guardianPin"|id="showPinReset"|id="resetPinButton"|id="changeGuardianPin"/);
-  assert.doesNotMatch(parents, /guardianPinSettings|resetGuardianPin\(|changeGuardianPin\(/);
-  assert.match(parents, /Guardian PIN is temporarily inactive on this portal/);
+test('Guardian PIN input remains hidden unless the administrator setting is ON', () => {
+  assert.match(parents, /id="guardianPinEntry" class="hidden"/);
+  assert.match(parents, /id="guardianPin"/);
+  assert.match(parents, /guardianPinRequired/);
+  assert.match(parents, /parentApi\('auth-method'\)/);
+  assert.match(parents, /classList\.toggle\('hidden',!guardianPinRequired\)/);
 });
 
-test('Parent API routes pupil-code + phone sign-in through the restricted database function', () => {
+test('Parent API exposes only the Guardian PIN requirement status for the portal display', () => {
+  assert.match(api, /action === "auth-method"/);
+  assert.match(api, /parent_portal_guardian_pin_required/);
+  assert.match(api, /guardian_pin_required: data/);
+});
+
+test('the server reads the school-controlled Guardian PIN setting before every parent sign-in', () => {
+  assert.match(api, /const \{ data: pinRequired, error: settingError \} = await db\.rpc\("parent_portal_guardian_pin_required"\)/);
+  assert.match(api, /if \(pinRequired\)/);
+  assert.match(api, /parent_portal_get_learner_with_pin/);
   assert.match(api, /parent_portal_get_learner_by_code_and_phone/);
-  assert.match(api, /p_pupil_code: code/);
-  assert.match(api, /p_registered_phone: phone/);
+  assert.doesNotMatch(api, /isPreviewOrigin/);
 });
 
-test('the previously deployed PIN route remains compatible until the corrected preview is approved', () => {
-  assert.match(api, /parent_portal_get_learner_with_pin_by_phone/);
-  assert.match(api, /const pin = String\(input\.pin/);
+test('when Guardian PIN is ON, the server requires an 8-digit PIN in addition to pupil code and phone', () => {
+  assert.match(api, /if \(!\/\^\\d\{8\}\$\/\.test\(pin\)\)/);
+  assert.match(api, /p_pupil_code: code, p_registered_phone: phone, p_pin: pin/);
 });
 
-test('database verification matches the supplied pupil code to the exact active guardian phone', () => {
+test('when Guardian PIN is OFF, the server verifies the exact pupil code + active registered phone pair', () => {
+  assert.match(api, /parent_portal_get_learner_by_code_and_phone/);
   assert.match(migration, /private\.resolve_learner_id_by_code\(v_code\)/);
   assert.match(migration, /c\.phone_e164=v_phone/);
   assert.match(migration, /c\.is_active=true/);
   assert.match(migration, /s\.status<>'Archived'/);
 });
 
-test('database verification rejects duplicate active guardian links for one code + phone pair', () => {
+test('code + phone verification rejects duplicate active guardian links and throttles repeated failures', () => {
   assert.match(migration, /IF v_contact_count<>1 THEN/);
-});
-
-test('failed code + phone attempts are pair-specific, hashed, and throttled', () => {
   assert.match(migration, /phone_hash text NOT NULL/);
   assert.match(migration, /pupil_code_hash text NOT NULL/);
   assert.match(migration, /pg_advisory_xact_lock/);
@@ -54,24 +63,30 @@ test('failed code + phone attempts are pair-specific, hashed, and throttled', ()
   assert.match(migration, /interval '15 minutes'/);
 });
 
-test('new parent login RPC is not executable by browser roles', () => {
+test('the new code + phone lookup is not executable by browser roles', () => {
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.parent_portal_get_learner_by_code_and_phone\(text,text\) FROM PUBLIC, anon, authenticated/);
   assert.match(migration, /TO service_role/);
 });
 
-test('existing Guardian PIN records and PIN-based RPCs are preserved for reactivation', () => {
-  assert.match(plan, /Existing Guardian PIN hashes, administrator issuance controls, and PIN-based database functions are retained unchanged/);
-  assert.match(plan, /Re-enable Guardian PIN — WAITING FOR SCHOOL AUTHORISATION/);
-  assert.match(migration, /parent_portal_get_learner_by_code_and_phone/);
+test('the Guardian PIN setting is OFF by default and can only be updated by an active Admin', () => {
+  assert.match(toggleMigration, /guardian_pin_required boolean NOT NULL DEFAULT false/);
+  assert.match(toggleMigration, /auth\.uid\(\) IS NULL OR NOT public\.is_school_admin\(\)/);
+  assert.match(toggleMigration, /admin_set_parent_portal_guardian_pin_required/);
 });
 
-test('learner pupil code remains mandatory and is displayed after sign-in', () => {
+test('enabling Guardian PIN revokes old parent sessions but preserves credential records', () => {
+  assert.match(toggleMigration, /UPDATE public\.parent_portal_sessions/);
+  assert.match(toggleMigration, /private\.parent_portal_security_settings_audit/);
+  assert.match(plan, /Existing Guardian PIN hashes, recovery hashes, administrator issuance controls/);
+});
+
+test('learner pupil code remains displayed after guardian verification', () => {
   assert.match(parents, /Pupil code: '\+escapeHtml\(l\.pupil_code\)/);
-  assert.match(plan, /pupil code remains mandatory/);
+  assert.match(plan, /learner's permanent pupil code/);
 });
 
-test('staff and administrator sign-in are explicitly left unchanged', () => {
-  assert.match(plan, /Staff and administrator authentication, staff PINs, and other application sign-in systems are unchanged/);
+test('staff and administrator sign-in are not changed by the Parent Portal setting', () => {
+  assert.match(plan, /staff PINs, and all other application sign-in systems are unchanged/);
 });
 
 test('Parent Portal browser JavaScript parses', () => {
