@@ -7443,7 +7443,7 @@ async function ensureGuardianPinForAdmission(studentId,record){
    contact={...contact,is_active:true};
   }else{
    if(name.length<2||!formPhone)return {pending:true,reason:'Add a guardian name and valid Ugandan phone (+256 followed by nine digits) to issue a PIN.'};
-   const wa=record.guardian_whatsapp_opt_in?normalizeUgParentPhone(record.guardian_whatsapp_phone):normalizeUgParentPhone(record.guardian_whatsapp_phone);
+   const wa=normalizeUgParentPhone(record.guardian_whatsapp_phone);
    const {data:created,error}=await db.from('parent_guardian_contacts').insert({student_id:studentId,guardian_name:name,relationship:String(record.guardian_relationship||'').trim()||null,phone_e164:formPhone,whatsapp_e164:wa||null,sms_opt_in:!!record.guardian_sms_opt_in,whatsapp_opt_in:!!record.guardian_whatsapp_opt_in,is_primary:true,is_active:true}).select('id,guardian_name,relationship,phone_e164,is_active,guardian_pin_issued_at').single();
    if(error)return {pending:true,reason:'Guardian contact could not be created: '+error.message};
    contact=created;
