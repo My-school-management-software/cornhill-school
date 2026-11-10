@@ -99,8 +99,8 @@ test('academic workspace quick navigation points to real sections and is role-sc
 });
 test('offline shell includes each standalone app entry and its own manifest route',()=>{
  const sw=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
- assert.match(sw,/cornhill-shell-v83/);
- assert.match(sw,/cornhill-static-v83/);
+ assert.match(sw,/cornhill-shell-v84/);
+ assert.match(sw,/cornhill-static-v84/);
  assert.match(sw,/app-isolation-guard\.js/);
  for(const [slug] of [...apps,...serviceApps.map(x=>[x[0]])]){
   assert.ok(sw.includes('/apps/'+slug+'/'));
@@ -208,4 +208,14 @@ test('assessment-period matching respects complete P6 and P7 level numbers',()=>
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
  assert.ok(html.includes('P7(?![0-9])|PRIMARY7(?![0-9])'));
  assert.ok(html.includes('P6(?![0-9])|PRIMARY6(?![0-9])'));
+});
+
+
+test('main workspace content uses the available width beside the navigation rail', () => {
+  const css = fs.readFileSync(path.join(root, 'assets/cornhill-design-system.css'), 'utf8');
+  assert.match(css, /@media\s*\(min-width:\s*901px\)[\s\S]*?margin-left:\s*228px!important/);
+  assert.match(css, /width:\s*calc\(100% - 240px\)!important/);
+  assert.match(css, /margin-right:\s*12px!important/);
+  assert.match(css, /@media\s*\(min-width:\s*701px\) and \(max-width:\s*900px\)[\s\S]*?margin-left:\s*204px!important/);
+  assert.match(css, /width:\s*calc\(100% - 216px\)!important/);
 });

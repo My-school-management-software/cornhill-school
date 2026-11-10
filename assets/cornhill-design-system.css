@@ -522,3 +522,52 @@ img,video{height:auto}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition-duration:0.01ms!important;animation-duration:0.01ms!important;animation-iteration-count:1!important}
 }
+
+
+/* CORNHILL wide workspace correction (Nov 2026).
+   Keep the navigation rail, but reclaim the unused horizontal space on both
+   sides of the active content. This applies consistently to Finance and the
+   other main-workspace sections; standalone apps remain full-width. */
+@media(min-width:901px){
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview,
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type{
+    width:calc(100% - 240px)!important;
+    max-width:calc(100% - 240px)!important;
+    margin-left:228px!important;
+    margin-right:12px!important;
+  }
+}
+@media(min-width:701px) and (max-width:900px){
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview,
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type{
+    width:calc(100% - 216px)!important;
+    max-width:calc(100% - 216px)!important;
+    margin-left:204px!important;
+    margin-right:12px!important;
+  }
+}
+@media(min-width:701px){
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview{
+    min-width:0!important;
+  }
+  #app:has(.cornhill-sidebar)>section:not(.tabs)>.panel,
+  #app:has(.cornhill-sidebar)>section:not(.tabs)>.card,
+  #app:has(.cornhill-sidebar)>section:not(.tabs)>.grid,
+  #app:has(.cornhill-sidebar)>.module-preview>.panel,
+  #app:has(.cornhill-sidebar)>.module-preview>.card,
+  #app:has(.cornhill-sidebar)>.module-preview>.grid{
+    width:100%;
+    max-width:100%;
+  }
+}
