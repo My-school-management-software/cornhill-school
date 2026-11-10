@@ -184,9 +184,10 @@
     let activeBursaryAwardsLoaded = false;
     let activeBursaryAwardsLoading = false;
     let activeBursaryAwardsError = null;
+    let activeBursaryAwardsOwner = null;
 
     function currentBursaryArrangement(learner) {
-      if (!activeBursaryAwardsLoaded || activeBursaryAwardsError) {
+      if (!activeBursaryAwardsLoaded || activeBursaryAwardsError || activeBursaryAwardsOwner !== state().userId) {
         return { value: 'unknown', label: 'Fee status unavailable', description: 'The current bursary register could not be verified. Refresh or check Finance before changing this learner’s fee arrangement.' };
       }
       const award = activeBursaryAwards.get(learner.id) || null;
@@ -242,6 +243,7 @@
         });
         activeBursaryAwards = next;
         activeBursaryAwardsError = null;
+        activeBursaryAwardsOwner = state().userId;
         activeBursaryAwardsLoaded = true;
         renderSheet();
         if (selectedId) {
@@ -250,6 +252,7 @@
         }
       } catch (error) {
         activeBursaryAwardsError = error;
+        activeBursaryAwardsOwner = state().userId;
         activeBursaryAwardsLoaded = true;
         const note = $('ldsBursaryArrangementStatus');
         if (note) note.textContent = 'Current bursary approval details could not be loaded. No fee arrangement was changed. Refresh the learner register or check Finance.';
@@ -344,7 +347,7 @@
       const panel = $('learnerDetailsWorkspace');
       if (!panel) return;
       panel.classList.toggle('hidden', st.role !== 'Admin');
-      if (st.role === 'Admin' && !activeBursaryAwardsLoaded && !activeBursaryAwardsLoading) refreshBursaryAwards();
+      if (st.role === 'Admin' && (!activeBursaryAwardsLoaded || activeBursaryAwardsOwner !== st.userId) && !activeBursaryAwardsLoading) refreshBursaryAwards();
       if (st.role !== 'Admin') {
         if (st.role) setAdvancedVisible(true);
         editor.classList.add('hidden');
@@ -384,7 +387,7 @@
           '<td>' + htmlEscape(className(x.class_id)) + '</td><td>' + htmlEscape(dob) + '</td><td>' + htmlEscape(year) + '</td>' +
           '<td>' + htmlEscape(guardian) + (x.alternate_guardian_name ? '<span class="lds-sub">Alternative: ' + htmlEscape(x.alternate_guardian_name) + '</span>' : '') + '</td>' +
           '<td>' + htmlEscape(x.guardian_relationship || '—') + '</td><td>' + htmlEscape(contact) + '</td><td>' + htmlEscape(x.lin || 'Not entered') + '</td>' +
-          '<td><span class="lds-state ' + (feeArrangement.value !== 'regular' ? 'pending' : '') + '">' + htmlEscape(feeArrangement.value === 'bursary' ? 'Bursary' : (feeArrangement.value === 'regular' ? 'Regular fees' : 'Review')) + '</span><span class="lds-sub">' + htmlEscape(feeArrangement.label) + '</span></td>' +
+          '<td><span class="lds-state ' + (feeArrangement.value === 'unknown' ? 'pending' : '') + '">' + htmlEscape(feeArrangement.value === 'bursary' ? 'Bursary' : (feeArrangement.value === 'regular' ? 'Regular fees' : 'Review')) + '</span><span class="lds-sub">' + htmlEscape(feeArrangement.label) + '</span></td>' +
           '<td><span class="lds-state ' + (missing ? 'pending' : '') + '">' + (missing ? 'Needs details' : 'Recorded') + '</span></td>' +
           '<td><button type="button" class="lds-open" data-learner-sheet-open="' + htmlEscape(x.id) + '">Select</button></td></tr>';
       }).join('') || '<tr><td colspan="12">No learners match this class, search and information filter.</td></tr>';
