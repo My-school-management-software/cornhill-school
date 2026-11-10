@@ -1,3 +1,4 @@
+/* CORNHILL preview refresh: learner class and fee package editor. */
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
