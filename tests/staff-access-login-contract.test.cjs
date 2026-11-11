@@ -16,7 +16,7 @@ test('login choices are separate and named by role', () => {
 
 test('email login validates the selected account role and job title', () => {
   assert.ok(html.includes('validateSelectedLoginRole'));
-  assert.ok(html.includes("profile?.role"));
+  assert.ok(html.includes("p?.role"));
   assert.ok(/school bursar|main bursar/i.test(html));
   assert.ok(/deputy school bursar|deputy bursar/i.test(html));
 });
@@ -40,7 +40,7 @@ test('only the active Director can issue or revoke a staff code', () => {
 });
 
 test('Director remains Admin-only and no new Director role is created', () => {
-  assert.ok(html.includes("role === 'Director'"));
-  assert.ok(html.includes("return admin;"));
+  assert.ok(html.includes("if(role==='Director')return isAdminRole"));
+  assert.ok(html.includes("isAdminRole=p?.role==='Admin'"));
   assert.ok(edge.includes('profile.role !== "Staff"'));
 });
