@@ -132,3 +132,16 @@ The feature branch now stages a least-privilege correction:
 - Staff employment status check at sign-in is normalized for case and whitespace, avoiding false rejection of an active record with inconsistent casing.
 
 Staged migration: `20261111195000_staff_leadership_teacher_communication.sql`. The role contract test file now checks these policies. **The migration has not been applied to the live database and the SQL contract test has not yet been executed on staging.** JavaScript syntax parsing passed for all eight inline scripts after the UI changes.
+
+
+## Verification follow-up — 11 November 2026, evening
+
+The CI run initially exposed stale tests that expected old service-worker cache names (v90/v91) and an over-escaped regular expression in the marks-import test. Those test-maintenance issues were corrected. The marks-import test assertions were also aligned with the current account-session generation guard in `loadExcelMarksGrid()` and the current async report-card loader boundary.
+
+Latest CI result for commit `19d58378bbe7c4aa35959dae74750b9619a07f09`:
+- CORNHILL appearance/workspace tests: passed.
+- CORNHILL marks-import mapping tests: passed.
+- Eight inline JavaScript blocks: parsed with no syntax errors.
+- Six edited Node test files: parsed with no syntax errors.
+
+Vercel generated a READY preview for that same commit. The front-end preview is current; however, the staged Supabase communication migration is not applied, so the new Headteacher/DOS teacher-only announcement permissions are not active against the live database yet.
