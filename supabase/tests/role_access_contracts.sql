@@ -16,6 +16,7 @@ declare
   v_post_config text[];
   v_role_constraint text;
   v_report_policy record;
+  v_resource_policy record;
 begin
   if v_post_oid is null then
     raise exception 'Missing public.post_school_payment(uuid,bigint,text,text,text)';
@@ -99,8 +100,23 @@ begin
   if to_regprocedure('public.teacher_list_my_assignments()') is null
      or to_regprocedure('public.teacher_subject_learner_roster(uuid)') is null
      or to_regprocedure('public.can_teacher_view_subject(uuid,uuid)') is null
-     or to_regprocedure('public.can_teacher_access_subject(uuid,uuid)') is null then
+     or to_regprocedure('public.can_teacher_access_subject(uuid,uuid)') is null
+     or to_regprocedure('public.can_teacher_view_learning_resource(uuid,text)') is null
+     or to_regprocedure('public.can_teacher_manage_learning_resource(uuid,text)') is null then
     raise exception 'One or more subject-scoped teacher assignment helpers are missing';
+  end if;
+
+  select p.qual, p.with_check
+    into v_resource_policy
+  from pg_policies p
+  where p.schemaname = 'public'
+    and p.tablename = 'school_learning_resources'
+    and p.policyname = 'Admins and assigned teachers read learning resources'
+    and p.cmd = 'SELECT';
+
+  if not found
+     or position('can_teacher_view_learning_resource' in lower(coalesce(v_resource_policy.qual, ''))) = 0 then
+    raise exception 'Subject-only teachers must read learning resources only through the exact class/subject helper';
   end if;
 
   if not exists (
