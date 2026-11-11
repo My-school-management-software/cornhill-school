@@ -160,6 +160,8 @@
     const clean=String(raw??'').trim();
     if(!clean) return true;
     const key=normalise(clean);
+    // Ignore synthetic workbook footer headings (Column1/Field1 etc.).
+    if(/^(?:COLUMN|FIELD)\d*$/.test(key)) return true;
     if(/^\d+$/.test(clean)) return true;
     if(key.startsWith('TOTAL')) return true;
     if([
