@@ -84,8 +84,9 @@ All roles use the same school database. Each screen must use role-scoped server 
 **Staged change on this feature branch:** the new migration `20261111185000_bursar_payment_posting_director_reversal.sql`:
 - changes only the payment-posting RPC to a narrowly scoped SECURITY DEFINER function requiring an active finance operator, with an empty search path and schema-qualified objects;
 - leaves direct `school_payments` table INSERT/UPDATE policies Admin-only, so Bursar posting is only through the guarded RPC;
+- removes the legacy direct Bursar INSERT policy on `school_expenses`, which could otherwise bypass the Director-approved expense-request workflow;
 - tightens payment reversal to require `is_school_admin()`, keeping the existing Admin-only RLS UPDATE check as a second barrier;
-- leaves expense approval and bank-withdrawal approval Director/Admin-only.
+- leaves expense approval, evidence review and bank-withdrawal approval Director/Admin-only.
 
 **Not yet applied or live-tested.** Both new migrations are only in the feature branch. The payment and subject-resource migrations must pass staging tests and real Bursar/Director/subject-teacher browser tests before production release.
 
