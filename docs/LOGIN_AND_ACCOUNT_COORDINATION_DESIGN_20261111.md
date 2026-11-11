@@ -50,3 +50,8 @@ Recommended responsibility flow:
 - Verified the Staff form markup, event handler, Staff role check, active-employment check and Staff session marker are present in the committed file.
 - No live Supabase migration, account creation, password change, or data update was performed.
 - Authenticated role-by-role browser testing is still pending.
+
+
+## Staff coordination update
+
+The existing staff communication feed and private messaging were audited. Headteacher/DOS could already use direct messages and the All Staff feed, but could not publish to or read the Teachers-only audience because the UI and RLS policy only admitted Admin/Teacher roles. A staged, least-privilege migration now grants that audience to academic leaders while keeping the Director-only audience restricted and preventing other Staff (including finance/operations) from broadcasting to teachers-only. The UI follows the same role check, but RLS remains authoritative.
