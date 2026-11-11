@@ -47,7 +47,7 @@ assert.match(loginHtml, /id="classLoginDirectory"/,
   'Existing teacher class/assignment routing must remain wired.');
 assert.match(loginHtml, /id="adminLoginPanel"/,
   'The existing administrator credential flow must remain wired.');
-assert.match(loginHtml, /Director · Full Access.*Existing account/,
+assert.match(loginHtml, /Director.*Full school access.*Existing account/,
   'The existing Director identity must be presented as retained, not duplicated.');
 assert.match(loginHtml, /No duplicate Director account is created/,
   'The sign-in page must explicitly prevent duplicate Director account assumptions.');
