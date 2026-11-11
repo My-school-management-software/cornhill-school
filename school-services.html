@@ -925,5 +925,5 @@ document.getElementById('installServicesApp')?.addEventListener('click',async()=
 window.addEventListener('appinstalled',()=>document.getElementById('installServicesApp')?.classList.add('hidden'));
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
-</body>
+<script src="/assets/cornhill-navigation.js" defer></script></body>
 </html>
