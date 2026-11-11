@@ -64,3 +64,9 @@ A read-only production schema/data check confirmed that current teacher identiti
 
 ## Fail-closed active-session check
 A further review found that the existing `is_active_staff_session()` treated a NULL employment status as Active. The current production profile audit found 11 accounts (1 Admin and 10 Teachers), all with an explicit Active status and no NULL statuses. A follow-up migration now changes the helper to require `employment_status = 'Active'`; missing/NULL status no longer inherits access. The migration is additive and does not change existing profile data. A source assertion was added for this fail-closed behavior. The migration remains on the development branch and has not been applied to production.
+
+
+## Latest validation update
+- The new role-helper migration was replayed inside a transaction against the production schema and rolled back successfully. This verifies SQL compatibility with the current function signatures without retaining any production changes.
+- One intermediate CI commit failed because a test assertion built an invalid JavaScript regular expression. The migration itself was not the cause. The assertion was replaced with a direct source-string check in the following commit; the latest head's workflow is queued and must complete before merge.
+- Performance advisor scan reports 98 unindexed foreign keys and several multiple-permissive-policy notices. These are broader pre-existing performance findings and require table-by-table review; no blanket indexes or policy changes were applied.
