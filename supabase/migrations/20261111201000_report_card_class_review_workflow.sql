@@ -145,21 +145,42 @@ language plpgsql
 security definer
 set search_path to ''
 as $function$
+declare
+  v_old_lock bigint;
+  v_new_lock bigint;
 begin
+  if tg_op in ('UPDATE','DELETE') then
+    v_old_lock := hashtextextended(old.class_id::text || ':' || old.term_id::text, 0);
+  end if;
+  if tg_op in ('INSERT','UPDATE') then
+    v_new_lock := hashtextextended(new.class_id::text || ':' || new.term_id::text, 0);
+  end if;
+
+  -- Acquire both class/term locks in a consistent order for row moves.
+  if v_old_lock is not null and v_new_lock is not null then
+    if v_old_lock <= v_new_lock then
+      perform pg_advisory_xact_lock(v_old_lock);
+      perform pg_advisory_xact_lock(v_new_lock);
+    else
+      perform pg_advisory_xact_lock(v_new_lock);
+      perform pg_advisory_xact_lock(v_old_lock);
+    end if;
+  elsif v_old_lock is not null then
+    perform pg_advisory_xact_lock(v_old_lock);
+  elsif v_new_lock is not null then
+    perform pg_advisory_xact_lock(v_new_lock);
+  end if;
+
   if tg_op in ('UPDATE','DELETE') and exists (
-    select 1
-    from public.report_card_publications rp
-    where rp.class_id = old.class_id
-      and rp.term_id = old.term_id
+    select 1 from public.report_card_publications rp
+    where rp.class_id = old.class_id and rp.term_id = old.term_id
   ) then
     raise exception 'This class and term already has published report cards. The Director must reopen it before changing assessments.';
   end if;
 
   if tg_op in ('INSERT','UPDATE') and exists (
-    select 1
-    from public.report_card_publications rp
-    where rp.class_id = new.class_id
-      and rp.term_id = new.term_id
+    select 1 from public.report_card_publications rp
+    where rp.class_id = new.class_id and rp.term_id = new.term_id
   ) then
     raise exception 'This class and term already has published report cards. The Director must reopen it before changing assessments.';
   end if;
@@ -176,29 +197,55 @@ security definer
 set search_path to ''
 as $function$
 declare
+  v_old_class uuid;
   v_old_term uuid;
+  v_new_class uuid;
   v_new_term uuid;
+  v_old_lock bigint;
+  v_new_lock bigint;
 begin
   if tg_op in ('UPDATE','DELETE') then
-    select a.term_id into v_old_term
-    from public.assessments a where a.id = old.assessment_id;
-    if exists (
-      select 1 from public.report_card_publications rp
-      where rp.student_id = old.student_id and rp.term_id = v_old_term
-    ) then
-      raise exception 'This learner already has a published report for the term. The Director must reopen the class before changing marks or comments.';
-    end if;
+    select a.class_id,a.term_id into v_old_class,v_old_term
+    from public.assessments a where a.id=old.assessment_id;
+  end if;
+  if tg_op in ('INSERT','UPDATE') then
+    select a.class_id,a.term_id into v_new_class,v_new_term
+    from public.assessments a where a.id=new.assessment_id;
   end if;
 
-  if tg_op in ('INSERT','UPDATE') then
-    select a.term_id into v_new_term
-    from public.assessments a where a.id = new.assessment_id;
-    if exists (
-      select 1 from public.report_card_publications rp
-      where rp.student_id = new.student_id and rp.term_id = v_new_term
-    ) then
-      raise exception 'This learner already has a published report for the term. The Director must reopen the class before changing marks or comments.';
+  if v_old_class is not null and v_old_term is not null then
+    v_old_lock := hashtextextended(v_old_class::text || ':' || v_old_term::text, 0);
+  end if;
+  if v_new_class is not null and v_new_term is not null then
+    v_new_lock := hashtextextended(v_new_class::text || ':' || v_new_term::text, 0);
+  end if;
+
+  if v_old_lock is not null and v_new_lock is not null then
+    if v_old_lock <= v_new_lock then
+      perform pg_advisory_xact_lock(v_old_lock);
+      perform pg_advisory_xact_lock(v_new_lock);
+    else
+      perform pg_advisory_xact_lock(v_new_lock);
+      perform pg_advisory_xact_lock(v_old_lock);
     end if;
+  elsif v_old_lock is not null then
+    perform pg_advisory_xact_lock(v_old_lock);
+  elsif v_new_lock is not null then
+    perform pg_advisory_xact_lock(v_new_lock);
+  end if;
+
+  if tg_op in ('UPDATE','DELETE') and exists (
+    select 1 from public.report_card_publications rp
+    where rp.student_id=old.student_id and rp.term_id=v_old_term
+  ) then
+    raise exception 'This learner already has a published report for the term. The Director must reopen the class before changing marks or comments.';
+  end if;
+
+  if tg_op in ('INSERT','UPDATE') and exists (
+    select 1 from public.report_card_publications rp
+    where rp.student_id=new.student_id and rp.term_id=v_new_term
+  ) then
+    raise exception 'This learner already has a published report for the term. The Director must reopen the class before changing marks or comments.';
   end if;
 
   if tg_op = 'DELETE' then return old; end if;
@@ -325,10 +372,10 @@ declare
   v_workflow public.report_card_review_workflows%rowtype;
   v_to_status text;
 begin
-  if not public.is_school_dos() and not public.is_school_admin() then
-    raise exception 'Only the Director of Studies or Director may complete the DOS review';
+  if not public.is_school_dos() then
+    raise exception 'Only an active Director of Studies account may complete the DOS review';
   end if;
-  if p_decision not in ('approve','return') then
+  if p_decision is null or p_decision not in ('approve','return') then
     raise exception 'Choose approve or return';
   end if;
   if length(coalesce(p_notes,''))>2000 then raise exception 'Review notes cannot exceed 2,000 characters'; end if;
@@ -376,10 +423,10 @@ declare
   v_workflow public.report_card_review_workflows%rowtype;
   v_to_status text;
 begin
-  if not public.is_school_headteacher() and not public.is_school_admin() then
-    raise exception 'Only the Headteacher or Director may complete the Headteacher review';
+  if not public.is_school_headteacher() then
+    raise exception 'Only an active Headteacher account may complete the Headteacher review';
   end if;
-  if p_decision not in ('approve','return') then
+  if p_decision is null or p_decision not in ('approve','return') then
     raise exception 'Choose approve or return';
   end if;
   if length(coalesce(p_notes,''))>2000 then raise exception 'Review notes cannot exceed 2,000 characters'; end if;
@@ -443,6 +490,7 @@ begin
     raise exception 'The Headteacher must approve this class before Director publication';
   end if;
 
+  perform pg_advisory_xact_lock(hashtextextended(p_class_id::text || ':' || p_term_id::text, 0));
   v_snapshot := public.report_card_class_review_snapshot(p_class_id,p_term_id);
   if v_snapshot is distinct from v_workflow.snapshot_hash then
     update public.report_card_review_workflows
@@ -541,6 +589,7 @@ begin
     raise exception 'Enter a reason of 5 to 2,000 characters before reopening';
   end if;
 
+  perform pg_advisory_xact_lock(hashtextextended(p_class_id::text || ':' || p_term_id::text, 0));
   select * into v_workflow
   from public.report_card_review_workflows
   where class_id=p_class_id and term_id=p_term_id
