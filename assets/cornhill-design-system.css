@@ -1051,9 +1051,9 @@ body[data-theme] #login .tab{
 
 /* Current subject-teacher assignments become compact, labelled cards instead
    of a very long four-column table. Existing selectors and Save actions remain. */
-#app .table-wrap:has(>#teacherAssignmentRows),
-#app .table-wrap:has(>#classTeacherAssignmentRows),
-#app .table-wrap:has(>#academicTeacherDirectoryRows){
+#app .table-wrap:has(#teacherAssignmentRows),
+#app .table-wrap:has(#classTeacherAssignmentRows),
+#app .table-wrap:has(#academicTeacherDirectoryRows){
   overflow:visible!important;
 }
 #app table:has(>#teacherAssignmentRows),
