@@ -2,8 +2,8 @@
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
-const CACHE_NAME = 'cornhill-shell-v97';
-const STATIC_CACHE = 'cornhill-static-v97';
+const CACHE_NAME = 'cornhill-shell-v98';
+const STATIC_CACHE = 'cornhill-static-v98';
 const SHELL = [
   '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
   '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
@@ -32,7 +32,7 @@ const SHELL = [
   '/manifest.webmanifest', '/school.webmanifest', '/admissions.webmanifest',
   '/parents.webmanifest', '/evidence.webmanifest', '/notifications.webmanifest',
   '/records.webmanifest', '/banking.webmanifest', '/school-services.webmanifest', '/staff-communications.webmanifest',
-  '/service-worker.js', '/assets/cornhill-school-badge.png',
+  '/service-worker.js', '/assets/cornhill-school-badge.png', '/assets/cornhill-school-stamp.jpg', '/assets/cornhill-headteacher-stamp.jpg',
   '/assets/cornhill-school-pwa-192.svg', '/assets/cornhill-school-pwa-512.svg',
   '/assets/app-isolation-guard.js', '/assets/cornhill-design-system.css', '/assets/cornhill-navigation.js', '/assets/cornhill-document-template-studio.js', '/assets/cornhill-learner-details-sheet.js', '/assets/cornhill-appearance.js',
   '/assets/cornhill-mark-import-mapping.js', '/assets/cornhill-notification-routing.js',
