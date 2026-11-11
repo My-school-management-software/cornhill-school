@@ -19,6 +19,7 @@ declare
     'list_school_notifications()',
     'mark_school_notification_read(uuid)',
     'restore_school_notification(uuid)',
+    'teacher_guardian_pin_status()',
     'teacher_list_my_assignments()',
     'teacher_subject_learner_roster(uuid)',
     'teacher_visiting_day_lookup(text)',
