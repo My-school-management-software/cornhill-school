@@ -203,7 +203,7 @@ console.log('Unified staff account architecture: source assertions passed, inclu
 
 const directRpcGuardsPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261112001000_remove_null_active_fallbacks_from_staff_rpcs.sql');
 const directRpcGuards = fs.readFileSync(directRpcGuardsPath, 'utf8');
-for (const rpc of ['archive_school_notification','list_school_notification_center','list_school_notifications','mark_school_notification_read','restore_school_notification','teacher_guardian_pin_status','teacher_list_my_assignments','teacher_subject_learner_roster','teacher_visiting_day_lookup','touch_evidence_capture_device']) {
+for (const rpc of ['archive_school_notification','list_school_notification_center','list_school_notifications','mark_school_notification_read','restore_school_notification','teacher_guardian_pin_status','teacher_list_my_assignments','teacher_subject_learner_roster','teacher_visiting_day_lookup','touch_evidence_capture_device','notify_school_learning_resource_event','notify_school_library_loan_event','notify_school_transport_assignment_event']) {
   assert.ok(directRpcGuards.includes("'" + rpc + "("), `The direct staff RPC migration must include ${rpc}.`);
 }
 assert.match(directRpcGuards, /employment_status = ''Active''/,
