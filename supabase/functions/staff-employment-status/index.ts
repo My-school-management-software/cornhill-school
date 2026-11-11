@@ -83,14 +83,25 @@ Deno.serve(async (req: Request) => {
     return json(403, { error: "Only Teacher and non-teaching Staff accounts can be changed here. The existing Director account is protected." });
   }
 
-  // Fail closed: remove Auth access before changing any records when suspending.
-  // Supabase Auth rejects tokens for banned users; refresh tokens cannot restore access.
+  // For suspension, update the authoritative profile status first. The school's
+  // RLS helpers (including is_active_staff_session) read this row on every request,
+  // so an already-issued JWT is denied by those policies after this update commits.
+  // Auth bans prevent future sign-in/refresh but do NOT revoke an already-issued JWT.
   if (employmentStatus !== "Active") {
+    const { error: inactiveProfileError } = await admin
+      .from("user_profiles")
+      .update({ employment_status: employmentStatus, employment_end_date: employmentEndDate })
+      .eq("id", staffUserId);
+    if (inactiveProfileError) {
+      return json(500, { error: "The staff profile could not be marked inactive. No directory status was changed and the account still requires administrator review.", access_blocked: false });
+    }
     const { error: banError } = await admin.auth.admin.updateUserById(staffUserId, { ban_duration: "876000h" });
-    if (banError) return json(502, { error: "The staff account could not be suspended by the authentication service. No employment status was changed." });
+    if (banError) {
+      return json(502, { error: "The profile is marked inactive and school RLS checks will deny access, but the Auth sign-in ban could not be applied. Keep this account under administrator review.", access_blocked: true });
+    }
   } else {
-    // Unban while the stored profile is still non-active. The app's profile gate
-    // will continue rejecting sign-in until all linked directory statuses are updated.
+    // Remove the Auth ban while the stored profile remains non-active. The profile
+    // is reactivated only after both linked directory records are synchronised.
     const { error: unbanError } = await admin.auth.admin.updateUserById(staffUserId, { ban_duration: "none" });
     if (unbanError) return json(502, { error: "The staff records were not reactivated because the authentication service could not restore account access." });
   }
@@ -119,19 +130,19 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { error: profileUpdateError } = await admin
-    .from("user_profiles")
-    .update({
-      employment_status: employmentStatus,
-      employment_end_date: employmentEndDate,
-    })
-    .eq("id", staffUserId);
-
-  if (profileUpdateError) {
-    return json(500, {
-      error: "Authentication access has been updated, but the account profile status could not be saved. Keep this account under administrator review; historical records have not been deleted.",
-      access_blocked: employmentStatus !== "Active",
-    });
+  // Reactivation is deliberately last: profile-based RLS continues to deny
+  // requests until the employee and academic teacher directories are both active.
+  if (employmentStatus === "Active") {
+    const { error: profileUpdateError } = await admin
+      .from("user_profiles")
+      .update({ employment_status: employmentStatus, employment_end_date: employmentEndDate })
+      .eq("id", staffUserId);
+    if (profileUpdateError) {
+      return json(500, {
+        error: "The Auth ban was lifted and linked directories were updated, but the account profile remains non-active. Access remains blocked until an administrator repairs the profile.",
+        access_blocked: true,
+      });
+    }
   }
 
   return json(200, {
