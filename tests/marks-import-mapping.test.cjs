@@ -292,7 +292,7 @@ test('report-card renderer indexes assessment scores once and reuses period rank
  assert.ok(source.includes('scoreByAssessmentStudent'));
  assert.ok(source.includes('ranksByPeriod'));
  assert.ok(source.includes('const rankFor=p=>reportIndex.ranksByPeriod'));
- assert.doesNotMatch(source,/data\\.scores\\|\\|\\[\\]\\)\\.filter\\(sc=>sc\\.assessment_id===a\\.id/);
+ assert.doesNotMatch(source,/data\.scores\|\|\[\]\)\.filter\(sc=>sc\.assessment_id===a\.id/);
 });
 
 test('payment receipt preview is not blocked by a full Finance reload',()=>{
