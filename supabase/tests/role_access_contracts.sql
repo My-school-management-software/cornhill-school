@@ -122,6 +122,34 @@ begin
   if not exists (
     select 1 from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname = 'school_learning_resources' and c.relrowsecurity
+  ) then
+    raise exception 'RLS must remain enabled on public.school_learning_resources';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_proc p
+    where p.oid = to_regprocedure('public.can_teacher_view_learning_resource(uuid,text)')
+      and p.prosecdef
+      and coalesce(p.proconfig, '{}'::text[]) @> array['search_path=""']::text[]
+  ) then
+    raise exception 'Subject learning-resource read helper must be SECURITY DEFINER with an empty search_path';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_proc p
+    where p.oid = to_regprocedure('public.can_teacher_manage_learning_resource(uuid,text)')
+      and p.prosecdef
+      and coalesce(p.proconfig, '{}'::text[]) @> array['search_path=""']::text[]
+  ) then
+    raise exception 'Subject learning-resource write helper must be SECURITY DEFINER with an empty search_path';
+  end if;
+
+  if not exists (
+    select 1 from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relname = 'school_payments' and c.relrowsecurity
   ) then
     raise exception 'RLS must remain enabled on public.school_payments';
