@@ -9,7 +9,7 @@ create index if not exists user_profiles_active_account_directory_idx
 -- Existing inactive historical profiles are preserved.
 create unique index if not exists user_profiles_single_active_admin_idx
   on public.user_profiles ((role))
-  where role = 'Admin' and coalesce(employment_status, 'Active') = 'Active';
+  where role = 'Admin' and employment_status = 'Active';
 
 create or replace view public.staff_account_directory
 with (security_invoker = true)
