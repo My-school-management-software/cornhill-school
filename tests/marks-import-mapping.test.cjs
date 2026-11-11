@@ -281,6 +281,31 @@ test('class marks view clears stale rows and discards an older class request',()
  assert.ok(html.includes('window.cornhillExcelMarksContext=null;'));
 });
 
+test('report-card renderer indexes assessment scores once and reuses period rankings',()=>{
+ const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
+ const start=html.indexOf('async function renderReportCard(options={})');
+ const end=html.indexOf('\nfunction loadAdminAcademicInsights',start);
+ assert.ok(start>=0&&end>start,'report-card renderer is present');
+ const source=html.slice(start,end);
+ assert.ok(source.includes('data.__cornhillReportIndex'));
+ assert.ok(source.includes('bySubjectPeriod'));
+ assert.ok(source.includes('scoreByAssessmentStudent'));
+ assert.ok(source.includes('ranksByPeriod'));
+ assert.ok(source.includes('const rankFor=p=>reportIndex.ranksByPeriod'));
+ assert.doesNotMatch(source,/data\\.scores\\|\\|\\[\\]\\)\\.filter\\(sc=>sc\\.assessment_id===a\\.id/);
+});
+
+test('payment receipt preview is not blocked by a full Finance reload',()=>{
+ const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
+ const start=html.indexOf("$('receiptArea').innerHTML=dualReceiptMarkup(receiptBody");
+ const end=html.indexOf('\n }catch(err){',start);
+ assert.ok(start>=0&&end>start,'payment receipt flow is present');
+ const source=html.slice(start,end);
+ assert.ok(source.includes('void refresh.catch'));
+ assert.doesNotMatch(source,/await loadFinance\\(\\)/);
+ assert.ok(source.indexOf('openReceiptPreview')>source.indexOf('void refresh.catch'));
+});
+
 test('browser importer loads the tested helper and honours missing-subject states',()=>{
  const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
  assert.ok(html.includes('<script src="/assets/cornhill-mark-import-mapping.js"></script>'));
