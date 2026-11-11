@@ -1492,7 +1492,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <p class="muted">Teachers independently prepare assessments, enter marks and manage results for their assigned classes. Administrators monitor school-wide performance and manage academic structure; routine assessment approval is not required.</p>
  <div id="academicMsg" class="notice hidden"></div>
  <nav id="academicWorkspaceNav" class="tabs" aria-label="Academic workspace sections" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--cornhill-line)">
-  <a class="tab" href="#adminAcademicInsights" data-admin-academic-nav>Results overview</a>
+  <a class="tab" href="#adminAcademicInsights" data-academic-viewer-nav>Results overview</a>
   <a class="tab" href="#academicAdminSetup" data-admin-academic-nav>Academic setup</a>
   <a class="tab" href="#assessmentSetup" data-admin-academic-nav>Assessment setup</a>
   <a class="tab" href="#teacherMarkEntry" data-teacher-academic-nav>Teacher mark entry</a>
@@ -2501,7 +2501,7 @@ await refresh();if(!sessionIsCurrent())return;
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('studentForm'),'learner-admission','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('classForm'),'school-class-create','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('scheduleAssignmentForm'),'staff-schedule-assignment','attendanceMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('workScheduleForm'),'staff-work-schedule','attendanceMsg')}if(!sessionIsCurrent())return;await loadOnlineAdmissionEnquiryFromUrl();
  if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');if(!sessionIsCurrent())return;
  if(profile?.role==='Teacher')await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg');if(!sessionIsCurrent())return;
- if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
+ if(isCornhillAcademicManager()){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
 }
 function renderNotificationCards(){
  const rows=Array.isArray(window.schoolNotifications)?window.schoolNotifications:[];
@@ -3883,7 +3883,7 @@ async function loadUnebSubjectGradeBands(){
  unebSubjectGradeBands=data||[];renderUnebGradeBandRows();
 }
 $('unebGradeBandForm').addEventListener('submit',async e=>{
- e.preventDefault();if(profile?.role!=='Admin')return;
+ e.preventDefault();if(!isCornhillAcademicManager())return;
  const v=Object.fromEntries(new FormData(e.target).entries()),low=Number(v.min_percent),high=Number(v.max_percent);
  if(!Number.isInteger(low)||!Number.isInteger(high)||low<0||high>100){message('academicMsg','Enter whole-number percentages from 0 to 100, without decimal places.',true);return}
  if(low>high){message('academicMsg','Minimum must not exceed maximum.',true);return}
@@ -3896,7 +3896,7 @@ $('unebGradeBandForm').addEventListener('submit',async e=>{
 });
 $('gradeBandForm').addEventListener('submit',async e=>{
  e.preventDefault();
- if(profile?.role!=='Admin')return;
+ if(!isCornhillAcademicManager())return;
  const v=Object.fromEntries(new FormData(e.target).entries());
  const low=Number(v.min_percent),high=Number(v.max_percent);
  if(low>high){message('academicMsg','Minimum must not exceed maximum.',true);return}
@@ -4064,8 +4064,8 @@ async function loadAcademics(){
  $('academicGradingPanel')?.classList.toggle('hidden',!isCornhillAcademicViewer());
  await loadGradeBands();
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
- $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic Performance & Insights · school-wide monitoring':'Academics & Results · teacher-managed';
- $('academics').querySelector('h2').textContent=profile?.role==='Admin'?'Academic Performance & Insights':'Academics & Results';
+ $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic Performance & Insights · school-wide monitoring':isCornhillDOS()?'Director of Studies · academic management':isCornhillHeadteacher()?'Headteacher · read-only academic oversight':'Academics & Results · teacher-managed';
+ $('academics').querySelector('h2').textContent=isCornhillAcademicViewer()?'Academic Performance & Insights':'Academics & Results';
  $('adminReportActions')?.classList.toggle('hidden',profile?.role!=='Admin');
  const [y,t,s,a,staff,teacherDirectory,assignments,classTeacherAssignments]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
@@ -6061,7 +6061,7 @@ $('saveBulkMarks').addEventListener('click',async()=>{
 async function submitAcademic(formId,table,transform,success){
  $(formId).addEventListener('submit',async e=>{
   e.preventDefault();
-  if(profile?.role!=='Admin'&&!(profile?.role==='Teacher'&&table==='assessments')){message('academicMsg','This action is reserved for the administrator, except teachers may prepare assessments for their assigned class and subjects.',true);return}
+  if(!isCornhillAcademicManager()&&!(profile?.role==='Teacher'&&table==='assessments')){message('academicMsg','This action is reserved for the administrator or Director of Studies, except teachers may prepare assessments for their assigned class and subjects.',true);return}
   const button=e.submitter||e.target.querySelector('[type="submit"]');
   if(button?.dataset.busy==='1')return;
   if(button){button.dataset.busy='1';button.disabled=true}
@@ -7093,10 +7093,10 @@ $('studentForm').addEventListener('input',e=>{
 bindLocalAutosaveForm($('studentForm'),'learner-admission','appMsg',()=>profile?.role==='Admin'&&!editingStudentId);
 bindLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg',()=>['Admin','Teacher'].includes(profile?.role));
 bindLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg',()=>profile?.role==='Teacher');
-bindLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg',()=>profile?.role==='Admin');
-bindLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg',()=>profile?.role==='Admin');
-bindLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg',()=>profile?.role==='Admin');
-bindLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg',()=>profile?.role==='Admin');
+bindLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg',()=>isCornhillAcademicManager());
+bindLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg',()=>isCornhillAcademicManager());
+bindLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg',()=>isCornhillAcademicManager());
+bindLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg',()=>isCornhillAcademicManager());
 bindLocalAutosaveForm($('subjectForm'),'academic-subject','academicMsg',()=>profile?.role==='Admin');
 bindLocalAutosaveForm($('classSubjectForm'),'academic-class-subject','academicMsg',()=>profile?.role==='Admin');
 bindLocalAutosaveDynamicForm($('studentForm'),()=>editingStudentId?'learner-edit-'+editingStudentId:null,'appMsg',()=>profile?.role==='Admin'&&!!editingStudentId);
