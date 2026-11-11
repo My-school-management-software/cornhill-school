@@ -109,6 +109,12 @@ const statusPath = path.join(__dirname, '..', 'supabase', 'functions', 'staff-em
 const statusSource = fs.readFileSync(statusPath, 'utf8');
 assert.match(statusSource, /if \(employmentStatus !== "Active"\)[\s\S]*?from\("user_profiles"\)[\s\S]*?employment_status: employmentStatus[\s\S]*?updateUserById\(staffUserId, \{ ban_duration: "876000h" \}\)/,
   'Suspension must mark the authoritative profile inactive before applying the Auth ban.');
+
+assert.match(statusSource, /if \(employmentStatus === "Active"\)[\s\S]*?from\("school_staff_directory"\)[\s\S]*?\.eq\("linked_user_id", staffUserId\)[\s\S]*?\.maybeSingle\(\)/,
+  'Reactivation must verify one permanent employee link before lifting the authentication ban.');
+assert.match(statusSource, /\.select\("id"\);[\s\S]*?employeeRows\?\.length !== 1/,
+  'Employment changes must detect missing or duplicate employee links instead of silently reporting success.');
+
 assert.match(statusSource, /Auth bans prevent future sign-in\/refresh but do NOT revoke an already-issued JWT/i,
   'The function must document that banning does not revoke already-issued access tokens.');
 assert.match(loginHtml, /db\.rpc\('is_active_staff_session'\)/,
