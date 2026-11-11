@@ -48,6 +48,12 @@
  let prefs={},loadedFor=null,loadPromise=null,studioReady=false;
  function rowFor(type,section){return prefs[type+'|'+section]||defaults[type+'|'+section]||(type==='receipt'?defaults['receipt|all']:defaults['report_card|p4']);}
  function getSettings(type,section){return rowFor(type,section).settings||{};}
+ function syncReceiptPaperWidth(){
+  const width=getSettings('receipt','all').paperWidth;
+  if(width!=='58'&&width!=='80')return;
+  try{localStorage.setItem('cornhill_receipt_paper_width',width);}catch(_){}
+  if(typeof window.applyReceiptPaperWidth==='function')window.applyReceiptPaperWidth();
+ }
  function loadPreferences(force){
   const b=bridge(),db=b.db,userId=b.userId;
   if(!db||!userId)return Promise.resolve(prefs);
@@ -57,7 +63,7 @@
    if(result.error)throw result.error;
    const next={};(result.data||[]).forEach(function(r){next[r.document_type+'|'+r.school_section]=r;});
    prefs=next;loadedFor=userId;window.cornhillDocumentTemplateSettings=prefs;
-   window.dispatchEvent(new CustomEvent('cornhill:document-templates-updated'));return prefs;
+   syncReceiptPaperWidth();window.dispatchEvent(new CustomEvent('cornhill:document-templates-updated'));return prefs;
   });
   return loadPromise.finally(function(){loadPromise=null;});
  }
@@ -186,6 +192,7 @@
     const result=await b.db.from('school_document_template_settings').upsert(record,{onConflict:'document_type,school_section'});
     if(result.error)throw result.error;
     prefs[t.type+'|'+t.section]=record;window.cornhillDocumentTemplateSettings=prefs;
+    if(t.type==='receipt')syncReceiptPaperWidth();
     window.dispatchEvent(new CustomEvent('cornhill:document-templates-updated'));status('Saved across CORNHILL devices. Newly opened report cards and receipts will use this selection.');
    }catch(error){status('Template was not saved: '+(error.message||String(error)),true);}
    finally{button.disabled=false;button.textContent='Save school-wide template';}
@@ -196,7 +203,7 @@
   if(/\bbaby\b/.test(value))return 'baby';
   if(/\bmiddle\b/.test(value))return 'middle';
   if(/\btop\b/.test(value))return 'top';
-  const match=value.match(/(?:primary|p)\s*([1-7])/i);
+  const match=value.match(/(?:primary|p)\s*\.?\s*([1-7])/i);
   return match?'p'+match[1]:null;
  }
  function applyAttributes(element,type,schoolClass){
