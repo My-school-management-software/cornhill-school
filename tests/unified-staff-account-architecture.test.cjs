@@ -16,7 +16,7 @@ assert.match(sql, /when p\.role = 'Teacher' or p\.staff_category = 'Teaching'\s+
 assert.match(sql, /else 'School Administrators'/i,
   'Non-teaching accounts must use the second sign-in section.');
 assert.match(sql, /p\.full_name as owner_name/i,
-  'Each account row must display its owner's name.');
+  "Each account row must display its owner's name.");
 assert.match(sql, /p\.job_title/i,
   'Each account row must expose its actual job title.');
 assert.match(sql, /where p\.role in \('Admin', 'Teacher', 'Staff'\)\s+and coalesce\(p\.employment_status, 'Active'\) = 'Active'/i,
