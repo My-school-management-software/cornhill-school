@@ -2939,6 +2939,14 @@ function applyRoleNavigation(){
  document.querySelectorAll('#dashboardClassBoardsPanel').forEach(node=>node.classList.toggle('hidden',role!=='Admin'));
  const teacherIntro=$('teacherPortalSummary');if(teacherIntro)teacherIntro.classList.toggle('hidden',role!=='Teacher');
  const income=$('dashboardIncomeForecastPanel');if(income)income.classList.toggle('hidden',role!=='Admin');
+ const adminFinanceControls=['feeItemForm','feeScheduleForm','learnerChargeForm','applyLearnerFeeSchedule','existingBursaryAwardForm','receiptReverseControls','salaryAgreementForm','salaryAdvanceForm','payrollPeriodForm','loadPayrollItems','approvePayroll'];
+ adminFinanceControls.forEach(id=>$(id)?.classList.toggle('hidden',role!=='Admin'));
+ const payrollReadOnly=['salaryAdvanceRows','salaryAgreementRows','payrollMsg','payrollStaffCount','payrollNetTotal','payrollPaidTotal','payrollPeriodSelect','payrollItemRows'];
+ payrollReadOnly.forEach(id=>$(id)?.classList.toggle('hidden',role!=='Admin'));
+ if(role!=='Admin'){
+  $('reverseReceiptButton')?.classList.add('hidden');
+  $('parentSmsRows')?.closest('.table-wrap')?.classList.add('hidden');
+ }
 }
 function renderTeacherPortal(){
  const assigned=(window.teacherAssignments||[]),teacherClassId=window.teacherClassId||sessionStorage.getItem('cornhill_teacher_class_id'),cls=classes.find(x=>x.id===teacherClassId),subjects=[...new Set(assigned.filter(a=>a.class_id===teacherClassId).map(a=>a.subjects?.name||'Assigned subject'))];
@@ -3192,12 +3200,16 @@ function renderDailyCollectionSearch(){
  $('dailyRecordRows').innerHTML=rows.map(x=>'<tr><td>'+esc(new Date(x.received_at).toLocaleTimeString('en-UG',{timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'}))+'</td><td>'+esc(x.receipt_no)+'</td><td>'+esc(x.admission_number)+' · '+esc(x.learner_name)+'</td><td>'+esc(x.class_name)+'</td><td>'+esc(x.collection_item)+'</td><td>'+esc(x.payment_method)+'</td><td>'+esc(x.status)+'</td><td>'+money(x.amount_ugx)+'</td></tr>').join('')||'<tr><td colspan="8">No matching receipts found for this date.</td></tr>';
 }
 async function loadDailyCollectionRecord(){
- if(demoMode||profile?.role!=='Admin'){message('dailyRecordMsg','Only the school administrator can access daily collection records.',true);return}
+ if(demoMode||!isCornhillFinanceOperator()){message('dailyRecordMsg','Only authorised finance operators can access daily collection records.',true);return}
  const date=$('dailyRecordDate').value;if(!date){message('dailyRecordMsg','Choose a collection date.',true);return}
  $('loadDailyCollectionRecord').disabled=true;$('loadDailyCollectionRecord').textContent='Loading…';
  try{
-  const {error:refreshError}=await db.rpc('refresh_daily_collection_record',{p_date:date});
-  if(refreshError)throw refreshError;
+  // The payment trigger refreshes daily records automatically. Only the administrator
+  // may explicitly rebuild historical snapshots; finance operators read the saved copy.
+  if(profile?.role==='Admin'){
+   const {error:refreshError}=await db.rpc('refresh_daily_collection_record',{p_date:date});
+   if(refreshError)throw refreshError;
+  }
   const {data,error}=await db.from('daily_collection_records').select('*').eq('collection_date',date).maybeSingle();
   if(error)throw error;
   if(!data){window.cornhillDailyCollectionEntries=[];$('dailyRecordRows').innerHTML='<tr><td colspan="8">No payments were recorded on this date.</td></tr>';$('dailyRecordItemTotals').innerHTML='<tr><td colspan="2">No collections recorded.</td></tr>';$('dailyCollectionPrint').innerHTML='';$('printDailyCollectionRecord').disabled=true;$('dailyRecordCount').textContent='0';$('dailyRecordTotal').textContent='0';$('dailyRecordReversedCount').textContent='0';$('dailyRecordReversedTotal').textContent='0';message('dailyRecordMsg','No daily record exists yet for '+date+'.');return}
@@ -7718,7 +7730,7 @@ if(refreshAppButton)refreshAppButton.addEventListener('click',async()=>{
 });
 if('serviceWorker' in navigator && location.protocol === 'https:'){navigator.serviceWorker.register('/service-worker.js').catch(()=>{});}
 $('loadLearnerStatement').addEventListener('click',async()=>{
- if(demoMode)return;if(profile?.role!=='Admin'){message('learnerStatementMsg','Only administrators can view financial statements.',true);return}
+ if(demoMode)return;if(!isCornhillFinanceOperator()){message('learnerStatementMsg','Only authorised finance operators can view financial statements.',true);return}
  const id=$('statementStudent').value;if(!id){message('learnerStatementMsg','Choose a learner first.',true);return}
  const learner=financeStudents.find(x=>x.id===id);if(!learner){message('learnerStatementMsg','Learner record was not found. Reload Finance and try again.',true);return}
  $('loadLearnerStatement').disabled=true;$('loadLearnerStatement').textContent='Loading…';$('printLearnerStatement').disabled=true;$('learnerStatementArea').innerHTML='';
@@ -7756,7 +7768,7 @@ $('loadLearnerStatement').addEventListener('click',async()=>{
  finally{$('loadLearnerStatement').disabled=false;$('loadLearnerStatement').textContent='Load statement'}
 });
 $('receiptLookupButton').addEventListener('click',async()=>{
- if(demoMode)return;if(profile?.role!=='Admin'){message('receiptLookupMsg','Only administrators can retrieve financial receipts.',true);return}
+ if(demoMode)return;if(!isCornhillFinanceOperator()){message('receiptLookupMsg','Only authorised finance operators can retrieve financial receipts.',true);return}
  const number=$('receiptLookupNumber').value.trim();if(!number){message('receiptLookupMsg','Enter a receipt number.',true);return}
  $('receiptLookupButton').disabled=true;$('receiptLookupButton').textContent='Searching…';$('receiptReverseControls').classList.add('hidden');$('receiptLookupPrint').disabled=true;$('receiptLookupArea').innerHTML='';
  try{
@@ -7765,7 +7777,7 @@ $('receiptLookupButton').addEventListener('click',async()=>{
   const {data:allocs,error:allocError}=await db.from('payment_allocations').select('amount_ugx,learner_charges(id,description,amount_ugx,academic_terms(name,academic_years(name)),payment_allocations(amount_ugx,school_payments(status)))').eq('payment_id',data.id);
   if(allocError)throw allocError;
   const learner=data.students||{},name=[learner.first_name,learner.middle_name,learner.last_name].map(v=>String(v||'').trim()).filter(Boolean).join(' '),className=data.learner_enrolment_periods?.school_classes?.name||learner.school_classes?.name||'Class not recorded',reversed=data.status==='Reversed';
-  const {data:receiverProfile}=await db.from('user_profiles').select('full_name').eq('id',data.received_by).maybeSingle();const receiverName=receiverProfile?.full_name||'School bursar';
+  const receiverProfile=profile?.role==='Admin'?await db.from('user_profiles').select('full_name').eq('id',data.received_by).maybeSingle():{data:null,error:null};const receiverName=receiverProfile?.data?.full_name||'School bursar';
   const lines=(allocs||[]).map(a=>{const c=a.learner_charges||{},paid=(c.payment_allocations||[]).filter(x=>x.school_payments?.status==='Posted').reduce((n,x)=>n+Number(x.amount_ugx||0),0),remaining=Math.max(0,Number(c.amount_ugx||0)-paid),term=c.academic_terms?(c.academic_terms.academic_years?.name+' · '+c.academic_terms.name):'Previous / unassigned term';return '<tr><td>'+esc(term)+'<br>'+esc(c.description||'Fee')+'</td><td>UGX '+money(a.amount_ugx)+'</td><td>UGX '+money(remaining)+'</td></tr>'}).join('');
   const totalAllocated=(allocs||[]).reduce((n,a)=>n+Number(a.amount_ugx||0),0);
   const {data:account}=data.enrolment_period_id?await db.from('learner_enrolment_period_balances').select('total_charged_ugx,credit_ugx,balance_ugx').eq('enrolment_period_id',data.enrolment_period_id).maybeSingle():await db.from('learner_account_balances').select('total_charged_ugx,credit_ugx,balance_ugx').eq('student_id',data.student_id).maybeSingle();
