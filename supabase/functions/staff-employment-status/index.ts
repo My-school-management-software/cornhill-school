@@ -83,6 +83,19 @@ Deno.serve(async (req: Request) => {
     return json(403, { error: "Only Teacher and non-teaching Staff accounts can be changed here. The existing Director account is protected." });
   }
 
+  // Reactivation must never unlock an account whose employee record is missing.
+  // Verify the permanent employee link before lifting the Auth ban.
+  if (employmentStatus === "Active") {
+    const { data: employeeLink, error: employeeLinkError } = await admin
+      .from("school_staff_directory")
+      .select("id")
+      .eq("linked_user_id", staffUserId)
+      .maybeSingle();
+    if (employeeLinkError || !employeeLink) {
+      return json(409, { error: "This account has no single linked employee record. Sign-in remains blocked until the Director repairs the existing staff identity link." });
+    }
+  }
+
   // For suspension, update the authoritative profile status first. The school's
   // RLS helpers (including is_active_staff_session) read this row on every request,
   // so an already-issued JWT is denied by those policies after this update commits.
@@ -106,13 +119,14 @@ Deno.serve(async (req: Request) => {
     if (unbanError) return json(502, { error: "The staff records were not reactivated because the authentication service could not restore account access." });
   }
 
-  const { error: employeeError } = await admin
+  const { data: employeeRows, error: employeeError } = await admin
     .from("school_staff_directory")
     .update({ employment_status: employmentStatus, employment_end_date: employmentEndDate })
-    .eq("linked_user_id", staffUserId);
-  if (employeeError) {
+    .eq("linked_user_id", staffUserId)
+    .select("id");
+  if (employeeError || employeeRows?.length !== 1) {
     return json(500, {
-      error: "Authentication access has been updated, but the employee directory could not be synchronised. Keep this account under administrator review; do not create a second staff record.",
+      error: "Authentication access has been updated, but exactly one linked employee record could not be synchronised. Keep this account under administrator review; do not create a second staff record.",
       access_blocked: employmentStatus !== "Active",
     });
   }
