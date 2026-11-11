@@ -15,6 +15,9 @@
  const motifs={nursery:['cartoon','nature'],lower_primary:['playful','nature'],upper_primary:['academic','geometric'],receipt:['none','ledger']};
  const names={nursery:['Rainbow','Little Garden','Happy Learners','Nature Trail','Storybook','Friendly Friends','Sunbeam','Butterfly','Green Meadow','Discovery'],lower_primary:['Bright Steps','Learning Path','Explorer','Achievement','Colour Blocks','Knowledge Garden','Pencil Lines','Star Progress','Blue Horizon','Fresh Start'],upper_primary:['Academic','Scholar','Executive','Modern Grid','Classic Ledger','Merit','Evergreen','Geometric','Heritage','Horizon'],receipt:['Official','Ledger','Compact','School Office','Classic','Modern','Clean Copy','Finance Desk','Trust','Simple']};
  const catalog={};
+ const classGroups={baby:'nursery',middle:'nursery',top:'nursery',p1:'lower_primary',p2:'lower_primary',p3:'lower_primary',p4:'upper_primary',p5:'upper_primary',p6:'upper_primary',p7:'upper_primary'};
+ const classLabels={baby:'Baby Class',middle:'Middle Class',top:'Top Class',p1:'Primary 1',p2:'Primary 2',p3:'Primary 3',p4:'Primary 4',p5:'Primary 5',p6:'Primary 6',p7:'Primary 7'};
+ function catalogFor(type,schoolClass){return catalog[type==='receipt'?'receipt':(classGroups[schoolClass]||'upper_primary')];}
  function makeCatalog(section){
   const list=[{key:'classic-current',label:'Current CORNHILL default',layout:'classic',accent:'#14532d',tint:'#f0fdf4',font:'Arial',motif:'none'}];
   const usedLayouts=section==='receipt'?['classic','compact','ledger','outlined','wide']:layouts;
@@ -38,12 +41,12 @@
  }
  ['nursery','lower_primary','upper_primary','receipt'].forEach(function(s){catalog[s]=makeCatalog(s);});
  const defaults={};
- ['nursery','lower_primary','upper_primary'].forEach(function(s){
+ Object.keys(classGroups).forEach(function(s){
   defaults['report_card|'+s]={template_key:'classic-current',settings:{layout:'classic',accent:'#14532d',tint:'#f0fdf4',font:'Arial',motif:'none',show:{identity:true,marks:true,summary:true,grading:true,comments:true,footer:true,signatures:true,parentPortal:true},customFields:[]}};
  });
  defaults['receipt|all']={template_key:'classic-current',settings:{layout:'classic',accent:'#14532d',tint:'#f0fdf4',font:'Arial',motif:'none',paperWidth:'80',show:{signatures:true},customFields:[]}};
  let prefs={},loadedFor=null,loadPromise=null,studioReady=false;
- function rowFor(type,section){return prefs[type+'|'+section]||defaults[type+'|'+section]||defaults['report_card|upper_primary'];}
+ function rowFor(type,section){return prefs[type+'|'+section]||defaults[type+'|'+section]||(type==='receipt'?defaults['receipt|all']:defaults['report_card|p4']);}
  function getSettings(type,section){return rowFor(type,section).settings||{};}
  function loadPreferences(force){
   const b=bridge(),db=b.db,userId=b.userId;
@@ -78,13 +81,13 @@
   const settings=document.getElementById('settings'),launcher=settings&&settings.querySelector('.settings-launcher');
   if(!settings||!launcher)return;
   studioReady=true;
-  launcher.insertAdjacentHTML('beforeend','<button type="button" data-doc-template-launch><span>11</span><strong>Document templates</strong><small>50 layouts per school section and 50 receipt layouts</small></button>');
+  launcher.insertAdjacentHTML('beforeend','<button type="button" data-doc-template-launch><span>11</span><strong>Report cards & receipt designs</strong><small>50 report-card templates for each of the 10 classes, plus 50 receipt designs</small></button>');
   const markup='<section id="settingsDocuments" class="panel" style="margin:16px 0;padding:16px;border:1px solid var(--line,#dce6df);border-radius:14px">'+
-   '<div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px"><div><h3 style="margin:0">Report-card & receipt template studio</h3><p class="muted">Choose an original layout, show or hide sections, add school fields and save one shared setting for all school devices. The current CORNHILL template stays as the default until you choose another.</p></div><span class="badge">150 report layouts · 50 receipt layouts</span></div>'+
+   '<div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px"><div><h3 style="margin:0">Class-specific report-card & receipt template studio</h3><p class="muted">Each class has its own set of 50 designs. Choose a layout, show or hide report sections, add optional school fields and save the selected design across CORNHILL devices. Nothing changes on existing reports until a design is selected and saved.</p></div><span class="badge">500 report layouts · 50 receipt layouts</span></div>'+
    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px;margin-top:14px">'+
    '<div><label for="docTemplateType">Document</label><select id="docTemplateType"><option value="report_card">Report card</option><option value="receipt">Payment receipt</option></select></div>'+
-   '<div id="docTemplateSectionWrap"><label for="docTemplateSection">School section</label><select id="docTemplateSection"><option value="nursery">Nursery · Baby, Middle, Top</option><option value="lower_primary">Lower Primary · P1–P3</option><option value="upper_primary">Upper Primary · P4–P7</option></select></div>'+
-   '<div><label for="docTemplatePreset">Design · 50 options</label><select id="docTemplatePreset"></select></div>'+
+   '<div id="docTemplateSectionWrap"><label for="docTemplateSection">Class</label><select id="docTemplateSection"><option value="baby">Baby Class</option><option value="middle">Middle Class</option><option value="top">Top Class</option><option value="p1">Primary 1</option><option value="p2">Primary 2</option><option value="p3">Primary 3</option><option value="p4">Primary 4</option><option value="p5">Primary 5</option><option value="p6">Primary 6</option><option value="p7">Primary 7</option></select></div>'+
+   '<div><label for="docTemplatePreset">Design · 50 options for this class</label><select id="docTemplatePreset"></select></div>'+
    '<div><label for="docTemplateLayout">Layout arrangement</label><select id="docTemplateLayout"><option value="classic">Classic</option><option value="split">Split header</option><option value="sidebar">Side panel</option><option value="minimal">Minimal</option><option value="blocks">Colour blocks</option><option value="compact">Compact</option><option value="ledger">Ledger</option><option value="outlined">Outlined</option><option value="wide">Wide</option></select></div>'+
    '<div><label for="docTemplateFont">Typeface</label><select id="docTemplateFont"><option>Arial</option><option>Verdana</option><option>Trebuchet MS</option><option>Georgia</option><option>Tahoma</option></select></div>'+
    '<div id="docTemplatePaperWrap"><label for="docTemplatePaper">Receipt paper</label><select id="docTemplatePaper"><option value="58">58 mm thermal</option><option value="80">80 mm thermal</option><option value="a4">A4</option></select></div>'+
@@ -135,7 +138,7 @@
    return {template_key:preset.value,settings:settings};
   }
   function render(state){
-   const t=target(),items=catalog[t.type==='receipt'?'receipt':t.section],choice=items.find(function(x){return x.key===state.template_key;})||items[0];
+   const t=target(),items=catalogFor(t.type,t.section),choice=items.find(function(x){return x.key===state.template_key;})||items[0];
    preset.innerHTML=items.map(function(x){return '<option value="'+esc(x.key)+'">'+esc(x.label)+'</option>';}).join('');
    preset.value=choice.key;
    $('docTemplateLayout').value=state.settings.layout||choice.layout;
@@ -152,7 +155,7 @@
    updatePreview(state);
   }
   function updatePreview(state){
-   const t=target(),items=catalog[t.type==='receipt'?'receipt':t.section],choice=items.find(function(x){return x.key===state.template_key;})||items[0],el=$('docTemplatePreview');
+   const t=target(),items=catalogFor(t.type,t.section),choice=items.find(function(x){return x.key===state.template_key;})||items[0],el=$('docTemplatePreview');
    el.style.setProperty('--document-accent',state.settings.accent||choice.accent);el.style.setProperty('--document-tint',state.settings.tint||choice.tint);el.style.setProperty('--document-font',state.settings.font||choice.font);
    el.style.borderRadius=state.settings.layout==='minimal'?'3px':state.settings.layout==='blocks'?'16px':'12px';
    $('docTemplatePreview').dataset.documentMotif=state.settings.motif||choice.motif;
@@ -162,13 +165,13 @@
   async function loadEditor(){
    const b=bridge();
    if(!b.profile||b.profile.role!=='Admin'){status('Only an administrator can change school-wide templates.',true);return;}
-   try{await loadPreferences(true);const t=target(),row=rowFor(t.type,t.section);editing={template_key:row.template_key,settings:Object.assign({},row.settings||{})};render(editing);status(catalog[t.type==='receipt'?'receipt':t.section].length+' designs loaded. Current layout remains default until saved.');}
+   try{await loadPreferences(true);const t=target(),row=rowFor(t.type,t.section);editing={template_key:row.template_key,settings:Object.assign({},row.settings||{})};render(editing);status(catalogFor(t.type,t.section).length+' designs loaded for '+(t.type==='receipt'?'all receipt copies':classLabels[t.section])+'. Save to apply the selected design.');}
    catch(error){status('Could not load preferences: '+(error.message||String(error)),true);}
   }
   document.querySelector('[data-doc-template-launch]').addEventListener('click',function(){ $('settingsDocuments').scrollIntoView({behavior:'smooth',block:'start'});loadEditor();});
   type.addEventListener('change',function(){if(type.value==='receipt')section.value='nursery';loadEditor();});
   section.addEventListener('change',loadEditor);
-  preset.addEventListener('change',function(){const t=target(),choice=catalog[t.type==='receipt'?'receipt':t.section].find(function(x){return x.key===preset.value;});if(!choice)return;editing={template_key:choice.key,settings:Object.assign({},editing.settings,{layout:choice.layout,font:choice.font,accent:choice.accent,tint:choice.tint,motif:choice.motif})};render(editing);});
+  preset.addEventListener('change',function(){const t=target(),choice=catalogFor(t.type,t.section).find(function(x){return x.key===preset.value;});if(!choice)return;editing={template_key:choice.key,settings:Object.assign({},editing.settings,{layout:choice.layout,font:choice.font,accent:choice.accent,tint:choice.tint,motif:choice.motif})};render(editing);});
   ['docTemplateLayout','docTemplateFont','docTemplateAccent','docTemplateTint','docTemplateMotif','docTemplatePaper'].forEach(function(id){$(id).addEventListener('change',function(){editing=snapshot();updatePreview(editing);});});
   document.querySelectorAll('[data-doc-show]').forEach(function(box){box.addEventListener('change',function(){editing=snapshot();updatePreview(editing);});});
   $('docTemplateAddField').addEventListener('click',function(){editing=snapshot();if(editing.settings.customFields.length>=12){status('A template can contain up to 12 custom fields.',true);return;}const label=$('docTemplateNewField').value.trim();if(!label){status('Enter a field label first.',true);return;}editing.settings.customFields.push({label:label.slice(0,48),value:''});$('docTemplateNewField').value='';render(editing);});
@@ -188,9 +191,40 @@
    finally{button.disabled=false;button.textContent='Save school-wide template';}
   });
  }
- const runtime={catalog:catalog,loadPreferences:loadPreferences,getSettings:getSettings,attributes:attributes,customFieldsHtml:customFieldsHtml,getCatalogCounts:function(){return {nursery:50,lower_primary:50,upper_primary:50,receipt:50};}};
+ function classKeyForClassName(name){
+  const value=String(name||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  if(/\bbaby\b/.test(value))return 'baby';
+  if(/\bmiddle\b/.test(value))return 'middle';
+  if(/\btop\b/.test(value))return 'top';
+  const match=value.match(/(?:primary|p)\s*([1-7])/i);
+  return match?'p'+match[1]:null;
+ }
+ function applyAttributes(element,type,schoolClass){
+  if(!element||!element.setAttribute)return false;
+  const classKey=type==='receipt'?'all':(classGroups[schoolClass]?schoolClass:classKeyForClassName(schoolClass));
+  if(type==='report_card'&&!classKey)return false;
+  const row=rowFor(type,classKey||'all'),settings=row.settings||{};
+  element.setAttribute('data-document-template',row.template_key||'classic-current');
+  element.setAttribute('data-document-layout',settings.layout||'classic');
+  element.setAttribute('data-document-motif',settings.motif||'none');
+  element.style.setProperty('--document-accent',settings.accent||'#14532d');
+  element.style.setProperty('--document-tint',settings.tint||'#f0fdf4');
+  element.style.setProperty('--document-font',settings.font||'Arial');
+  return true;
+ }
+ const runtime={catalog:catalog,classGroups:classGroups,classLabels:classLabels,classKeyForClassName:classKeyForClassName,applyAttributes:applyAttributes,loadPreferences:loadPreferences,getSettings:getSettings,attributes:attributes,customFieldsHtml:customFieldsHtml,getCatalogCounts:function(){return {baby:50,middle:50,top:50,p1:50,p2:50,p3:50,p4:50,p5:50,p6:50,p7:50,receipt:50};}};
  window.cornhillDocumentTemplateRuntime=runtime;window.cornhillDocumentTemplateSettings=prefs;
- function start(){initStudio();if(bridge().userId)loadPreferences().catch(function(e){console.warn('Template preferences unavailable',e);});}
+ function start(){initStudio();if(bridge().userId)loadPreferences(true).catch(function(e){console.warn('Template preferences unavailable',e);});}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
- window.addEventListener('cornhill:document-templates-updated',function(){});
+ window.addEventListener('cornhill:document-template-account-ready',function(){loadPreferences(true).then(function(){initStudio();}).catch(function(e){console.warn('Template preferences unavailable',e);});});
+ window.addEventListener('cornhill:document-templates-updated',function(){
+  ['reportCardPreview','reportBatchPrint'].forEach(function(id){
+   const root=document.getElementById(id);if(!root)return;
+   root.querySelectorAll('.cornhill-report-card[data-document-class]').forEach(function(card){
+    const key=card.getAttribute('data-document-class');
+    applyAttributes(card,'report_card',key);
+   });
+  });
+  document.querySelectorAll('.cornhill-document-receipt').forEach(function(node){applyAttributes(node,'receipt','all');});
+ });
 })();
