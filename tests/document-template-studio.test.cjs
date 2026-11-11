@@ -23,7 +23,7 @@ function boot(options = {}) {
     applyReceiptPaperWidth() { events.push({ appliedReceiptPaperWidth: true }); }
   };
   const fakeDocument = {
-    readyState: 'complete',
+    readyState: 'loading',
     getElementById() { return null; },
     querySelectorAll() { return []; },
     addEventListener() {}
@@ -170,7 +170,7 @@ test('attribute rendering escapes saved template keys before placing them in HTM
   }],error:null});}};}}} });
   await runtime.loadPreferences(true);
   const attrs = runtime.attributes('report_card','p4');
-  assert.match(attrs, /data-document-template="x&quot; onmouseover=&quot;alert\\(1\\)"/);
+  assert.match(attrs, /data-document-template="x&quot; onmouseover=&quot;alert\(1\)"/);
   assert.doesNotMatch(attrs, /data-document-template="x" onmouseover=/);
 });
 
