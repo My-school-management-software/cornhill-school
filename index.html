@@ -2543,7 +2543,8 @@ async function verifyActiveStaffSession(reason='interval'){
    await db.auth.signOut({scope:'local'}).catch(()=>{});
    currentUserId=null;
    resetAccountScopedCommunicationState();
-   setOfflineReadOnly(false);
+   window.cornhillSessionAuthorizationUnverified=false;
+   setSessionVerificationReadOnly(false);
    $('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');
    message('loginMsg','Access blocked: this account is no longer active. Contact the school administrator.',true);
    return false;
