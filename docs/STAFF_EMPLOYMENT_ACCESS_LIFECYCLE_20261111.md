@@ -7,10 +7,13 @@ This change adds an administrator-controlled employment-status workflow for link
 - Only the active Director/Admin identity may invoke the server-side `staff-employment-status` function.
 - The endpoint verifies the caller using Supabase Auth and checks the active Director profile in `user_profiles`.
 - The Director cannot target their own account, and a target with role `Admin` is protected.
-- On Leave and Exited: the Auth account is banned for a long duration before linked directory/profile statuses are changed. This is fail-closed if a later database update fails.
+- On Leave and Exited: the authoritative `user_profiles` status is changed first, causing the existing `is_active_staff_session()` and other profile-backed RLS helpers to deny requests as soon as the database update commits. The Auth account is then banned for a long duration to block future sign-in/refresh.
 - Active: the Auth ban is lifted while the stored profile is still non-active; the employee and teacher directory rows are synchronised before the user profile is set to Active. The application continues rejecting sign-in until that profile update succeeds.
 - `school_staff_directory` receives status and end date. `academic_teacher_directory` receives status only because that table has no end-date column.
 - Exited requires a valid final working date.
+- Reactivation lifts the Auth ban while the profile remains non-active, synchronises both linked directories, and only then sets the profile to Active.
+- Important Supabase limitation: an Auth ban or global sign-out does not invalidate an already-issued access-token JWT before its expiry. This workflow therefore relies on database-side active-profile RLS checks for online requests and an online client heartbeat. Do not describe the Auth ban alone as instant JWT revocation.
+- The web app now calls `is_active_staff_session()` on startup, every 60 seconds, when the page becomes visible, and after reconnect. A confirmed inactive result clears the local session and cached roster; a failed verification makes the workspace read-only until connectivity and verification return. This improves the app UI but is not a substitute for RLS on every exposed table/RPC.
 - Partial failures return an explicit error and never delete an identity or historic record.
 
 ## Application behavior
@@ -38,3 +41,7 @@ No production function was deployed and no staff employment status, account ban,
 
 ## Current offline sign-in boundary
 This change improves the existing encrypted offline class-list snapshot only. The current sign-in form still authenticates with Supabase `signInWithPassword`, which requires network access. Offline roster viewing is possible only when the browser still has a valid stored Auth session and the profile lookup fails because the service cannot be reached; it is not a new password/PIN sign-in mode. A separate device-bound offline unlock design is still required before the school should describe the product as supporting full offline sign-in. Do not cache a raw password, service key, or reusable Supabase credential in the browser.
+
+
+## Online session revalidation
+The client heartbeat is a secondary guard against stale browser sessions. It checks the database-backed active staff helper, signs the local browser session out after a confirmed inactive result, and clears that user's cached roster. If verification cannot complete, the UI switches to read-only. Supabase JWTs remain stateless until expiry, so direct API calls must continue to be protected by RLS predicates that check current employment status; browser-side polling alone is not a security boundary.
