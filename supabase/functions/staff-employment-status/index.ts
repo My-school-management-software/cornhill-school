@@ -83,16 +83,28 @@ Deno.serve(async (req: Request) => {
     return json(403, { error: "Only Teacher and non-teaching Staff accounts can be changed here. The existing Director account is protected." });
   }
 
-  // Reactivation must never unlock an account whose employee record is missing.
-  // Verify the permanent employee link before lifting the Auth ban.
+  // Reactivation must never unlock an account whose role-specific employee
+  // record is missing. Teachers link to the academic teacher directory; other
+  // staff link to the school employee directory.
   if (employmentStatus === "Active") {
-    const { data: employeeLink, error: employeeLinkError } = await admin
-      .from("school_staff_directory")
-      .select("id")
-      .eq("linked_user_id", staffUserId)
-      .maybeSingle();
-    if (employeeLinkError || !employeeLink) {
-      return json(409, { error: "This account has no single linked employee record. Sign-in remains blocked until the Director repairs the existing staff identity link." });
+    if (target.role === "Teacher") {
+      const { data: teacherLink, error: teacherLinkError } = await admin
+        .from("academic_teacher_directory")
+        .select("id")
+        .eq("linked_user_id", staffUserId)
+        .maybeSingle();
+      if (teacherLinkError || !teacherLink) {
+        return json(409, { error: "This teacher account has no single linked teacher-directory record. Sign-in remains blocked until the Director repairs the existing identity link." });
+      }
+    } else {
+      const { data: employeeLink, error: employeeLinkError } = await admin
+        .from("school_staff_directory")
+        .select("id")
+        .eq("linked_user_id", staffUserId)
+        .maybeSingle();
+      if (employeeLinkError || !employeeLink) {
+        return json(409, { error: "This staff account has no single linked employee record. Sign-in remains blocked until the Director repairs the existing identity link." });
+      }
     }
   }
 
@@ -119,27 +131,32 @@ Deno.serve(async (req: Request) => {
     if (unbanError) return json(502, { error: "The staff records were not reactivated because the authentication service could not restore account access." });
   }
 
-  const { data: employeeRows, error: employeeError } = await admin
-    .from("school_staff_directory")
-    .update({ employment_status: employmentStatus, employment_end_date: employmentEndDate })
-    .eq("linked_user_id", staffUserId)
-    .select("id");
-  if (employeeError || employeeRows?.length !== 1) {
-    return json(500, {
-      error: "Authentication access has been updated, but exactly one linked employee record could not be synchronised. Keep this account under administrator review; do not create a second staff record.",
-      access_blocked: employmentStatus !== "Active",
-    });
+  // Synchronise exactly the directory that owns this account's staff identity.
+  // Teaching accounts are represented in academic_teacher_directory; non-teaching
+  // accounts are represented in school_staff_directory. Do not expect both rows.
+  let directoryError: string | null = null;
+  if (target.role === "Teacher") {
+    const { data: teacherRows, error: teacherError } = await admin
+      .from("academic_teacher_directory")
+      .update({ employment_status: employmentStatus })
+      .eq("linked_user_id", staffUserId)
+      .select("id");
+    if (teacherError || teacherRows?.length !== 1) {
+      directoryError = "exactly one linked teacher-directory record could not be synchronised";
+    }
+  } else {
+    const { data: employeeRows, error: employeeError } = await admin
+      .from("school_staff_directory")
+      .update({ employment_status: employmentStatus, employment_end_date: employmentEndDate })
+      .eq("linked_user_id", staffUserId)
+      .select("id");
+    if (employeeError || employeeRows?.length !== 1) {
+      directoryError = "exactly one linked employee record could not be synchronised";
+    }
   }
-
-  // The academic teacher directory stores employment_status but has no
-  // employment_end_date column. Older non-teaching staff may have no row here.
-  const { error: teacherError } = await admin
-    .from("academic_teacher_directory")
-    .update({ employment_status: employmentStatus })
-    .eq("linked_user_id", staffUserId);
-  if (teacherError) {
+  if (directoryError) {
     return json(500, {
-      error: "Authentication access has been updated, but the teacher directory could not be synchronised. Keep this account under administrator review; do not create another account.",
+      error: `Authentication access has been updated, but ${directoryError}. Keep this account under administrator review; do not create a second staff record.`,
       access_blocked: employmentStatus !== "Active",
     });
   }
