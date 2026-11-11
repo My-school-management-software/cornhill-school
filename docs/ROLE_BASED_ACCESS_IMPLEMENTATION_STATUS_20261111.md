@@ -87,7 +87,7 @@ All roles use the same school database. Each screen must use role-scoped server 
 - tightens payment reversal to require `is_school_admin()`, keeping the existing Admin-only RLS UPDATE check as a second barrier;
 - leaves expense approval and bank-withdrawal approval Director/Admin-only.
 
-**Not yet applied or live-tested.** The payment migration must pass staging tests and a real Bursar/Director browser test before production release.
+**Not yet applied or live-tested.** Both new migrations are only in the feature branch. The payment and subject-resource migrations must pass staging tests and real Bursar/Director/subject-teacher browser tests before production release.
 
 ### 3. Staff-code sign-in for Headteacher and DOS
 
