@@ -36,4 +36,22 @@ assert.match(inviteSource, /select\("role,employment_status"\)/,
 assert.match(inviteSource, /actor\?\.role !== "Admin" \|\| actor\?\.employment_status !== "Active"/,
   'Exited or inactive Admin profiles must not invite staff.');
 
-console.log('Unified staff account architecture: 13/13 source assertions passed.');
+
+const loginPath = path.join(__dirname, '..', 'index.html');
+const loginHtml = fs.readFileSync(loginPath, 'utf8');
+assert.match(loginHtml, /aria-labelledby="teachingStaffHeading"/,
+  'The sign-in window must contain a dedicated Teaching Staff section.');
+assert.match(loginHtml, /aria-labelledby="schoolAdministratorsHeading"/,
+  'The sign-in window must contain a dedicated School Administrators section.');
+assert.match(loginHtml, /id="classLoginDirectory"/,
+  'Existing teacher class/assignment routing must remain wired.');
+assert.match(loginHtml, /id="adminLoginPanel"/,
+  'The existing administrator credential flow must remain wired.');
+assert.match(loginHtml, /Director · Full Access.*Existing account/,
+  'The existing Director identity must be presented as retained, not duplicated.');
+assert.match(loginHtml, /No duplicate Director account is created/,
+  'The sign-in page must explicitly prevent duplicate Director account assumptions.');
+assert.match(loginHtml, /Each staff member has one identity/,
+  'The sign-in page must reinforce one identity per staff member.');
+
+console.log('Unified staff account architecture: 20/20 source assertions passed.');
