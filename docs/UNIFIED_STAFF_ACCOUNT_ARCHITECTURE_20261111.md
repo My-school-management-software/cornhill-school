@@ -40,17 +40,18 @@ Migration `20261111220000_unified_staff_account_directory.sql`:
 5. The new account appears in Teaching Staff after activation and profile refresh.
 6. The employee receives a secure invitation/activation flow. Never display or store a reusable plaintext password or sign-in secret in the directory.
 
-The invitation function already validates the employee category, checks for an existing linked account, and prevents a second invitation when the employee is already linked. The main staff-registration interface must call this workflow as part of the add-teacher flow; inserting a directory row alone does not create an Auth login.
+The invitation function validates the employee category, checks for an existing linked account, and prevents a second invitation when the employee is already linked. In this branch, the staff-registration interface invokes this workflow after saving the canonical employee record; inserting a directory row alone still does not create an Auth login.
 
 ### Staff departure / access removal
 
-- Mark the employee as Exited and revoke that user's authentication sessions/access through a trusted server-side administrative action.
+- Mark the employee as Exited through the Director-only `staff-employment-status` Edge Function. The authoritative profile is marked inactive first; the Auth ban then blocks future sign-in/refresh.
 - Preserve the Auth identity/profile and all linked attendance, marks, finance audit and historical records.
 - Do not delete the teacher's historic class/subject records or reassign their marks.
 - Remove the account from the active sign-in directory automatically because the view filters to active employment.
-- Revoke access at the database policy/RPC layer; hiding a name or menu is not a security control.
+- Restrictive active-session RLS policies now cover 17 staff-domain tables, and existing academic/finance helpers check current employment status. These database checks protect direct API requests that still carry an unexpired JWT. The browser also rechecks `is_active_staff_session()` every 60 seconds and on reconnect/visibility.
+- Supabase does not revoke an already-issued access-token JWT immediately. Offline devices cannot receive a remote status change until reconnect; the current 12-hour cached roster remains read-only and is not full offline sign-in.
 
-**Important pending integration:** the current branch does not yet contain the main school-management sign-in page implementation (`index.html` is empty on this branch). Therefore the two compact sign-in panels, automatic invitation invocation from the staff form, trusted deactivation/session-revocation control, and the account-specific application navigation still require integration into the actual main application source. Do not claim those interface changes are live until that source is restored and browser-tested.
+**Release verification still pending:** the two-section sign-in UI, automatic staff invitation, Director-only employment workflow and role-specific workspace navigation are implemented in this branch's `index.html`. They remain unmerged and undeployed, and still require browser/device verification before release.
 
 ## Application integration contract
 
@@ -78,6 +79,13 @@ Every application remains a workspace for the same authenticated person and cano
 - Read-only inspection of the connected production database found **11 active staff profiles: 1 Admin and 10 Teachers**. The Admin profile has no job title recorded; the new directory deliberately labels that one existing Admin as `Director · Full Access` without creating or promoting another identity.
 - No Bursar, Deputy Bursar, DOS or Headteacher staff profiles were present in that snapshot, so none were invented or added.
 - The migration SQL was executed against the production schema inside an explicit transaction and rolled back. The temporary view returned the expected grouping (1 Director / School Administrators; 10 Class Teachers / Teaching Staff). No production schema change was retained.
-- The new source test file now contains 13 assertions covering the migration and active-Director invitation guard; all 14 independent source checks run during this pass passed against the committed migration and invitation function.
+- Source-level tests cover the two sign-in sections, single Director identity, automatic staff invitations, role navigation, employment lifecycle, active-session heartbeat, restrictive RLS migration and offline snapshot bounds. The latest updated CI run is queued; do not treat the new checks as passed until that run completes.
 - The rehearsal Supabase project currently has no public tables, so it is not yet a usable migration-test environment.
-- The staff-invitation Edge Function now also verifies that the inviting Admin is still Active, not merely that the profile role says Admin.\n- The main application entry file `index.html` is empty in both the working branch and repository default branch. The main sign-in UI and its staff-management form therefore cannot safely be patched from this repository snapshot. The account directory migration is committed to the feature branch but is **not applied to production**.
+- The staff-invitation Edge Function now also verifies that the inviting Admin is still Active, not merely that the profile role says Admin.\n- The feature branch includes the main application entry file and the staff account UI changes. The staff directory migration and the new 17-table active-session RLS migration are committed to the feature branch but are **not applied permanently to production**.
+
+
+## Employment-status hardening added in this branch
+- On suspension, update `user_profiles.employment_status` first so database-backed authorization helpers immediately see the inactive state; then apply the long-duration Supabase Auth ban and synchronise linked directories.
+- On reactivation, lift the Auth ban, synchronise the employee and academic teacher directories, and set the profile to Active last.
+- Migration `20261111230000_require_active_staff_session_for_staff_tables.sql` adds restrictive policies to 17 existing staff-domain tables. A production-schema validation executed the migration logic inside a transaction, observed all 17 temporary policies, then rolled back; a follow-up read confirmed zero policies persisted.
+- Auth ban does not revoke an already-issued JWT before expiry. RLS is the enforcement boundary; the browser heartbeat is an additional user-experience safeguard, not a replacement for RLS.
