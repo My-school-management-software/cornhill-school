@@ -100,6 +100,7 @@
    '<div><label for="docTemplateAccent">Accent colour</label><input id="docTemplateAccent" type="color" value="#14532d"></div>'+
    '<div><label for="docTemplateTint">Light background</label><input id="docTemplateTint" type="color" value="#f0fdf4"></div>'+
    '<div><label for="docTemplateMotif">Decorative style</label><select id="docTemplateMotif"><option value="none">No decoration</option><option value="cartoon">Cartoon / friendly</option><option value="nature">Nature / garden</option><option value="playful">Playful educational</option><option value="academic">Academic / formal</option><option value="geometric">Geometric</option><option value="ledger">Ledger</option></select></div></div>'+
+   '<section class="doc-template-gallery-wrap"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><strong>Choose by visual preview</strong><span class="muted" id="docTemplateGalleryCount">50 class designs</span></div><div id="docTemplateGallery" class="doc-template-gallery" role="group" aria-label="Visual document template choices"></div></section>'+
    '<div id="docTemplateShowOptions" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:7px;margin:14px 0">'+
    '<label><input type="checkbox" data-doc-show="identity" checked> Pupil information</label><label><input type="checkbox" data-doc-show="marks" checked> Marks table</label><label><input type="checkbox" data-doc-show="summary" checked> Total, position & division</label><label><input type="checkbox" data-doc-show="grading" checked> Nursery grading key</label><label><input type="checkbox" data-doc-show="comments" checked> Teacher / headteacher comments</label><label><input type="checkbox" data-doc-show="footer" checked> Fees & next-term footer</label><label><input type="checkbox" data-doc-show="signatures" checked> Signature lines</label><label><input type="checkbox" data-doc-show="parentPortal" checked> Parent portal link section</label></div>'+
    '<div class="panel" style="padding:12px;margin:10px 0"><strong>Add optional school fields (up to 12)</strong><div class="row" style="align-items:end;gap:8px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><label for="docTemplateNewField">Field label</label><input id="docTemplateNewField" maxlength="48" placeholder="For example: Next term begins"></div><button id="docTemplateAddField" type="button">Add field</button></div><div id="docTemplateCustomFields" class="grid" style="gap:8px;margin-top:10px"></div></div>'+
@@ -130,7 +131,18 @@
    '.document-custom-fields{margin:9px 0;padding:7px 9px;border-top:1px dashed var(--document-accent,#14532d);font-size:10px}'+
    '.doc-template-field-row{display:grid;grid-template-columns:1fr 1fr auto;gap:7px;align-items:center}'+
    '.doc-template-preview{border:2px solid var(--document-accent,#14532d);border-radius:12px;padding:14px;margin-top:12px;background:var(--document-tint,#f0fdf4);font-family:var(--document-font,Arial,sans-serif)}'+
-   '.doc-template-preview-sub{font-size:12px;margin:6px 0 12px}.doc-template-preview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.doc-template-preview-grid span{padding:10px 4px;text-align:center;background:#fff;border:1px solid var(--document-accent,#14532d);border-radius:5px;font-size:11px}.doc-template-preview-foot{font-size:11px;margin-top:12px}@media(max-width:520px){.doc-template-field-row{grid-template-columns:1fr}.doc-template-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}';
+   '.doc-template-preview-sub{font-size:12px;margin:6px 0 12px}.doc-template-preview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.doc-template-preview-grid span{padding:10px 4px;text-align:center;background:#fff;border:1px solid var(--document-accent,#14532d);border-radius:5px;font-size:11px}.doc-template-preview-foot{font-size:11px;margin-top:12px}'+
+   '.doc-template-gallery-wrap{margin:15px 0;padding:12px;border:1px solid var(--cornhill-line,#dce7df);border-radius:14px;background:var(--cornhill-panel,#fff)}'+
+   '.doc-template-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:9px;max-height:490px;overflow:auto;padding:3px;margin-top:10px;overscroll-behavior:contain}'+
+   '.doc-template-choice{min-width:0;text-align:left;padding:7px;border:2px solid var(--cornhill-line,#dce7df);border-radius:10px;background:var(--cornhill-panel,#fff);color:var(--cornhill-ink,#17251c);cursor:pointer}'+
+   '.doc-template-choice[aria-pressed="true"]{border-color:var(--document-accent,#14532d);box-shadow:0 0 0 2px color-mix(in srgb,var(--document-accent,#14532d) 20%,transparent)}'+
+   '.doc-template-choice-sheet{display:block;min-height:118px;padding:7px;background:var(--choice-tint,#f0fdf4);border:1px solid var(--choice-accent,#14532d);border-top:4px solid var(--choice-accent,#14532d);border-radius:5px;font-family:var(--choice-font,Arial,sans-serif);color:#26352a}'+
+   '.doc-template-choice-school{font-size:8px;font-weight:900;color:var(--choice-accent,#14532d);text-align:center;padding-bottom:5px;border-bottom:1px solid var(--choice-accent,#14532d)}'+
+   '.doc-template-choice-title{font-size:7px;text-align:center;margin:5px 0;font-weight:800}'+
+   '.doc-template-choice-lines{display:grid;gap:4px;margin:5px 0}.doc-template-choice-lines i{display:block;height:5px;border:1px solid color-mix(in srgb,var(--choice-accent,#14532d) 35%,white);background:#fff;border-radius:2px}'+
+   '.doc-template-choice-bars{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-top:6px}.doc-template-choice-bars i{height:13px;border-radius:2px;background:#fff;border:1px solid color-mix(in srgb,var(--choice-accent,#14532d) 35%,white)}'+
+   '.doc-template-choice-name{display:block;font-size:10px;font-weight:800;line-height:1.25;margin:7px 1px 2px;min-height:25px}.doc-template-choice-meta{display:block;font-size:9px;color:var(--cornhill-muted,#607265);margin:0 1px}'+
+   '@media(max-width:520px){.doc-template-field-row{grid-template-columns:1fr}.doc-template-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.doc-template-gallery{grid-template-columns:repeat(2,minmax(0,1fr));max-height:430px}}';
   document.head.appendChild(style);
   const $=function(id){return document.getElementById(id);};
   const type=$('docTemplateType'),section=$('docTemplateSection'),preset=$('docTemplatePreset');
@@ -147,6 +159,21 @@
    const t=target(),items=catalogFor(t.type,t.section),choice=items.find(function(x){return x.key===state.template_key;})||items[0];
    preset.innerHTML=items.map(function(x){return '<option value="'+esc(x.key)+'">'+esc(x.label)+'</option>';}).join('');
    preset.value=choice.key;
+   const gallery=$('docTemplateGallery');
+   if(gallery){
+    gallery.innerHTML=items.map(function(item){
+     const selected=item.key===choice.key;
+     const layout=item.layout==='minimal'?'border:0':item.layout==='blocks'?'border-radius:12px':item.layout==='split'?'text-align:left':'';
+     return '<button type="button" class="doc-template-choice" data-template-pick="'+esc(item.key)+'" aria-pressed="'+String(selected)+'" style="--document-accent:'+esc(item.accent)+';--choice-accent:'+esc(item.accent)+';--choice-tint:'+esc(item.tint)+';--choice-font:'+esc(item.font)+'">'+
+      '<span class="doc-template-choice-sheet" style="'+layout+'">'+
+       '<span class="doc-template-choice-school">CORNHILL SCHOOL</span>'+
+       '<span class="doc-template-choice-title">'+(t.type==='receipt'?'OFFICIAL RECEIPT':'PUPIL PROGRESS REPORT')+'</span>'+
+       '<span class="doc-template-choice-lines"><i style="width:82%"></i><i style="width:58%"></i><i></i></span>'+
+       '<span class="doc-template-choice-bars"><i></i><i></i><i></i></span>'+
+      '</span><span class="doc-template-choice-name">'+esc(item.label)+'</span><span class="doc-template-choice-meta">'+esc(item.font)+' · '+esc(item.motif)+' · '+esc(item.layout)+'</span></button>';
+    }).join('');
+    $('docTemplateGalleryCount').textContent=items.length+' visual previews · '+(t.type==='receipt'?'shared receipt designs':classLabels[t.section]);
+   }
    $('docTemplateLayout').value=state.settings.layout||choice.layout;
    $('docTemplateFont').value=state.settings.font||choice.font;
    $('docTemplateAccent').value=state.settings.accent||choice.accent;
@@ -178,6 +205,12 @@
   type.addEventListener('change',function(){if(type.value==='receipt')section.value='nursery';loadEditor();});
   section.addEventListener('change',loadEditor);
   preset.addEventListener('change',function(){const t=target(),choice=catalogFor(t.type,t.section).find(function(x){return x.key===preset.value;});if(!choice)return;editing={template_key:choice.key,settings:Object.assign({},editing.settings,{layout:choice.layout,font:choice.font,accent:choice.accent,tint:choice.tint,motif:choice.motif})};render(editing);});
+  $('docTemplateGallery').addEventListener('click',function(event){
+   const button=event.target.closest('[data-template-pick]');if(!button)return;
+   const t=target(),choice=catalogFor(t.type,t.section).find(function(x){return x.key===button.dataset.templatePick;});if(!choice)return;
+   editing={template_key:choice.key,settings:Object.assign({},editing.settings,{layout:choice.layout,font:choice.font,accent:choice.accent,tint:choice.tint,motif:choice.motif})};
+   render(editing);status('Preview selected: '+choice.label+'. Save when you are satisfied.');
+  });
   ['docTemplateLayout','docTemplateFont','docTemplateAccent','docTemplateTint','docTemplateMotif','docTemplatePaper'].forEach(function(id){$(id).addEventListener('change',function(){editing=snapshot();updatePreview(editing);});});
   document.querySelectorAll('[data-doc-show]').forEach(function(box){box.addEventListener('change',function(){editing=snapshot();updatePreview(editing);});});
   $('docTemplateAddField').addEventListener('click',function(){editing=snapshot();if(editing.settings.customFields.length>=12){status('A template can contain up to 12 custom fields.',true);return;}const label=$('docTemplateNewField').value.trim();if(!label){status('Enter a field label first.',true);return;}editing.settings.customFields.push({label:label.slice(0,48),value:''});$('docTemplateNewField').value='';render(editing);});
