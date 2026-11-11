@@ -34,3 +34,7 @@ No production function was deployed and no staff employment status, account ban,
 - Saved timestamp must parse successfully, must not be in the future and must be no older than 12 hours.
 - Invalid or expired snapshots are deleted and are not restored.
 - The message displayed in offline view names its expiry and explains that remote account suspensions are applied after reconnection or expiry.
+
+
+## Current offline sign-in boundary
+This change improves the existing encrypted offline class-list snapshot only. The current sign-in form still authenticates with Supabase `signInWithPassword`, which requires network access. Offline roster viewing is possible only when the browser still has a valid stored Auth session and the profile lookup fails because the service cannot be reached; it is not a new password/PIN sign-in mode. A separate device-bound offline unlock design is still required before the school should describe the product as supporting full offline sign-in. Do not cache a raw password, service key, or reusable Supabase credential in the browser.
