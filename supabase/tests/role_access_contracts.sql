@@ -119,6 +119,14 @@ begin
     raise exception 'Subject-only teachers must read learning resources only through the exact class/subject helper';
   end if;
 
+  if position('is_school_academic_viewer' in lower(pg_get_functiondef(to_regprocedure('public.can_teacher_view_learning_resource(uuid,text)')))) = 0 then
+    raise exception 'Headteacher and DOS must be able to view the learning-resource workspace';
+  end if;
+
+  if position('is_school_academic_manager' in lower(pg_get_functiondef(to_regprocedure('public.can_teacher_manage_learning_resource(uuid,text)')))) = 0 then
+    raise exception 'DOS and Director must be able to manage the learning-resource workspace';
+  end if;
+
   if not exists (
     select 1 from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
