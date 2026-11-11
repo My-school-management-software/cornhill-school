@@ -45,3 +45,7 @@ This change improves the existing encrypted offline class-list snapshot only. Th
 
 ## Online session revalidation
 The client heartbeat is a secondary guard against stale browser sessions. It checks the database-backed active staff helper, signs the local browser session out after a confirmed inactive result, and clears that user's cached roster. If verification cannot complete, the UI switches to read-only. Supabase JWTs remain stateless until expiry, so direct API calls must continue to be protected by RLS predicates that check current employment status; browser-side polling alone is not a security boundary.
+
+
+## Stale access-token protection at the database layer
+Supabase access tokens are stateless JWTs and remain valid until their expiry even after an Auth ban or session sign-out. To prevent those still-valid tokens from using staff-domain APIs after employment status changes, migration `20261111230000_require_active_staff_session_for_staff_tables.sql` adds one **restrictive** policy to the 17 existing RLS-enabled `staff_*` tables. It requires `public.is_active_staff_session()` for every authenticated command while preserving each table's existing permissive role/ownership policies. The policy does not grant new access. The migration deliberately excludes `user_profiles` so the sign-in flow can still read an inactive account's status and display the correct access-blocked message. It has not been applied to production; review and verify the migration before release.
