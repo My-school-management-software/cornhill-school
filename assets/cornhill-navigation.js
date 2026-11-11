@@ -160,11 +160,14 @@
       const target = event.state && event.state.cornhillWorkspace;
       const current = app.dataset.activeWorkspace || null;
       if (!target || target === current || typeof originalTab !== 'function') return;
-      if (backStack[backStack.length - 1] === target) backStack.pop();
-      else if (forwardStack[forwardStack.length - 1] === target) forwardStack.pop();
-      if (current) {
-        const direction = backStack.length >= forwardStack.length ? forwardStack : backStack;
-        direction.push(current);
+      const cameFromBack = backStack[backStack.length - 1] === target;
+      const cameFromForward = forwardStack[forwardStack.length - 1] === target;
+      if (cameFromBack) {
+        backStack.pop();
+        if (current) forwardStack.push(current);
+      } else if (cameFromForward) {
+        forwardStack.pop();
+        if (current) backStack.push(current);
       }
       replaying = true;
       originalTab(target);
