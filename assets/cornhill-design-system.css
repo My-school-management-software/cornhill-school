@@ -637,3 +637,82 @@ img,video{height:auto}
   .cornhill-nav-control{min-width:0;min-height:38px;padding:7px 5px;font-size:11px;white-space:normal}
   #app>.cornhill-navigation-shell{width:100%;max-width:100%;margin:8px 0 10px}
 }
+
+
+/* CORNHILL main workspace: expand the content sheet toward the screen edges.
+   Preserve a clear 10px separation from the left navigation rail and leave
+   only a 4px safety gutter at the far right. */
+@media(min-width:901px){
+  .wrap:has(>#app){
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding-left:12px!important;
+    padding-right:4px!important;
+  }
+  #app{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+  }
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview,
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type{
+    width:calc(100% - 248px)!important;
+    max-width:calc(100% - 248px)!important;
+    margin-left:244px!important;
+    margin-right:4px!important;
+  }
+  #app:has(.cornhill-sidebar) .cornhill-sidebar{
+    left:12px!important;
+    width:222px!important;
+  }
+}
+@media(min-width:701px) and (max-width:900px){
+  .wrap:has(>#app){
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding-left:10px!important;
+    padding-right:4px!important;
+  }
+  #app{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+  }
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview,
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type{
+    width:calc(100% - 218px)!important;
+    max-width:calc(100% - 218px)!important;
+    margin-left:210px!important;
+    margin-right:4px!important;
+  }
+  #app:has(.cornhill-sidebar) .cornhill-sidebar{
+    left:10px!important;
+    width:194px!important;
+  }
+}
+@media(max-width:700px){
+  .wrap:has(>#app){
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding-left:4px!important;
+    padding-right:4px!important;
+  }
+  #app{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+  }
+}
