@@ -924,3 +924,240 @@ body[data-theme] #login .tab{
 @media(max-width:360px){
  .top .brand span{font-size:10px!important;letter-spacing:-.02em}
 }
+
+
+/* CORNHILL responsive workspace revision: full desktop sheet, balanced identity
+   header, compact assignment cards, and phone-first teacher controls. */
+@media(min-width:901px){
+  main.wrap:has(#app),.wrap:has(#app){
+    width:100%!important;max-width:none!important;
+    margin:0!important;padding:0!important;
+  }
+  #app{
+    width:100%!important;max-width:none!important;
+    margin:0!important;padding:0!important;
+  }
+  #app:has(.cornhill-sidebar)>#dashboardWelcomeHeader,
+  #app:has(.cornhill-sidebar)>.cornhill-navigation-shell,
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview,
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type{
+    width:calc(100% - 244px)!important;
+    max-width:calc(100% - 244px)!important;
+    margin-left:242px!important;margin-right:2px!important;
+    box-sizing:border-box!important;
+  }
+  #app:has(.cornhill-sidebar) .cornhill-sidebar{
+    position:fixed!important;left:12px!important;width:222px!important;
+    top:108px!important;bottom:12px!important;
+  }
+}
+@media(min-width:701px) and (max-width:900px){
+  main.wrap:has(#app),.wrap:has(#app){
+    width:100%!important;max-width:none!important;
+    margin:0!important;padding:0!important;
+  }
+  #app{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+  #app:has(.cornhill-sidebar)>#dashboardWelcomeHeader,
+  #app:has(.cornhill-sidebar)>.cornhill-navigation-shell,
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview,
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type{
+    width:calc(100% - 212px)!important;
+    max-width:calc(100% - 212px)!important;
+    margin-left:210px!important;margin-right:2px!important;
+    box-sizing:border-box!important;
+  }
+  #app:has(.cornhill-sidebar) .cornhill-sidebar{
+    position:fixed!important;left:8px!important;width:192px!important;
+    top:108px!important;bottom:10px!important;
+  }
+}
+@media(max-width:700px){
+  main.wrap:has(#app),.wrap:has(#app){
+    width:100%!important;max-width:none!important;
+    margin:0!important;padding:0 4px!important;
+  }
+  #app{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+  #app>#dashboardWelcomeHeader,#app>.cornhill-navigation-shell,
+  #app>section:not(.tabs),#app>.module-preview,#app>.row:first-child,
+  #app>#appMsg,#app>#staffAttendanceNotice,#app>#demoBanner,#app>.grid:first-of-type{
+    width:100%!important;max-width:100%!important;
+    margin-left:0!important;margin-right:0!important;
+  }
+}
+
+/* A shorter green masthead while giving the CORNHILL crest more prominence. */
+.top{
+  padding-top:4px!important;padding-bottom:4px!important;
+  min-height:unset!important;gap:10px!important;
+}
+.top .brand{display:flex!important;align-items:center!important;gap:11px!important;flex-wrap:nowrap!important}
+.top .brand img{
+  width:54px!important;height:54px!important;flex:0 0 54px!important;
+  object-fit:contain!important;border-radius:12px!important;
+}
+.top .brand span{
+  font-size:clamp(16px,1.35vw,20px)!important;
+  line-height:1.12!important;white-space:nowrap!important;
+}
+.top .sub{font-size:12px!important;line-height:1.15!important;margin-top:2px!important}
+.top .school-motto{
+  display:flex!important;align-items:center!important;gap:8px!important;
+  margin-top:2px!important;flex-wrap:wrap!important;
+}
+.top .school-motto>span{
+  font-size:7px!important;padding:2px 6px!important;line-height:1.1!important;
+  letter-spacing:.1em!important;border-radius:999px!important;
+}
+.top .school-motto small{font-size:9px!important;line-height:1.15!important}
+.top button,.top .button,.top-actions a,.top-actions button,.top .nav a{
+  min-height:30px!important;padding:6px 9px!important;font-size:11px!important
+}
+@media(max-width:700px){
+  .top{padding:5px 8px!important;align-items:center!important}
+  .top .brand{gap:7px!important}
+  .top .brand img{width:46px!important;height:46px!important;flex-basis:46px!important}
+  .top .brand span{font-size:clamp(12px,3.5vw,15px)!important;letter-spacing:-.02em}
+  .top .sub{font-size:11px!important}
+  .top .school-motto{gap:5px!important}
+  .top .school-motto>span{font-size:7px!important}
+  .top .school-motto small{font-size:8px!important}
+}
+
+/* Keep the dashboard greeting aligned with the content sheet, never underneath
+   the navigation rail. It gets the same wide working column as every panel. */
+#app>#dashboardWelcomeHeader{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;min-width:0;
+}
+#dashboardWelcomeHeader>div{min-width:0;flex:1 1 auto}
+#dashboardWelcomeHeader h2{overflow-wrap:anywhere}
+#dashboardWelcomeHeader .badge{
+  flex:0 0 auto;min-height:30px;padding:7px 12px;font-size:12px;
+}
+@media(max-width:700px){
+  #app>#dashboardWelcomeHeader{align-items:flex-start;gap:8px}
+  #dashboardWelcomeHeader h2{font-size:20px}
+}
+
+/* Current subject-teacher assignments become compact, labelled cards instead
+   of a very long four-column table. Existing selectors and Save actions remain. */
+#app .table-wrap:has(>#teacherAssignmentRows),
+#app .table-wrap:has(>#classTeacherAssignmentRows),
+#app .table-wrap:has(>#academicTeacherDirectoryRows){
+  overflow:visible!important;
+}
+#app table:has(>#teacherAssignmentRows),
+#app table:has(>#classTeacherAssignmentRows),
+#app table:has(>#academicTeacherDirectoryRows){
+  width:100%!important;min-width:0!important;table-layout:fixed;
+}
+#teacherAssignmentRows,
+#classTeacherAssignmentRows,
+#academicTeacherDirectoryRows{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));
+  gap:8px!important;
+}
+#teacherAssignmentRows>tr,
+#classTeacherAssignmentRows>tr,
+#academicTeacherDirectoryRows>tr{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));
+  align-content:start;gap:3px 8px;min-width:0;
+  padding:9px;border:1px solid var(--cornhill-line,#dce7de);
+  border-radius:12px;background:var(--cornhill-panel,#fff);
+  box-shadow:0 2px 8px rgba(20,55,34,.045);
+}
+#teacherAssignmentRows>tr>td,
+#classTeacherAssignmentRows>tr>td,
+#academicTeacherDirectoryRows>tr>td{
+  display:block!important;min-width:0;padding:4px 5px!important;
+  border:0!important;overflow-wrap:anywhere;font-size:12px;
+}
+#teacherAssignmentRows>tr>td:nth-child(3),
+#teacherAssignmentRows>tr>td:nth-child(4),
+#classTeacherAssignmentRows>tr>td:nth-child(3),
+#classTeacherAssignmentRows>tr>td:nth-child(4),
+#academicTeacherDirectoryRows>tr>td:nth-child(3),
+#academicTeacherDirectoryRows>tr>td:nth-child(4),
+#academicTeacherDirectoryRows>tr>td:nth-child(5),
+#academicTeacherDirectoryRows>tr>td:nth-child(6){grid-column:1/-1}
+#teacherAssignmentRows>tr>td:nth-child(1)::before{content:"CLASS";display:block;font-size:9px;font-weight:800;letter-spacing:.08em;color:var(--cornhill-muted);margin-bottom:2px}
+#teacherAssignmentRows>tr>td:nth-child(2)::before{content:"SUBJECT";display:block;font-size:9px;font-weight:800;letter-spacing:.08em;color:var(--cornhill-muted);margin-bottom:2px}
+#teacherAssignmentRows>tr>td:nth-child(3)::before{content:"ASSIGNED TEACHER";display:block;font-size:9px;font-weight:800;letter-spacing:.08em;color:var(--cornhill-muted);margin-bottom:2px}
+#teacherAssignmentRows>tr>td:nth-child(4){display:flex!important;align-items:center;gap:6px;flex-wrap:wrap}
+#teacherAssignmentRows>tr>td:nth-child(4) select{flex:1 1 180px;min-width:0;margin:0}
+#teacherAssignmentRows>tr>td:nth-child(4) button{flex:0 0 auto;padding:7px 10px;min-height:34px}
+#teacherAssignmentRows>tr>td[colspan],
+#classTeacherAssignmentRows>tr>td[colspan],
+#academicTeacherDirectoryRows>tr>td[colspan]{grid-column:1/-1}
+#teacherAssignmentRows>tr:has(td[colspan]),
+#classTeacherAssignmentRows>tr:has(td[colspan]),
+#academicTeacherDirectoryRows>tr:has(td[colspan]){display:block!important}
+#app #academics h3{font-size:15px;margin:10px 0 7px}
+#app #academics>p.muted{font-size:11px;line-height:1.4}
+#app #academics .panel{padding:12px!important}
+#app #academics .panel>p.muted{margin:5px 0 8px}
+#app #academics .table-wrap{margin:5px 0 8px}
+#app #academics .table-wrap table:not(:has(>#teacherAssignmentRows)):not(:has(>#classTeacherAssignmentRows)):not(:has(>#academicTeacherDirectoryRows)){
+  min-width:600px;
+}
+#app #academics form{gap:0 8px}
+#app #academics input,#app #academics select{margin-bottom:7px}
+
+/* Phone-first behaviour for teacher workspaces without removing any fields. */
+@media(max-width:700px){
+  #app form{grid-template-columns:minmax(0,1fr)!important;gap:0!important}
+  #app form>.full{grid-column:1!important}
+  #app input:not([type=checkbox]):not([type=radio]),
+  #app select,#app textarea{font-size:16px!important;min-height:42px;max-width:100%}
+  #app button,#app .button{min-height:40px}
+  #app .row{align-items:stretch;gap:7px!important}
+  #app .row>button,#app .row>.button{flex:0 1 auto}
+  #app .grid,#app .module-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr))!important;gap:8px!important}
+  #app .table-wrap,#app .table-responsive,[data-table-scroll]{
+    overflow-x:auto!important;max-width:100%;-webkit-overflow-scrolling:touch;
+    overscroll-behavior-inline:contain;
+  }
+  #app table:not(:has(>#teacherAssignmentRows)):not(:has(>#classTeacherAssignmentRows)):not(:has(>#academicTeacherDirectoryRows)){
+    min-width:650px;
+  }
+  #app #teacherAssignmentRows,
+  #app #classTeacherAssignmentRows,
+  #app #academicTeacherDirectoryRows{grid-template-columns:1fr!important;gap:7px!important}
+  #app #teacherAssignmentRows>tr,
+  #app #classTeacherAssignmentRows>tr,
+  #app #academicTeacherDirectoryRows>tr{padding:8px}
+  #app #teacherAssignmentRows>tr>td,
+  #app #classTeacherAssignmentRows>tr>td,
+  #app #academicTeacherDirectoryRows>tr>td{font-size:12px}
+  #app .teacher-quick-actions{display:grid;grid-template-columns:1fr!important;gap:8px}
+  #app .teacher-quick-actions>button{width:100%;min-height:54px;text-align:left}
+}
+@media(max-width:380px){
+  .top .brand span{font-size:12px!important}
+  #dashboardWelcomeHeader h2{font-size:18px}
+  #app #teacherAssignmentRows>tr{grid-template-columns:1fr}
+  #app #teacherAssignmentRows>tr>td:nth-child(n){grid-column:1}
+}
+
+/* Theme previews and applied sign-in preferences use the same surface variables. */
+body[data-theme] #login,
+body[data-theme] #selectedTeacherLogin,
+body[data-theme] #adminLoginPanel{
+  background:var(--cornhill-panel)!important;color:var(--cornhill-ink)!important;
+  border-color:var(--cornhill-line)!important;
+}
+body[data-theme] #login h1,
+body[data-theme] #login h2,
+body[data-theme] #login h3{color:var(--cornhill-ink)!important}
+body[data-theme] #login .muted{color:var(--cornhill-muted)!important}
