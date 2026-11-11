@@ -103,6 +103,8 @@ assert.match(statusSource, /Auth bans prevent future sign-in\/refresh but do NOT
   'The function must document that banning does not revoke already-issued access tokens.');
 assert.match(loginHtml, /db\.rpc\('is_active_staff_session'\)/,
   'An online signed-in session must periodically re-check the authoritative active-staff RLS helper.');
+assert.match(loginHtml, /window\.cornhillOfflineReadOnly&&!window\.cornhillSessionAuthorizationUnverified/,
+  'A temporary read-only authorization failure must still allow the heartbeat to retry.');
 assert.match(loginHtml, /setInterval\(\(\)=>\{verifyActiveStaffSession\('interval'\)\},60000\)/,
   'Existing sessions must be re-verified at a bounded 60-second interval.');
 assert.match(loginHtml, /workspace is temporarily read-only until the secure connection is restored/,
