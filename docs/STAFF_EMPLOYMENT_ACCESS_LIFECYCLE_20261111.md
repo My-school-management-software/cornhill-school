@@ -16,7 +16,7 @@ This change adds an administrator-controlled employment-status workflow for link
 ## Application behavior
 The Staff profiles form detects an employment status/end-date change, asks the administrator to confirm, saves the non-status profile fields, and calls the protected Edge Function. It then reloads the directory. The normal profile status check continues rejecting non-active users.
 
-Offline limitation: a device that is already disconnected cannot receive a remote revocation until it reconnects. This workflow revokes online Auth access and blocks the account at the next online profile check. Offline snapshot expiry/revocation remains a separate hardening task; do not treat offline access as instantly remotely revocable.
+Offline limitation: a device that is already disconnected cannot receive a remote revocation until it reconnects. The local class-list snapshot is encrypted, read-only and now expires after 12 hours; invalid, future-dated, expired or wrongly scoped snapshots are deleted instead of restored. A remote suspension therefore takes effect on a disconnected device when it reconnects or the local snapshot expires, whichever occurs first. This is a bounded fallback, not instant remote revocation.
 
 ## Rollout sequence
 1. Review this branch and pass CI/source tests.
@@ -26,3 +26,11 @@ Offline limitation: a device that is already disconnected cannot receive a remot
 5. Only then merge the PR and release the UI that calls the function.
 
 No production function was deployed and no staff employment status, account ban, or real school record was changed as part of this development cycle.
+
+
+## Offline snapshot hardening
+- The existing offline cache remains restricted to the Admin and assigned Teacher roster view; finance, bursary, guardian contacts and write actions remain unavailable offline.
+- Snapshot owner must match the active signed-in identity.
+- Saved timestamp must parse successfully, must not be in the future and must be no older than 12 hours.
+- Invalid or expired snapshots are deleted and are not restored.
+- The message displayed in offline view names its expiry and explains that remote account suspensions are applied after reconnection or expiry.
