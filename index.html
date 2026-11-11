@@ -2381,6 +2381,11 @@ async function offlineSchoolDelete(owner){
  if(!owner)return;
  try{const d=await offlineSchoolDb();await new Promise((resolve,reject)=>{const tx=d.transaction('classSnapshots','readwrite');tx.objectStore('classSnapshots').delete(owner);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});d.close()}catch(_){}
 }
+function setSessionVerificationReadOnly(enabled){
+ setOfflineReadOnly(enabled);
+ const ids=['exportClassRoster','printClassRoster','search','classRosterSearch','classRosterStatus'];
+ ids.forEach(id=>{const el=$(id);if(!el)return;if(enabled){if(!el.hasAttribute('data-session-verification-disabled'))el.dataset.sessionVerificationWasDisabled=el.disabled?'1':'0';el.dataset.sessionVerificationDisabled='1';el.disabled=true}else if(el.hasAttribute('data-session-verification-disabled')){el.disabled=el.dataset.sessionVerificationWasDisabled==='1';delete el.dataset.sessionVerificationDisabled;delete el.dataset.sessionVerificationWasDisabled}});
+}
 function setOfflineReadOnly(enabled){
  window.cornhillOfflineReadOnly=!!enabled;
  const allowedIds=new Set(['logout','exportClassRoster','printClassRoster','search','classRosterSearch','classRosterStatus']);
@@ -2528,9 +2533,9 @@ async function verifyActiveStaffSession(reason='interval'){
   if(currentUserId!==owner)return false;
   if(error){
    window.cornhillSessionAuthorizationUnverified=true;
-   setOfflineReadOnly(true);
-   tab('dashboard');
-   message('appMsg','Your school account could not be re-verified. The workspace is temporarily read-only until the secure connection is restored.',true);
+   setSessionVerificationReadOnly(true);
+   students=[];classes=[];render();tab('dashboard');
+   message('appMsg','Your school account could not be re-verified. School records are hidden and the workspace is temporarily read-only until the secure connection is restored.',true);
    return false;
   }
   if(data!==true){
@@ -2545,15 +2550,17 @@ async function verifyActiveStaffSession(reason='interval'){
   }
   if(window.cornhillSessionAuthorizationUnverified){
    window.cornhillSessionAuthorizationUnverified=false;
-   setOfflineReadOnly(false);
+   setSessionVerificationReadOnly(false);
+   await refresh();if(currentUserId!==owner)return false;
+   applyRoleNavigation();tab('dashboard');
    message('appMsg','Your account access has been securely re-verified. Normal workspace access is restored.');
   }
   return true;
  }catch(error){
   window.cornhillSessionAuthorizationUnverified=true;
-  setOfflineReadOnly(true);
-  tab('dashboard');
-  message('appMsg','Your school account could not be re-verified. The workspace is temporarily read-only until the secure connection is restored.',true);
+  setSessionVerificationReadOnly(true);
+  students=[];classes=[];render();tab('dashboard');
+  message('appMsg','Your school account could not be re-verified. School records are hidden and the workspace is temporarily read-only until the secure connection is restored.',true);
   console.warn('CORNHILL active-session verification:',error);
   return false;
  }finally{window.cornhillActiveSessionCheckBusy=false}
