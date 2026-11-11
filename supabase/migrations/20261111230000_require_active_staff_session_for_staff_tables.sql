@@ -22,7 +22,13 @@ declare
     'staff_media_messages',
     'staff_salary_advances',
     'staff_salary_agreements',
-    'staff_work_schedules'
+    'staff_work_schedules',
+    -- Staff-to-class and evidence workflows had direct auth.uid() ownership
+    -- policies that did not independently re-check current employment status.
+    'class_teacher_access',
+    'class_subjects',
+    'evidence_capture_files',
+    'evidence_capture_requests'
   ];
 begin
   foreach v_table in array v_tables loop
@@ -51,4 +57,4 @@ end
 $$;
 
 comment on function public.is_active_staff_session() is
-  'Returns true only for an authenticated user with an active user_profiles row. Used as a restrictive RLS guard on staff-domain tables so stale JWTs cannot bypass current employment status.';
+  'Returns true only for an authenticated user with an active user_profiles row. Used as a restrictive RLS guard on staff-domain and staff-linked workflow tables so stale JWTs cannot bypass current employment status.';
