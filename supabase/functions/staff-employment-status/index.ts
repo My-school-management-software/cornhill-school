@@ -1,0 +1,148 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function json(status: number, body: Record<string, unknown>) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function validDate(value: string): boolean {
+  if (!DATE_RE.test(value)) return false;
+  const parsed = new Date(value + "T00:00:00.000Z");
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json(405, { error: "Method not allowed." });
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const secret = Deno.env.get("SUPABASE_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !secret) return json(500, { error: "Staff access service is not configured." });
+
+  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return json(401, { error: "Please sign in as the active Director." });
+
+  const admin = createClient(url, secret, {
+    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+  });
+
+  const { data: authData, error: authError } = await admin.auth.getUser(token);
+  if (authError || !authData.user) return json(401, { error: "Your administrator session could not be verified. Sign in again." });
+
+  const actorId = authData.user.id;
+  const { data: actor, error: actorError } = await admin
+    .from("user_profiles")
+    .select("role,employment_status")
+    .eq("id", actorId)
+    .single();
+
+  if (actorError || actor?.role !== "Admin" || actor?.employment_status !== "Active") {
+    return json(403, { error: "Only the active Director account can change staff employment access." });
+  }
+
+  let payload: Record<string, unknown>;
+  try { payload = await req.json(); } catch { return json(400, { error: "Invalid request body." }); }
+
+  const staffUserId = String(payload.staff_user_id || "").trim();
+  const employmentStatus = String(payload.employment_status || "").trim();
+  const employmentEndDate = payload.employment_end_date == null || payload.employment_end_date === ""
+    ? null
+    : String(payload.employment_end_date).trim();
+
+  if (!UUID_RE.test(staffUserId)) return json(400, { error: "Choose a valid staff account." });
+  if (staffUserId === actorId) return json(403, { error: "The Director account cannot change its own employment access here." });
+  if (!["Active", "On Leave", "Exited"].includes(employmentStatus)) {
+    return json(400, { error: "Choose Active, On Leave or Exited." });
+  }
+  if (employmentEndDate !== null && !validDate(employmentEndDate)) {
+    return json(400, { error: "Enter a valid employment end date." });
+  }
+  if (employmentStatus === "Exited" && employmentEndDate === null) {
+    return json(400, { error: "Enter the employee's final working date before marking the account Exited." });
+  }
+
+  const { data: target, error: targetError } = await admin
+    .from("user_profiles")
+    .select("id,role,employment_status")
+    .eq("id", staffUserId)
+    .single();
+
+  if (targetError || !target) return json(404, { error: "The selected staff account could not be found." });
+  if (!["Teacher", "Staff"].includes(String(target.role))) {
+    return json(403, { error: "Only Teacher and non-teaching Staff accounts can be changed here. The existing Director account is protected." });
+  }
+
+  // Fail closed: remove Auth access before changing any records when suspending.
+  // Supabase Auth rejects tokens for banned users; refresh tokens cannot restore access.
+  if (employmentStatus !== "Active") {
+    const { error: banError } = await admin.auth.admin.updateUserById(staffUserId, { ban_duration: "876000h" });
+    if (banError) return json(502, { error: "The staff account could not be suspended by the authentication service. No employment status was changed." });
+  } else {
+    // Unban while the stored profile is still non-active. The app's profile gate
+    // will continue rejecting sign-in until all linked directory statuses are updated.
+    const { error: unbanError } = await admin.auth.admin.updateUserById(staffUserId, { ban_duration: "none" });
+    if (unbanError) return json(502, { error: "The staff records were not reactivated because the authentication service could not restore account access." });
+  }
+
+  const updateDirectory = async (table: "school_staff_directory" | "academic_teacher_directory") => {
+    const { error } = await admin
+      .from(table)
+      .update({ employment_status: employmentStatus, employment_end_date: employmentEndDate })
+      .eq("linked_user_id", staffUserId);
+    return error;
+  };
+
+  const employeeError = await updateDirectory("school_staff_directory");
+  if (employeeError) {
+    return json(500, {
+      error: "Authentication access has been updated, but the employee directory could not be synchronised. Keep this account under administrator review; do not create a second staff record.",
+      access_blocked: employmentStatus !== "Active",
+    });
+  }
+
+  // Older non-teaching staff may not have a teacher-directory row. Updating zero
+  // matching rows is expected; database errors are not.
+  const teacherError = await updateDirectory("academic_teacher_directory");
+  if (teacherError) {
+    return json(500, {
+      error: "Authentication access has been updated, but the teacher directory could not be synchronised. Keep this account under administrator review; do not create another account.",
+      access_blocked: employmentStatus !== "Active",
+    });
+  }
+
+  const { error: profileUpdateError } = await admin
+    .from("user_profiles")
+    .update({
+      employment_status: employmentStatus,
+      employment_end_date: employmentEndDate,
+    })
+    .eq("id", staffUserId);
+
+  if (profileUpdateError) {
+    return json(500, {
+      error: "Authentication access has been updated, but the account profile status could not be saved. Keep this account under administrator review; historical records have not been deleted.",
+      access_blocked: employmentStatus !== "Active",
+    });
+  }
+
+  return json(200, {
+    success: true,
+    staff_user_id: staffUserId,
+    employment_status: employmentStatus,
+    access_blocked: employmentStatus !== "Active",
+    message: employmentStatus === "Active"
+      ? "Staff employment status is active and sign-in access has been restored."
+      : "Staff sign-in access has been suspended. Employee, teacher and historical school records have been preserved.",
+  });
+});
