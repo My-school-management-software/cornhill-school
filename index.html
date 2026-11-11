@@ -2398,7 +2398,6 @@ async function restoreOfflineSchoolSnapshot(owner){
 
 function resetAccountScopedCommunicationState(){
  window.cornhillClearHelpAssistant?.();
- window.cornhillExcelMarksGridGeneration=(window.cornhillExcelMarksGridGeneration||0)+1;
  window.cornhillSessionGeneration=(window.cornhillSessionGeneration||0)+1;
  profile=null;students=[];classes=[];financeCodeAliases=[];
  try{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode')}catch(_){}
@@ -3477,7 +3476,10 @@ $('schoolPaymentForm').addEventListener('submit',async e=>{
  const allocationText=allocatedToday>0?'Allocated to learner fees: UGX '+money(allocatedToday):'This payment is awaiting allocation to a learner charge.';
  const receiptBody='<div style="font-family:Arial,sans-serif"><h1 style="text-align:center;font-size:13pt;margin:0 0 2mm">CORNHILL NURSERY AND PRIMARY SCHOOL</h1><h2 style="text-align:center">OFFICIAL PAYMENT RECEIPT</h2><hr><p><strong>Receipt no.:</strong> '+esc(result.receipt_no)+'</p><p><strong>Date:</strong> '+esc(receiptDate)+'</p><p><strong>Learner:</strong> '+esc(name)+'</p><p><strong>Pupil code:</strong> '+esc(learner?.admission_number||'—')+'</p><p><strong>Class:</strong> '+esc(learnerClass)+'</p><p><strong>Payment for:</strong> '+esc(collectionItem)+'</p><p><strong>Paid by:</strong> '+esc(payerName||'—')+'</p><hr><p style="font-size:12pt"><strong>AMOUNT RECEIVED: UGX '+money(amount)+'</strong></p><p><strong>Amount in words:</strong> '+esc(amountInWordsUGX(amount))+'</p><p><strong>Payment method:</strong> '+esc(f.get('payment_method'))+'</p><p><strong>Transaction reference:</strong> '+esc(f.get('payment_reference')||'—')+'</p><hr><p><strong>Amount allocated today:</strong> UGX '+money(allocatedToday)+'</p><p><strong>Unallocated amount:</strong> UGX '+money(unallocatedToday)+'</p><p><strong>Balance for this enrolment period:</strong> '+balanceText+'</p>'+(accountCredit>0?'<p><strong>Credit on learner account:</strong> UGX '+money(accountCredit)+'</p>':'')+(accountNote?'<p>'+esc(accountNote)+'</p>':'')+'<p>'+esc(allocationText)+'</p><hr><p style="text-align:center">Thank you.</p></div>';
  $('receiptArea').innerHTML=dualReceiptMarkup(receiptBody,payerName,profile?.full_name||'School bursar');
- e.target.reset();$('paymentDueList').textContent='Choose a learner to view outstanding fees.';await loadFinance();message('financeMsg','Payment saved. Review the receipt before choosing whether to print. Receipt '+result.receipt_no+'.');applyReceiptPaperWidth();openReceiptPreview($('receiptArea'),{receipt:result.receipt_no,learner:name,code:learner?.admission_number||'—',className:learnerClass});
+ e.target.reset();$('paymentDueList').textContent='Choose a learner to view outstanding fees.';
+ const refresh=loadFinance();void refresh.catch(error=>console.warn('Background Finance refresh failed after payment',error));
+ message('financeMsg','Payment saved. Review the receipt before choosing whether to print. Receipt '+result.receipt_no+'.');
+ applyReceiptPaperWidth();openReceiptPreview($('receiptArea'),{receipt:result.receipt_no,learner:name,code:learner?.admission_number||'—',className:learnerClass});
  }catch(err){
   message('financeMsg','Payment processing stopped unexpectedly. Check the receipt register before trying again: '+(err?.message||'Unknown error'),true);
  }finally{
@@ -4042,7 +4044,7 @@ async function loadAcademics(){
  $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  $('academicGradingPanel')?.classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
- if(!isCurrent())return;
+ if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic Performance & Insights · school-wide monitoring':'Academics & Results · teacher-managed';
  $('academics').querySelector('h2').textContent=profile?.role==='Admin'?'Academic Performance & Insights':'Academics & Results';
  $('adminReportActions')?.classList.toggle('hidden',profile?.role!=='Admin');
@@ -4415,12 +4417,67 @@ async function renderReportCard(options={}){
   return found?{...found,name:found.name||found.subjects?.name||name}:{id:null,name};
  });
  const classList=students.filter(x=>x.class_id===learner.class_id&&x.status==='Active');
+ const reportIndexKey=selectedClassId+'|'+$('reportTermSelect').value+'|'+reportGeneration;
+ let reportIndex=data.__cornhillReportIndex;
+ if(!reportIndex||reportIndex.key!==reportIndexKey){
+  const subjectIds=new Set(ordered.map(x=>x.id).filter(Boolean));
+  const bySubjectPeriod=new Map(),byPeriod=new Map(),scoreByAssessmentStudent=new Map(),assessmentIds=new Set();
+  for(const assessment of data.assessments||[]){
+   if(assessment.class_id!==selectedClassId||assessment.term_id!==$('reportTermSelect').value||!subjectIds.has(assessment.subject_id))continue;
+   const period=excelAssessmentPeriod(assessment);if(!periods.includes(period))continue;
+   const subjectKey=assessment.subject_id+'|'+period;
+   if(!bySubjectPeriod.has(subjectKey))bySubjectPeriod.set(subjectKey,[]);
+   bySubjectPeriod.get(subjectKey).push(assessment);
+   if(!byPeriod.has(period))byPeriod.set(period,[]);
+   byPeriod.get(period).push(assessment);
+   assessmentIds.add(assessment.id);
+  }
+  for(const score of data.scores||[]){
+   if(!assessmentIds.has(score.assessment_id))continue;
+   const key=score.assessment_id+'|'+score.student_id;
+   if(!scoreByAssessmentStudent.has(key))scoreByAssessmentStudent.set(key,[]);
+   scoreByAssessmentStudent.get(key).push(score);
+  }
+  const ranksByPeriod=new Map();
+  for(const period of periods){
+   const periodAssessments=byPeriod.get(period)||[];
+   const ranked=classList.map(classLearner=>{
+    let got=0,max=0;
+    for(const assessment of periodAssessments){
+     for(const score of scoreByAssessmentStudent.get(assessment.id+'|'+classLearner.id)||[]){
+      if(isAbsentMark(score))continue;
+      got+=Number(score.score);max+=Number(assessment.max_score);
+     }
+    }
+    return {id:classLearner.id,got,max,percent:max>0?got/max*100:null};
+   }).filter(row=>row.max>0).sort((a,b)=>b.percent-a.percent);
+   const ranks=new Map();let lastPercent=null,lastRank=0;
+   ranked.forEach((row,index)=>{
+    if(lastPercent===null||Math.abs(row.percent-lastPercent)>0.000001)lastRank=index+1;
+    ranks.set(row.id,lastRank);lastPercent=row.percent;
+   });
+   ranksByPeriod.set(period,ranks);
+  }
+  reportIndex={key:reportIndexKey,bySubjectPeriod,scoreByAssessmentStudent,ranksByPeriod};
+  try{Object.defineProperty(data,'__cornhillReportIndex',{value:reportIndex,writable:true,configurable:true})}catch(_){data.__cornhillReportIndex=reportIndex}
+ }
  const subjectRows=ordered.map(sub=>{
-  const cells={};periods.forEach(p=>{const aa=data.assessments.filter(a=>a.subject_id===sub.id&&excelAssessmentPeriod(a)===p);let got=0,max=0,absent=false,comments=[];aa.forEach(a=>(data.scores||[]).filter(sc=>sc.assessment_id===a.id&&sc.student_id===studentId).forEach(sc=>{if(isAbsentMark(sc))absent=true;else{got+=Number(sc.score);max+=Number(a.max_score)}if(sc.teacher_comment)comments.push(sc.teacher_comment)}));cells[p]={got,max,absent,comments}});
+  const cells={};
+  periods.forEach(period=>{
+   let got=0,max=0,absent=false;const comments=[];
+   for(const assessment of reportIndex.bySubjectPeriod.get(sub.id+'|'+period)||[]){
+    for(const score of reportIndex.scoreByAssessmentStudent.get(assessment.id+'|'+studentId)||[]){
+     if(isAbsentMark(score))absent=true;
+     else{got+=Number(score.score);max+=Number(assessment.max_score)}
+     if(score.teacher_comment)comments.push(score.teacher_comment);
+    }
+   }
+   cells[period]={got,max,absent,comments};
+  });
   return {subject:sub,cells};
  });
  const phaseTotals={};periods.forEach(p=>{phaseTotals[p]=subjectRows.reduce((o,r)=>({got:o.got+r.cells[p].got,max:o.max+r.cells[p].max,absent:o.absent||r.cells[p].absent}),{got:0,max:0,absent:false})});
- const rankFor=p=>{const scored=classList.map(l=>{let got=0,max=0;subjectRows.forEach(r=>{const aa=data.assessments.filter(a=>a.subject_id===r.subject.id&&excelAssessmentPeriod(a)===p);aa.forEach(a=>(data.scores||[]).filter(sc=>sc.assessment_id===a.id&&sc.student_id===l.id&&!isAbsentMark(sc)).forEach(sc=>{got+=Number(sc.score);max+=Number(a.max_score)}))});return {id:l.id,got,max,percent:max>0?got/max*100:null}}).filter(x=>x.max>0).sort((a,b)=>b.percent-a.percent);const mine=scored.find(x=>x.id===studentId);if(!mine)return null;const index=scored.findIndex(x=>x.id===studentId);let rank=index+1;while(rank>1&&Math.abs(scored[rank-2].percent-mine.percent)<0.000001)rank--;return rank};
+ const rankFor=p=>reportIndex.ranksByPeriod.get(p)?.get(studentId)||null;
  const gradesFor=p=>subjectRows.map(r=>{const c=r.cells[p];return {name:r.subject.name,absent:c.absent,grade:c.max?unebGradeFor(r.subject.id,c.got/c.max*100)?.grade_code||'':null}});
  const divisions={};if(isP47)periods.forEach(p=>{divisions[p]=unebPrimaryDivision(gradesFor(p))});
  if(reportOwner!==currentUserId||reportGeneration!==(window.cornhillSessionGeneration||0))return;
@@ -4968,24 +5025,12 @@ function getAssignedTeacherClassId(){
 }
 async function loadExcelMarksGrid(){
  const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;
- const requestGeneration=(window.cornhillExcelMarksGridGeneration||0)+1;
- window.cornhillExcelMarksGridGeneration=requestGeneration;
  const termId=$('excelMarksTerm').value,classId=profile?.role==='Teacher'?getAssignedTeacherClassId():$('excelMarksClass').value;
- const isCurrent=()=>requestGeneration===(window.cornhillExcelMarksGridGeneration||0)
-  &&sessionOwner===currentUserId
-  &&sessionGeneration===(window.cornhillSessionGeneration||0)
-  &&termId===$('excelMarksTerm').value
-  &&classId===(profile?.role==='Teacher'?getAssignedTeacherClassId():$('excelMarksClass').value);
  if(profile?.role==='Teacher')$('excelMarksClass').value=classId;
  const head=$('excelMarksHead'),body=$('excelMarksBody'),phaseFilter=$('excelMarksPhase').value||'All';
- // Invalidate and visually clear the previous class/term before any new request starts.
+ // Invalidate any previous class/term sheet before attempting a new load.
  window.cornhillExcelMarksContext=null;
  $('exportExcelMarks').disabled=true;
- head.innerHTML='<tr><th>Class sheet</th></tr>';
- body.innerHTML='<tr><td>Loading selected class sheet…</td></tr>';
- $('excelMarksCodeKey').textContent='';
- $('excelClassPerformance')?.classList.add('hidden');
- $('excelUpperPrimaryGradingAnalysis')?.classList.add('hidden');
  if(!termId||!classId){message('excelMarksMsg',!classId?'Your assigned class is missing. Sign out and sign in again; if it continues, ask the administrator to verify the class assignment.':'Choose an academic term before loading marks.',true);return}
  const cls=classes.find(x=>x.id===classId)||(profile?.role==='Teacher'&&window.cornhillTeacherAssignedClassRecord?.id===classId?window.cornhillTeacherAssignedClassRecord:null),group=curriculumGroupForClass(cls?.name||'');
  if(!cls){message('excelMarksMsg','The assigned class could not be found in the loaded school records. Refresh the page and sign in again.',true);return}
@@ -5023,11 +5068,10 @@ async function loadExcelMarksGrid(){
   return '<tr><td>'+(i+1)+'</td><td>'+esc(x.pupil_code||x.admission_number||'—')+'</td><td><span data-photo-student="'+esc(x.id)+'" class="excel-photo-placeholder" title="Learner photo unavailable">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td><td class="learner-detail-column">'+esc(x.gender||'—')+'</td><td class="learner-detail-column">'+esc(x.lin||'—')+'</td>'+(isP7Class?'<td>'+esc(x.p7_index_number||'—')+'</td>':'')+phaseCells+'</tr>';
  }).join('');
  const photoLearners=list.filter(x=>x.photo_path);
- if(photoLearners.length){const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);if(!isCurrent())return;if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)})}
+ if(photoLearners.length){const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)})}
  recalculateExcelMarkSheet();
  renderExcelClassPerformance();
  let localDraftCount=0;try{localDraftCount=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>!x.expires_at||x.expires_at>Date.now()).filter(x=>assessments.some(a=>a.id===x.assessment_id)).length}catch(_){}
- if(!isCurrent())return;
  message('excelMarksMsg',list.length+' active learners loaded · '+assessments.length+' assessment columns · '+(data||[]).length+' saved server marks loaded · '+localDraftCount+' pending offline drafts. Enter marks in the table and press Save all marks. Totals, aggregate and division recalculate automatically for P4–P7; positions are shown for every class; P4–P7 also show aggregate and division.');
 }
 function upperPrimaryGradingPhases(className){
@@ -5759,18 +5803,7 @@ async function autosaveExcelMarkCell(input){const ctx=window.cornhillExcelMarksC
 $('excelMarksBody').addEventListener('input',e=>{const input=e.target.closest('[data-grid-score]');if(!input)return;const key=input.dataset.assessmentId+'|'+input.dataset.studentId;clearTimeout(excelAutosaveTimers.get(key));excelAutosaveTimers.set(key,setTimeout(()=>{excelAutosaveChain=excelAutosaveChain.then(()=>autosaveExcelMarkCell(input)).catch(err=>message('excelMarksMsg','Autosave is waiting for a retry: '+(err?.message||'storage/network issue'),true))},700));});
 $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
 $('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;$('excelMarksClass').dispatchEvent(new Event('change'));document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
-$('excelMarksClass').addEventListener('change',()=>{
- window.cornhillExcelMarksGridGeneration=(window.cornhillExcelMarksGridGeneration||0)+1;
- window.cornhillExcelMarksContext=null;
- $('exportExcelMarks').disabled=true;
- $('excelMarksHead').innerHTML='<tr><th>Class sheet</th></tr>';
- $('excelMarksBody').innerHTML='<tr><td>Choose the class and load its own marks sheet.</td></tr>';
- $('excelMarksCodeKey').textContent='';
- $('excelClassPerformance')?.classList.add('hidden');
- $('excelUpperPrimaryGradingAnalysis')?.classList.add('hidden');
- setExcelPhaseOptions($('excelMarksClass').value);
- document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value));
-});
+$('excelMarksClass').addEventListener('change',()=>{setExcelPhaseOptions($('excelMarksClass').value);document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
 
 // Offline assessment drafts are local, account-scoped and never publish report cards.
 // Synchronisation uses a compare-before-write check; conflicting server edits are kept pending.
