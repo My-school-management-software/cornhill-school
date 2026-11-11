@@ -1,4 +1,4 @@
--- Require a currently active school profile for every staff-domain table request.
+-- Require a currently active school profile for staff-domain and staff-linked workflow table requests.
 -- This is a restrictive policy: it never grants access by itself and is ANDed
 -- with the existing table-specific permissive role/ownership policies.
 -- It closes stale-JWT access paths where an older policy checked only auth.uid().
