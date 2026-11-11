@@ -2524,7 +2524,7 @@ function resetAccountScopedCommunicationState(){
  const attendanceNotice=$('staffAttendanceNotice');if(attendanceNotice){attendanceNotice.textContent='';attendanceNotice.classList.add('hidden')}
 }
 async function verifyActiveStaffSession(reason='interval'){
- if(!db||!navigator.onLine||!currentUserId||!profile||window.cornhillOfflineReadOnly)return true;
+ if(!db||!navigator.onLine||!currentUserId||!profile||(window.cornhillOfflineReadOnly&&!window.cornhillSessionAuthorizationUnverified))return true;
  if(window.cornhillActiveSessionCheckBusy)return true;
  window.cornhillActiveSessionCheckBusy=true;
  const owner=currentUserId;
