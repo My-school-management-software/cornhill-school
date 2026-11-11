@@ -95,15 +95,10 @@ Deno.serve(async (req: Request) => {
     if (unbanError) return json(502, { error: "The staff records were not reactivated because the authentication service could not restore account access." });
   }
 
-  const updateDirectory = async (table: "school_staff_directory" | "academic_teacher_directory") => {
-    const { error } = await admin
-      .from(table)
-      .update({ employment_status: employmentStatus, employment_end_date: employmentEndDate })
-      .eq("linked_user_id", staffUserId);
-    return error;
-  };
-
-  const employeeError = await updateDirectory("school_staff_directory");
+  const { error: employeeError } = await admin
+    .from("school_staff_directory")
+    .update({ employment_status: employmentStatus, employment_end_date: employmentEndDate })
+    .eq("linked_user_id", staffUserId);
   if (employeeError) {
     return json(500, {
       error: "Authentication access has been updated, but the employee directory could not be synchronised. Keep this account under administrator review; do not create a second staff record.",
@@ -111,9 +106,12 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Older non-teaching staff may not have a teacher-directory row. Updating zero
-  // matching rows is expected; database errors are not.
-  const teacherError = await updateDirectory("academic_teacher_directory");
+  // The academic teacher directory stores employment_status but has no
+  // employment_end_date column. Older non-teaching staff may have no row here.
+  const { error: teacherError } = await admin
+    .from("academic_teacher_directory")
+    .update({ employment_status: employmentStatus })
+    .eq("linked_user_id", staffUserId);
   if (teacherError) {
     return json(500, {
       error: "Authentication access has been updated, but the teacher directory could not be synchronised. Keep this account under administrator review; do not create another account.",
