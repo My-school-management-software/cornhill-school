@@ -54,4 +54,16 @@ assert.match(loginHtml, /No duplicate Director account is created/,
 assert.match(loginHtml, /Each staff member has one identity/,
   'The sign-in page must reinforce one identity per staff member.');
 
-console.log('Unified staff account architecture: 20/20 source assertions passed.');
+
+assert.match(loginHtml, /name="email" id="schoolStaffEmail" type="email"/,
+  'Employee registration must collect the individual sign-in email.');
+assert.match(loginHtml, /if\(isTeaching&&!staffEmail\)/,
+  'Teaching employee registration must require an individual email before creating a login.');
+assert.match(loginHtml, /db\.functions\.invoke\('staff-invite'/,
+  'Employee registration must automatically invoke the existing secure staff invitation workflow.');
+assert.match(loginHtml, /role:isTeaching\?'Teacher':'Staff'/,
+  'The automatic invitation must preserve Teacher versus non-teaching Staff roles.');
+assert.match(loginHtml, /Do not register this employee again/,
+  'A partial invitation failure must warn against duplicate employee creation.');
+
+console.log('Unified staff account architecture: 25/25 source assertions passed.');
