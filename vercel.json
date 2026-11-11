@@ -276,5 +276,8 @@
       "destination": "https://cornhill-school-swart.vercel.app/apps/school-management/",
       "permanent": false
     }
+  ],
+  "regions": [
+    "dub1"
   ]
 }
