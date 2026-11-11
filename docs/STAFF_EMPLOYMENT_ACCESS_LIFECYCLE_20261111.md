@@ -60,3 +60,7 @@ Supabase access tokens are stateless JWTs and remain valid until their expiry ev
 
 ## Role-specific directory verification finding
 A read-only production schema/data check confirmed that current teacher identities are linked through `academic_teacher_directory`, while `school_staff_directory` currently contains non-teaching employee records and no linked accounts. The lifecycle function was therefore corrected: it no longer expects a Teacher to have a `school_staff_directory` row, and it no longer expects a non-teaching Staff account to have an academic teacher row. Reactivation now preflights the correct directory before lifting the Auth ban, and status updates must affect exactly one row in that directory. No production records were linked or modified during this check.
+
+
+## Fail-closed active-session check
+A further review found that the existing `is_active_staff_session()` treated a NULL employment status as Active. The current production profile audit found 11 accounts (1 Admin and 10 Teachers), all with an explicit Active status and no NULL statuses. A follow-up migration now changes the helper to require `employment_status = 'Active'`; missing/NULL status no longer inherits access. The migration is additive and does not change existing profile data. A source assertion was added for this fail-closed behavior. The migration remains on the development branch and has not been applied to production.
