@@ -906,3 +906,21 @@ body[data-theme] #login .tab{
 @media(max-width:380px){
   #academics #academicWorkspaceNav{grid-template-columns:1fr!important}
 }
+
+
+/* Keep the school name on one clean line while giving the crest more presence. */
+.top>div:first-child{min-width:0;flex:1 1 auto}
+.top .brand{min-width:0;display:flex;align-items:center;gap:12px}
+.top .brand img{width:50px!important;height:50px!important;flex:0 0 50px!important}
+.top .brand span{white-space:nowrap!important;font-size:clamp(12px,1.15vw,16px)!important;line-height:1.15!important}
+.top .school-motto>span{font-size:7px!important;letter-spacing:.08em!important;padding:2px 7px!important}
+.top .school-motto small{font-size:9px!important;white-space:nowrap}
+@media(max-width:700px){
+ .top .brand{gap:8px!important}
+ .top .brand img{width:44px!important;height:44px!important;flex-basis:44px!important}
+ .top .brand span{font-size:clamp(10px,2.8vw,12px)!important;white-space:nowrap!important}
+ .top .school-motto small{font-size:8px!important}
+}
+@media(max-width:360px){
+ .top .brand span{font-size:10px!important;letter-spacing:-.02em}
+}
