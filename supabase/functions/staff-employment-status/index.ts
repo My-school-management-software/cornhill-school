@@ -162,7 +162,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // Reactivation is deliberately last: profile-based RLS continues to deny
-  // requests until the employee and academic teacher directories are both active.
+  // requests until the role-appropriate employee directory and profile are active.
   if (employmentStatus === "Active") {
     const { error: profileUpdateError } = await admin
       .from("user_profiles")
