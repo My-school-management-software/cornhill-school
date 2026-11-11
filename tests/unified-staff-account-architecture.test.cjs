@@ -180,7 +180,7 @@ assert.doesNotMatch(failClosedActiveSession, /coalesce\(p\.employment_status,\s*
 const failClosedRoleHelpersPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261111234000_fail_closed_role_and_teacher_helpers.sql');
 const failClosedRoleHelpers = fs.readFileSync(failClosedRoleHelpersPath, 'utf8');
 for (const helper of ['is_school_admin','is_school_finance_operator','is_school_dos','is_school_headteacher','is_class_teacher_for_class','is_full_class_teacher_for_class','can_teacher_access_subject','can_teacher_view_subject','list_staff_directory']) {
-  assert.match(failClosedRoleHelpers, new RegExp('function public\\\\.' + helper + '\\\\('), `Role helper migration must update ${helper}.`);
+  assert.ok(failClosedRoleHelpers.includes('create or replace function public.' + helper + '('), `Role helper migration must update ${helper}.`);
 }
 assert.match(failClosedRoleHelpers, /public\.is_active_staff_session\(\)/,
   'Role and teacher access helpers must share the fail-closed active-session guard.');
