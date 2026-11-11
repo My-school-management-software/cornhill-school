@@ -66,4 +66,14 @@ assert.match(loginHtml, /role:isTeaching\?'Teacher':'Staff'/,
 assert.match(loginHtml, /Do not register this employee again/,
   'A partial invitation failure must warn against duplicate employee creation.');
 
-console.log('Unified staff account architecture: 25/25 source assertions passed.');
+
+assert.match(loginHtml, /id="adminLoginName"/,
+  'The existing Director name slot must remain available to the class directory.');
+assert.match(loginHtml, /select\('role,employment_status'\)/,
+  'Sign-in must verify each account employment status.');
+assert.match(loginHtml, /account\.employment_status&&account\.employment_status!=='Active'/,
+  'Inactive staff accounts must be rejected at sign-in.');
+assert.match(loginHtml, /!\['Admin','Staff'\]\.includes\(account\.role\)/,
+  'School Administrators sign-in must accept authorised Staff accounts without promoting them to Admin.');
+
+console.log('Unified staff account architecture: 29/29 source assertions passed.');
