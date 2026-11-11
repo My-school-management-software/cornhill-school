@@ -34,7 +34,7 @@ const SHELL = [
   '/records.webmanifest', '/banking.webmanifest', '/school-services.webmanifest', '/staff-communications.webmanifest',
   '/service-worker.js', '/assets/cornhill-school-badge.png',
   '/assets/cornhill-school-pwa-192.svg', '/assets/cornhill-school-pwa-512.svg',
-  '/assets/app-isolation-guard.js', '/assets/cornhill-design-system.css', '/assets/cornhill-navigation.js', '/assets/cornhill-learner-details-sheet.js', '/assets/cornhill-appearance.js',
+  '/assets/app-isolation-guard.js', '/assets/cornhill-design-system.css', '/assets/cornhill-navigation.js', '/assets/cornhill-document-template-studio.js', '/assets/cornhill-learner-details-sheet.js', '/assets/cornhill-appearance.js',
   '/assets/cornhill-mark-import-mapping.js', '/assets/cornhill-notification-routing.js',
   '/assets/cornhill-offline.js', '/assets/cornhill-draft-crypto.js', '/assets/main-school-workspace-bridge.js',
   '/assets/school-services-collaboration.js', '/assets/cornhill-document-pdf-ocr.js'
