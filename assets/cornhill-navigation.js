@@ -46,11 +46,10 @@
     const back = document.getElementById('cornhillNavBack');
     const forward = document.getElementById('cornhillNavForward');
     if (!back || !forward) return;
-    const hasInternalBack = mainWorkspace ? backStack.length > 0 : (history.length > 1 && internalReferrer());
-    back.disabled = !hasInternalBack && !isParentPortal && !isAdmissions && history.length <= 1;
-    if (isParentPortal || isAdmissions) {
-      back.disabled = !hasInternalBack && history.length <= 1;
-    }
+    const hasInternalBack = mainWorkspace
+      ? (backStack.length > 0 || (history.length > 1 && internalReferrer()))
+      : true;
+    back.disabled = !hasInternalBack;
     forward.disabled = mainWorkspace ? forwardStack.length === 0 : !forwardAvailable;
   }
 
