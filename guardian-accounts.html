@@ -264,5 +264,5 @@ db.auth.getSession().then(async({data})=>{if(data.session){try{await enterApp(da
 db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){user=null;profile=null;contacts=[];pinStatus.clear();closeCredentials();showLogin() }});
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
-</body>
+<script src="/assets/cornhill-navigation.js" defer></script></body>
 </html>
