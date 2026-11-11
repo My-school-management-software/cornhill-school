@@ -262,7 +262,7 @@ test('complete class import blocks when a required subject-period pair is absent
 });
 
 test('actual workbook summary rows and the stray Baby numeric label are skipped',()=>{
- for(const label of ['4','TOTAL CLASS ENROLLMENT','CLASS ENROLLMENT','BOYS','GIRLS','DIVISION','DIVISION IV','GRADING ANALYSIS BOT','PERFORMANCE BY GENDER','BOARDING'])
+ for(const label of ['4','COLUMN1','COLUMN2','COLUMN3','FIELD1','TOTAL CLASS ENROLLMENT','CLASS ENROLLMENT','BOYS','GIRLS','DIVISION','DIVISION IV','GRADING ANALYSIS BOT','PERFORMANCE BY GENDER','BOARDING'])
   assert.equal(mapping.isSummaryLearnerRow(label),true,label+' must not be treated as a learner');
  assert.equal(mapping.isSummaryLearnerRow('AIJUKA ANDREW'),false);
  assert.equal(mapping.isSummaryLearnerRow('ANKUNZIRE ASSEY'),false);
