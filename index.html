@@ -3779,13 +3779,55 @@ $('staffProfileSelect').addEventListener('change',()=>{
 $('staffProfileForm').addEventListener('submit',async e=>{
  e.preventDefault();if(profile?.role!=='Admin'){message('staffProfileMsg','Only administrators can update staff profiles.',true);return}
  const form=new FormData(e.target),id=String(form.get('id')||'');if(!id){message('staffProfileMsg','Choose a staff account first.',true);return}
+ const selected=staffProfiles.find(x=>x.id===id);
+ if(!selected){message('staffProfileMsg','Refresh the staff directory and select the account again.',true);return}
  const payload={};
- for(const key of ['full_name','phone','gender','staff_category','parent_contact_phone','job_title','department','responsibilities','employment_status'])payload[key]=String(form.get(key)||'').trim()||null;payload.parent_contact_visible=form.get('parent_contact_visible')==='true';if(!payload.parent_contact_phone)payload.parent_contact_visible=false;
+ for(const key of ['full_name','phone','gender','staff_category','parent_contact_phone','job_title','department','responsibilities','employment_status'])payload[key]=String(form.get(key)||'').trim()||null;
+ payload.parent_contact_visible=form.get('parent_contact_visible')==='true';if(!payload.parent_contact_phone)payload.parent_contact_visible=false;
  for(const key of ['employment_start_date','reporting_date','employment_end_date'])payload[key]=String(form.get(key)||'')||null;
  if(!payload.employment_status)payload.employment_status='Active';
- const {error}=await db.from('user_profiles').update(payload).eq('id',id);
- if(error){message('staffProfileMsg','Could not save staff profile: '+error.message,true);return}
- await loadStaffProfiles();message('staffProfileMsg','Staff profile saved successfully.');
+ const employmentChanged=String(selected.employment_status||'Active')!==payload.employment_status;
+ const endDateChanged=String(selected.employment_end_date||'')!==String(payload.employment_end_date||'');
+ const needsEmploymentWorkflow=employmentChanged||endDateChanged;
+ if(needsEmploymentWorkflow&&selected.role==='Admin'){
+  message('staffProfileMsg','The existing Director account is protected and cannot be suspended or reclassified through staff profile management.',true);return;
+ }
+ if(needsEmploymentWorkflow&&payload.employment_status==='Exited'&&!payload.employment_end_date){
+  message('staffProfileMsg','Enter the employee’s final working date before marking the account Exited.',true);return;
+ }
+ if(needsEmploymentWorkflow){
+  const action=payload.employment_status==='Active'?'restore this employee’s sign-in access':'suspend this employee’s sign-in access';
+  const details=payload.employment_status==='Active'
+   ?'The account will become active only after the employee and teacher directory records are synchronised.'
+   :'The account will be blocked at authentication and on the next online profile check. Existing employee, marks, attendance, finance and audit history will be preserved.';
+  if(!confirm('Confirm employment status change for '+(selected.full_name||'this staff member')+'?\n\nThis will '+action+'.\n\n'+details))return;
+ }
+ const button=e.submitter||e.target.querySelector('button[type="submit"]');
+ if(button){button.disabled=true;button.textContent='Saving staff profile…'}
+ try{
+  if(needsEmploymentWorkflow){
+   const profilePayload={...payload};delete profilePayload.employment_status;delete profilePayload.employment_end_date;
+   if(Object.keys(profilePayload).length){
+    const {error:profileFieldsError}=await db.from('user_profiles').update(profilePayload).eq('id',id);
+    if(profileFieldsError)throw new Error('Other staff details were not saved: '+profileFieldsError.message);
+   }
+   const {data,error}=await db.functions.invoke('staff-employment-status',{body:{
+    staff_user_id:id,
+    employment_status:payload.employment_status,
+    employment_end_date:payload.employment_end_date||null
+   }});
+   if(error)throw new Error(error.message||'The secure employment access service could not be reached.');
+   if(data?.error)throw new Error(data.error);
+   await loadStaffProfiles();
+   message('staffProfileMsg',data?.message||'Employment status and staff sign-in access were updated. Historical records were preserved.');
+  }else{
+   const {error}=await db.from('user_profiles').update(payload).eq('id',id);
+   if(error)throw error;
+   await loadStaffProfiles();message('staffProfileMsg','Staff profile saved successfully.');
+  }
+ }catch(err){
+  message('staffProfileMsg','Could not complete the staff profile update: '+(err?.message||'Please reconnect and check the account status before retrying.'),true);
+ }finally{if(button){button.disabled=false;button.textContent='Save staff profile'}}
 });
 async function renderEvidenceRequests(requests,hostId){
  const host=$(hostId);if(!host)return;
