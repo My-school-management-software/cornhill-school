@@ -28,4 +28,12 @@ assert.match(sql, /grant select on public\.staff_account_directory to authentica
 assert.doesNotMatch(sql, /grant .* on public\.staff_account_directory to anon/i,
   'Anonymous users must not be granted access to the staff account directory.');
 
-console.log('Unified staff account architecture: 11/11 source assertions passed.');
+
+const invitePath = path.join(__dirname, '..', 'supabase', 'functions', 'staff-invite', 'index.ts');
+const inviteSource = fs.readFileSync(invitePath, 'utf8');
+assert.match(inviteSource, /select\("role,employment_status"\)/,
+  'Staff invitations must inspect the Director employment status.');
+assert.match(inviteSource, /actor\?\.role !== "Admin" \|\| actor\?\.employment_status !== "Active"/,
+  'Exited or inactive Admin profiles must not invite staff.');
+
+console.log('Unified staff account architecture: 13/13 source assertions passed.');
