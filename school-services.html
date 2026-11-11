@@ -203,7 +203,7 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
       <h3>Add a class resource</h3>
       <form id="resourceForm">
         <div><label for="resourceClass">Assigned class</label><select id="resourceClass" required><option value="">Loading assigned classes…</option></select></div>
-        <div><label for="resourceSubject">Subject</label><input id="resourceSubject" maxlength="100" required placeholder="e.g. Mathematics"></div>
+        <div><label for="resourceSubject">Subject</label><select id="resourceSubject" required><option value="">Choose an assigned subject</option></select></div>
         <div><label for="resourceTitle">Title</label><input id="resourceTitle" maxlength="160" required placeholder="e.g. Fractions revision"></div>
         <div><label for="resourceType">Type</label><select id="resourceType"><option>Link</option><option>Lesson note</option><option>Homework</option><option>Revision</option><option>Reading</option></select></div>
         <div class="full"><label for="resourceUrl">HTTPS resource link (optional)</label><input id="resourceUrl" type="url" placeholder="https://…"></div>
@@ -414,7 +414,7 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>'UGX '+Number(v||0).toLocaleString('en-UG');
 const dateFmt=v=>v?new Date(v+'T00:00:00').toLocaleDateString('en-GB'):'—';
-let user=null,profile=null,classes=[],books=[],routes=[],staffOptions=[],serviceLearners=[],integrationRows=[];
+let user=null,profile=null,classes=[],books=[],routes=[],staffOptions=[],serviceLearners=[],integrationRows=[],teacherAssignments=[],resourceSubjects=[];
 const job=()=>String(profile?.job_title||'').trim().toLowerCase();
 const hasJob=(...names)=>names.includes(job());
 const isAdmin=()=>profile?.role==='Admin';
@@ -609,9 +609,44 @@ async function loadPayroll(){
  }).join('')||'<tr><td colspan="8" class="empty">No approved payroll entries are available for this account.</td></tr>';
 }
 async function loadClasses(){
- const {data,error}=await db.from('school_classes').select('id,name,stream').order('name');
- if(error){$('resourceClass').innerHTML='<option value="">Assigned classes unavailable</option>';return}
- classes=data||[];$('resourceClass').innerHTML='<option value="">Choose an assigned class</option>'+classes.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+(x.stream?' · '+esc(x.stream):'')+'</option>').join('');
+ teacherAssignments=[];resourceSubjects=[];
+ if(profile.role==='Teacher'){
+  const {data:assigned,error:assignmentError}=await db.rpc('teacher_list_my_assignments');
+  if(assignmentError){$('resourceClass').innerHTML='<option value="">Your assignments could not be loaded</option>';throw assignmentError}
+  teacherAssignments=assigned||[];
+  const allowed=teacherAssignments.filter(x=>x.is_full_class||x.can_enter_marks||x.can_view_reports);
+  const unique=new Map();
+  allowed.forEach(x=>{if(!unique.has(x.class_id))unique.set(x.class_id,{id:x.class_id,name:x.class_name,stream:x.stream})});
+  classes=[...unique.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const subjectResult=await db.from('subjects').select('name').order('name');
+  if(!subjectResult.error)resourceSubjects=(subjectResult.data||[]).map(x=>x.name).filter(Boolean);
+ }else{
+  const [{data:allClasses,error:classError},{data:allSubjects,error:subjectError}]=await Promise.all([
+   db.from('school_classes').select('id,name,stream').order('name'),
+   db.from('subjects').select('name').order('name')
+  ]);
+  if(classError){$('resourceClass').innerHTML='<option value="">Classes unavailable</option>';throw classError}
+  classes=allClasses||[];
+  resourceSubjects=(allSubjects||[]).map(x=>x.name).filter(Boolean);
+  if(subjectError)resourceSubjects=[];
+ }
+ $('resourceClass').innerHTML='<option value="">Choose an assigned class</option>'+classes.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+(x.stream?' · '+esc(x.stream):'')+'</option>').join('');
+ populateResourceSubjects();
+ const canPublish=isAdmin()||teacherAssignments.some(x=>x.is_full_class||x.can_enter_marks);
+ $('resourceForm').classList.toggle('hidden',!canPublish);
+ if(!canPublish)$('resourceMsg').textContent='You can view resources for your assignments. Publishing requires an assignment with mark-entry/resource permission.';
+}
+function populateResourceSubjects(){
+ const classId=$('resourceClass').value;
+ let names=[];
+ if(isAdmin())names=resourceSubjects;
+ else{
+  const assigned=teacherAssignments.filter(x=>x.class_id===classId);
+  if(assigned.some(x=>x.is_full_class))names=resourceSubjects;
+  else names=assigned.filter(x=>x.can_enter_marks).map(x=>x.subject_name).filter(Boolean);
+ }
+ const unique=[...new Set(names)].sort((a,b)=>a.localeCompare(b));
+ $('resourceSubject').innerHTML='<option value="">Choose an assigned subject</option>'+unique.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
 }
 async function loadResources(){
  const {data,error}=await db.from('school_learning_resources').select('id,class_id,title,subject,resource_type,resource_url,instructions,created_at,created_by').order('created_at',{ascending:false}).limit(200);
@@ -619,10 +654,14 @@ async function loadResources(){
  const map=Object.fromEntries(classes.map(x=>[x.id,x.name+(x.stream?' · '+x.stream:'')]));
  $('resourceRows').innerHTML=(data||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleDateString('en-GB'))+'</td><td>'+esc(map[x.class_id]||'Assigned class')+'</td><td>'+esc(x.subject)+'</td><td><strong>'+esc(x.title)+'</strong></td><td>'+esc(x.resource_type)+'</td><td>'+esc(x.instructions)+' '+(x.resource_url?'<br><a href="'+esc(x.resource_url)+'" target="_blank" rel="noopener noreferrer">Open resource</a>':'')+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">No resources available for your assigned classes.</td></tr>';
 }
+$('resourceClass').addEventListener('change',populateResourceSubjects);
 $('resourceForm').addEventListener('submit',async e=>{
- e.preventDefault();try{if(!(isAdmin()||profile.role==='Teacher'))throw new Error('Teaching access required.');
+ e.preventDefault();try{
+ const classId=$('resourceClass').value,subject=$('resourceSubject').value;
+ const assignmentAllowed=isAdmin()||teacherAssignments.some(x=>x.class_id===classId&&(x.is_full_class||(x.can_enter_marks&&x.subject_name===subject)));
+ if(!assignmentAllowed)throw new Error('This class and subject are not assigned to your account for publishing.');
  const url=$('resourceUrl').value.trim();if(url&&!/^https:\/\//i.test(url))throw new Error('Only HTTPS resource links are accepted.');
- const p={class_id:$('resourceClass').value,title:$('resourceTitle').value.trim(),subject:$('resourceSubject').value.trim(),resource_type:$('resourceType').value,resource_url:url||null,instructions:$('resourceInstructions').value.trim(),created_by:user.id};
+ const p={class_id:classId,title:$('resourceTitle').value.trim(),subject,resource_type:$('resourceType').value,resource_url:url||null,instructions:$('resourceInstructions').value.trim(),created_by:user.id};
  const {error}=await db.from('school_learning_resources').insert(p);if(error)throw error;e.target.reset();inlineMsg('resourceMsg','Resource published to the selected class.','success');await loadResources();
  }catch(err){inlineMsg('resourceMsg','Resource not saved: '+err.message,'error')}
 });
