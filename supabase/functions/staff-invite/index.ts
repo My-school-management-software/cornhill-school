@@ -33,8 +33,10 @@ Deno.serve(async (req: Request) => {
   if (authError || !authData.user) return json(401, { error: "Your session could not be verified. Sign in again." });
 
   const { data: actor, error: actorError } = await admin
-    .from("user_profiles").select("role").eq("id", authData.user.id).single();
-  if (actorError || actor?.role !== "Admin") return json(403, { error: "Only a school administrator can invite staff." });
+    .from("user_profiles").select("role,employment_status").eq("id", authData.user.id).single();
+  if (actorError || actor?.role !== "Admin" || actor?.employment_status !== "Active") {
+    return json(403, { error: "Only the active Director account can invite staff." });
+  }
 
   let payload: Record<string, unknown>;
   try { payload = await req.json(); } catch { return json(400, { error: "Invalid request body." }); }
