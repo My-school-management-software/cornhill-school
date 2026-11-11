@@ -135,6 +135,17 @@ begin
     raise exception 'RLS must remain enabled on public.report_card_publications';
   end if;
 
+  if exists (
+    select 1
+    from pg_policies p
+    where p.schemaname = 'public'
+      and p.tablename = 'school_expenses'
+      and p.policyname = 'Finance operators record school expenses'
+      and p.cmd = 'INSERT'
+  ) then
+    raise exception 'Bursars must not insert Posted expenses directly; they must submit a request for Director approval';
+  end if;
+
   select p.qual, p.with_check
     into v_report_policy
   from pg_policies p
