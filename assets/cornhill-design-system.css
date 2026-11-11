@@ -1161,3 +1161,79 @@ body[data-theme] #login h1,
 body[data-theme] #login h2,
 body[data-theme] #login h3{color:var(--cornhill-ink)!important}
 body[data-theme] #login .muted{color:var(--cornhill-muted)!important}
+
+
+/* Navigation keys sit in the sticky header beside Refresh app and Sign out. */
+.top{
+  position:sticky!important;top:0!important;z-index:600!important;
+  min-height:58px!important;padding:4px clamp(8px,1vw,16px)!important;
+  gap:10px!important;align-items:center!important;
+}
+.top>div:first-child{
+  min-width:0!important;flex:1 1 auto!important;
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+  gap:4px 12px!important;
+}
+.top .brand{
+  min-width:0!important;display:flex!important;align-items:center!important;
+  flex:0 1 auto!important;gap:10px!important;
+}
+.top .brand img{width:50px!important;height:50px!important;flex:0 0 50px!important}
+.top .brand span{
+  white-space:nowrap!important;font-size:clamp(12px,1.05vw,15px)!important;
+  line-height:1.1!important;
+}
+.top .sub{
+  display:inline-flex!important;align-items:center!important;margin:0!important;
+  font-size:10px!important;line-height:1.15!important;white-space:nowrap!important;opacity:.88;
+}
+.top .school-motto{
+  display:flex!important;align-items:center!important;gap:6px!important;
+  margin:0!important;min-width:0!important;line-height:1.1!important;
+}
+.top .school-motto>span{
+  font-size:7px!important;letter-spacing:.08em!important;padding:2px 7px!important;
+  line-height:1.15!important;white-space:nowrap!important;
+}
+.top .school-motto small{font-size:8px!important;line-height:1.15!important;white-space:nowrap!important}
+.top .row.cornhill-header-actions,.top .cornhill-header-actions{
+  display:flex!important;flex:0 0 auto!important;align-items:center!important;
+  justify-content:flex-end!important;flex-wrap:nowrap!important;gap:5px!important;
+  min-width:0!important;margin:0!important;
+}
+.cornhill-navigation-header{
+  display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;
+  justify-content:center!important;gap:3px!important;padding:2px!important;
+  margin:0 2px 0 0!important;border:1px solid rgba(255,255,255,.28)!important;
+  border-radius:10px!important;background:rgba(255,255,255,.10)!important;box-shadow:none!important;
+}
+.cornhill-navigation-header .cornhill-nav-control{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;
+  padding:3px!important;margin:0!important;border:1px solid rgba(255,255,255,.28)!important;
+  border-radius:7px!important;background:rgba(255,255,255,.12)!important;color:#fff!important;
+  font:700 17px/1 system-ui,sans-serif!important;text-decoration:none!important;cursor:pointer!important;
+}
+.cornhill-navigation-header .cornhill-nav-home{background:rgba(255,255,255,.24)!important;color:#fff!important}
+.cornhill-navigation-header .cornhill-nav-control:disabled{opacity:.38!important;cursor:not-allowed!important}
+.cornhill-navigation-header .cornhill-nav-control:not(:disabled):hover{background:rgba(255,255,255,.28)!important}
+@media(max-width:700px){
+  .top{min-height:unset!important;padding:5px 8px!important;align-items:center!important;flex-wrap:wrap!important}
+  .top>div:first-child{flex:1 1 100%!important;gap:3px 8px!important}
+  .top .brand{gap:8px!important}
+  .top .brand img{width:46px!important;height:46px!important;flex-basis:46px!important}
+  .top .brand span{font-size:clamp(10px,2.6vw,12px)!important}
+  .top .sub{font-size:9px!important}
+  .top .school-motto{gap:5px!important}
+  .top .school-motto small{font-size:7px!important}
+  .top .row.cornhill-header-actions,.top .cornhill-header-actions{
+    width:100%!important;justify-content:flex-end!important;flex-wrap:wrap!important;gap:4px!important;
+  }
+  .cornhill-navigation-header{margin-right:auto!important}
+  .cornhill-navigation-header .cornhill-nav-control{
+    width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;
+  }
+  .top .row.cornhill-header-actions>button,.top .row.cornhill-header-actions>.button{
+    min-height:32px!important;padding:6px 9px!important;font-size:10px!important;
+  }
+}
