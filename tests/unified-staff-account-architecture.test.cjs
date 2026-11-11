@@ -97,6 +97,16 @@ assert.match(loginHtml, /staffAllowedWorkspaces\(\)\.includes\(name\)/,
 
 const statusPath = path.join(__dirname, '..', 'supabase', 'functions', 'staff-employment-status', 'index.ts');
 const statusSource = fs.readFileSync(statusPath, 'utf8');
+assert.match(statusSource, /if \(employmentStatus !== "Active"\)[\s\S]*?from\("user_profiles"\)[\s\S]*?employment_status: employmentStatus[\s\S]*?updateUserById\(staffUserId, \{ ban_duration: "876000h" \}\)/,
+  'Suspension must mark the authoritative profile inactive before applying the Auth ban.');
+assert.match(statusSource, /Auth bans prevent future sign-in\/refresh but do NOT revoke an already-issued JWT/i,
+  'The function must document that banning does not revoke already-issued access tokens.');
+assert.match(loginHtml, /db\.rpc\('is_active_staff_session'\)/,
+  'An online signed-in session must periodically re-check the authoritative active-staff RLS helper.');
+assert.match(loginHtml, /setInterval\(\(\)=>\{verifyActiveStaffSession\('interval'\)\},60000\)/,
+  'Existing sessions must be re-verified at a bounded 60-second interval.');
+assert.match(loginHtml, /workspace is temporarily read-only until the secure connection is restored/,
+  'A failed active-session verification must fail safe into read-only mode.');
 assert.match(statusSource, /actor\?\.role !== "Admin" \|\| actor\?\.employment_status !== "Active"/,
   'Only the active Director may change another staff member’s access.');
 assert.match(statusSource, /staffUserId === actorId/,
@@ -141,4 +151,4 @@ assert.match(loginHtml, /await offlineSchoolDelete\(owner\);return false/,
   'Invalid or expired offline snapshots must be removed from local storage.');
 assert.match(loginHtml, /remote account suspension takes effect on this device when it reconnects or this snapshot expires/,
   'The offline banner must explain the remote-revocation limitation and expiry.');
-console.log('Unified staff account architecture: 57/57 source assertions passed.');
+console.log('Unified staff account architecture: source assertions passed, including active-session revocation checks.');
