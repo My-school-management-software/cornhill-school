@@ -80,3 +80,5 @@ A new migration, `20261112001000_remove_null_active_fallbacks_from_staff_rpcs.sq
 Validation: all four active-session/role/RLS/direct-RPC migrations were executed together inside a transaction against the production schema, then rolled back. In that rehearsal, all 21 restrictive RLS policies were created, the active-session helper was explicitly fail-closed, and the 13 targeted RPC/trigger functions had zero remaining NULL-as-Active employment fallbacks. No production changes were retained.
 
 The source test suite was extended to cover all 13 affected functions. The previous code commit passed 88/88 tests; CI for the newest migration and test commits is still running/queued and must complete before release.
+
+A final broader sweep in the same rolled-back rehearsal checked every public SECURITY DEFINER function, not only the 13 explicitly targeted functions. It returned zero remaining `coalesce(employment_status, 'Active') = 'Active'` fallbacks across the public privileged-function set.
