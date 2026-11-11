@@ -2122,10 +2122,15 @@ function tab(name){
  $('adminParentPortalDirectory')?.classList.toggle('hidden',profile?.role!=='Admin');
  if(window.cornhillOfflineReadOnly&&!['dashboard','students','classes'].includes(name))return;
  if(demoMode&&['staffProfiles','attendance','communication','inventory','reports','midtermAdmissions'].includes(name))return;
- if(profile?.role==='Teacher'&&!['dashboard','notifications','academics','attendance','communication','appCentre'].includes(name))return;
- if(name==='helpAssistant'&&!['Admin','Teacher'].includes(profile?.role))return;
+ if(profile?.role==='Teacher'&&!['dashboard','notifications','academics','attendance','communication','appCentre','helpAssistant'].includes(name))return;
+ if(name==='helpAssistant'&&!['Admin','Teacher'].includes(profile?.role)&&!isCornhillDOS()&&!isCornhillHeadteacher())return;
  if(profile?.role!=='Admin'&&['midtermAdmissions','achievedLearners','trashBin'].includes(name))return;
- if(profile?.role==='Staff'&&!['dashboard','notifications','attendance','communication','appCentre'].includes(name))return;
+ if(profile?.role==='Staff'){
+  const common=['dashboard','notifications','attendance','communication','appCentre'];
+  const academic=(isCornhillDOS()||isCornhillHeadteacher())&&['students','classes','academics','helpAssistant'].includes(name);
+  const finance=isCornhillFinanceOperator()&&name==='finance';
+  if(!common.includes(name)&&!academic&&!finance)return;
+ }
  const app=$('app');
  app.dataset.activeWorkspace=name;
  app.querySelectorAll(':scope > section.panel').forEach(section=>{if(!workspaces.includes(section.id)){section.hidden=true;section.style.setProperty('display','none','important');section.setAttribute('aria-hidden','true')}});
@@ -2904,26 +2909,36 @@ if(profile?.role==='Admin'){
 }
 $('noStudents').textContent=filtered.length?'':'No learners match this class and search. Try another class or clear the search.';const archived=students.filter(s=>s.status==='Archived');const archiveNow=Date.now(),archiveDays=s=>Math.max(0,Math.floor((archiveNow-new Date(s.archived_at||s.created_at).getTime())/86400000)),archiveDate=s=>new Date(s.archived_at||s.created_at);const achieved=archived.filter(s=>archiveDays(s)<60),trash=archived.filter(s=>archiveDays(s)>=60);const retentionStage=s=>{const start=archiveDate(s),two=new Date(start),four=new Date(start),five=new Date(start);two.setFullYear(two.getFullYear()+2);four.setFullYear(four.getFullYear()+4);five.setFullYear(five.getFullYear()+5);if(archiveNow<two.getTime())return 'Before 2-year review';if(archiveNow<four.getTime())return '2-year review passed';if(archiveNow<five.getTime())return '4-year review passed';return '5-year retention review due'};const restoreButton=s=>'<button type="button" class="restoreLearner" data-id="'+esc(s.id)+'">Restore</button>';const achievedRows=achieved.map(s=>'<tr><td>'+esc(s.admission_number)+'</td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(archiveDate(s).toLocaleDateString('en-UG'))+'</td><td>'+Math.max(0,60-archiveDays(s))+' days</td><td>'+restoreButton(s)+'</td></tr>').join('');const trashRows=trash.map(s=>'<tr><td>'+esc(s.admission_number)+'</td><td>'+esc([s.first_name,s.middle_name,s.last_name].filter(Boolean).join(' '))+'</td><td>'+esc(s.school_classes?.name||'—')+'</td><td>'+esc(s.archive_reason||'—')+'</td><td>'+esc(archiveDate(s).toLocaleDateString('en-UG'))+'</td><td>'+esc(retentionStage(s))+'</td><td>'+restoreButton(s)+'</td></tr>').join('');$('achievedLearnersRows').innerHTML=achievedRows;$('trashBinLearnersRows').innerHTML=trashRows;$('noAchievedLearners').classList.toggle('hidden',achieved.length>0);$('noTrashBinLearners').classList.toggle('hidden',trash.length>0);$('archivedLearnersPanel')?.classList.toggle('hidden',profile?.role!=='Admin');$('noStudents').classList.toggle('hidden',filtered.length>0);$('classSelect').innerHTML='<option value="">Unassigned</option>'+classes.map(c=>'<option value="'+c.id+'">'+esc(c.name+(c.stream?' - '+c.stream:''))+'</option>').join('');$('bulkImportClass').innerHTML='<option value="">Choose class fallback</option>'+classes.map(c=>'<option value="'+c.id+'">'+esc(c.name+(c.stream?' - '+c.stream:''))+'</option>').join('');
 const classOrder=['Baby','Middle','Top','P1','P2','P3','P4','P5','P6','P7'];const orderedClasses=[...classes].filter(c=>profile?.role!=='Teacher'||c.id===sessionStorage.getItem('cornhill_teacher_class_id')).sort((a,b)=>{const ai=classOrder.indexOf(String(a.name).trim()),bi=classOrder.indexOf(String(b.name).trim());return (ai<0?99:ai)-(bi<0?99:bi)||String(a.name).localeCompare(String(b.name))||String(a.stream||'').localeCompare(String(b.stream||''))});$('classList').innerHTML=orderedClasses.length?'<div class="panel" style="margin:12px 0 4px;padding:16px;border:1px solid var(--cornhill-line);border-radius:14px"><div class="row" style="align-items:center;gap:12px"><div style="min-width:0;flex:1"><h3 style="margin:0 0 4px">Class registers</h3><p class="muted" style="margin:0">Choose a class to open its live learner register. '+orderedClasses.length+' class'+(orderedClasses.length===1?'':'es')+' available.</p></div><span class="badge">Registers</span></div><div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:14px"><div style="flex:1;min-width:190px"><label for="classRegisterSelect">Select class / stream</label><select id="classRegisterSelect" style="margin-bottom:0">'+orderedClasses.map(c=>{const all=visibleStudents.filter(st=>st.class_id===c.id),active=all.filter(st=>st.status==='Active').length;return '<option value="'+esc(c.id)+'">'+esc(c.name)+(c.stream?' · '+esc(c.stream):'')+' — '+all.length+' learners ('+active+' active)</option>'}).join('')+'</select></div><button type="button" class="primary" id="openClassRegister" data-class-roster="'+esc(orderedClasses[0].id)+'">View class register</button></div></div>':'<div class="notice">No classes have been created yet. Use “Set up standard classes” to add Baby, Middle, Top and P1–P7.</div>'};$('classRosterPrint').classList.add('hidden');$('classRosterSearch').value='';$('classRosterStatus').value='all';
+function isCornhillDOS(){return profile?.role==='Staff'&&['director of studies','director of studies (dos)','dos'].includes(String(profile?.job_title||'').trim().toLowerCase());}
+function isCornhillHeadteacher(){return profile?.role==='Staff'&&['headteacher','head teacher'].includes(String(profile?.job_title||'').trim().toLowerCase());}
+function isCornhillFinanceOperator(){return profile?.role==='Admin'||(profile?.role==='Staff'&&['bursar','school bursar','main bursar','deputy bursar','deputy school bursar'].includes(String(profile?.job_title||'').trim().toLowerCase()));}
+function isCornhillAcademicViewer(){return profile?.role==='Admin'||isCornhillDOS()||isCornhillHeadteacher();}
+function isCornhillAcademicManager(){return profile?.role==='Admin'||isCornhillDOS();}
 function applyRoleNavigation(){
- const role=profile?.role;
- const bursaryOperator=role==='Staff'&&['bursar','school bursar','deputy bursar','deputy school bursar'].includes(String(profile?.job_title||'').trim().toLowerCase());
- $('bankingLink')?.classList.toggle('hidden',role!=='Admin'&&!bursaryOperator);
+ const role=profile?.role,dos=isCornhillDOS(),headteacher=isCornhillHeadteacher(),finance=isCornhillFinanceOperator();
+ $('financeTab')?.classList.toggle('hidden',!finance);$('bankingLink')?.classList.toggle('hidden',!finance);
  $('setupStandardClasses').classList.toggle('hidden',role!=='Admin');
  document.querySelectorAll('.tabs [data-tab]').forEach(b=>{
-  const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','academics','attendance','communication','appCentre'].includes(b.dataset.tab))||(role==='Staff'&&['dashboard','notifications','attendance','communication','appCentre'].includes(b.dataset.tab));
-  b.classList.toggle('hidden',!allowed)
+  const key=b.dataset.tab;
+  const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','academics','attendance','communication','appCentre','helpAssistant'].includes(key))
+   ||(role==='Staff'&&['dashboard','notifications','attendance','communication','appCentre'].includes(key))
+   ||((dos||headteacher)&&['students','classes','academics','helpAssistant'].includes(key))
+   ||(finance&&key==='finance');
+  b.classList.toggle('hidden',!allowed);
  });
- document.querySelectorAll('[data-module]').forEach(b=>b.classList.toggle('hidden',role!=='Admin'&&!(role==='Teacher'&&['academics','attendance'].includes(b.dataset.module))&&!(role==='Staff'&&b.dataset.module==='attendance')));
- $('teacherPortalSummary').classList.toggle('hidden',role!=='Teacher');
- $('staffPortalSummary')?.classList.toggle('hidden',role!=='Staff');
+ document.querySelectorAll('[data-module]').forEach(b=>{
+  const key=b.dataset.module,allowed=role==='Admin'||(role==='Teacher'&&['academics','attendance'].includes(key))
+   ||((dos||headteacher)&&['academics','students','classes'].includes(key))||(finance&&['finance','banking'].includes(key));
+  b.classList.toggle('hidden',!allowed);
+ });
+ $('teacherPortalSummary').classList.toggle('hidden',role!=='Teacher');$('staffPortalSummary')?.classList.toggle('hidden',role!=='Staff');
  $('classForm').classList.toggle('hidden',role!=='Admin');
- // A class teacher sees a class workspace, never the school-wide administrator snapshot.
+ $('academicAdminSetup')?.classList.toggle('hidden',!isCornhillAcademicManager());
+ $('adminAcademicInsights')?.classList.toggle('hidden',!isCornhillAcademicViewer());
  document.querySelectorAll('#dashboard .dashboard-summary-only,#dashboard .dashboard-intro,#dashboard #academicControlCard,#dashboard .module-grid,#dashboard #dashboardIncomeForecastPanel').forEach(node=>node.classList.toggle('hidden',role!=='Admin'));
  document.querySelectorAll('#dashboardClassBoardsPanel').forEach(node=>node.classList.toggle('hidden',role!=='Admin'));
- const teacherIntro=$('teacherPortalSummary');
- if(teacherIntro)teacherIntro.classList.toggle('hidden',role!=='Teacher');
- const income=$('dashboardIncomeForecastPanel');
- if(income)income.classList.toggle('hidden',role!=='Admin');
+ const teacherIntro=$('teacherPortalSummary');if(teacherIntro)teacherIntro.classList.toggle('hidden',role!=='Teacher');
+ const income=$('dashboardIncomeForecastPanel');if(income)income.classList.toggle('hidden',role!=='Admin');
 }
 function renderTeacherPortal(){
  const assigned=(window.teacherAssignments||[]),teacherClassId=window.teacherClassId||sessionStorage.getItem('cornhill_teacher_class_id'),cls=classes.find(x=>x.id===teacherClassId),subjects=[...new Set(assigned.filter(a=>a.class_id===teacherClassId).map(a=>a.subjects?.name||'Assigned subject'))];
@@ -4028,24 +4043,25 @@ async function loadAcademics(){
    }
   }catch(cleanupError){console.warn('Local test-draft cleanup could not complete:',cleanupError)}
  }
- if(profile?.role==='Admin')await loadAcademicControl();
- $('prepareExcelAssessments').classList.toggle('hidden',profile?.role!=='Admin');
- $('prepareAllClassAssessments')?.classList.toggle('hidden',profile?.role!=='Admin');
+ if(isCornhillAcademicManager())await loadAcademicControl();
+ $('prepareExcelAssessments').classList.toggle('hidden',!isCornhillAcademicManager());
+ $('prepareAllClassAssessments')?.classList.toggle('hidden',!isCornhillAcademicManager());
  if(demoMode){message('academicMsg','Demo preview: academic setup and marks screens are visible, but sample records cannot be saved.');return}
- if(!['Admin','Teacher'].includes(profile?.role)){message('academicMsg','Academic records are available to administrators and assigned teachers.',true);return}
+ if(!['Admin','Teacher'].includes(profile?.role)&&!isCornhillAcademicViewer()){message('academicMsg','Academic records are available to administrators, the DOS, the Headteacher and assigned teachers.',true);return}
  if(profile?.role==='Teacher'){try{const ready=await ensureTeacherAcademicClassContext();if(!ready)return}catch(contextError){message('academicMsg',contextError?.message||'Your assigned class could not be verified. Sign out and sign in again.',true);const field=$('markGridTerm')?.closest('section.panel')?.querySelector('input[readonly]');if(field)field.value='Class assignment needs administrator review';return}}
- $('academicAdminSetup').classList.toggle('hidden',profile?.role!=='Admin');
- document.querySelectorAll('[data-admin-academic-nav]').forEach(link=>link.classList.toggle('hidden',profile?.role!=='Admin'));
+ $('academicAdminSetup').classList.toggle('hidden',!isCornhillAcademicManager());
+ document.querySelectorAll('[data-admin-academic-nav]').forEach(link=>link.classList.toggle('hidden',!isCornhillAcademicManager()));
+ document.querySelectorAll('[data-academic-viewer-nav]').forEach(link=>link.classList.toggle('hidden',!isCornhillAcademicViewer()));
  document.querySelectorAll('[data-teacher-academic-nav]').forEach(link=>link.classList.toggle('hidden',profile?.role!=='Teacher'));
- $('assessmentSetup').classList.toggle('hidden',profile?.role!=='Admin');
- $('adminAcademicInsights')?.classList.toggle('hidden',profile?.role!=='Admin');
+ $('assessmentSetup').classList.toggle('hidden',!isCornhillAcademicManager());
+ $('adminAcademicInsights')?.classList.toggle('hidden',!isCornhillAcademicViewer());
  $('teacherMarkEntry').classList.toggle('hidden',profile?.role!=='Teacher');
  $('adminReportActions').classList.toggle('hidden',profile?.role!=='Admin');
  $('exportAcademicClassCsv').classList.toggle('hidden',profile?.role!=='Admin');
  $('downloadBlankReportTemplates').classList.toggle('hidden',profile?.role!=='Admin');
- $('gradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
- $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
- $('academicGradingPanel')?.classList.toggle('hidden',profile?.role!=='Admin');
+ $('gradeBandAdmin').classList.toggle('hidden',!isCornhillAcademicManager());
+ $('unebGradeBandAdmin').classList.toggle('hidden',!isCornhillAcademicManager());
+ $('academicGradingPanel')?.classList.toggle('hidden',!isCornhillAcademicViewer());
  await loadGradeBands();
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic Performance & Insights · school-wide monitoring':'Academics & Results · teacher-managed';
@@ -4054,12 +4070,12 @@ async function loadAcademics(){
  const [y,t,s,a,staff,teacherDirectory,assignments,classTeacherAssignments]=await Promise.all([
   db.from('academic_years').select('*').order('starts_on',{ascending:false}),
   db.from('academic_terms').select('id,name,academic_year_id,is_current,is_closed,starts_on,ends_on').order('starts_on',{ascending:false}),
-  profile?.role==='Admin'?db.from('subjects').select('*').eq('is_active',true).order('name'):(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}),
+  profile?.role==='Teacher'?(window.teacherSubjectIds||[]).length?db.from('subjects').select('*').eq('is_active',true).in('id',window.teacherSubjectIds).order('name'):Promise.resolve({data:[],error:null}):db.from('subjects').select('*').eq('is_active',true).order('name'),
   (profile?.role==='Teacher'?db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')):db.from('assessments').select('*,subjects(name,code),school_classes(name),academic_terms(name)')).order('created_at',{ascending:false}),
   profile?.role==='Admin'?db.from('user_profiles').select('id,full_name,role,job_title,employment_status').eq('role','Teacher').order('full_name'):Promise.resolve({data:[],error:null}),
-  profile?.role==='Admin'?db.from('academic_teacher_directory').select('*').order('full_name'):Promise.resolve({data:[],error:null}),
-  profile?.role==='Admin'?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,teacher_directory_id,school_classes(name),subjects(name),academic_teacher_directory(full_name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')),
-  profile?.role==='Admin'?db.from('class_teacher_directory_assignments').select('class_id,teacher_directory_id,updated_at,academic_teacher_directory(full_name,employment_status,linked_user_id)'):Promise.resolve({data:[],error:null})
+  isCornhillAcademicViewer()?db.from('academic_teacher_directory').select('*').order('full_name'):Promise.resolve({data:[],error:null}),
+  isCornhillAcademicViewer()?db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,teacher_directory_id,school_classes(name),subjects(name),academic_teacher_directory(full_name)'):db.from('class_subjects').select('id,class_id,subject_id,teacher_user_id,school_classes(name),subjects(name)').eq('class_id',sessionStorage.getItem('cornhill_teacher_class_id')),
+  isCornhillAcademicViewer()?db.from('class_teacher_directory_assignments').select('class_id,teacher_directory_id,updated_at,academic_teacher_directory(full_name,employment_status,linked_user_id)'):Promise.resolve({data:[],error:null})
  ]);
  if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
  const err=[y,t,s,a,staff,teacherDirectory,assignments,classTeacherAssignments].find(x=>x.error);if(err){message('academicMsg','Could not load academic records: '+err.error.message,true);return}
@@ -4095,7 +4111,7 @@ async function loadAcademics(){
  window.cornhillStaffNames=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||'Teacher account']));
  updateScoreLearners();
  populateReportFilters();
- if(profile?.role==='Admin'){
+ if(isCornhillAcademicViewer()){
   const insightTerm=$('adminAcademicTerm');if(insightTerm){insightTerm.innerHTML='<option value="">Choose term</option>'+academic.terms.map(x=>'<option value="'+x.id+'">'+esc(x.name+' · '+(x.academic_years?.name||''))+'</option>').join('');const current=academic.terms.find(x=>x.is_current&&!x.is_closed)||academic.terms.find(x=>!x.is_closed)||academic.terms[0];if(current)insightTerm.value=current.id;}
   await loadAdminAcademicInsights();
  }
@@ -4517,7 +4533,7 @@ async function renderReportCard(options={}){
 }
 async function loadAdminAcademicInsights(){
  const panel=$('adminAcademicInsights');
- if(profile?.role!=='Admin'||demoMode){panel?.classList.add('hidden');return}
+ if(!isCornhillAcademicViewer()||demoMode){panel?.classList.add('hidden');return}
  const requestId=(window.cornhillAdminAcademicInsightsRequest||0)+1;
  window.cornhillAdminAcademicInsightsRequest=requestId;
  panel?.classList.remove('hidden');
