@@ -1093,7 +1093,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <div id="loginMsg" class="notice hidden" role="status" aria-live="polite"></div>
  <div class="login-account-groups">
   <section class="login-account-group" aria-labelledby="teachingStaffHeading">
-   <div class="login-group-heading"><div><span class="login-group-number">01</span><h3 id="teachingStaffHeading">Teaching Staff</h3><p class="muted">Class teachers and all other teaching staff. One personal account per teacher.</p></div><span class="login-group-tag">TEACHERS</span></div>
+   <div class="login-group-heading"><div><span class="login-group-number">01</span><h3 id="teachingStaffHeading">Teaching Staff</h3><p class="muted">Class teachers, subject teachers and other teaching staff. One personal account per teacher.</p></div><span class="login-group-tag">TEACHERS</span></div>
    <div id="classLoginDirectory" class="login-class-grid"><p class="muted">Loading teaching staff workspaces…</p></div>
    <div id="selectedTeacherLogin" class="hidden" style="margin-top:14px;padding:15px;border:1px solid var(--cornhill-line);border-radius:14px;background:var(--cornhill-page)">
     <div class="row"><div><strong id="selectedLoginClassName">Teacher sign-in</strong><p id="selectedLoginTeacherName" class="muted" style="margin:5px 0 12px"></p></div><button type="button" id="backToClassList" class="tab">Back</button></div>
@@ -1104,11 +1104,11 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
    </div>
   </section>
   <section class="login-account-group" aria-labelledby="schoolAdministratorsHeading">
-   <div class="login-group-heading"><div><span class="login-group-number">02</span><h3 id="schoolAdministratorsHeading">School Administrators</h3><p class="muted">The existing Director account and authorised school administration accounts.</p></div><span class="login-group-tag">ADMINISTRATION</span></div>
+   <div class="login-group-heading"><div><span class="login-group-number">02</span><h3 id="schoolAdministratorsHeading">School Administrators</h3><p class="muted">The existing Director, Headteacher, Deputy Headteacher, DOS, Bursar, Deputy Bursar and authorised non-teaching staff accounts.</p></div><span class="login-group-tag">ADMINISTRATION</span></div>
    <div id="administratorAccountDirectory" class="login-account-directory"><div class="login-account-row director-account"><span class="login-avatar">D</span><span><strong>Director</strong><small id="adminLoginName">Full school access · Existing account</small></span><span class="badge">Full access</span></div><p class="muted login-directory-note">The Director's existing account is retained. No duplicate Director account is created.</p></div>
    <button id="adminLoginOpen" class="tab login-admin-toggle" type="button" aria-expanded="false">Sign in to School Administrators <span aria-hidden="true">→</span></button>
    <div id="adminLoginPanel" class="hidden login-admin-panel">
-    <label for="adminEmail">Your registered administrator email</label><input id="adminEmail" type="email" autocomplete="username" maxlength="254" placeholder="Your individual school account email">
+    <label for="adminEmail">Your individual school account email</label><input id="adminEmail" type="email" autocomplete="username" maxlength="254" placeholder="Your registered work email">
     <label for="adminPassword">Your password</label><input id="adminPassword" type="password" autocomplete="current-password" placeholder="Your account password">
     <button id="adminSignIn" class="primary" style="width:100%">Sign in securely</button>
     <button type="button" id="forgotAdminPassword" class="tab" style="width:100%;margin-top:8px">Forgot password?</button>
