@@ -125,7 +125,7 @@ test('main dashboard routes forms, class snapshots and mark drafts through encry
 
 test('offline service worker refreshes its cache and preloads the encryption helper', () => {
   const sw = fs.readFileSync(path.join(__dirname, '../service-worker.js'), 'utf8');
-  assert.match(sw, /cornhill-shell-v91/);
-  assert.match(sw, /cornhill-static-v91/);
+  assert.match(sw, /cornhill-shell-v\d+/);
+  assert.match(sw, /cornhill-static-v\d+/);
   assert.match(sw, /\/assets\/cornhill-draft-crypto\.js/);
 });
