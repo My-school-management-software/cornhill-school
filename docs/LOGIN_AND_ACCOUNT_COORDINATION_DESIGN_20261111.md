@@ -55,3 +55,8 @@ Recommended responsibility flow:
 ## Staff coordination update
 
 The existing staff communication feed and private messaging were audited. Headteacher/DOS could already use direct messages and the All Staff feed, but could not publish to or read the Teachers-only audience because the UI and RLS policy only admitted Admin/Teacher roles. A staged, least-privilege migration now grants that audience to academic leaders while keeping the Director-only audience restricted and preventing other Staff (including finance/operations) from broadcasting to teachers-only. The UI follows the same role check, but RLS remains authoritative.
+
+
+## Latest verification
+
+The current feature-branch head passed both GitHub Actions suites (appearance/workspace and marks-import mapping), and Vercel generated a READY preview for the same commit. The staff communication RLS migration remains staged only; its permissions are not active in the live database until it is safely tested and applied through the approved release process.
