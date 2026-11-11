@@ -1,0 +1,35 @@
+name: Offline authentication tests
+
+on:
+  push:
+    paths:
+      - 'assets/cornhill-offline-auth.js'
+      - 'assets/cornhill-offline.js'
+      - 'assets/cornhill-draft-crypto.js'
+      - 'service-worker.js'
+      - 'tests/cornhill-offline-auth.test.cjs'
+      - 'tests/cornhill-offline-encryption.test.cjs'
+      - '.github/workflows/offline-auth-tests.yml'
+  pull_request:
+    paths:
+      - 'assets/cornhill-offline-auth.js'
+      - 'assets/cornhill-offline.js'
+      - 'assets/cornhill-draft-crypto.js'
+      - 'service-worker.js'
+      - 'tests/cornhill-offline-auth.test.cjs'
+      - 'tests/cornhill-offline-encryption.test.cjs'
+      - '.github/workflows/offline-auth-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify offline authentication and encryption
+        run: node --test tests/cornhill-offline-auth.test.cjs tests/cornhill-offline-encryption.test.cjs
