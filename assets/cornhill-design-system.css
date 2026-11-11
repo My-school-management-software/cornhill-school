@@ -1257,3 +1257,83 @@ body[data-theme] #login .muted{color:var(--cornhill-muted)!important}
 #academicTeacherDirectoryRows>tr>td:nth-child(3)::before{content:"SUBJECT SPECIALISM"}
 #academicTeacherDirectoryRows>tr>td:nth-child(4)::before{content:"EMPLOYMENT STATUS"}
 #academicTeacherDirectoryRows>tr>td:nth-child(5)::before{content:"PORTAL ACCOUNT"}
+
+
+/* Dated official report-card stamps and generated current-term fee summaries. */
+.cornhill-report-card .report-school-head{
+ display:grid!important;grid-template-columns:88px minmax(0,1fr) 138px!important;
+ align-items:center!important;gap:12px!important;text-align:center!important
+}
+.cornhill-report-card .report-school-head>img{
+ width:82px!important;height:82px!important;object-fit:contain!important;justify-self:center
+}
+.cornhill-report-card .report-school-heading{min-width:0;flex:initial!important}
+.cornhill-report-card .report-school-heading h1{line-height:1.15}
+.cornhill-report-card .report-school-heading h2{margin:8px 0 0}
+.cornhill-report-card .report-school-head .report-stamp{
+ display:flex!important;flex:0 0 138px!important;width:138px!important;min-width:0;
+ position:relative;align-items:center;justify-content:center;flex-direction:column;
+ gap:2px;text-align:center
+}
+.cornhill-report-card .report-stamp img{
+ display:block;width:100%!important;height:auto!important;max-height:none!important;
+ object-fit:contain!important
+}
+.cornhill-report-card .report-stamp-date{
+ position:absolute;top:50%;left:20%;width:60%;transform:translateY(-50%);
+ color:#b42318;font-family:Arial,sans-serif;font-weight:900;
+ font-size:clamp(7px,1.1vw,11px);letter-spacing:.05em;
+ white-space:nowrap;text-align:center;line-height:1.1;text-shadow:0 0 1px #fff
+}
+.cornhill-report-card .report-stamp small{
+ display:block;font-size:7px;line-height:1.1;font-weight:800;
+ letter-spacing:.08em;color:#334155;margin-top:1px
+}
+.cornhill-report-card .report-headteacher-signoff{
+ display:flex;align-items:flex-end;justify-content:space-between;
+ gap:16px;margin-top:8px;break-inside:avoid;page-break-inside:avoid
+}
+.cornhill-report-card .report-headteacher-signline{flex:1;min-width:0;font-size:12px}
+.cornhill-report-card .report-stamp-headteacher{width:145px;flex:0 0 145px}
+.cornhill-report-card .report-stamp-headteacher img{width:145px!important}
+.cornhill-report-card .report-fee-summary{
+ margin-top:14px;padding:10px;border:1.5px solid #4f86bd;
+ break-inside:avoid;page-break-inside:avoid
+}
+.cornhill-report-card .report-fee-summary h3{
+ margin:0 0 8px;font-size:12px;letter-spacing:.05em;color:#173d2b
+}
+.cornhill-report-card .report-fee-summary table{
+ width:100%;border-collapse:collapse;font-size:10px;table-layout:auto
+}
+.cornhill-report-card .report-fee-summary th,
+.cornhill-report-card .report-fee-summary td{
+ padding:5px;border:1px solid #b6c5d1
+}
+.cornhill-report-card .report-fee-summary th{text-align:left;background:#eef5f8}
+.cornhill-report-card .report-fee-summary tfoot th{font-weight:900;background:#e5eef4}
+.cornhill-report-card .report-footer{break-inside:avoid;page-break-inside:avoid}
+@media(max-width:600px){
+ .cornhill-report-card .report-school-head{
+  grid-template-columns:54px minmax(0,1fr) 88px!important;gap:6px!important
+ }
+ .cornhill-report-card .report-school-head>img{width:50px!important;height:50px!important}
+ .cornhill-report-card .report-school-heading h1{font-size:14px!important}
+ .cornhill-report-card .report-school-heading p{font-size:10px;margin:3px}
+ .cornhill-report-card .report-school-heading em{font-size:11px}
+ .cornhill-report-card .report-school-heading h2{font-size:9px;padding:4px}
+ .cornhill-report-card .report-school-head .report-stamp{width:88px!important;flex-basis:88px!important}
+ .cornhill-report-card .report-stamp small{font-size:6px}
+ .cornhill-report-card .report-stamp-date{font-size:6px;letter-spacing:0}
+ .cornhill-report-card .report-stamp-headteacher{width:112px;flex-basis:112px}
+ .cornhill-report-card .report-stamp-headteacher img{width:112px!important}
+ .cornhill-report-card .report-headteacher-signline{font-size:10px}
+ .cornhill-report-card .report-fee-summary{padding:6px}
+ .cornhill-report-card .report-fee-summary table{font-size:8px}
+ .cornhill-report-card .report-fee-summary th,
+ .cornhill-report-card .report-fee-summary td{padding:3px}
+}
+@media print{
+ .cornhill-report-card .report-stamp-date{text-shadow:none}
+ .cornhill-report-card .report-fee-summary table{font-size:9pt}
+}
