@@ -94,4 +94,36 @@ assert.match(loginHtml, /if\(isBursar\)return \[\.\.\.base,'finance'\]/,
 assert.match(loginHtml, /staffAllowedWorkspaces\(\)\.includes\(name\)/,
   'Direct workspace navigation must enforce the same staff role map.');
 
-console.log('Unified staff account architecture: 36/36 source assertions passed.');
+
+const statusPath = path.join(__dirname, '..', 'supabase', 'functions', 'staff-employment-status', 'index.ts');
+const statusSource = fs.readFileSync(statusPath, 'utf8');
+assert.match(statusSource, /actor\?\.role !== "Admin" \|\| actor\?\.employment_status !== "Active"/,
+  'Only the active Director may change another staff member’s access.');
+assert.match(statusSource, /staffUserId === actorId/,
+  'The status endpoint must reject self-deactivation.');
+assert.match(statusSource, /!\["Teacher", "Staff"\]\.includes\(String\(target\.role\)\)/,
+  'The existing Director/Admin identity must not be deactivated through the staff workflow.');
+assert.match(statusSource, /\["Active", "On Leave", "Exited"\]\.includes\(employmentStatus\)/,
+  'Only the supported employment statuses may be applied.');
+assert.match(statusSource, /updateUserById\(staffUserId, \{ ban_duration: "876000h" \}\)/,
+  'Inactive staff accounts must be banned at the Supabase Auth layer.');
+assert.match(statusSource, /updateUserById\(staffUserId, \{ ban_duration: "none" \}\)/,
+  'Reactivation must explicitly lift the Auth ban.');
+assert.match(statusSource, /employmentStatus === "Exited" && employmentEndDate === null/,
+  'An exited employee must have a final working date.');
+assert.match(statusSource, /from\("school_staff_directory"\)[\s\S]*?employment_status: employmentStatus, employment_end_date: employmentEndDate/,
+  'The linked employee register must receive status and end-date updates.');
+assert.match(statusSource, /from\("academic_teacher_directory"\)[\s\S]*?update\(\{ employment_status: employmentStatus \}\)/,
+  'The academic teacher directory must receive status updates without referencing absent columns.');
+assert.match(statusSource, /from\("user_profiles"\)[\s\S]*?employment_status: employmentStatus,[\s\S]*?employment_end_date: employmentEndDate/,
+  'The sign-in profile status must be synchronised.');
+assert.doesNotMatch(statusSource, /deleteUser|\.delete\(/,
+  'Staff departure must preserve Auth identities and historical records instead of deleting them.');
+assert.match(loginHtml, /db\.functions\.invoke\('staff-employment-status'/,
+  'Staff employment changes must call the server-authorised status endpoint.');
+assert.match(loginHtml, /confirm\('Confirm employment status change/,
+  'Administrators must confirm before an account is suspended or reactivated.');
+assert.match(loginHtml, /selected\.role==='Admin'/,
+  'The existing Director account must be protected in the staff profile UI.');
+
+console.log('Unified staff account architecture: 50/50 source assertions passed.');
