@@ -2518,6 +2518,46 @@ function resetAccountScopedCommunicationState(){
  ['attendanceAdjustmentForm','workScheduleForm','scheduleAssignmentForm','deviceMapForm','attendanceImportForm'].forEach(id=>{const form=$(id);if(form)form.reset()});
  const attendanceNotice=$('staffAttendanceNotice');if(attendanceNotice){attendanceNotice.textContent='';attendanceNotice.classList.add('hidden')}
 }
+async function verifyActiveStaffSession(reason='interval'){
+ if(!db||!navigator.onLine||!currentUserId||!profile||window.cornhillOfflineReadOnly)return true;
+ if(window.cornhillActiveSessionCheckBusy)return true;
+ window.cornhillActiveSessionCheckBusy=true;
+ const owner=currentUserId;
+ try{
+  const {data,error}=await db.rpc('is_active_staff_session');
+  if(currentUserId!==owner)return false;
+  if(error){
+   window.cornhillSessionAuthorizationUnverified=true;
+   setOfflineReadOnly(true);
+   tab('dashboard');
+   message('appMsg','Your school account could not be re-verified. The workspace is temporarily read-only until the secure connection is restored.',true);
+   return false;
+  }
+  if(data!==true){
+   try{await offlineSchoolDelete(owner)}catch(_){}
+   await db.auth.signOut({scope:'local'}).catch(()=>{});
+   currentUserId=null;
+   resetAccountScopedCommunicationState();
+   setOfflineReadOnly(false);
+   $('login').classList.remove('hidden');$('app').classList.add('hidden');$('logout').classList.add('hidden');
+   message('loginMsg','Access blocked: this account is no longer active. Contact the school administrator.',true);
+   return false;
+  }
+  if(window.cornhillSessionAuthorizationUnverified){
+   window.cornhillSessionAuthorizationUnverified=false;
+   setOfflineReadOnly(false);
+   message('appMsg','Your account access has been securely re-verified. Normal workspace access is restored.');
+  }
+  return true;
+ }catch(error){
+  window.cornhillSessionAuthorizationUnverified=true;
+  setOfflineReadOnly(true);
+  tab('dashboard');
+  message('appMsg','Your school account could not be re-verified. The workspace is temporarily read-only until the secure connection is restored.',true);
+  console.warn('CORNHILL active-session verification:',error);
+  return false;
+ }finally{window.cornhillActiveSessionCheckBusy=false}
+}
 async function startSession(session){
  window.cornhillStartupStage='resetting account state';
  resetAccountScopedCommunicationState();
@@ -2547,6 +2587,7 @@ if(p.employment_status&&p.employment_status!=='Active'){
  return;
 }
 setOfflineReadOnly(false);profile=p;$('welcome').textContent=p.full_name?('Welcome, '+p.full_name):'School dashboard';setSchoolGreeting(p.full_name);$('role').textContent=p.role;
+if(!await verifyActiveStaffSession('startup'))return;
 window.cornhillStartupStage='loading permitted school records';
 await refresh();if(!sessionIsCurrent())return;
  $('app').classList.remove('hidden');
@@ -2557,6 +2598,12 @@ await refresh();if(!sessionIsCurrent())return;
  if(['Admin','Teacher'].includes(profile?.role))await restoreLocalAutosaveForm($('assessmentForm'),'academic-assessment','appMsg');if(!sessionIsCurrent())return;
  if(profile?.role==='Teacher')await restoreLocalAutosaveForm($('scoreForm'),'academic-individual-mark','appMsg');if(!sessionIsCurrent())return;
  if(profile?.role==='Admin'){await restoreLocalAutosaveForm($('academicYearForm'),'academic-year','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('academicTermForm'),'academic-term','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('gradeBandForm'),'academic-grade-bands','appMsg');if(!sessionIsCurrent())return;await restoreLocalAutosaveForm($('unebGradeBandForm'),'academic-uneb-bands','appMsg')}
+}
+if(!window.cornhillActiveSessionWatchInstalled){
+ window.cornhillActiveSessionWatchInstalled=true;
+ window.cornhillActiveSessionTimer=setInterval(()=>{verifyActiveStaffSession('interval')},60000);
+ window.addEventListener('online',()=>{verifyActiveStaffSession('reconnect')});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')verifyActiveStaffSession('visible')});
 }
 function renderNotificationCards(){
  const rows=Array.isArray(window.schoolNotifications)?window.schoolNotifications:[];
