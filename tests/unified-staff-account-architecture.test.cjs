@@ -76,4 +76,10 @@ assert.match(loginHtml, /account\.employment_status&&account\.employment_status!
 assert.match(loginHtml, /!\['Admin','Staff'\]\.includes\(account\.role\)/,
   'School Administrators sign-in must accept authorised Staff accounts without promoting them to Admin.');
 
-console.log('Unified staff account architecture: 29/29 source assertions passed.');
+
+assert.match(loginHtml, /Class teachers, subject teachers and other teaching staff/,
+  'The teaching section must include subject teachers as well as class teachers.');
+assert.match(loginHtml, /Headteacher, Deputy Headteacher, DOS, Bursar, Deputy Bursar/,
+  'The administrator section must identify the intended school leadership and bursar accounts.');
+
+console.log('Unified staff account architecture: 31/31 source assertions passed.');
