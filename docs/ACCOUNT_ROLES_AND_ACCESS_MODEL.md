@@ -10,7 +10,7 @@
 |---|---|---|
 | Administrator | Trusted school leadership account | School-wide administration, subject to explicit high-risk controls and audit logging |
 | Class Teacher | Teacher responsible for one named class | Assigned class learners and class academic workflow; own attendance and private notices |
-| Subject Teacher (planned) | Teacher of a subject across one or more classes | Only the assigned class + subject, its learners' minimum required identity fields and that subject's marks |
+| Subject Teacher | Individual teacher assigned to one or more exact class + subject combinations | Only assigned classes/subjects, minimum learner identity fields, and permitted marks/report actions |
 | Operational Staff | Bursar, store manager, matron, cooks, librarian, office/support staff | Own attendance, staff communication and only specifically delegated work duties |
 | Parent/Guardian | Verified parent or guardian | Separate parent portal; only the learner(s) explicitly linked to that guardian |
 
