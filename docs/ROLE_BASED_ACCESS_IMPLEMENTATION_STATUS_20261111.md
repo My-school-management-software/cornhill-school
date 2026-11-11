@@ -115,3 +115,20 @@ The feature branch is isolated from the production deployment. No migration has 
 The live migration ledger includes a leadership/academic/finance-operator migration whose source file was not present in the reviewed feature-branch migration tree. Reconcile that migration history with Git before release so the repository and database remain reproducible. Do not blindly reapply or duplicate an already-applied production migration.
 
 Rollback for the staged payment change is to restore the previous `post_school_payment` and `reverse_school_payment` function definitions from the migration history, after confirming there are no open payments mid-transaction. No data-table columns or existing records are altered by the staged migration.
+
+
+## Staff coordination update — 11 November 2026
+
+The existing staff communication feed and direct messaging were audited against live RLS policies. Direct messages already use authenticated sender/recipient checks, and the staff directory is returned only to active signed-in accounts. The public staff sign-in page does not expose this directory.
+
+A further gap was found: Headteacher/DOS accounts are stored under the established `Staff` role, but the staff announcement UI and RLS rules previously allowed the `teachers` audience only to `Admin` and `Teacher` roles. This prevented academic leadership from sending a teachers-only operational/academic announcement.
+
+The feature branch now stages a least-privilege correction:
+- Teachers and academic leaders (Director, Headteacher, DOS) may publish to the Teachers audience.
+- Other Staff (including finance and operations roles) may publish to All Staff, but not to Teachers-only or Director-only channels.
+- Headteacher/DOS can read the Teachers audience; other Staff can read their own post and All Staff messages.
+- Director-only announcements remain Director-only.
+- UI audience choices follow the same rule; the database RLS policy is the enforcement boundary.
+- Staff employment status check at sign-in is normalized for case and whitespace, avoiding false rejection of an active record with inconsistent casing.
+
+Staged migration: `20261111195000_staff_leadership_teacher_communication.sql`. The role contract test file now checks these policies. **The migration has not been applied to the live database and the SQL contract test has not yet been executed on staging.** JavaScript syntax parsing passed for all eight inline scripts after the UI changes.
