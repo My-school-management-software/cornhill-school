@@ -1,15 +1,13 @@
 /* CORNHILL shared navigation controls.
-   Adds accessible Back / Home / Forward controls without changing data or access rules.
-   The Parent Portal links only to the public school website. */
+   Navigation remains in the sticky school header, beside refresh and sign-out. */
 (() => {
   'use strict';
-
   const MAIN_SYSTEM = 'https://cornhill-school-swart.vercel.app/';
   const SCHOOL_WEBSITE = 'https://school-website-cornhill-school.vercel.app/apps/school-website/';
   const pathname = window.location.pathname.toLowerCase();
   const host = window.location.hostname.toLowerCase();
-  const isParentPortal = /parents\.html$/.test(pathname) || /parent-guardian/.test(pathname) || host.startsWith('parents-');
-  const isAdmissions = /admissions\.html$/.test(pathname) || /\/apps\/admissions\/?$/.test(pathname) || host.startsWith('admissions-');
+  const isParentPortal = pathname.endsWith('parents.html') || pathname.includes('parent-guardian') || host.startsWith('parents-');
+  const isAdmissions = pathname.endsWith('admissions.html') || pathname.includes('/apps/admissions') || host.startsWith('admissions-');
   const app = document.getElementById('app');
   const mainWorkspace = !!(app && document.querySelector('.cornhill-sidebar') && document.getElementById('dashboard'));
   const backStack = [];
@@ -28,29 +26,29 @@
       const ref = new URL(document.referrer);
       return ref.hostname === host ||
         /cornhill-school|school-website|parents-cornhill|notifications-cornhill|records-cornhill|evidence-cornhill|banking-cornhill/i.test(ref.hostname);
-    } catch (_) {
-      return false;
-    }
+    } catch (_) { return false; }
   }
 
-  function control(label, action, extraClass) {
+  function control(label, accessibleName, action, extraClass) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'cornhill-nav-control' + (extraClass ? ' ' + extraClass : '');
     button.textContent = label;
+    button.title = accessibleName;
+    button.setAttribute('aria-label', accessibleName);
     button.addEventListener('click', action);
     return button;
   }
 
   function updateControls() {
-    const back = document.getElementById('cornhillNavBack');
-    const forward = document.getElementById('cornhillNavForward');
-    if (!back || !forward) return;
+    const backButton = document.getElementById('cornhillNavBack');
+    const forwardButton = document.getElementById('cornhillNavForward');
+    if (!backButton || !forwardButton) return;
     const hasInternalBack = mainWorkspace
       ? (backStack.length > 0 || (history.length > 1 && internalReferrer()))
       : true;
-    back.disabled = !hasInternalBack;
-    forward.disabled = mainWorkspace ? forwardStack.length === 0 : !forwardAvailable;
+    backButton.disabled = !hasInternalBack;
+    forwardButton.disabled = mainWorkspace ? forwardStack.length === 0 : !forwardAvailable;
   }
 
   function back() {
@@ -98,44 +96,42 @@
 
   function addNavigation() {
     if (document.getElementById('cornhillNavigation')) return;
+    const header = document.querySelector('header.top') || document.querySelector('header');
+    if (!header) return;
     const nav = document.createElement('nav');
     nav.id = 'cornhillNavigation';
-    nav.className = 'cornhill-navigation-shell';
+    nav.className = 'cornhill-navigation-controls cornhill-navigation-header';
     nav.setAttribute('aria-label', 'Page navigation');
 
-    const controls = document.createElement('div');
-    controls.className = 'cornhill-navigation-controls';
-    const backButton = control('← Back', back);
+    const backButton = control('←', 'Back', back);
     backButton.id = 'cornhillNavBack';
-    const homeLabel = mainWorkspace ? '⌂ Dashboard' : (isParentPortal || isAdmissions ? 'School website' : 'Main system');
-    const homeButton = mainWorkspace
-      ? control(homeLabel, goHome, 'cornhill-nav-home')
-      : document.createElement('a');
+    const homeLabel = mainWorkspace ? 'Dashboard' : (isParentPortal || isAdmissions ? 'School website' : 'Main system');
+    let homeButton;
     if (mainWorkspace) {
-      homeButton.id = 'cornhillNavHome';
+      homeButton = control('⌂', homeLabel, goHome, 'cornhill-nav-home');
     } else {
+      homeButton = document.createElement('a');
       homeButton.id = 'cornhillNavHome';
       homeButton.className = 'cornhill-nav-control cornhill-nav-home';
       homeButton.href = isParentPortal || isAdmissions ? SCHOOL_WEBSITE : MAIN_SYSTEM;
-      homeButton.textContent = homeLabel;
+      homeButton.textContent = '⌂';
+      homeButton.title = homeLabel;
+      homeButton.setAttribute('aria-label', homeLabel);
     }
-    const forwardButton = control('Forward →', forward);
+    if (mainWorkspace) homeButton.id = 'cornhillNavHome';
+    const forwardButton = control('→', 'Forward', forward);
     forwardButton.id = 'cornhillNavForward';
+    nav.append(backButton, homeButton, forwardButton);
 
-    controls.append(backButton, homeButton, forwardButton);
-    nav.appendChild(controls);
-
-    if (mainWorkspace) {
-      app.insertBefore(nav, app.firstChild);
-    } else {
-      const header = document.querySelector('header.top') || document.querySelector('header');
-      if (header && header.parentNode) header.insertAdjacentElement('afterend', nav);
-      else {
-        const main = document.querySelector('main');
-        if (main && main.parentNode) main.insertAdjacentElement('beforebegin', nav);
-        else document.body.insertBefore(nav, document.body.firstChild);
-      }
+    // The action row is inside the sticky header beside Refresh app and Sign out.
+    let actions = header.querySelector('.row');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.className = 'row cornhill-header-actions';
+      header.appendChild(actions);
     }
+    actions.classList.add('cornhill-header-actions');
+    actions.insertBefore(nav, actions.firstChild);
     updateControls();
   }
 
