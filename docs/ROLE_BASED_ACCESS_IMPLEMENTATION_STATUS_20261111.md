@@ -43,7 +43,7 @@ The backend already contains subject-scoped helpers such as `can_teacher_view_su
 
 A genuine class teacher keeps their existing full-class access. A teacher who is both class teacher and subject specialist still receives one individual account, with the union of the specifically approved duties. A teacher with no current class or subject assignment should see staff notices, calendar and their own permitted staff information only—not learner records.
 
-**Current limitation:** the individual email invitation path exists, and the database has subject-scope helpers, but the full subject-teacher browser sign-in and filtered dashboard still require end-to-end verification. The separate Headteacher/DOS staff-code login has not been verified as implemented. The existing class-teacher code endpoint is class-scoped and must not be reused for subject-only staff.
+**Current sign-in evidence:** the School Services page already signs staff in with individual email + password and enables its Learning workspace for `Teacher` profiles. The new learning-resource RLS migration on this feature branch narrows the returned material to each subject teacher's active assignments. **Current limitation:** the full subject-teacher browser workflow and marks-entry dashboard still require end-to-end verification. The separate Headteacher/DOS staff-code login has not been verified as implemented. The existing class-teacher code endpoint is class-scoped and must not be reused for subject-only staff.
 
 ## Role and approval boundary
 
