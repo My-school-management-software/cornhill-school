@@ -23,7 +23,10 @@ declare
     'teacher_list_my_assignments()',
     'teacher_subject_learner_roster(uuid)',
     'teacher_visiting_day_lookup(text)',
-    'touch_evidence_capture_device(uuid)'
+    'touch_evidence_capture_device(uuid)',
+    'notify_school_learning_resource_event()',
+    'notify_school_library_loan_event()',
+    'notify_school_transport_assignment_event()'
   ];
 begin
   foreach v_name in array v_names loop
