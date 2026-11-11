@@ -2398,6 +2398,7 @@ async function restoreOfflineSchoolSnapshot(owner){
 
 function resetAccountScopedCommunicationState(){
  window.cornhillClearHelpAssistant?.();
+ window.cornhillExcelMarksGridGeneration=(window.cornhillExcelMarksGridGeneration||0)+1;
  window.cornhillSessionGeneration=(window.cornhillSessionGeneration||0)+1;
  profile=null;students=[];classes=[];financeCodeAliases=[];
  try{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.removeItem('cornhill_login_mode')}catch(_){}
@@ -4041,7 +4042,7 @@ async function loadAcademics(){
  $('unebGradeBandAdmin').classList.toggle('hidden',profile?.role!=='Admin');
  $('academicGradingPanel')?.classList.toggle('hidden',profile?.role!=='Admin');
  await loadGradeBands();
- if(sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0))return;
+ if(!isCurrent())return;
  $('academicAccessBadge').textContent=profile?.role==='Admin'?'Academic Performance & Insights · school-wide monitoring':'Academics & Results · teacher-managed';
  $('academics').querySelector('h2').textContent=profile?.role==='Admin'?'Academic Performance & Insights':'Academics & Results';
  $('adminReportActions')?.classList.toggle('hidden',profile?.role!=='Admin');
@@ -4967,12 +4968,24 @@ function getAssignedTeacherClassId(){
 }
 async function loadExcelMarksGrid(){
  const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;
+ const requestGeneration=(window.cornhillExcelMarksGridGeneration||0)+1;
+ window.cornhillExcelMarksGridGeneration=requestGeneration;
  const termId=$('excelMarksTerm').value,classId=profile?.role==='Teacher'?getAssignedTeacherClassId():$('excelMarksClass').value;
+ const isCurrent=()=>requestGeneration===(window.cornhillExcelMarksGridGeneration||0)
+  &&sessionOwner===currentUserId
+  &&sessionGeneration===(window.cornhillSessionGeneration||0)
+  &&termId===$('excelMarksTerm').value
+  &&classId===(profile?.role==='Teacher'?getAssignedTeacherClassId():$('excelMarksClass').value);
  if(profile?.role==='Teacher')$('excelMarksClass').value=classId;
  const head=$('excelMarksHead'),body=$('excelMarksBody'),phaseFilter=$('excelMarksPhase').value||'All';
- // Invalidate any previous class/term sheet before attempting a new load.
+ // Invalidate and visually clear the previous class/term before any new request starts.
  window.cornhillExcelMarksContext=null;
  $('exportExcelMarks').disabled=true;
+ head.innerHTML='<tr><th>Class sheet</th></tr>';
+ body.innerHTML='<tr><td>Loading selected class sheet…</td></tr>';
+ $('excelMarksCodeKey').textContent='';
+ $('excelClassPerformance')?.classList.add('hidden');
+ $('excelUpperPrimaryGradingAnalysis')?.classList.add('hidden');
  if(!termId||!classId){message('excelMarksMsg',!classId?'Your assigned class is missing. Sign out and sign in again; if it continues, ask the administrator to verify the class assignment.':'Choose an academic term before loading marks.',true);return}
  const cls=classes.find(x=>x.id===classId)||(profile?.role==='Teacher'&&window.cornhillTeacherAssignedClassRecord?.id===classId?window.cornhillTeacherAssignedClassRecord:null),group=curriculumGroupForClass(cls?.name||'');
  if(!cls){message('excelMarksMsg','The assigned class could not be found in the loaded school records. Refresh the page and sign in again.',true);return}
@@ -5010,10 +5023,11 @@ async function loadExcelMarksGrid(){
   return '<tr><td>'+(i+1)+'</td><td>'+esc(x.pupil_code||x.admission_number||'—')+'</td><td><span data-photo-student="'+esc(x.id)+'" class="excel-photo-placeholder" title="Learner photo unavailable">'+initials+'</span></td><td>'+esc([x.first_name,x.middle_name,x.last_name].filter(Boolean).join(' '))+'</td><td class="learner-detail-column">'+esc(x.gender||'—')+'</td><td class="learner-detail-column">'+esc(x.lin||'—')+'</td>'+(isP7Class?'<td>'+esc(x.p7_index_number||'—')+'</td>':'')+phaseCells+'</tr>';
  }).join('');
  const photoLearners=list.filter(x=>x.photo_path);
- if(photoLearners.length){const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)})}
+ if(photoLearners.length){const {data:photoLinks,error:photoLinkError}=await db.storage.from('learner-photos').createSignedUrls(photoLearners.map(x=>x.photo_path),3600);if(!isCurrent())return;if(!photoLinkError)(photoLinks||[]).forEach(link=>{if(!link.signedUrl)return;const learner=photoLearners.find(x=>x.photo_path===link.path);if(!learner)return;const cell=body.querySelector('[data-photo-student="'+learner.id+'"]');if(!cell)return;const img=document.createElement('img');img.src=link.signedUrl;img.alt='Learner photograph';img.width=32;img.height=32;img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:50%';cell.replaceChildren(img)})}
  recalculateExcelMarkSheet();
  renderExcelClassPerformance();
  let localDraftCount=0;try{localDraftCount=(await listOfflineAssessmentDrafts(currentUserId)).filter(x=>!x.expires_at||x.expires_at>Date.now()).filter(x=>assessments.some(a=>a.id===x.assessment_id)).length}catch(_){}
+ if(!isCurrent())return;
  message('excelMarksMsg',list.length+' active learners loaded · '+assessments.length+' assessment columns · '+(data||[]).length+' saved server marks loaded · '+localDraftCount+' pending offline drafts. Enter marks in the table and press Save all marks. Totals, aggregate and division recalculate automatically for P4–P7; positions are shown for every class; P4–P7 also show aggregate and division.');
 }
 function upperPrimaryGradingPhases(className){
@@ -5745,7 +5759,18 @@ async function autosaveExcelMarkCell(input){const ctx=window.cornhillExcelMarksC
 $('excelMarksBody').addEventListener('input',e=>{const input=e.target.closest('[data-grid-score]');if(!input)return;const key=input.dataset.assessmentId+'|'+input.dataset.studentId;clearTimeout(excelAutosaveTimers.get(key));excelAutosaveTimers.set(key,setTimeout(()=>{excelAutosaveChain=excelAutosaveChain.then(()=>autosaveExcelMarkCell(input)).catch(err=>message('excelMarksMsg','Autosave is waiting for a retry: '+(err?.message||'storage/network issue'),true))},700));});
 $('excelMarksPhase').addEventListener('change',()=>{window.cornhillExcelMarksContext=null;loadExcelMarksGrid()});
 $('excelClassFolders').addEventListener('click',e=>{const b=e.target.closest('[data-excel-class]');if(!b)return;$('excelMarksClass').value=b.dataset.excelClass;$('excelMarksClass').dispatchEvent(new Event('change'));document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x===b));loadExcelMarksGrid()});
-$('excelMarksClass').addEventListener('change',()=>{setExcelPhaseOptions($('excelMarksClass').value);document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value))});
+$('excelMarksClass').addEventListener('change',()=>{
+ window.cornhillExcelMarksGridGeneration=(window.cornhillExcelMarksGridGeneration||0)+1;
+ window.cornhillExcelMarksContext=null;
+ $('exportExcelMarks').disabled=true;
+ $('excelMarksHead').innerHTML='<tr><th>Class sheet</th></tr>';
+ $('excelMarksBody').innerHTML='<tr><td>Choose the class and load its own marks sheet.</td></tr>';
+ $('excelMarksCodeKey').textContent='';
+ $('excelClassPerformance')?.classList.add('hidden');
+ $('excelUpperPrimaryGradingAnalysis')?.classList.add('hidden');
+ setExcelPhaseOptions($('excelMarksClass').value);
+ document.querySelectorAll('[data-excel-class]').forEach(x=>x.classList.toggle('active',x.dataset.excelClass===$('excelMarksClass').value));
+});
 
 // Offline assessment drafts are local, account-scoped and never publish report cards.
 // Synchronisation uses a compare-before-write check; conflicting server edits are kept pending.
