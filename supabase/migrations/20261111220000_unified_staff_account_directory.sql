@@ -32,7 +32,7 @@ select
   p.employment_status
 from public.user_profiles p
 where p.role in ('Admin', 'Teacher', 'Staff')
-  and coalesce(p.employment_status, 'Active') = 'Active';
+  and p.employment_status = 'Active';
 
 comment on view public.staff_account_directory is
   'Admin-managed directory for the two sign-in sections. Section/title are display labels only; authorization always uses role-specific database policies and authenticated identity.';
