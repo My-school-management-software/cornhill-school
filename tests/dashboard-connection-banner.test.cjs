@@ -38,8 +38,8 @@ test('connection indicator is a compact Online / Offline chip', () => {
 });
 
 test('service worker installs a fresh shell cache so older installed banners are discarded', () => {
-  assert.match(serviceWorker, /cornhill-shell-v89/);
-  assert.match(serviceWorker, /cornhill-static-v89/);
+  assert.match(serviceWorker, /cornhill-shell-v91/);
+  assert.match(serviceWorker, /cornhill-static-v91/);
   assert.doesNotMatch(serviceWorker, /cornhill-shell-v74/);
   assert.doesNotMatch(serviceWorker, /cornhill-static-v74/);
 });
