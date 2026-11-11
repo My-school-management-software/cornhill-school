@@ -126,4 +126,19 @@ assert.match(loginHtml, /confirm\('Confirm employment status change/,
 assert.match(loginHtml, /selected\.role==='Admin'/,
   'The existing Director account must be protected in the staff profile UI.');
 
-console.log('Unified staff account architecture: 50/50 source assertions passed.');
+
+assert.match(loginHtml, /const OFFLINE_SCHOOL_MAX_AGE=12\*60\*60\*1000/,
+  'Offline learner snapshots must expire after a bounded 12-hour period.');
+assert.match(loginHtml, /const savedAtMs=snap\?\.savedAt\?Date\.parse\(snap\.savedAt\):NaN/,
+  'Offline snapshot dates must be parsed explicitly.');
+assert.match(loginHtml, /!Number\.isFinite\(savedAtMs\)\|\|ageMs<0\|\|ageMs>OFFLINE_SCHOOL_MAX_AGE/,
+  'Invalid, future-dated and expired offline snapshots must be rejected.');
+assert.match(loginHtml, /snap\.owner!==owner/,
+  'Offline class snapshots must remain bound to the signed-in account owner.');
+assert.match(loginHtml, /!Array\.isArray\(snap\.classes\)\|\|!Array\.isArray\(snap\.students\)/,
+  'Offline snapshots must have valid class and learner collections.');
+assert.match(loginHtml, /await offlineSchoolDelete\(owner\);return false/,
+  'Invalid or expired offline snapshots must be removed from local storage.');
+assert.match(loginHtml, /remote account suspension takes effect on this device when it reconnects or this snapshot expires/,
+  'The offline banner must explain the remote-revocation limitation and expiry.');
+console.log('Unified staff account architecture: 57/57 source assertions passed.');
