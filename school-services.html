@@ -418,6 +418,10 @@ let user=null,profile=null,classes=[],books=[],routes=[],staffOptions=[],service
 const job=()=>String(profile?.job_title||'').trim().toLowerCase();
 const hasJob=(...names)=>names.includes(job());
 const isAdmin=()=>profile?.role==='Admin';
+const isDOS=()=>profile?.role==='Staff'&&hasJob('director of studies','director of studies (dos)','dos');
+const isHeadteacher=()=>profile?.role==='Staff'&&hasJob('headteacher','head teacher');
+const isAcademicViewer=()=>isAdmin()||isDOS()||isHeadteacher();
+const isAcademicManager=()=>isAdmin()||isDOS();
 const isLibrarian=()=>isAdmin()||hasJob('librarian','library manager','library officer');
 const isTransport=()=>isAdmin()||hasJob('transport manager','transport officer','driver','bus driver');
 const isTransportManager=()=>isAdmin()||hasJob('transport manager','transport officer');
@@ -443,7 +447,7 @@ async function loadProfile(){
 }
 function configureModules(){
  const workspace=window.CornhillServiceWorkspace;
- const permissions={notices:true,calendar:true,'staff-feed':true,admissions:isAdmin(),'hr-payroll':true,learning:isAdmin()||profile.role==='Teacher',library:true,transport:isTransport(),welfare:isWelfare(),integrations:isAdmin(),'system-health':isAdmin(),'attendance-kiosk':isAdmin()||profile.role==='Staff','visitor-register':isGateStaff(),facilities:true};
+ const permissions={notices:true,calendar:true,'staff-feed':true,admissions:isAdmin(),'hr-payroll':true,learning:isAcademicViewer()||profile.role==='Teacher',library:true,transport:isTransport(),welfare:isWelfare(),integrations:isAdmin(),'system-health':isAdmin(),'attendance-kiosk':isAdmin()||profile.role==='Staff','visitor-register':isGateStaff(),facilities:true};
  if(workspace){
   const allowed={notices:true,calendar:true,'staff-feed':true,'hr-payroll':true,learning:isAdmin()||profile.role==='Teacher',library:true,transport:isTransport(),welfare:isWelfare(),integrations:isAdmin(),'system-health':isAdmin(),facilities:true,'visitor-register':isGateStaff()};
   workspace.allowed=allowed[workspace.key]===true;document.body.dataset.serviceWorkspace=workspace.key;
@@ -498,7 +502,7 @@ async function refreshAll(){
  }
  const jobs=[loadLeave(),loadPayroll(),loadStaffNotices(),loadSchoolCalendar(),loadStaffFeed()];
  if(isAdmin())jobs.push(loadAdmissions(),loadIntegrations(),runHealthCheck(false));
- if(profile.role==='Admin'||profile.role==='Teacher')jobs.push((async()=>{await loadClasses();await loadResources()})());
+ if(isAcademicViewer()||profile.role==='Teacher')jobs.push((async()=>{await loadClasses();await loadResources()})());
  if(isLibrarian()||isTransport()||isWelfare())jobs.push(loadServiceLearners());
  jobs.push((async()=>{await loadBooks();if(isLibrarian())await loadLoans()})());if(isTransport())jobs.push(loadTransport());if(isWelfare())jobs.push(loadWelfare());if(isGateStaff())jobs.push(loadVisitors());jobs.push(loadMaintenance());if(isAssetViewer())jobs.push(loadAssets());
  const results=await Promise.allSettled(jobs);if(results.some(x=>x.status==='rejected'))note('globalMsg','Some panels could not refresh. Check their individual status messages; database permissions remain in force.','error');
@@ -632,14 +636,14 @@ async function loadClasses(){
  }
  $('resourceClass').innerHTML='<option value="">Choose an assigned class</option>'+classes.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+(x.stream?' · '+esc(x.stream):'')+'</option>').join('');
  populateResourceSubjects();
- const canPublish=isAdmin()||teacherAssignments.some(x=>x.is_full_class||x.can_enter_marks);
+ const canPublish=isAcademicManager()||teacherAssignments.some(x=>x.is_full_class||x.can_enter_marks);
  $('resourceForm').classList.toggle('hidden',!canPublish);
  if(!canPublish)$('resourceMsg').textContent='You can view resources for your assignments. Publishing requires an assignment with mark-entry/resource permission.';
 }
 function populateResourceSubjects(){
  const classId=$('resourceClass').value;
  let names=[];
- if(isAdmin())names=resourceSubjects;
+ if(isAcademicManager())names=resourceSubjects;
  else{
   const assigned=teacherAssignments.filter(x=>x.class_id===classId);
   if(assigned.some(x=>x.is_full_class))names=resourceSubjects;
@@ -658,7 +662,7 @@ $('resourceClass').addEventListener('change',populateResourceSubjects);
 $('resourceForm').addEventListener('submit',async e=>{
  e.preventDefault();try{
  const classId=$('resourceClass').value,subject=$('resourceSubject').value;
- const assignmentAllowed=isAdmin()||teacherAssignments.some(x=>x.class_id===classId&&(x.is_full_class||(x.can_enter_marks&&x.subject_name===subject)));
+ const assignmentAllowed=isAcademicManager()||teacherAssignments.some(x=>x.class_id===classId&&(x.is_full_class||(x.can_enter_marks&&x.subject_name===subject)));
  if(!assignmentAllowed)throw new Error('This class and subject are not assigned to your account for publishing.');
  const url=$('resourceUrl').value.trim();if(url&&!/^https:\/\//i.test(url))throw new Error('Only HTTPS resource links are accepted.');
  const p={class_id:classId,title:$('resourceTitle').value.trim(),subject,resource_type:$('resourceType').value,resource_url:url||null,instructions:$('resourceInstructions').value.trim(),created_by:user.id};
