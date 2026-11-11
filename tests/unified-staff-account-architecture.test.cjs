@@ -177,6 +177,16 @@ assert.match(failClosedActiveSession, /p\.employment_status = 'Active'/,
 assert.doesNotMatch(failClosedActiveSession, /coalesce\(p\.employment_status,\s*'Active'\)/,
   'The active-session helper must fail closed for NULL employment status.');
 
+const failClosedRoleHelpersPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261111234000_fail_closed_role_and_teacher_helpers.sql');
+const failClosedRoleHelpers = fs.readFileSync(failClosedRoleHelpersPath, 'utf8');
+for (const helper of ['is_school_admin','is_school_finance_operator','is_school_dos','is_school_headteacher','is_class_teacher_for_class','is_full_class_teacher_for_class','can_teacher_access_subject','can_teacher_view_subject','list_staff_directory']) {
+  assert.match(failClosedRoleHelpers, new RegExp('function public\\\\.' + helper + '\\\\('), `Role helper migration must update ${helper}.`);
+}
+assert.match(failClosedRoleHelpers, /public\.is_active_staff_session\(\)/,
+  'Role and teacher access helpers must share the fail-closed active-session guard.');
+assert.doesNotMatch(failClosedRoleHelpers, /coalesce\([^)]*employment_status[^)]*'Active'/,
+  'Role and teacher access helpers must not treat NULL employment status as active.');
+
 const activeRlsMigrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261111230000_require_active_staff_session_for_staff_tables.sql');
 const activeRlsMigration = fs.readFileSync(activeRlsMigrationPath, 'utf8');
 for (const table of ['staff_attendance_adjustments','staff_attendance_alerts','staff_attendance_deduction_settings','staff_attendance_device_users','staff_attendance_events','staff_attendance_import_batches','staff_attendance_incidents','staff_attendance_schedule_assignments','staff_call_signals','staff_communication_comments','staff_communication_posts','staff_communication_reactions','staff_direct_messages','staff_media_messages','staff_salary_advances','staff_salary_agreements','staff_work_schedules','class_teacher_access','class_subjects','evidence_capture_files','evidence_capture_requests']) {
