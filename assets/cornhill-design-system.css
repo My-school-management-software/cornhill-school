@@ -1237,3 +1237,23 @@ body[data-theme] #login .muted{color:var(--cornhill-muted)!important}
     min-height:32px!important;padding:6px 9px!important;font-size:10px!important;
   }
 }
+
+
+/* Compact assignment cards do not need the old wide table header row. */
+#app table:has(>#teacherAssignmentRows)>thead,
+#app table:has(>#classTeacherAssignmentRows)>thead,
+#app table:has(>#academicTeacherDirectoryRows)>thead{display:none!important}
+#classTeacherAssignmentRows>tr>td:nth-child(1)::before,
+#academicTeacherDirectoryRows>tr>td:nth-child(1)::before,
+#academicTeacherDirectoryRows>tr>td:nth-child(2)::before{
+ display:block;font-size:9px;font-weight:800;letter-spacing:.08em;
+ color:var(--cornhill-muted);margin-bottom:2px
+}
+#classTeacherAssignmentRows>tr>td:nth-child(1)::before{content:"CLASS"}
+#classTeacherAssignmentRows>tr>td:nth-child(2)::before{content:"CLASS TEACHER"}
+#classTeacherAssignmentRows>tr>td:nth-child(3)::before{content:"PORTAL STATUS"}
+#academicTeacherDirectoryRows>tr>td:nth-child(1)::before{content:"TEACHER"}
+#academicTeacherDirectoryRows>tr>td:nth-child(2)::before{content:"PHONE"}
+#academicTeacherDirectoryRows>tr>td:nth-child(3)::before{content:"SUBJECT SPECIALISM"}
+#academicTeacherDirectoryRows>tr>td:nth-child(4)::before{content:"EMPLOYMENT STATUS"}
+#academicTeacherDirectoryRows>tr>td:nth-child(5)::before{content:"PORTAL ACCOUNT"}
