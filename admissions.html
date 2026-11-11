@@ -208,4 +208,4 @@ $('installAdmissionsApp').addEventListener('click',async()=>{if(!admissionsInsta
 window.addEventListener('appinstalled',()=>{$('installAdmissionsApp').classList.add('hidden');show('accountMessage','CORNHILL Parent Admissions is installed on this device.','success')});
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
-</body></html>
+<script src="/assets/cornhill-navigation.js" defer></script></body></html>
