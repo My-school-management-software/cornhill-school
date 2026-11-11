@@ -71,3 +71,13 @@ Every application remains a workspace for the same authenticated person and cano
 11. Direct navigation to another account's application route does not bypass its RLS/RPC permission checks.
 12. Evidence Capture and Banking retain the originating record ID and actor ID.
 13. Verify all cases with two simultaneous browser sessions and a shared Windows computer.
+
+
+## Verification snapshot — 11 November 2026
+
+- Read-only inspection of the connected production database found **11 active staff profiles: 1 Admin and 10 Teachers**. The Admin profile has no job title recorded; the new directory deliberately labels that one existing Admin as `Director · Full Access` without creating or promoting another identity.
+- No Bursar, Deputy Bursar, DOS or Headteacher staff profiles were present in that snapshot, so none were invented or added.
+- The migration SQL was executed against the production schema inside an explicit transaction and rolled back. The temporary view returned the expected grouping (1 Director / School Administrators; 10 Class Teachers / Teaching Staff). No production schema change was retained.
+- The new source test file contains 11 assertions; all 11 corresponding checks passed against the committed migration.
+- The rehearsal Supabase project currently has no public tables, so it is not yet a usable migration-test environment.
+- The main application entry file `index.html` is empty in both the working branch and repository default branch. The main sign-in UI and its staff-management form therefore cannot safely be patched from this repository snapshot. The account directory migration is committed to the feature branch but is **not applied to production**.
