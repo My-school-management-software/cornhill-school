@@ -3038,7 +3038,7 @@ function dualReceiptMarkup(body,payerName,receiverName){
  return '<div class="cornhill-document-receipt" '+receiptAttributes+'><div class="receipt-copy"><h2 class="receipt-copy-label">PARENT / PAYER COPY</h2>'+body+signatures+'</div><hr class="receipt-cut"><div class="receipt-copy"><h2 class="receipt-copy-label">SCHOOL RETAINED COPY</h2>'+body+signatures+'</div>'+receiptFields+'</div>';
 }
 async function loadFinancialOverview(accountsData){
- if(demoMode||profile?.role!=='Admin')return;
+ if(demoMode||!isCornhillFinanceOperator())return;
  const from=$('financialOverviewFrom').value,to=$('financialOverviewTo').value;
  if(from&&to&&from>to){message('financialOverviewMsg','The start date must not be after the end date.',true);return}
  $('runFinancialOverview').disabled=true;$('runFinancialOverview').textContent='Calculating…';
@@ -3122,7 +3122,7 @@ async function loadFinance(){
   $('chargeStudent').innerHTML=demoOpts;$('paymentStudent').innerHTML=demoOpts;
   return;
  }
- if(profile?.role!=='Admin'){message('financeMsg','Only the school administrator can access financial records.',true);return}
+ if(!isCornhillFinanceOperator()){message('financeMsg','Only authorised finance operators can access financial records.',true);return}
  const [items,sched,accounts,charges,payments,learners,codeAliases,bursaryCharges,activePeriods]=await Promise.all([
   db.from('fee_items').select('id,name,category,is_active').order('name'),
   db.from('fee_schedules').select('id,class_group,learner_type,amount_ugx,fee_items(name)').eq('is_active',true).order('created_at',{ascending:false}),
@@ -3212,16 +3212,11 @@ $('dailyRecordDate').value=kampalaToday();
 $('expenseDate').value=kampalaToday();
 async function loadExpensePayroll(){
  window.cornhillExpenseRowsLoaded=false;
- if(demoMode||profile?.role!=='Admin')return;
- const [cats,staff,agreements,periods]=await Promise.all([
-  db.from('expense_categories').select('id,name,is_active').eq('is_active',true).order('name'),
-  db.from('user_profiles').select('id,full_name,job_title,employment_status').order('full_name'),
-  db.from('staff_salary_agreements').select('id,staff_user_id,salary_basis,base_salary_ugx,daily_rate_ugx,effective_from,effective_to,is_active,user_profiles(full_name,job_title)').order('effective_from',{ascending:false}),
-  db.from('payroll_periods').select('id,period_name,period_type,period_start,period_end,status').order('period_start',{ascending:false})
- ]);
- const bad=[cats,staff,agreements,periods].find(x=>x.error);if(bad){message('expenseMsg','Expense and payroll data could not load: '+bad.error.message,true);return}
+ if(demoMode||!isCornhillFinanceOperator())return;
+ const cats=await db.from('expense_categories').select('id,name,is_active').eq('is_active',true).order('name');
+ if(cats.error){message('expenseMsg','Expense categories could not load: '+cats.error.message,true);return}
  let expenseRows=[],expenseError=null;
- for(let offset=0; ; offset+=1000){
+ for(let offset=0;;offset+=1000){
   const page=await db.from('school_expenses').select('id,expense_no,expense_date,description,amount_ugx,payee_name,payment_method,payment_reference,receipt_reference,status,expense_categories(name)').order('expense_date',{ascending:false}).range(offset,offset+999);
   if(page.error){expenseError=page.error;break}
   expenseRows.push(...(page.data||[]));if((page.data||[]).length<1000)break;
@@ -3229,8 +3224,21 @@ async function loadExpensePayroll(){
  if(expenseError){message('expenseMsg','Expense records could not load: '+expenseError.message,true);return}
  window.cornhillExpenseRows=expenseRows;window.cornhillExpenseRowsLoaded=true;
  $('expenseCategory').innerHTML=(cats.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
- $('salaryStaff').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).filter(x=>x.employment_status==='Active').map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed staff')+' · '+esc(x.job_title||'Staff')+'</option>').join('');$('advanceStaff').innerHTML=$('salaryStaff').innerHTML;$('advanceDate').value=kampalaToday();const advances=await db.from('staff_salary_advances').select('id,staff_user_id,advance_date,amount_ugx,outstanding_ugx,status,user_profiles(full_name)').order('advance_date',{ascending:false});if(advances.error){message('advanceMsg','Could not load staff advances: '+advances.error.message,true);return}$('salaryAdvanceRows').innerHTML=(advances.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff')+'</td><td>'+esc(x.advance_date)+'</td><td>'+money(x.amount_ugx)+'</td><td><strong>'+money(x.outstanding_ugx)+'</strong></td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="5">No advances recorded.</td></tr>';
- $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'<br><small>Daily pay: '+(x.daily_rate_ugx===null?'Not set':money(x.daily_rate_ugx))+'</small></td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+ (x.is_active?'Active':'Inactive')+(x.is_active?' <button type="button" data-close-salary="'+x.id+'">Close agreement</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
+ renderExpenseRows();
+ // Payroll, salary agreements and staff salary advances are administrator-only.
+ if(profile?.role!=='Admin')return;
+ const [staff,agreements,periods]=await Promise.all([
+  db.from('user_profiles').select('id,full_name,job_title,employment_status').order('full_name'),
+  db.from('staff_salary_agreements').select('id,staff_user_id,salary_basis,base_salary_ugx,daily_rate_ugx,effective_from,effective_to,is_active,user_profiles(full_name,job_title)').order('effective_from',{ascending:false}),
+  db.from('payroll_periods').select('id,period_name,period_type,period_start,period_end,status').order('period_start',{ascending:false})
+ ]);
+ const bad=[staff,agreements,periods].find(x=>x.error);if(bad){message('payrollMsg','Payroll data could not load: '+bad.error.message,true);return}
+ $('salaryStaff').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).filter(x=>x.employment_status==='Active').map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed staff')+' · '+esc(x.job_title||'Staff')+'</option>').join('');
+ $('advanceStaff').innerHTML=$('salaryStaff').innerHTML;$('advanceDate').value=kampalaToday();
+ const advances=await db.from('staff_salary_advances').select('id,staff_user_id,advance_date,amount_ugx,outstanding_ugx,status,user_profiles(full_name)').order('advance_date',{ascending:false});
+ if(advances.error){message('advanceMsg','Could not load staff advances: '+advances.error.message,true);return}
+ $('salaryAdvanceRows').innerHTML=(advances.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff')+'</td><td>'+esc(x.advance_date)+'</td><td>'+money(x.amount_ugx)+'</td><td><strong>'+money(x.outstanding_ugx)+'</strong></td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="5">No advances recorded.</td></tr>';
+ $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'<br><small>Daily pay: '+(x.daily_rate_ugx===null?'Not set':money(x.daily_rate_ugx))+'</small></td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+(x.is_active?'Active':'Inactive')+(x.is_active?' <button type="button" data-close-salary="'+x.id+'">Close agreement</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
  const previouslySelectedPayroll=$('payrollPeriodSelect').value;$('payrollPeriodSelect').innerHTML='<option value="">Choose payroll period</option>'+(periods.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.period_name)+' · '+esc(x.period_type)+' · '+esc(x.status)+'</option>').join('');if((periods.data||[]).some(x=>x.id===previouslySelectedPayroll))$('payrollPeriodSelect').value=previouslySelectedPayroll;
  renderExpenseRows();
 }
@@ -3240,7 +3248,7 @@ function renderExpenseRows(){
  const salary=rows.filter(x=>x.expense_categories?.name==='Salaries & wages'&&x.status==='Posted').reduce((n,x)=>n+Number(x.amount_ugx||0),0);
  const total=rows.filter(x=>x.status==='Posted').reduce((n,x)=>n+Number(x.amount_ugx||0),0);
  $('expensePeriodTotal').textContent=money(total);$('expenseSalaryTotal').textContent=money(salary);$('expenseOtherTotal').textContent=money(total-salary);
- $('expenseRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.expense_date)+'</td><td>'+esc(x.expense_no)+'</td><td>'+esc(x.expense_categories?.name||'—')+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.payee_name||'—')+'</td><td>'+esc(x.payment_method)+'</td><td>'+esc([x.payment_reference,x.receipt_reference].filter(Boolean).join(' · ')||'—')+'</td><td>'+money(x.amount_ugx)+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==='Posted'?'<button type="button" data-phone-expense="'+x.id+'">Request receipt photo</button> <button type="button" data-void-expense="'+x.id+'">Void</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="10">No expenses in this period.</td></tr>';
+ $('expenseRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.expense_date)+'</td><td>'+esc(x.expense_no)+'</td><td>'+esc(x.expense_categories?.name||'—')+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.payee_name||'—')+'</td><td>'+esc(x.payment_method)+'</td><td>'+esc([x.payment_reference,x.receipt_reference].filter(Boolean).join(' · ')||'—')+'</td><td>'+money(x.amount_ugx)+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==='Posted'?'<button type="button" data-phone-expense="'+x.id+'">Request receipt photo</button> '+(profile?.role==='Admin'?'<button type="button" data-void-expense="'+x.id+'">Void</button>':''):'—')+'</td></tr>').join('')||'<tr><td colspan="10">No expenses in this period.</td></tr>';
  const byCategory={};rows.filter(x=>x.status==='Posted').forEach(x=>{const k=x.expense_categories?.name||'Uncategorised';byCategory[k]=(byCategory[k]||0)+Number(x.amount_ugx||0)});
  $('expenseCategoryTotals').innerHTML=Object.entries(byCategory).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>'<tr><td>'+esc(k)+'</td><td>'+money(v)+'</td></tr>').join('')||'<tr><td colspan="2">No posted expenses in this period.</td></tr>';
  const detailRows=rows.map(x=>'<tr><td>'+esc(x.expense_date)+'</td><td>'+esc(x.expense_no)+'</td><td>'+esc(x.expense_categories?.name||'—')+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.payee_name||'—')+'</td><td>'+esc(x.payment_method)+'</td><td>'+esc([x.payment_reference,x.receipt_reference].filter(Boolean).join(' · ')||'—')+'</td><td style="text-align:right">'+money(x.amount_ugx)+'</td><td>'+esc(x.status)+'</td></tr>').join('');
@@ -3255,7 +3263,7 @@ $('expenseRows').addEventListener('click',e=>{
  window.open(window.location.origin+'/evidence.html?'+params.toString(),'_blank','noopener,noreferrer');
 });
 $('expenseRows').addEventListener('click',async e=>{
- const btn=e.target.closest('[data-void-expense]');if(!btn||btn.disabled)return;
+ const btn=e.target.closest('[data-void-expense]');if(!btn||btn.disabled||profile?.role!=='Admin')return;
  const reason=String(prompt('Enter the reason for voiding this expense. The record will be retained in the audit trail.')||'').trim();
  if(reason.length<5||reason.length>500){message('expenseMsg','Enter a clear void reason between 5 and 500 characters.',true);return}
  if(!confirm('Void this posted expense? It will remain in the audit register and will no longer count in expenditure totals.'))return;
@@ -3269,7 +3277,7 @@ $('expenseRows').addEventListener('click',async e=>{
  finally{btn.disabled=false;btn.textContent='Void'}
 });
 $('expenseForm').addEventListener('submit',async e=>{
- e.preventDefault();if(demoMode||profile?.role!=='Admin')return;const f=new FormData(e.target),date=f.get('expense_date');
+ e.preventDefault();if(demoMode||!isCornhillFinanceOperator())return;const f=new FormData(e.target),date=f.get('expense_date');
  if(!date||Number(f.get('amount_ugx'))<=0){message('expenseMsg','Enter a valid date and a positive amount.',true);return}
  const expenseNo='EXP-'+date.replaceAll('-','')+'-'+Date.now().toString().slice(-6);
  const {error}=await db.from('school_expenses').insert({expense_no:expenseNo,expense_date:date,category_id:f.get('category_id'),description:String(f.get('description')).trim(),amount_ugx:Number(f.get('amount_ugx')),payee_name:String(f.get('payee_name')||'').trim()||null,payment_method:f.get('payment_method'),payment_reference:String(f.get('payment_reference')||'').trim()||null,receipt_reference:String(f.get('receipt_reference')||'').trim()||null,recorded_by:currentUserId});
