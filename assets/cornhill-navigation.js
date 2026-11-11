@@ -18,6 +18,11 @@
   let forwardAvailable = false;
   let originalTab = null;
 
+  if (mainWorkspace && app.dataset.activeWorkspace) {
+    const state = history.state && typeof history.state === 'object' ? history.state : {};
+    history.replaceState({ ...state, cornhillWorkspace: app.dataset.activeWorkspace }, '', location.href);
+  }
+
   function internalReferrer() {
     try {
       const ref = new URL(document.referrer);
