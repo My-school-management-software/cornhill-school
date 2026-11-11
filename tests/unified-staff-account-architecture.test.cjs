@@ -82,4 +82,16 @@ assert.match(loginHtml, /Class teachers, subject teachers and other teaching sta
 assert.match(loginHtml, /Headteacher, Deputy Headteacher, DOS, Bursar, Deputy Bursar/,
   'The administrator section must identify the intended school leadership and bursar accounts.');
 
-console.log('Unified staff account architecture: 31/31 source assertions passed.');
+
+assert.match(loginHtml, /function staffAllowedWorkspaces\(\)/,
+  'Non-teaching staff navigation must be resolved from the account job title.');
+assert.match(loginHtml, /if\(isDos\)return \[\.\.\.base,'students','classes','academics','reports'\]/,
+  'The Director of Studies must receive the academic management workspaces.');
+assert.match(loginHtml, /if\(isHeadteacher\)return \[\.\.\.base,'students','classes','academics','reports'\]/,
+  'The Headteacher must receive the academic oversight workspaces.');
+assert.match(loginHtml, /if\(isBursar\)return \[\.\.\.base,'finance'\]/,
+  'Bursar and Deputy Bursar accounts must receive the finance workspace.');
+assert.match(loginHtml, /staffAllowedWorkspaces\(\)\.includes\(name\)/,
+  'Direct workspace navigation must enforce the same staff role map.');
+
+console.log('Unified staff account architecture: 36/36 source assertions passed.');
