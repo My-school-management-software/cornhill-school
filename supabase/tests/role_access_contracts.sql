@@ -13,6 +13,7 @@ declare
   v_reverse_def text;
   v_post_security_definer boolean;
   v_reverse_security_definer boolean;
+  v_post_config text[];
   v_role_constraint text;
   v_report_policy record;
 begin
@@ -24,8 +25,8 @@ begin
     raise exception 'Missing public.reverse_school_payment(uuid,text)';
   end if;
 
-  select p.prosecdef, pg_get_functiondef(p.oid)
-    into v_post_security_definer, v_post_def
+  select p.prosecdef, p.proconfig, pg_get_functiondef(p.oid)
+    into v_post_security_definer, v_post_config, v_post_def
   from pg_proc p
   where p.oid = v_post_oid;
 
@@ -37,8 +38,7 @@ begin
     raise exception 'Payment posting RPC must explicitly require an active finance operator';
   end if;
 
-  if position('set search_path' in lower(v_post_def)) = 0
-     or position('search_path = ''''' in lower(v_post_def)) = 0 then
+  if not coalesce(v_post_config, '{}'::text[]) @> array['search_path=""']::text[] then
     raise exception 'Payment posting RPC must set an empty search_path';
   end if;
 
