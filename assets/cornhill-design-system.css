@@ -716,3 +716,193 @@ img,video{height:auto}
     margin:0!important;
   }
 }
+
+
+/* CORNHILL responsive workspace refinement — 11 Nov 2026.
+   The content sheet uses nearly the full viewport, with an 8px rail gap
+   and a 2px right safety margin. The welcome row is aligned with content. */
+@media(min-width:901px){
+  #app:has(.cornhill-sidebar)>#dashboardWelcomeHeader,
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview,
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type{
+    width:calc(100% - 244px)!important;
+    max-width:calc(100% - 244px)!important;
+    margin-left:242px!important;
+    margin-right:2px!important;
+    box-sizing:border-box!important;
+  }
+  #app:has(.cornhill-sidebar) .cornhill-sidebar{
+    left:12px!important;
+    width:222px!important;
+  }
+  #dashboardWelcomeHeader{
+    position:relative!important;
+    z-index:2!important;
+    display:flex!important;
+    align-items:center!important;
+    flex-wrap:wrap!important;
+    gap:12px!important;
+    padding:12px 16px!important;
+    border-radius:14px!important;
+    background:var(--cornhill-panel,#fff)!important;
+    border:1px solid var(--cornhill-line,#dce7de)!important;
+  }
+  #dashboardWelcomeHeader>div{min-width:0;flex:1 1 360px}
+  #dashboardWelcomeHeader #welcome{margin:0;overflow-wrap:anywhere}
+  #dashboardWelcomeHeader #welcomeMessage{margin:4px 0 0;overflow-wrap:anywhere}
+}
+@media(min-width:701px) and (max-width:900px){
+  #app:has(.cornhill-sidebar)>#dashboardWelcomeHeader,
+  #app:has(.cornhill-sidebar)>section:not(.tabs),
+  #app:has(.cornhill-sidebar)>.module-preview,
+  #app:has(.cornhill-sidebar)>.row:first-child,
+  #app:has(.cornhill-sidebar)>#appMsg,
+  #app:has(.cornhill-sidebar)>#staffAttendanceNotice,
+  #app:has(.cornhill-sidebar)>#demoBanner,
+  #app:has(.cornhill-sidebar)>.grid:first-of-type{
+    width:calc(100% - 214px)!important;
+    max-width:calc(100% - 214px)!important;
+    margin-left:212px!important;
+    margin-right:2px!important;
+    box-sizing:border-box!important;
+  }
+  #app:has(.cornhill-sidebar) .cornhill-sidebar{
+    left:10px!important;
+    width:194px!important;
+  }
+  #dashboardWelcomeHeader{
+    display:flex!important;align-items:center!important;flex-wrap:wrap!important;
+    gap:10px!important;padding:10px 12px!important;
+    background:var(--cornhill-panel,#fff)!important;
+    border:1px solid var(--cornhill-line,#dce7de)!important;border-radius:12px!important;
+  }
+  #dashboardWelcomeHeader>div{min-width:0;flex:1 1 260px}
+}
+@media(max-width:700px){
+  #app:has(.cornhill-sidebar)>#dashboardWelcomeHeader{
+    width:100%!important;max-width:100%!important;margin:8px 0 12px!important;
+    padding:12px!important;display:flex!important;align-items:flex-start!important;
+    flex-wrap:wrap!important;gap:8px!important;
+  }
+  #dashboardWelcomeHeader>div{flex:1 1 100%;min-width:0}
+  #dashboardWelcomeHeader #welcome{font-size:clamp(18px,5vw,24px);line-height:1.25;overflow-wrap:anywhere}
+  #dashboardWelcomeHeader #welcomeMessage{font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+  #dashboardWelcomeHeader #role{align-self:flex-start}
+}
+
+/* Apply the selected appearance palette to the sign-in surface as well as
+   the authenticated workspace. The login layout choice remains respected. */
+body[data-theme] #login,
+body[data-theme] #login .login,
+body[data-theme] #login .panel,
+body[data-theme] #login form,
+body[data-theme] #login .login-card{
+  background-color:var(--cornhill-panel)!important;
+  color:var(--cornhill-ink)!important;
+  border-color:var(--cornhill-line)!important;
+}
+body[data-theme] #login h1,
+body[data-theme] #login h2,
+body[data-theme] #login h3,
+body[data-theme] #login p,
+body[data-theme] #login label,
+body[data-theme] #login .muted{
+  color:var(--cornhill-ink)!important;
+}
+body[data-theme] #login input,
+body[data-theme] #login select{
+  background:var(--cornhill-panel)!important;
+  color:var(--cornhill-ink)!important;
+  border-color:var(--cornhill-line)!important;
+}
+body[data-theme] #login button.primary,
+body[data-theme] #login .primary{
+  background:var(--cornhill-accent)!important;
+  border-color:var(--cornhill-accent)!important;
+  color:#fff!important;
+}
+body[data-theme] #login .tab{
+  background:color-mix(in srgb,var(--cornhill-accent) 10%,var(--cornhill-panel))!important;
+  color:var(--cornhill-ink)!important;
+  border-color:var(--cornhill-line)!important;
+}
+
+/* Academics: keep the large teacher-allocation register compact and scannable.
+   It remains complete; the table gets its own scroll area instead of pushing
+   the entire page down several screens. */
+#academics .table-wrap:has(#teacherAssignmentRows){
+  max-height:280px!important;
+  overflow:auto!important;
+  border:1px solid var(--cornhill-line,#dce7de);
+  border-radius:12px;
+  margin-top:8px;
+}
+#academics .table-wrap:has(#teacherAssignmentRows) table{min-width:640px}
+#academics .table-wrap:has(#teacherAssignmentRows) thead{position:sticky;top:0;z-index:2}
+#academics .table-wrap:has(#teacherAssignmentRows) th,
+#academics .table-wrap:has(#teacherAssignmentRows) td{padding:8px 10px!important;font-size:12px!important}
+#academics #classSubjectForm,
+#academics #academicTeacherDirectoryForm{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+#academics #classSubjectForm .full,
+#academics #academicTeacherDirectoryForm .full{grid-column:1/-1!important}
+#academics #academicTeacherDirectoryForm input,
+#academics #academicTeacherDirectoryForm select{width:100%;min-width:0}
+@media(max-width:700px){
+  #academics #classSubjectForm,
+  #academics #academicTeacherDirectoryForm{grid-template-columns:minmax(0,1fr)!important}
+  #academics #classSubjectForm .full,
+  #academics #academicTeacherDirectoryForm .full{grid-column:1!important}
+  #academics .table-wrap:has(#teacherAssignmentRows){max-height:230px!important}
+  #academics .table-wrap:has(#teacherAssignmentRows) table{min-width:560px}
+}
+
+/* Teacher workspace: phone-first controls without removing or changing fields. */
+@media(max-width:700px){
+  #academics #teacherMarkEntry,
+  #academics .excel-marks-panel,
+  #academics #teacherMarkEntry .panel,
+  #academics #teacherMarkEntry form{
+    min-width:0!important;max-width:100%!important;
+  }
+  #academics #teacherMarkEntry input,
+  #academics #teacherMarkEntry select,
+  #academics #teacherMarkEntry textarea,
+  #academics #teacherMarkEntry button{
+    min-height:42px!important;font-size:14px!important;
+  }
+  #academics #teacherMarkEntry .row{
+    display:flex!important;flex-wrap:wrap!important;gap:8px!important;
+  }
+  #academics #teacherMarkEntry .row>*{flex:1 1 100%;min-width:0!important}
+  #academics #teacherMarkEntry .table-wrap{
+    max-width:100%!important;overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  #academics #teacherMarkEntry table{min-width:680px}
+  #academics #teacherMarkEntry .excel-marks-panel{
+    margin-top:14px!important;padding:10px!important;
+  }
+  #academics #teacherMarkEntry details>summary{
+    line-height:1.45;padding:8px 2px;
+  }
+  #academics #academicWorkspaceNav{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
+  #academics #academicWorkspaceNav .tab{
+    min-width:0!important;white-space:normal!important;text-align:center!important;
+    padding:9px 7px!important;font-size:12px!important;line-height:1.3!important;
+  }
+}
+@media(max-width:380px){
+  #academics #academicWorkspaceNav{grid-template-columns:1fr!important}
+}
