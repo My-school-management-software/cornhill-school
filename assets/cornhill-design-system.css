@@ -571,3 +571,69 @@ img,video{height:auto}
     max-width:100%;
   }
 }
+
+
+/* Compact school header and consistent navigation keys across CORNHILL apps. */
+.top{
+  padding-block:9px!important;
+  min-height:unset!important;
+  gap:10px!important;
+}
+.top .brand{font-size:16px!important;line-height:1.15!important}
+.top .brand img{width:40px!important;height:40px!important;flex:0 0 40px!important}
+.top .brand span{font-size:clamp(14px,1.2vw,17px)!important;line-height:1.15!important}
+.top .sub{font-size:10px!important;margin-top:3px!important;line-height:1.25!important}
+.top .school-motto{margin-top:4px!important}
+.top .school-motto>span{font-size:8px!important;padding:3px 8px!important;line-height:1.2!important}
+.top .school-motto small{font-size:9px!important;line-height:1.2!important}
+.top button,.top .button,.top-actions a,.top-actions button,.top .nav a{
+  min-height:32px!important;padding:7px 10px!important;font-size:11px!important
+}
+.cornhill-navigation-shell{
+  display:flex;justify-content:flex-end;align-items:center;
+  width:min(calc(100% - 28px),1760px);max-width:1760px;
+  margin:8px auto 10px;padding:0;box-sizing:border-box;
+}
+.cornhill-navigation-controls{
+  display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  max-width:100%;padding:4px;border:1px solid var(--cornhill-line,#dce7de);
+  border-radius:12px;background:var(--cornhill-panel,#fff);
+  box-shadow:0 3px 12px rgba(20,55,34,.06);
+}
+.cornhill-nav-control{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:36px;padding:8px 12px;border:1px solid var(--cornhill-line,#dce7de);
+  border-radius:9px;background:var(--cornhill-page,#f4f7f4);
+  color:var(--cornhill-ink,#173b27);font:700 12px/1.2 inherit;
+  text-decoration:none;white-space:nowrap;cursor:pointer;
+}
+.cornhill-nav-control.cornhill-nav-home{
+  background:var(--cornhill-accent,#166534);border-color:var(--cornhill-accent,#166534);color:#fff;
+}
+.cornhill-nav-control:disabled{opacity:.4;cursor:not-allowed}
+.cornhill-nav-control:not(:disabled):hover{filter:brightness(.97)}
+#app>.cornhill-navigation-shell{
+  width:calc(100% - 260px);max-width:calc(100% - 260px);
+  margin:6px 0 12px 260px;
+}
+@media(min-width:701px) and (max-width:900px){
+  #app>.cornhill-navigation-shell{
+    width:calc(100% - 222px);max-width:calc(100% - 222px);margin-left:222px
+  }
+  #app .cornhill-sidebar{top:108px!important}
+}
+@media(min-width:901px){#app .cornhill-sidebar{top:108px!important}}
+@media(max-width:700px){
+  .top{padding:8px 11px!important;align-items:center!important}
+  .top .brand{font-size:14px!important}
+  .top .brand img{width:38px!important;height:38px!important;flex-basis:38px!important}
+  .top .brand span{font-size:13px!important}
+  .top .sub{font-size:9px!important}
+  .top .school-motto{margin-top:3px!important}
+  .top .school-motto>span{font-size:7px!important;padding:2px 6px!important}
+  .top .school-motto small{font-size:8px!important}
+  .cornhill-navigation-shell{width:100%;margin:8px 0 10px;justify-content:stretch}
+  .cornhill-navigation-controls{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .cornhill-nav-control{min-width:0;min-height:38px;padding:7px 5px;font-size:11px;white-space:normal}
+  #app>.cornhill-navigation-shell{width:100%;max-width:100%;margin:8px 0 10px}
+}
