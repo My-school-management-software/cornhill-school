@@ -102,7 +102,7 @@ test('assessment edits are blocked after at least one report is published for th
   assert.match(fn, /public\.report_card_publications/);
   assert.match(fn, /old\.class_id[\s\S]*?old\.term_id/);
   assert.match(fn, /new\.class_id[\s\S]*?new\.term_id/);
-  assert.match(fn, /before insert or update or delete on public\.assessments/i);
+  assert.match(sql, /create trigger guard_published_report_card_assessments\s+before insert or update or delete on public\.assessments/i);
 });
 
 test('saved mark and teacher-comment changes are blocked after a learner report is published', () => {
@@ -112,7 +112,7 @@ test('saved mark and teacher-comment changes are blocked after a learner report 
   assert.match(fn, /new\.student_id/);
   assert.match(fn, /old\.assessment_id/);
   assert.match(fn, /new\.assessment_id/);
-  assert.match(fn, /before insert or update or delete on public\.assessment_scores/i);
+  assert.match(sql, /create trigger guard_published_report_card_scores\s+before insert or update or delete on public\.assessment_scores/i);
 });
 
 test('class and term advisory locks serialize publication against concurrent assessment edits', () => {
