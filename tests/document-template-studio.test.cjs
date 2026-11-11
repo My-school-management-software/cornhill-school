@@ -169,8 +169,9 @@ test('attribute rendering escapes saved template keys before placing them in HTM
     document_type:'report_card',school_section:'p4',template_key:'x" onmouseover="alert(1)',settings:{}
   }],error:null});}};}}} });
   await runtime.loadPreferences(true);
-  assert.match(runtime.attributes('report_card','p4'), /x&amp;quot;|x&quot;/);
-  assert.doesNotMatch(runtime.attributes('report_card','p4'), /onmouseover=/);
+  const attrs = runtime.attributes('report_card','p4');
+  assert.match(attrs, /data-document-template="x&quot; onmouseover=&quot;alert\\(1\\)"/);
+  assert.doesNotMatch(attrs, /data-document-template="x" onmouseover=/);
 });
 
 test('untrusted saved colours, layout, motif and font are replaced with safe defaults', async () => {
@@ -256,7 +257,7 @@ test('template updates use the class-specific unique key and record the saving a
 test('loading templates without an authenticated database bridge is harmless', async () => {
   const { runtime } = boot();
   const result = await runtime.loadPreferences(true);
-  assert.deepEqual(Object.keys(result), []);
+  assert.equal(Object.keys(result).length, 0);
 });
 
 test('failed preference loads reject without replacing already-loaded preferences', async () => {
