@@ -5,6 +5,16 @@ const assert = require('node:assert/strict');
 const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261111220000_unified_staff_account_directory.sql');
 const sql = fs.readFileSync(migrationPath, 'utf8');
 
+
+const activeSessionMigrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261111230000_require_active_staff_session_for_staff_tables.sql');
+const activeSessionSql = fs.readFileSync(activeSessionMigrationPath, 'utf8');
+assert.match(activeSessionSql, /create policy active_staff_session_required on public\.%I as restrictive for all to authenticated/i,
+  'Staff-domain RLS hardening must be restrictive and must not grant access by itself.');
+assert.match(activeSessionSql, /using \(public\.is_active_staff_session\(\)\) with check \(public\.is_active_staff_session\(\)\)/i,
+  'Every staff-domain operation must require a currently active profile.');
+assert.match(activeSessionSql, /staff_salary_advances[\s\S]*staff_salary_agreements[\s\S]*staff_work_schedules/,
+  'The active-session guard must cover attendance, communications, payroll and schedules.');
+
 assert.match(sql, /create unique index if not exists user_profiles_single_active_admin_idx/i,
   'Only one active full-access Admin/Director profile may exist.');
 assert.match(sql, /where role = 'Admin'.*employment_status.*'Active'/is,
@@ -153,4 +163,4 @@ assert.match(loginHtml, /await offlineSchoolDelete\(owner\);return false/,
   'Invalid or expired offline snapshots must be removed from local storage.');
 assert.match(loginHtml, /remote account suspension takes effect on this device when it reconnects or this snapshot expires/,
   'The offline banner must explain the remote-revocation limitation and expiry.');
-console.log('Unified staff account architecture: source assertions passed, including active-session revocation checks.');
+console.log('Unified staff account architecture: source assertions passed, including active-session RLS revocation checks.');
