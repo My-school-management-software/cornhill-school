@@ -250,4 +250,4 @@ window.addEventListener('offline',()=>{$('connectionBadge').textContent='Offline
 (async()=>{try{const {data}=await db.auth.getSession();if(data.session){user=data.session.user;await enterApp()}}catch(err){notice('loginMsg',err.message||'Please sign in again.','error');await db.auth.signOut()}})();
 if('serviceWorker'in navigator)navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
-</body></html>
+<script src="/assets/cornhill-navigation.js" defer></script></body></html>
