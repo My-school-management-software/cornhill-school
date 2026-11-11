@@ -17,7 +17,7 @@ security definer
 set search_path = ''
 as $function$
   select
-    public.is_school_admin()
+    public.is_school_academic_viewer()
     or public.is_class_teacher_for_class(p_class_id)
     or exists (
       select 1
@@ -54,7 +54,7 @@ security definer
 set search_path = ''
 as $function$
   select
-    public.is_school_admin()
+    public.is_school_academic_manager()
     or public.is_class_teacher_for_class(p_class_id)
     or exists (
       select 1
