@@ -207,5 +207,41 @@ begin
      or position('is_school_admin' in lower(coalesce(v_report_policy.with_check, ''))) = 0 then
     raise exception 'Final report-card publication must remain Director/Admin-only until the staged approval workflow is implemented';
   end if;
+
+  -- Leadership-to-teacher coordination must be enforced by RLS, not only UI.
+  if not exists (
+    select 1 from pg_policies p
+    where p.schemaname = 'public'
+      and p.tablename = 'staff_communication_posts'
+      and p.policyname = 'staff_comm_posts_create'
+      and p.cmd = 'INSERT'
+      and position('is_school_academic_viewer' in lower(coalesce(p.with_check, ''))) > 0
+      and position('staff' in lower(coalesce(p.with_check, ''))) > 0
+  ) then
+    raise exception 'Headteacher/DOS must be able to publish teacher-only staff announcements through the guarded insert policy';
+  end if;
+
+  if not exists (
+    select 1 from pg_policies p
+    where p.schemaname = 'public'
+      and p.tablename = 'staff_communication_posts'
+      and p.policyname = 'staff_comm_posts_read'
+      and p.cmd = 'SELECT'
+      and position('is_school_academic_viewer' in lower(coalesce(p.qual, ''))) > 0
+      and position('author_user_id' in lower(coalesce(p.qual, ''))) > 0
+  ) then
+    raise exception 'Academic leaders must read teacher announcements and non-member authors must retain access to their own posts only';
+  end if;
+
+  if not exists (
+    select 1 from pg_policies p
+    where p.schemaname = 'public'
+      and p.tablename = 'staff_communication_posts'
+      and p.policyname = 'staff_comm_posts_update'
+      and p.cmd = 'UPDATE'
+      and position('is_school_academic_viewer' in lower(coalesce(p.with_check, ''))) > 0
+  ) then
+    raise exception 'Staff announcement edits must preserve the academic-leadership audience boundary';
+  end if;
 end;
 $tests$;
