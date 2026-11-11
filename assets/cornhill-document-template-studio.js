@@ -207,6 +207,9 @@
   element.setAttribute('data-document-template',row.template_key||'classic-current');
   element.setAttribute('data-document-layout',settings.layout||'classic');
   element.setAttribute('data-document-motif',settings.motif||'none');
+  const show=settings.show||{};
+  const hidden=Object.keys(show).filter(function(key){return show[key]===false;}).map(function(key){return key.replace(/[A-Z]/g,function(letter){return '-'+letter.toLowerCase();});});
+  element.setAttribute('data-document-hidden',hidden.join(' '));
   element.style.setProperty('--document-accent',settings.accent||'#14532d');
   element.style.setProperty('--document-tint',settings.tint||'#f0fdf4');
   element.style.setProperty('--document-font',settings.font||'Arial');
