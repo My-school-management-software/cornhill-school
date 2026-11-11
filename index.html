@@ -1105,7 +1105,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
   </section>
   <section class="login-account-group" aria-labelledby="schoolAdministratorsHeading">
    <div class="login-group-heading"><div><span class="login-group-number">02</span><h3 id="schoolAdministratorsHeading">School Administrators</h3><p class="muted">The existing Director account and authorised school administration accounts.</p></div><span class="login-group-tag">ADMINISTRATION</span></div>
-   <div id="administratorAccountDirectory" class="login-account-directory"><div class="login-account-row director-account"><span class="login-avatar">D</span><span><strong>Director</strong><small>Full school access · Existing account</small></span><span class="badge">Full access</span></div><p class="muted login-directory-note">The Director's existing account is retained. No duplicate Director account is created.</p></div>
+   <div id="administratorAccountDirectory" class="login-account-directory"><div class="login-account-row director-account"><span class="login-avatar">D</span><span><strong>Director</strong><small id="adminLoginName">Full school access · Existing account</small></span><span class="badge">Full access</span></div><p class="muted login-directory-note">The Director's existing account is retained. No duplicate Director account is created.</p></div>
    <button id="adminLoginOpen" class="tab login-admin-toggle" type="button" aria-expanded="false">Sign in to School Administrators <span aria-hidden="true">→</span></button>
    <div id="adminLoginPanel" class="hidden login-admin-panel">
     <label for="adminEmail">Your registered administrator email</label><input id="adminEmail" type="email" autocomplete="username" maxlength="254" placeholder="Your individual school account email">
@@ -6957,9 +6957,10 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
   const {data,error}=await db.auth.signInWithPassword({email,password});if(error){message('loginMsg',error.message,true);return}
   if(!data.session){message('loginMsg','Sign-in was not completed. Please try again.',true);return}
   const userId=data.session.user.id;
-  const {data:account,error:profileError}=await db.from('user_profiles').select('role').eq('id',userId).single();
+  const {data:account,error:profileError}=await db.from('user_profiles').select('role,employment_status').eq('id',userId).single();
   if(profileError||!account){await db.auth.signOut({scope:'local'});message('loginMsg','Your staff profile could not be verified. Contact the administrator.',true);return}
-  if(mode==='Admin'&&account.role!=='Admin'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not an administrator account.',true);return}
+  if(account.employment_status&&account.employment_status!=='Active'){await db.auth.signOut({scope:'local'});message('loginMsg','This staff account is not active. Contact the Director or school administrator.',true);return}
+  if(mode==='Admin'&&!['Admin','Staff'].includes(account.role)){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered in School Administrators. Use Teaching Staff if you are a teacher.',true);return}
   if(mode==='Teacher'){
    if(account.role!=='Teacher'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as an active teacher.',true);return}
    const {data:myAssignments,error:assignmentError}=await db.rpc('teacher_list_my_assignments');
