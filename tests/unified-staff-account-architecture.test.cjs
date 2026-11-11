@@ -110,10 +110,10 @@ const statusSource = fs.readFileSync(statusPath, 'utf8');
 assert.match(statusSource, /if \(employmentStatus !== "Active"\)[\s\S]*?from\("user_profiles"\)[\s\S]*?employment_status: employmentStatus[\s\S]*?updateUserById\(staffUserId, \{ ban_duration: "876000h" \}\)/,
   'Suspension must mark the authoritative profile inactive before applying the Auth ban.');
 
-assert.match(statusSource, /if \(employmentStatus === "Active"\)[\s\S]*?from\("school_staff_directory"\)[\s\S]*?\.eq\("linked_user_id", staffUserId\)[\s\S]*?\.maybeSingle\(\)/,
-  'Reactivation must verify one permanent employee link before lifting the authentication ban.');
-assert.match(statusSource, /\.select\("id"\);[\s\S]*?employeeRows\?\.length !== 1/,
-  'Employment changes must detect missing or duplicate employee links instead of silently reporting success.');
+assert.match(statusSource, /if \(employmentStatus === "Active"\)[\s\S]*?if \(target\.role === "Teacher"\)[\s\S]*?from\("academic_teacher_directory"\)[\s\S]*?\.maybeSingle\(\)[\s\S]*?else \{[\s\S]*?from\("school_staff_directory"\)[\s\S]*?\.maybeSingle\(\)/,
+  'Reactivation must verify the role-specific teacher or employee record before lifting the authentication ban.');
+assert.match(statusSource, /if \(target\.role === "Teacher"\)[\s\S]*?from\("academic_teacher_directory"\)[\s\S]*?teacherRows\?\.length !== 1[\s\S]*?else \{[\s\S]*?from\("school_staff_directory"\)[\s\S]*?employeeRows\?\.length !== 1/,
+  'Employment changes must synchronise exactly one record in the correct teaching or non-teaching directory.');
 
 assert.match(statusSource, /Auth bans prevent future sign-in\/refresh but do NOT revoke an already-issued JWT/i,
   'The function must document that banning does not revoke already-issued access tokens.');
@@ -140,9 +140,9 @@ assert.match(statusSource, /updateUserById\(staffUserId, \{ ban_duration: "none"
 assert.match(statusSource, /employmentStatus === "Exited" && employmentEndDate === null/,
   'An exited employee must have a final working date.');
 assert.match(statusSource, /from\("school_staff_directory"\)[\s\S]*?employment_status: employmentStatus, employment_end_date: employmentEndDate/,
-  'The linked employee register must receive status and end-date updates.');
+  'Non-teaching employee records must receive status and end-date updates.');
 assert.match(statusSource, /from\("academic_teacher_directory"\)[\s\S]*?update\(\{ employment_status: employmentStatus \}\)/,
-  'The academic teacher directory must receive status updates without referencing absent columns.');
+  'Teaching employee records must receive status updates without referencing absent columns.');
 assert.match(statusSource, /from\("user_profiles"\)[\s\S]*?employment_status: employmentStatus,[\s\S]*?employment_end_date: employmentEndDate/,
   'The sign-in profile status must be synchronised.');
 assert.doesNotMatch(statusSource, /deleteUser|\.delete\(/,
