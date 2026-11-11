@@ -2314,7 +2314,7 @@ function enterDemoMode(classKey=''){
 // Offline-first foundation: cache only the signed-in user's permitted class-list fields.
 // Guardian contacts, bursary details, finance records and authentication secrets are never cached here.
 const OFFLINE_SCHOOL_DB='cornhill-school-cache-v1';
-const OFFLINE_SCHOOL_MAX_AGE=24*60*60*1000;
+const OFFLINE_SCHOOL_MAX_AGE=12*60*60*1000;
 
 function localFormDraftDb(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('This browser does not support local autosave.'));return}const req=indexedDB.open(OFFLINE_SCHOOL_DB,3);req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('classSnapshots'))d.createObjectStore('classSnapshots',{keyPath:'owner'});if(!d.objectStoreNames.contains(OFFLINE_ASSESSMENT_STORE))d.createObjectStore(OFFLINE_ASSESSMENT_STORE,{keyPath:'draft_id'});if(!d.objectStoreNames.contains('formDrafts'))d.createObjectStore('formDrafts',{keyPath:'draft_id'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('Local autosave storage could not be opened.'))})}
 async function saveLocalFormDraft(owner,key,values){
@@ -2431,20 +2431,27 @@ async function restoreOfflineSchoolSnapshot(owner){
  const generation=window.cornhillSessionGeneration||0;if(currentUserId!==owner)return false;
  try{
   const snap=await offlineSchoolGet(owner);if(currentUserId!==owner||generation!==(window.cornhillSessionGeneration||0))return false;
-  if(!snap||!snap.savedAt||Date.now()-new Date(snap.savedAt).getTime()>OFFLINE_SCHOOL_MAX_AGE)return false;
-  if(!['Admin','Teacher'].includes(snap.role)||snap.profile?.role!==snap.role)return false;
+  const savedAtMs=snap?.savedAt?Date.parse(snap.savedAt):NaN;
+  const ageMs=Date.now()-savedAtMs;
+  if(!snap||snap.owner!==owner||!Number.isFinite(savedAtMs)||ageMs<0||ageMs>OFFLINE_SCHOOL_MAX_AGE||!Array.isArray(snap.classes)||!Array.isArray(snap.students)){
+   await offlineSchoolDelete(owner);return false;
+  }
+  if(!['Admin','Teacher'].includes(snap.role)||snap.profile?.role!==snap.role){
+   await offlineSchoolDelete(owner);return false;
+  }
   if(snap.role==='Teacher'){
    const selected=sessionStorage.getItem('cornhill_teacher_class_id');
    if(!selected||selected!==snap.teacherClassId)return false;
-   if(!(snap.classes||[]).some(c=>c.id===selected))return false;
-   if((snap.students||[]).some(s=>s.class_id!==selected))return false;
+   if(!snap.classes.some(c=>c.id===selected))return false;
+   if(snap.students.some(s=>s.class_id!==selected))return false;
   }
-  currentUserId=owner;profile=snap.profile;students=snap.students||[];classes=snap.classes||[];$('app').dataset.accountOwner=owner;
+  currentUserId=owner;profile=snap.profile;students=snap.students;classes=snap.classes;$('app').dataset.accountOwner=owner;
   $('welcome').textContent=profile.full_name?('Welcome, '+profile.full_name):'School dashboard';
   $('role').textContent=profile.role;
   setOfflineReadOnly(true);render();applyRoleNavigation();tab('dashboard');
-  const saved=new Date(snap.savedAt).toLocaleString('en-UG');
-  message('appMsg','OFFLINE VIEW ONLY · Class-list snapshot from '+saved+'. This copy is stored in this browser and may contain learner names, pupil codes and LIN. Use only on a school-managed, screen-locked device and sign out after use. Guardian contacts, bursary details, finance and live updates are unavailable. No changes can be saved or synchronised offline.',false);
+  const saved=new Date(savedAtMs).toLocaleString('en-UG');
+  const expires=new Date(savedAtMs+OFFLINE_SCHOOL_MAX_AGE).toLocaleString('en-UG');
+  message('appMsg','OFFLINE VIEW ONLY · Class-list snapshot from '+saved+'. This copy expires after 12 hours (by '+expires+') and is stored in this browser. It may contain learner names, pupil codes and LIN. Use only on a school-managed, screen-locked device and sign out after use. Guardian contacts, bursary details, finance and live updates are unavailable. No changes can be saved or synchronised offline. A remote account suspension takes effect on this device when it reconnects or this snapshot expires.',false);
   return true;
  }catch(_){return false}
 }
