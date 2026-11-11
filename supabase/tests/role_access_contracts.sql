@@ -146,6 +146,18 @@ begin
     raise exception 'Bursars must not insert Posted expenses directly; they must submit a request for Director approval';
   end if;
 
+  if not exists (
+    select 1
+    from pg_policies p
+    where p.schemaname = 'public'
+      and p.tablename = 'evidence_capture_reviews'
+      and p.policyname = 'Evidence reviews admin add'
+      and p.cmd = 'INSERT'
+      and position('is_school_admin' in lower(coalesce(p.with_check, ''))) > 0
+  ) then
+    raise exception 'Only the Director/Admin may approve or reject expense and bank evidence';
+  end if;
+
   select p.qual, p.with_check
     into v_report_policy
   from pg_policies p
