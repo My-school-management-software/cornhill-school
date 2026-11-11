@@ -272,6 +272,15 @@ test('P6 workbook heading PUPIL\'S NAMES is recognised as the learner-name colum
  assert.equal(mapping.normalise("PUPIL'S NAMES"),'PUPILSNAMES');
 });
 
+test('class marks view clears stale rows and discards an older class request',()=>{
+ const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
+ assert.ok(html.includes('cornhillExcelMarksGridGeneration'));
+ assert.ok(html.includes('const isCurrent=()=>requestGeneration==='));
+ assert.ok(html.includes('if(!isCurrent())return;'));
+ assert.ok(html.includes('Choose the class and load its own marks sheet.'));
+ assert.ok(html.includes('window.cornhillExcelMarksContext=null;'));
+});
+
 test('browser importer loads the tested helper and honours missing-subject states',()=>{
  const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
  assert.ok(html.includes('<script src="/assets/cornhill-mark-import-mapping.js"></script>'));
