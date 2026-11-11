@@ -10,8 +10,6 @@
 -- function executes with its owner's privileges. Authorization is checked inside
 -- the function before it touches any school data.
 
-begin;
-
 create or replace function public.post_school_payment(
   p_student_id uuid,
   p_amount_ugx bigint,
@@ -46,7 +44,7 @@ begin
     raise exception 'Select a learner and enter a payment amount greater than zero';
   end if;
 
-  if p_payment_method not in ('Cash', 'Mobile Money', 'Bank Transfer', 'Card', 'Other') then
+  if p_payment_method is null or p_payment_method not in ('Cash', 'Mobile Money', 'Bank Transfer', 'Card', 'Other') then
     raise exception 'Invalid payment method';
   end if;
 
@@ -203,5 +201,3 @@ revoke all on function public.reverse_school_payment(uuid, text)
   from public, anon;
 grant execute on function public.reverse_school_payment(uuid, text)
   to authenticated, service_role;
-
-commit;
