@@ -29,8 +29,10 @@ assert.match(sql, /p\.full_name as owner_name/i,
   "Each account row must display its owner's name.");
 assert.match(sql, /p\.job_title/i,
   'Each account row must expose its actual job title.');
-assert.match(sql, /where p\.role in \('Admin', 'Teacher', 'Staff'\)\s+and coalesce\(p\.employment_status, 'Active'\) = 'Active'/i,
-  'Only active, supported staff profiles may appear.');
+assert.match(sql, /where p\.role in \('Admin', 'Teacher', 'Staff'\)\s+and p\.employment_status = 'Active'/i,
+  'Only explicitly active, supported staff profiles may appear.');
+assert.match(sql, /where role = 'Admin' and employment_status = 'Active'/i,
+  'A missing employment status must not count as an active Director profile.');
 assert.match(sql, /revoke all on public\.staff_account_directory from public, anon/i,
   'The account directory must not be publicly readable.');
 assert.match(sql, /grant select on public\.staff_account_directory to authenticated/i,
