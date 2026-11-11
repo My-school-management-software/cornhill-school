@@ -70,3 +70,13 @@ A further review found that the existing `is_active_staff_session()` treated a N
 - The new role-helper migration was replayed inside a transaction against the production schema and rolled back successfully. This verifies SQL compatibility with the current function signatures without retaining any production changes.
 - One intermediate CI commit failed because a test assertion built an invalid JavaScript regular expression. The migration itself was not the cause. The assertion was replaced with a direct source-string check in the following commit; the latest head's workflow is queued and must complete before merge.
 - Performance advisor scan reports 98 unindexed foreign keys and several multiple-permissive-policy notices. These are broader pre-existing performance findings and require table-by-table review; no blanket indexes or policy changes were applied.
+
+
+## Additional privileged-RPC audit (2026-11-11)
+A second pass across authenticated-callable public SECURITY DEFINER functions found remaining direct employment-status checks that used `coalesce(employment_status, 'Active')`. The affected set included notification read/archive/list/restore RPCs, teacher assignment and roster RPCs, visiting-day lookup, evidence-device heartbeat, guardian PIN status, and three notification trigger functions that select staff recipients.
+
+A new migration, `20261112001000_remove_null_active_fallbacks_from_staff_rpcs.sql`, removes NULL-as-Active fallbacks in those functions and requires linked teacher-directory records to be explicitly Active for subject roster/assignment results. It preserves their existing role, ownership and class-assignment logic. The migration intentionally fails if the audited function signatures or expected guards have drifted.
+
+Validation: all four active-session/role/RLS/direct-RPC migrations were executed together inside a transaction against the production schema, then rolled back. In that rehearsal, all 21 restrictive RLS policies were created, the active-session helper was explicitly fail-closed, and the 13 targeted RPC/trigger functions had zero remaining NULL-as-Active employment fallbacks. No production changes were retained.
+
+The source test suite was extended to cover all 13 affected functions. The previous code commit passed 88/88 tests; CI for the newest migration and test commits is still running/queued and must complete before release.
