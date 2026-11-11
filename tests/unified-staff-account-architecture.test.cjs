@@ -200,3 +200,15 @@ assert.match(activeRlsMigration, /not exists \([\s\S]*?policyname = 'active_staf
   'Migration must be safe to rerun without duplicating its policy.');
 
 console.log('Unified staff account architecture: source assertions passed, including active-session RLS revocation checks.');
+
+const directRpcGuardsPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261112001000_remove_null_active_fallbacks_from_staff_rpcs.sql');
+const directRpcGuards = fs.readFileSync(directRpcGuardsPath, 'utf8');
+for (const rpc of ['archive_school_notification','list_school_notification_center','list_school_notifications','mark_school_notification_read','restore_school_notification','teacher_guardian_pin_status','teacher_list_my_assignments','teacher_subject_learner_roster','teacher_visiting_day_lookup','touch_evidence_capture_device']) {
+  assert.ok(directRpcGuards.includes("'" + rpc + "("), `The direct staff RPC migration must include ${rpc}.`);
+}
+assert.match(directRpcGuards, /employment_status = ''Active''/,
+  'Direct SECURITY DEFINER checks must require an explicit Active status.');
+assert.match(directRpcGuards, /td\.employment_status = ''Active''/,
+  'Teacher subject access must not inherit Active status from a NULL teacher-directory row.');
+assert.match(directRpcGuards, /if v_updated = v_definition then[\s\S]*?refusing partial migration/,
+  'The dynamic migration must fail if the audited function definitions have drifted.');
