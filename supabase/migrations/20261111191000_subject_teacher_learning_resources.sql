@@ -38,7 +38,8 @@ as $function$
         )
         and (cs.starts_on is null or cs.starts_on <= current_date)
         and (cs.ends_on is null or cs.ends_on >= current_date)
-        and cs.can_view_reports
+        and (cs.can_view_reports or cs.can_enter_marks)
+        and coalesce(td.employment_status, 'Active') = 'Active'
     );
 $function$;
 
@@ -75,6 +76,7 @@ as $function$
         and (cs.starts_on is null or cs.starts_on <= current_date)
         and (cs.ends_on is null or cs.ends_on >= current_date)
         and cs.can_enter_marks
+        and coalesce(td.employment_status, 'Active') = 'Active'
     );
 $function$;
 
