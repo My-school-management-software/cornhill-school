@@ -542,4 +542,4 @@ applyRequestContextFromLink();
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 (async()=>{const {data}=await db.auth.getSession();if(data.session){user=data.session.user;try{await enterApp()}catch(err){note('loginMsg',err.message||'Please sign in again.','error');await db.auth.signOut()}}})();
 </script>
-</body></html>
+<script src="/assets/cornhill-navigation.js" defer></script></body></html>
