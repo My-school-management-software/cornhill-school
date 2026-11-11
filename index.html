@@ -7058,7 +7058,7 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
   if(profileError||!account){await db.auth.signOut({scope:'local'});message('loginMsg','Your staff profile could not be verified. Contact the administrator.',true);return}
   if(mode==='Admin'&&account.role!=='Admin'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not an administrator account.',true);return}
   if(mode==='Staff'&&account.role!=='Staff'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as an active school staff account.',true);return}
-  if(account.employment_status&&account.employment_status!=='Active'){await db.auth.signOut({scope:'local'});message('loginMsg','This school account is currently inactive. Contact the Director.',true);return}
+  if(String(account.employment_status||'Active').trim().toLowerCase()!=='active'){await db.auth.signOut({scope:'local'});message('loginMsg','This school account is currently inactive. Contact the Director.',true);return}
   if(mode==='Teacher'){
    if(account.role!=='Teacher'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as an active teacher.',true);return}
    const {data:myAssignments,error:assignmentError}=await db.rpc('teacher_list_my_assignments');
