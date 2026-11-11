@@ -134,6 +134,12 @@ revoke all on function public.post_school_payment(uuid, bigint, text, text, text
 grant execute on function public.post_school_payment(uuid, bigint, text, text, text)
   to authenticated, service_role;
 
+-- Bursars must submit expense requests; only Director-approved requests are posted
+-- after the evidence-review trigger. Remove the legacy direct INSERT path that
+-- allowed a finance operator to insert a Posted expense without that approval.
+drop policy if exists "Finance operators record school expenses"
+  on public.school_expenses;
+
 -- A Bursar may post a new payment, but must not reverse or erase a receipt.
 -- Keep this function SECURITY INVOKER so the existing administrator-only UPDATE
 -- RLS policy remains an independent second check.
