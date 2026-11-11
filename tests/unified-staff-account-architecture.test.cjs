@@ -163,4 +163,17 @@ assert.match(loginHtml, /await offlineSchoolDelete\(owner\);return false/,
   'Invalid or expired offline snapshots must be removed from local storage.');
 assert.match(loginHtml, /remote account suspension takes effect on this device when it reconnects or this snapshot expires/,
   'The offline banner must explain the remote-revocation limitation and expiry.');
+
+const activeRlsMigrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261111230000_require_active_staff_session_for_staff_tables.sql');
+const activeRlsMigration = fs.readFileSync(activeRlsMigrationPath, 'utf8');
+for (const table of ['staff_attendance_adjustments','staff_attendance_alerts','staff_attendance_deduction_settings','staff_attendance_device_users','staff_attendance_events','staff_attendance_import_batches','staff_attendance_incidents','staff_attendance_schedule_assignments','staff_call_signals','staff_communication_comments','staff_communication_posts','staff_communication_reactions','staff_direct_messages','staff_media_messages','staff_salary_advances','staff_salary_agreements','staff_work_schedules','class_teacher_access','class_subjects','evidence_capture_files','evidence_capture_requests']) {
+  assert.match(activeRlsMigration, new RegExp(`'${table}'`), `Active-session RLS migration must cover ${table}.`);
+}
+assert.match(activeRlsMigration, /as restrictive for all to authenticated using \(public\.is_active_staff_session\(\)\) with check \(public\.is_active_staff_session\(\)\)/,
+  'Staff table guard must be restrictive and enforce both reads/writes and row checks without granting access.');
+assert.match(activeRlsMigration, /c\.relrowsecurity/,
+  'Migration must only add the restrictive policy to tables already protected by RLS.');
+assert.match(activeRlsMigration, /not exists \([\s\S]*?policyname = 'active_staff_session_required'/,
+  'Migration must be safe to rerun without duplicating its policy.');
+
 console.log('Unified staff account architecture: source assertions passed, including active-session RLS revocation checks.');
