@@ -170,6 +170,13 @@ assert.match(loginHtml, /await offlineSchoolDelete\(owner\);return false/,
 assert.match(loginHtml, /remote account suspension takes effect on this device when it reconnects or this snapshot expires/,
   'The offline banner must explain the remote-revocation limitation and expiry.');
 
+const failClosedActiveSessionPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261111233000_fail_closed_active_staff_session.sql');
+const failClosedActiveSession = fs.readFileSync(failClosedActiveSessionPath, 'utf8');
+assert.match(failClosedActiveSession, /p\.employment_status = 'Active'/,
+  'A missing employment status must not inherit active access.');
+assert.doesNotMatch(failClosedActiveSession, /coalesce\(p\.employment_status,\s*'Active'\)/,
+  'The active-session helper must fail closed for NULL employment status.');
+
 const activeRlsMigrationPath = path.join(__dirname, '..', 'supabase', 'migrations', '20261111230000_require_active_staff_session_for_staff_tables.sql');
 const activeRlsMigration = fs.readFileSync(activeRlsMigrationPath, 'utf8');
 for (const table of ['staff_attendance_adjustments','staff_attendance_alerts','staff_attendance_deduction_settings','staff_attendance_device_users','staff_attendance_events','staff_attendance_import_batches','staff_attendance_incidents','staff_attendance_schedule_assignments','staff_call_signals','staff_communication_comments','staff_communication_posts','staff_communication_reactions','staff_direct_messages','staff_media_messages','staff_salary_advances','staff_salary_agreements','staff_work_schedules','class_teacher_access','class_subjects','evidence_capture_files','evidence_capture_requests']) {
