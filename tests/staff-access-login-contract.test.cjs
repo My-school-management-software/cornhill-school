@@ -40,7 +40,7 @@ test('only the active Director can issue or revoke a staff code', () => {
 });
 
 test('Director remains Admin-only and no new Director role is created', () => {
-  assert.ok(html.includes("if(role==='Director')return isAdminRole"));
-  assert.ok(html.includes("isAdminRole=p?.role==='Admin'"));
+  assert.ok(html.includes("if(role==='Director')return admin"));
+  assert.ok(html.includes("admin=p?.role==='Admin'"));
   assert.ok(edge.includes('profile.role !== "Staff"'));
 });
