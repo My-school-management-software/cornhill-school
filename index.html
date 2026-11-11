@@ -1910,7 +1910,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 </div><div class="panel" style="margin:16px 0"><div class="dashboard-eyebrow">STAFF COLLABORATION</div><h3>Staff communication</h3><p class="muted">The staff noticeboard, private messages, voice/video messages and calls remain available below for authorised staff.</p></div><div id="staffCommMsg" class="notice hidden"></div>
 <form id="staffPostForm">
 <div class="full"><label>Announcement or message *</label><textarea name="body" rows="4" maxlength="5000" required placeholder="Write a staff update, reminder or announcement…"></textarea></div>
-<div><label>Who can see this?</label><select name="audience" id="staffPostAudience"><option value="all_staff">All staff</option><option value="teachers">Teachers only</option><option value="admins">Administrators only</option></select></div>
+<div><label>Who can see this?</label><select name="audience" id="staffPostAudience"><option value="all_staff">All staff</option><option value="teachers">Teachers only · academic leadership and teachers</option><option value="admins">Director / administrators only</option></select><small class="muted">Teachers-only announcements are available to teachers, the DOS, Headteacher and Director. All staff can use the school-wide channel.</small></div>
 <div><button class="primary" type="submit">Publish message</button></div>
 </form>
 <div class="row" style="justify-content:space-between;margin:18px 0"><h3>School staff feed</h3><button type="button" id="refreshStaffFeed">Refresh</button></div>
@@ -8287,7 +8287,7 @@ async function loadStaffCommunication(){
  audienceSelect.value='all_staff';
  const teachersOption=audienceSelect.querySelector('option[value="teachers"]');
  const adminsOption=audienceSelect.querySelector('option[value="admins"]');
- if(teachersOption)teachersOption.disabled=!['Admin','Teacher'].includes(profile.role);
+ if(teachersOption)teachersOption.disabled=!(profile.role==='Teacher'||isCornhillAcademicViewer());
  if(adminsOption)adminsOption.disabled=profile.role!=='Admin';
  const {data:posts,error}=await db.from('staff_communication_posts').select('id,author_user_id,body,audience,is_pinned,created_at').order('is_pinned',{ascending:false}).order('created_at',{ascending:false}).limit(50);
  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
