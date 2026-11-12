@@ -1,13 +1,13 @@
 # CORNHILL sign-in and coordinated account model
 
-**Date:** 11 November 2026  
-**Status:** Sign-in UI update staged on the role-access feature branch. No live account, password, profile, or database changes were made.
+**Date:** 12 November 2026  
+**Status:** Role-specific sign-in frontend, access-code migration and Edge Function are deployed to production. Real leadership/bursar accounts and issued access codes remain pending Director-confirmed employee details.
 
 ## Sign-in window
 
 The main sign-in screen now presents three compact account areas:
 - Teaching staff — class teachers and subject-only teachers, with the existing class selection and individual teacher authentication.
-- School staff — one private email/password entry for Headteacher, DOS, Bursar, Deputy Bursar and other approved Staff accounts.
+- School staff — distinct role choices for Headteacher, Deputy Headteacher, DOS, Main Bursar, Deputy Bursar and other approved Staff accounts, with each role's approved credential path.
 - Director — the existing separate Admin email/password sign-in.
 
 The class chooser uses smaller responsive tiles rather than large cards. The School Staff form is collapsed until requested. The Director form remains separately expandable. The layout includes a short security reminder, accessible status messages, and reduced-motion behavior.
@@ -21,7 +21,7 @@ The sign-in page intentionally does not publish a list of individual staff names
 - Admin remains restricted to role Admin.
 - Teachers remain restricted to role Teacher and must pass the existing assignment check for the selected class.
 - Staff login stores the Staff login mode rather than mislabelling the session as Admin.
-- No staff-code login was added in this UI-only phase. Headteacher/DOS staff-code sign-in remains a separate secure backend task and must use a protected, rate-limited server-side lookup. Never expose an email or password hash during code lookup.
+- Personal-code login is now implemented for Headteacher, Deputy Headteacher, DOS and Teacher accounts. The code is checked server-side, must be combined with the same account's own password, is HMAC-hashed at rest, rate-limited, revocable and audited. Bursar accounts use their own email/password. Never expose an email, password hash or stored access-code hash during code lookup.
 
 ## Coordination and separation
 
@@ -70,4 +70,9 @@ The sign-in page does not publish staff names or email addresses. Each login is 
 
 Personal codes are 18-character generated values, stored only as HMAC hashes in a service-only table. The same user must also supply their own Supabase Auth password. The code endpoint checks active employee linkage and exact job title, rate-limits lookup attempts and writes an audit event. Only the active Director/Admin can issue or revoke a code.
 
-The dashboard and services-page updates, migration and Edge Function are in the development branch. CI passed both individual staff access and appearance/workspace test suites on commit `48e740d22dfbf199d8105f0771f891fd49e42d0e`. The migration and function have not yet been applied/deployed to production; the real leadership/bursar accounts remain to be provisioned using confirmed school employee records and official email addresses.
+The dashboard and services-page updates were merged as `2e6c1a4d5d8f5f7d11e3c7b99a9bc21f208fa4e` and deployed to Vercel production (deployment `dpl_6zB7db5NEeUaQ9n1kz6ZmFpa9KFt`). The migration is applied and the `staff-access-code` Edge Function is ACTIVE. The individual-access and appearance/workspace CI suites passed. Real leadership/bursar accounts remain to be provisioned using confirmed school employee records and official email addresses.
+
+
+## Production release confirmation — 12 November 2026
+
+This section supersedes the earlier staged-only status above. The permanent main CORNHILL site and School Services page both return HTTP 200 and were checked for role-specific choices. Vercel deployment `dpl_6zB7db5NEeUaQ9n1kz6ZmFpa9KFt` is READY from merged commit `2e6c1a4d5d8f5f7d11e3c7b99a9bc21f208fa4e5`. All 21 configured project aliases are attached to it. The Supabase code migration is applied and the `staff-access-code` Edge Function is ACTIVE v1. Database RLS prevents browser-role reads of code hashes and execution of the service-only rate limiter. Production currently shows 1 Admin/Director, 10 Teachers, 0 active Staff profiles, 0 active linked leadership accounts and 0 issued personal codes. Consequently the login routes are live, but Headteacher/Deputy Headteacher/DOS/Bursar credentials still need to be provisioned from confirmed genuine employee identities and emails before their sign-in can be exercised end-to-end.
