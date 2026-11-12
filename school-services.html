@@ -58,6 +58,21 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
 .login-mode-switch button.active{background:#14532d;color:#fff;border-color:#14532d}
 @media(max-width:520px){.login-role-grid{grid-template-columns:1fr}.login-role-choice{min-height:62px}.login-mode-switch{flex-direction:column}}
 
+
+/* Capacity monitoring: compact, responsive and independent of school-data modules. */
+.capacity-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}
+.capacity-meter{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}
+.capacity-meter-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.capacity-track{height:11px;border-radius:999px;background:#e7eee8;overflow:hidden;margin:10px 0 7px}
+.capacity-fill{height:100%;width:0;background:#16a34a;border-radius:999px;transition:width .2s ease}
+.capacity-fill[data-level="warning"]{background:#ca8a04}
+.capacity-fill[data-level="urgent"],.capacity-fill[data-level="critical"]{background:#dc2626}
+.capacity-status{font-size:12px;font-weight:850}
+.capacity-status[data-level="warning"]{color:#a16207}
+.capacity-status[data-level="urgent"],.capacity-status[data-level="critical"]{color:#b91c1c}
+.capacity-status[data-level="normal"]{color:#166534}
+.capacity-foot{font-size:12px;color:var(--muted);line-height:1.45}
+@media(max-width:540px){.capacity-layout{grid-template-columns:1fr}.capacity-meter{padding:12px}}
 </style>
 <script id="cornhill-workspace-boot">
 (function(){
@@ -448,6 +463,23 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
   <section id="system-health" class="panel module hidden">
     <div class="module-head"><div><span class="kicker">ADMINISTRATOR ONLY</span><h2>System Health & Recovery Centre</h2><p class="muted">Basic live connectivity checks and recovery readiness guidance. A green connection check does not prove a backup can be restored.</p></div><button type="button" class="primary" id="runHealthCheck">Run system checks</button></div>
     <div class="stats"><div class="stat"><small>Authentication</small><strong id="healthAuth">Not checked</strong></div><div class="stat"><small>Database API</small><strong id="healthDatabase">Not checked</strong></div><div class="stat"><small>App Centre access</small><strong id="healthApps">Not checked</strong></div></div>
+    <div class="card" id="capacityUsageCard">
+      <div class="module-head"><div><h3>Database and file-storage capacity</h3><p class="muted">Measured usage against CORNHILL's configured Supabase plan allowance. Thresholds are 70% warning, 85% urgent and 95% critical.</p></div><button type="button" id="refreshCapacity">Refresh capacity</button></div>
+      <p class="muted" id="capacityPlan">Plan allowance not checked.</p>
+      <div class="capacity-layout">
+        <div class="capacity-meter">
+          <div class="capacity-meter-head"><strong>Database</strong><span id="capacityDatabaseStatus" class="capacity-status" data-level="normal">Not checked</span></div>
+          <div class="capacity-track" role="progressbar" aria-label="Database capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="capacityDatabaseBar" class="capacity-fill" data-level="normal"></div></div>
+          <div id="capacityDatabaseValue" class="capacity-foot">—</div>
+        </div>
+        <div class="capacity-meter">
+          <div class="capacity-meter-head"><strong>Private file storage</strong><span id="capacityStorageStatus" class="capacity-status" data-level="normal">Not checked</span></div>
+          <div class="capacity-track" role="progressbar" aria-label="File storage capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="capacityStorageBar" class="capacity-fill" data-level="normal"></div></div>
+          <div id="capacityStorageValue" class="capacity-foot">—</div>
+        </div>
+      </div>
+      <p class="capacity-foot" id="capacityHealthNote" role="status" aria-live="polite">Capacity will be measured when an administrator runs the checks. Vercel hosting usage and external storage are monitored separately.</p>
+    </div>
     <div id="healthDetails" class="notice">Run checks to test the current staff session and read-only access.</div>
     <div class="card" id="backupActivityCard">
       <div class="module-head"><div><h3>Encrypted backup activity</h3><p class="muted">Administrator-only backup schedule, recent runs and validation summaries. This view never exposes Drive tokens, scheduler secrets or private backup credentials.</p></div><button type="button" id="refreshBackupActivity">Refresh backup activity</button></div>
@@ -1128,17 +1160,70 @@ async function loadBackupDashboard(){
  $('backupActivityNote').textContent='Showing up to 10 recent backup records. '+(runs.some(x=>x.validation?.validation_status)?'Validation metadata is available for some backups. ':'No completed restore validation is recorded in the displayed runs. ')+'A metadata summary does not prove a full restore.';
  return runs.length>0 && String(runs[0].status||'').toLowerCase()==='success';
 }
+function healthFormatBytes(value){
+ const bytes=Number(value);
+ if(!Number.isFinite(bytes)||bytes<0)return 'Unavailable';
+ if(bytes===0)return '0 B';
+ const units=['B','KB','MB','GB','TB'];let amount=bytes,unit=0;
+ while(amount>=1024&&unit<units.length-1){amount/=1024;unit++;}
+ return amount.toFixed(amount>=100||unit===0?0:1)+' '+units[unit];
+}
+function healthCapacityLevel(percent){
+ const value=Number(percent);
+ if(!Number.isFinite(value))return 'unknown';
+ if(value>=95)return 'critical';
+ if(value>=85)return 'urgent';
+ if(value>=70)return 'warning';
+ return 'normal';
+}
+async function loadCapacityDashboard(){
+ if(!isAdmin())return null;
+ const note=$('capacityHealthNote');
+ const {data,error}=await db.rpc('get_school_system_capacity_metrics');
+ if(error||!data||typeof data!=='object'){
+  $('capacityPlan').textContent='Capacity metrics unavailable';
+  $('capacityDatabaseStatus').textContent='Not checked';
+  $('capacityStorageStatus').textContent='Not checked';
+  note.textContent='The protected capacity service did not return measurements. Check the administrator permissions and retry; no storage credentials are exposed.';
+  return null;
+ }
+ const database=data.database||{},storage=data.storage||{};
+ const render=(kind,section)=>{
+  const prefix=kind==='database'?'capacityDatabase':'capacityStorage';
+  const percent=Number(section.percent_used);
+  const level=healthCapacityLevel(percent);
+  const status=$(prefix+'Status'),bar=$(prefix+'Bar'),value=$(prefix+'Value');
+  status.textContent=Number.isFinite(percent)?level.toUpperCase()+' · '+percent.toFixed(1)+'%':'Unavailable';
+  status.dataset.level=level;
+  bar.dataset.level=level;
+  bar.style.width=Number.isFinite(percent)?Math.min(100,Math.max(0,percent))+'%':'0%';
+  const track=bar.parentElement;
+  if(track)track.setAttribute('aria-valuenow',Number.isFinite(percent)?String(Math.min(100,Math.max(0,percent))):'0');
+  value.textContent=healthFormatBytes(section.used_bytes)+' used of '+healthFormatBytes(section.limit_bytes)+' configured allowance';
+  return level;
+ };
+ const dbLevel=render('database',database),storageLevel=render('storage',storage);
+ $('capacityPlan').textContent='Configured provider baseline: Supabase '+String(data.plan||'Free')+' plan. File objects counted: '+Number(storage.object_count||0).toLocaleString('en-UG')+' across '+Number(storage.bucket_count||0).toLocaleString('en-UG')+' buckets.';
+ const levels=[dbLevel,storageLevel];
+ const hasWarning=levels.some(x=>x==='warning'||x==='urgent'||x==='critical');
+ const unknown=levels.some(x=>x==='unknown');
+ const time=data.measured_at?new Date(data.measured_at):null;
+ const checked=time&&!Number.isNaN(time.getTime())?' Last measured '+time.toLocaleString('en-GB',{timeZone:'Africa/Kampala'})+'.':'';
+ note.textContent=(hasWarning?'A capacity threshold has been reached. Review the affected resource and plan corrective action.':unknown?'At least one capacity percentage could not be calculated.':'Both measured resources are below the 70% warning threshold.')+checked+' The database scheduler checks these thresholds every 15 minutes. Vercel hosting usage and external storage are not included in these figures.';
+ return {databaseLevel:dbLevel,storageLevel,hasWarning,unknown};
+}
 async function runHealthCheck(display=true){
  if(!isAdmin())return;
  $('healthAuth').textContent='Checking…';$('healthDatabase').textContent='Checking…';$('healthApps').textContent='Checking…';
- const [auth,apps,backupOk]=await Promise.all([db.auth.getUser(),db.from('school_apps').select('app_key',{count:'exact',head:true}),loadBackupDashboard()]);
+ const [auth,apps,backupOk,capacity]=await Promise.all([db.auth.getUser(),db.from('school_apps').select('app_key',{count:'exact',head:true}),loadBackupDashboard(),loadCapacityDashboard()]);
  const authOk=!auth.error&&!!auth.data?.user?.id,dbOk=!apps.error;
  $('healthAuth').textContent=authOk?'Connected':'Failed';$('healthDatabase').textContent=dbOk?'Reachable':'Failed';$('healthApps').textContent=apps.error?'Restricted / failed':String(apps.count??'Reachable');
- $('healthDetails').textContent=(authOk&&dbOk?'Current session and read-only database request succeeded. ':'One or more connection checks failed. ')+(apps.error?'App Centre query: '+apps.error.message:'App Centre read-only check completed.')+(backupOk?' Latest backup completed successfully.':' The latest backup is missing, unavailable or not successful.')+' This check does not validate a full restore.';
+ $('healthDetails').textContent=(authOk&&dbOk?'Current session and read-only database request succeeded. ':'One or more connection checks failed. ')+(apps.error?'App Centre query: '+apps.error.message:'App Centre read-only check completed.')+(backupOk?' Latest backup completed successfully.':' The latest backup is missing, unavailable or not successful.')+(capacity?(capacity.hasWarning?' A database or file-storage capacity threshold needs attention.':' Database and file-storage capacity are below the warning threshold.'):' Capacity metrics could not be loaded.')+' This check does not validate a full restore.';
  try{const {error}=await db.rpc('record_school_system_health_notification',{p_checks:{auth:authOk?'connected':'failed',database:dbOk?'reachable':'failed',apps:apps.error?'failed':'reachable',backup:backupOk?'available':'unavailable'}});if(error)console.warn('System-health alert could not be recorded:',error.message)}catch(error){console.warn('System-health alert could not be recorded:',error)}
  if(display)note('globalMsg','Live connection and backup checks completed. Review any new alert in Notification Centre.',authOk&&dbOk?'success':'error');
 }
 $('refreshBackupActivity').addEventListener('click',loadBackupDashboard);
+$('refreshCapacity').addEventListener('click',loadCapacityDashboard);
 $('runHealthCheck').addEventListener('click',()=>runHealthCheck(true));
 $('refreshHr').addEventListener('click',()=>Promise.all([loadLeave(),loadPayroll()]));
 $('refreshLearning').addEventListener('click',async()=>{await loadClasses();await loadResources()});
