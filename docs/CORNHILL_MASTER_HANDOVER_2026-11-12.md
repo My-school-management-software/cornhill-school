@@ -381,3 +381,13 @@ No access codes were issued, no staff invitation was sent and no account/passwor
 - No deployment was created, no permanent alias was moved, and no billing/plan change was made.
 - Permanent production remains on commit `a9f55fe1b796dd9190a21ae43dfdf7648ec11dc0`. The READY preview from the staff-login test PR is not production.
 - Do not retry before the stated quota window; after it resets, perform one production deployment from the then-current integrated release head and verify the main URL plus all 21 module aliases.
+
+
+### Production login UI clarification — verified against the live source
+
+A source-level recheck of the permanent production commit `a9f55fe1b796dd9190a21ae43dfdf7648ec11dc0` clarifies the earlier wording:
+
+- The live main dashboard **already contains** the separate Headteacher, Deputy Headteacher, DOS, Main Bursar, Deputy Bursar and Other Staff role choices, plus authenticated role/job-title matching and the personal-code login route.
+- The live School Services page already contains the Director's individual staff access-code management panel.
+- The live School Services page does **not** contain the new bursar enrollment-management panel, and the live deployment does **not** contain the dedicated `bursar-account.html` invitation/password setup page.
+- Therefore do not tell the user that all role-based login screens are absent from production. The remaining frontend deployment gap is specifically the integrated release update, including the new Director-controlled bursar enrollment UI/setup page and its latest coordinated changes. Production still runs the older `a9f55fe` source; the integrated release is newer and remains blocked by the 24-hour free deployment quota.
