@@ -145,3 +145,10 @@ Latest CI result for commit `19d58378bbe7c4aa35959dae74750b9619a07f09`:
 - Six edited Node test files: parsed with no syntax errors.
 
 Vercel generated a READY preview for that same commit. The front-end preview is current; however, the staged Supabase communication migration is not applied, so the new Headteacher/DOS teacher-only announcement permissions are not active against the live database yet.
+
+
+## Main dashboard role-specific login implementation — 12 November 2026
+
+The shared School Staff sign-in was removed from the main dashboard in development. The main dashboard and standalone School Services page now provide distinct role choices for Headteacher, Deputy Headteacher, DOS, Main Bursar, Deputy Bursar and Other Staff. The existing Director/Admin main account and teacher class assignment path remain separate and intact. Teachers can use an individual access code plus password, with their existing individual email/password path as an alternative. DOS can use code/password or email/password; Headteacher/Deputy Headteacher use code/password; each bursar uses private email/password.
+
+Role checks are performed after authentication against the signed-in profile's `role`, `job_title` and active employment status. The only full `Admin` remains the Director. No real Staff accounts have yet been provisioned. The feature branch includes an additive migration and a Director-managed code Edge Function; neither is yet deployed to production. CI's individual-access and appearance/workspace suites passed at commit `48e740d22dfbf199d8105f0771f891fd49e42d0e`.
