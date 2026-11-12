@@ -169,7 +169,7 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
 
 <section id="appPanel" class="hidden">
 <section id="staffAccessCodeAdminPanel" class="panel hidden" aria-labelledby="staffAccessCodeAdminTitle">
-  <div class="module-head"><div><span class="kicker">DIRECTOR-ONLY ACCOUNT CONTROL</span><h2 id="staffAccessCodeAdminTitle">Individual Staff Access Codes</h2><p class="muted">Issue or revoke a personal code for an existing active Teacher, Headteacher, Deputy Headteacher or DOS account. Codes are shown once and are never stored in plain text.</p></div></div>
+  <div class="module-head"><div><span class="kicker">DIRECTOR-ONLY ACCOUNT CONTROL</span><h2 id="staffAccessCodeAdminTitle">Individual Staff Access Codes</h2><p class="muted">Issue or revoke a personal code for an existing active Teacher, Headteacher, Deputy Headteacher or DOS account. Codes are shown once and are never stored in plain text.</p><a class="button primary" target="_blank" rel="noopener noreferrer" href="https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/staff-account-activation">Open Staff Activation Centre</a></div></div>
   <div class="grid" style="grid-template-columns:minmax(0,1fr) auto;align-items:end"><div><label for="staffAccessCodeAccount">Individual staff account</label><select id="staffAccessCodeAccount"><option value="">Loading eligible accounts…</option></select></div><button type="button" id="refreshStaffAccessAccounts">Refresh accounts</button></div>
   <div class="row" style="margin-top:10px;justify-content:flex-start"><button type="button" class="primary" id="issueStaffAccessCode">Issue / reset personal code</button><button type="button" class="danger" id="revokeStaffAccessCode">Revoke personal code</button></div>
   <div id="staffAccessCodeResult" class="notice hidden" role="status" aria-live="polite"></div>
@@ -597,9 +597,9 @@ async function refreshAll(){
 
 const LOGIN_ROLE_SETTINGS={
  Teacher:{title:'Teaching Staff',description:'Use your individual teacher account. A personal code can be issued by the Director.',mode:'code',modes:['code','email']},
- Headteacher:{title:'Headteacher',description:'This is the Headteacher’s own account. Use the personal access code and password/PIN issued for this account.',mode:'code',modes:['code']},
- 'Deputy Headteacher':{title:'Deputy Headteacher',description:'This is the Deputy Headteacher’s own account. Use the personal access code and password/PIN issued for this account.',mode:'code',modes:['code']},
- DOS:{title:'Director of Studies (DOS)',description:'This is the DOS’s own account. Use the personal code and password, or switch to this same account’s email/password sign-in.',mode:'code',modes:['code','email']},
+ Headteacher:{title:'Headteacher',description:'Sign in with your own school email and password, or use your personal access code and password.',mode:'email',modes:['email','code']},
+ 'Deputy Headteacher':{title:'Deputy Headteacher',description:'Sign in with your own school email and password, or use your personal access code and password.',mode:'email',modes:['email','code']},
+ DOS:{title:'Director of Studies (DOS)',description:'Sign in with your own school email and password, or use your personal access code and password.',mode:'email',modes:['email','code']},
  'Main Bursar':{title:'Main Bursar',description:'Use the Main Bursar’s private email and password for their individual account.',mode:'email',modes:['email']},
  'Deputy Bursar':{title:'Deputy Bursar',description:'Use the Deputy Bursar’s private email and password for their individual account.',mode:'email',modes:['email']},
  'Other Staff':{title:'Other School Staff',description:'Every employee signs in with their own account, with access limited by their verified job title.',mode:'email',modes:['email']},
