@@ -47,6 +47,16 @@ Read-only inspection confirmed:
 
 These are advisor findings, not a penetration-test result. Remediation must be one policy/function at a time with allowed-role and denied-role regression tests. Do not revoke all `SECURITY DEFINER` functions or add broad policies just to make the advisor count fall.
 
+### Anonymous and shared-directory grant check
+
+A separate inspection of `information_schema.role_table_grants` and the matching RLS policies found:
+- No anonymous (`anon`) SELECT grant on learner, staff, payment, allocation, payroll, guardian, welfare, bank or attendance tables.
+- The only anonymous table privilege in the checked public schema was INSERT on `school_admission_enquiries`, paired with a restrictive policy that permits a pending enquiry submission with review fields unset. Anonymous SELECT was not granted on that table.
+- `class_login_directory` has an RLS SELECT policy whose role list includes `anon` and `authenticated`, but there is no `anon` SELECT table grant. Authenticated users do have SELECT access. Its inspected columns are class key/label, teacher display name, ordering and administrator display name—not a password or PIN column. The policy name is broader than the effective privilege; consider narrowing the policy to `authenticated` in a tested migration for clarity and defence in depth.
+- The checked finance and staff-sensitive tables have RLS enabled and no anonymous table grants.
+
+This is a metadata/grant review, not a test against every HTTP endpoint or every exposed view. Continue checking views, storage buckets, Edge Functions and RPCs separately.
+
 ## Current role and workflow findings
 
 The live account totals returned by the role-count query were 1 Admin, 2 Staff and 10 Teachers. No names, contact details or individual records are included here.
