@@ -8,6 +8,49 @@ const html = fs.readFileSync(path.join(root, 'school-services.html'), 'utf8');
 const edge = fs.readFileSync(path.join(root, 'supabase/functions/staff-access-code/index.ts'), 'utf8');
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261112020000_individual_staff_access_codes.sql'), 'utf8');
 
+const dashboard = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+
+test('main dashboard exposes separate named leadership and bursar sign-in choices', () => {
+  for (const role of ['Headteacher','Deputy Headteacher','DOS','Main Bursar','Deputy Bursar','Other Staff']) {
+    assert.ok(dashboard.includes('data-school-staff-role="' + role + '"'), 'Missing main dashboard account choice: ' + role);
+  }
+  assert.ok(dashboard.includes('School administrator sign in'));
+  assert.ok(!dashboard.includes('Use the individual email and password issued by the Director.'));
+});
+
+test('main dashboard checks each selected school-office role after authentication', () => {
+  for (const role of ['Headteacher','Deputy Headteacher','DOS','Main Bursar','Deputy Bursar']) {
+    assert.ok(dashboard.includes(role), 'Missing role matcher for ' + role);
+  }
+  assert.ok(dashboard.includes('schoolStaffRoleMatches'));
+  assert.ok(dashboard.includes("account.role==='Staff'"));
+  assert.ok(dashboard.includes("sessionStorage.setItem('cornhill_login_mode','Staff')"));
+});
+
+test('main dashboard uses the protected individual-code endpoint for teachers and academic leaders', () => {
+  assert.ok(dashboard.includes("db.functions.invoke('staff-access-code'"));
+  assert.ok(dashboard.includes("role_key:'Teacher'"));
+  assert.ok(dashboard.includes("role_key:selectedSchoolStaffRole"));
+  assert.ok(dashboard.includes("db.auth.setSession"));
+  assert.ok(dashboard.includes("teacher_list_my_assignments"));
+});
+
+test('existing Director main account and class assignment sign-in remain separate', () => {
+  assert.ok(dashboard.includes("authenticateAccount($('adminEmail').value.trim(),$('adminPassword').value,'Admin'"));
+  assert.ok(dashboard.includes("$('adminSignIn')"));
+  assert.ok(dashboard.includes("if(mode==='Admin'&&account.role!=='Admin')"));
+  assert.ok(dashboard.includes("if(mode==='Teacher')"));
+  assert.ok(dashboard.includes("cornhill_teacher_class_id"));
+});
+
+test('main and services login pages share role-specific authentication rules', () => {
+  assert.ok(html.includes("validateSelectedLoginRole"));
+  assert.ok(dashboard.includes("schoolStaffRoleMatches"));
+  assert.ok(dashboard.includes("staff-access-code"));
+  assert.ok(edge.includes("verifyTarget"));
+});
+
+
 test('login choices are separate and named by role', () => {
   for (const role of ['Teacher','Headteacher','Deputy Headteacher','DOS','Main Bursar','Deputy Bursar','Other Staff','Director']) {
     assert.ok(html.includes('data-login-role="' + role + '"'), 'Missing role choice: ' + role);
