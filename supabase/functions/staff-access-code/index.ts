@@ -121,9 +121,12 @@ Deno.serve(async (req: Request) => {
       const { error } = await admin.from("staff_access_codes")
         .update({ is_active: false, updated_at: new Date().toISOString() }).eq("user_id", userId);
       if (error) return response(500, { error: "The access code could not be revoked." }, origin);
-      await admin.from("staff_access_code_audit").insert({
+      const { error: revokeAuditError } = await admin.from("staff_access_code_audit").insert({
         user_id: userId, role_key: role, action: "revoked", performed_by: auth.user.id,
       });
+      if (revokeAuditError) {
+        return response(500, { error: "The code is revoked, but its audit event could not be saved. Keep it revoked and contact the Director." }, origin);
+      }
       return response(200, { success: true, message: "Individual access code revoked." }, origin);
     }
 
@@ -134,9 +137,14 @@ Deno.serve(async (req: Request) => {
       created_by: auth.user.id, updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
     if (saveError) return response(500, { error: "The individual access code could not be saved." }, origin);
-    await admin.from("staff_access_code_audit").insert({
+    const { error: issueAuditError } = await admin.from("staff_access_code_audit").insert({
       user_id: userId, role_key: role, action: "issued", performed_by: auth.user.id,
     });
+    if (issueAuditError) {
+      await admin.from("staff_access_codes").update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq("user_id", userId).eq("code_hash", codeHash);
+      return response(500, { error: "The code could not be issued because its audit event was not saved. No active code was left in place." }, origin);
+    }
     return response(200, {
       success: true, role_key: role, account_name: target.full_name, access_code: code,
       message: "Show this code to the named staff member once. It will not be displayed again.",
@@ -154,8 +162,7 @@ Deno.serve(async (req: Request) => {
   const forwarded = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") ||
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
   if (!forwarded) return response(503, { error: "Secure sign-in could not verify this connection. Try again." }, origin);
-  const userAgent = req.headers.get("user-agent") || "unknown";
-  const ipHash = await hmacHex(pepper, "cornhill-login-rate-v1:" + forwarded + ":" + userAgent);
+  const ipHash = await hmacHex(pepper, "cornhill-login-rate-v1:" + forwarded);
   const { data: allowed, error: rateError } = await admin.rpc("consume_staff_access_code_attempt", {
     p_ip_hash: ipHash, p_reset: false,
   });
@@ -180,10 +187,17 @@ Deno.serve(async (req: Request) => {
     return response(401, { error: "The access code or password is not valid." }, origin);
   }
 
-  await admin.from("staff_access_codes").update({ last_used_at: new Date().toISOString() }).eq("user_id", record.user_id);
-  await admin.from("staff_access_code_audit").insert({
+  const { error: lastUsedError } = await admin.from("staff_access_codes")
+    .update({ last_used_at: new Date().toISOString() }).eq("user_id", record.user_id).eq("is_active", true);
+  if (lastUsedError) {
+    return response(503, { error: "Your credentials were accepted, but the security record could not be completed. Sign in again or contact the Director." }, origin);
+  }
+  const { error: loginAuditError } = await admin.from("staff_access_code_audit").insert({
     user_id: record.user_id, role_key: role, action: "used", performed_by: record.user_id,
   });
+  if (loginAuditError) {
+    return response(503, { error: "Your credentials were accepted, but the sign-in audit could not be saved. Sign in again or contact the Director." }, origin);
+  }
   await admin.rpc("consume_staff_access_code_attempt", { p_ip_hash: ipHash, p_reset: true });
   return response(200, {
     success: true,

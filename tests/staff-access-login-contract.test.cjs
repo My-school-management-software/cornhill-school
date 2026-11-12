@@ -97,3 +97,17 @@ test('Director code manager sends the selected staff identity and exact role to 
   assert.ok(html.includes("roleKey='Headteacher'"));
   assert.ok(html.includes("roleKey='DOS'"));
 });
+
+test('access-code issue, revoke and use actions check their audit writes', () => {
+  assert.match(edge, /revokeAuditError/);
+  assert.match(edge, /issueAuditError/);
+  assert.match(edge, /loginAuditError/);
+  assert.match(edge, /No active code was left in place/);
+});
+
+test('staff login rate limiting cannot be reset by changing the browser user-agent', () => {
+  assert.ok(edge.includes('cornhill-login-rate-v1:" + forwarded'));
+  assert.ok(!edge.includes('const userAgent ='));
+  assert.ok(!edge.includes('req.headers.get("user-agent")'));
+  assert.ok(!edge.includes("req.headers.get('user-agent')"));
+});
