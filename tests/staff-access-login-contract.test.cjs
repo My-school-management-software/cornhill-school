@@ -46,3 +46,11 @@ test('Director remains Admin-only and no new Director role is created', () => {
   assert.ok(html.includes("admin=p?.role==='Admin'"));
   assert.ok(edge.includes('profile.role !== "Staff"'));
 });
+
+test('Director code manager sends the selected staff identity and exact role to the server', () => {
+  assert.ok(html.includes('option.dataset.roleKey=roleKey'));
+  assert.ok(html.includes('role_key:roleKey'));
+  assert.ok(html.includes("roleKey='Deputy Headteacher'"));
+  assert.ok(html.includes("roleKey='Headteacher'"));
+  assert.ok(html.includes("roleKey='DOS'"));
+});
