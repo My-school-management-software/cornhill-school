@@ -43,7 +43,7 @@ test('PWA cache version is advanced and online asset refresh is network-first', 
   assert.ok(worker.includes("cornhill-static-v99"));
   assert.ok(worker.includes("new Request(request, { cache: 'no-store' })"));
   assert.ok(worker.includes('const cached = await cache.match(request);'));
-  assert.ok(worker.includes('The installed PWA receives current files immediately'));
+  assert.ok(worker.includes('installed PWA receives current files immediately'));
 });
 
 test('service worker continues to keep authentication and database traffic network-only', () => {
