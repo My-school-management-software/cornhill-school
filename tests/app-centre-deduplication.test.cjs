@@ -30,7 +30,7 @@ test('App Centre hides inactive registry entries and displays the first active e
       app_url: 'https://banking-cornhill-school.vercel.app/apps/banking/' }
   ];
   const visible = helper.getVisibleRows(rows);
-  assert.deepEqual(visible.map(app => app.app_key), ['staff-communications', 'banking']);
+  assert.deepEqual(Array.from(visible, app => app.app_key), ['staff-communications', 'banking']);
 });
 
 test('App Centre treats query parameter order and trailing slashes as the same destination', () => {
@@ -40,7 +40,7 @@ test('App Centre treats query parameter order and trailing slashes as the same d
     { app_key: 'two', is_active: true, app_url: '/apps/school-services?mode=compact&workspace=library' },
     { app_key: 'three', is_active: true, app_url: '/apps/school-services/?workspace=transport' }
   ];
-  assert.deepEqual(helper.getVisibleRows(rows).map(app => app.app_key), ['one', 'three']);
+  assert.deepEqual(Array.from(helper.getVisibleRows(rows), app => app.app_key), ['one', 'three']);
 });
 
 test('App Centre keeps separate workspaces and rejects malformed or non-web destinations', () => {
@@ -51,7 +51,7 @@ test('App Centre keeps separate workspaces and rejects malformed or non-web dest
     { app_key: 'javascript', is_active: true, app_url: 'javascript:alert(1)' },
     { app_key: 'broken', is_active: true, app_url: 'http://[invalid' }
   ];
-  assert.deepEqual(helper.getVisibleRows(rows).map(app => app.app_key), ['library', 'transport']);
+  assert.deepEqual(Array.from(helper.getVisibleRows(rows), app => app.app_key), ['library', 'transport']);
 });
 
 test('main dashboard loads the shared App Centre helper before its inline application code', () => {
