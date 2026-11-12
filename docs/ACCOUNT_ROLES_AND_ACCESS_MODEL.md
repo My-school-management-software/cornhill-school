@@ -10,7 +10,7 @@
 |---|---|---|
 | Administrator | Trusted school leadership account | School-wide administration, subject to explicit high-risk controls and audit logging |
 | Class Teacher | Teacher responsible for one named class | Assigned class learners and class academic workflow; own attendance and private notices |
-| Subject Teacher (planned) | Teacher of a subject across one or more classes | Only the assigned class + subject, its learners' minimum required identity fields and that subject's marks |
+| Subject Teacher | Individual teacher assigned to one or more exact class + subject combinations | Only assigned classes/subjects, minimum learner identity fields, and permitted marks/report actions |
 | Operational Staff | Bursar, store manager, matron, cooks, librarian, office/support staff | Own attendance, staff communication and only specifically delegated work duties |
 | Parent/Guardian | Verified parent or guardian | Separate parent portal; only the learner(s) explicitly linked to that guardian |
 
@@ -20,19 +20,23 @@
 - The profile role constraint currently permits `Admin`, `Teacher` and `Staff`.
 - The current staff invitation endpoint invites `Teacher` or `Staff`; it does not create administrators.
 - Class Teacher sign-in verifies an assigned class. The teacher is not allowed to select a different class at sign-in.
-- The school already has an academic teacher directory and links teachers to class-subject rows. That directory is useful for recording subject specialisms and assignments, but it is not yet a safe substitute for a Subject Teacher account and login.
-- The current `is_class_teacher_for_class` helper treats a linked `class_subjects.teacher_user_id` as class access. Therefore, placing a subject specialist's user ID directly in that field can grant more class-level visibility than the specialist should have. **Do not use that shortcut for subject-only staff.**
+- The database already contains subject-scoped assignment helpers and an individual Teacher invitation path. The full subject-only browser experience still needs end-to-end verification.
+- Keep the existing profile role as `Teacher` for both class teachers and subject-only teachers. Do not add a new `SubjectTeacher` profile role unless the whole role constraint, helpers and RLS model are deliberately migrated.
+- Full-class privileges come from the full-class assignment records. **Never add a subject-only teacher to `class_teacher_access` or `class_teacher_directory_assignments` unless they are genuinely responsible for that whole class.**
 
-## Subject Teacher work needed before issuing invitations
+## Subject Teacher implementation and release checks
 
-1. Add a distinct `SubjectTeacher` account role and a verified class-subject assignment source that can cover multiple classes and subjects.
-2. Create security-definer helpers that require the active signed-in SubjectTeacher and exact assigned `class_id` + `subject_id`.
-3. Update RLS so a SubjectTeacher can see only the minimum learner details needed for their assigned class and only assessments/scores for their assigned subject. They must not see other subjects' marks, full class report cards, class-wide communication or other teachers' private records.
-4. Add a dedicated sign-in path using that teacher's own email/password. Show only the teacher's assigned class/subject combinations after verification.
-5. Use the existing single class-wide mark register where possible, but filter its subject columns and actions to the current subject assignment. Do not create a competing second marks-entry screen.
-6. Make transfers, cover assignments, expiry dates, removal of access, mark corrections and result publication visible in the audit history.
-7. Test with separate real test accounts: positive access to an assigned subject, and negative access to an unassigned subject, another class, other report-card subjects, finance and administrator settings.
+The data model and core database helpers are already present for subject-scoped teacher access. Before issuing subject-only invitations or treating the workflow as production-ready:
 
+1. Create one individual `Teacher` Auth account per real teacher. The Director-only staff invitation endpoint supports email invitations for an active teaching employee record that is not already linked. Do not use the class-wide code/reset endpoint for a subject-only teacher.
+2. Link the new account to the matching `academic_teacher_directory` entry. Assign only the exact `class_subjects` rows required, with explicit `can_enter_marks`, `can_view_reports` and `can_message_parents` flags and start/end dates.
+3. Keep subject-only teachers out of full-class assignment tables. The existing `can_teacher_view_subject`, `can_teacher_access_subject`, `teacher_list_my_assignments` and `teacher_subject_learner_roster` helpers are intended to enforce and display the narrow assignment.
+4. Verify RLS so the teacher sees only the minimum learner fields and assessments/scores for assigned subjects. They must not see other subjects' marks, whole-class report cards, unassigned classes, finance, payroll or staff-account management.
+5. Wire and test the individual teacher experience: after sign-in, show only assigned class/subject combinations. Reuse the existing learning and marks workspaces with subject-filtered data; do not create a competing marks register.
+6. Audit assignment start/end dates, cover assignments, removal of access, mark corrections and result publication.
+7. Use separate non-production test accounts to prove allowed access to an assigned subject and denied access to an unassigned subject, another class, other report-card subjects, finance and administrator settings.
+
+A subject teacher can be a teacher in several classes and subjects with one account. If the person is also a class teacher, combine the expressly approved assignments on that same account; do not issue duplicate accounts.
 ## Operational Staff
 
 A bursar, store manager or matron should not each become a new privileged database role just because their job title differs. Start with one individual `Staff` identity and attach job title, department and approved capability grants. Examples:

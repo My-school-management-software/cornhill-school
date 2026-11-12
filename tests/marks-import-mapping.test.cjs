@@ -272,19 +272,23 @@ test('P6 workbook heading PUPIL\'S NAMES is recognised as the learner-name colum
  assert.equal(mapping.normalise("PUPIL'S NAMES"),'PUPILSNAMES');
 });
 
-test('class marks view clears stale rows and discards an older class request',()=>{
+test('class marks loader clears stale rows and ignores results from an older signed-in session',()=>{
  const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
- assert.ok(html.includes('cornhillExcelMarksGridGeneration'));
- assert.ok(html.includes('const isCurrent=()=>requestGeneration==='));
- assert.ok(html.includes('if(!isCurrent())return;'));
- assert.ok(html.includes('Choose the class and load its own marks sheet.'));
- assert.ok(html.includes('window.cornhillExcelMarksContext=null;'));
+ const start=html.indexOf('async function loadExcelMarksGrid(){');
+ const end=html.indexOf('\nfunction renderExcelClassPerformance',start);
+ assert.ok(start>=0&&end>start,'class marks loader is present');
+ const source=html.slice(start,end);
+ assert.ok(source.includes('const sessionOwner=currentUserId,sessionGeneration=window.cornhillSessionGeneration||0;'));
+ assert.ok(source.includes('window.cornhillExcelMarksContext=null;'));
+ assert.ok(source.includes('sessionOwner!==currentUserId||sessionGeneration!==(window.cornhillSessionGeneration||0)'));
+ assert.ok(source.includes("$('exportExcelMarks').disabled=true"));
+ assert.ok(html.includes('window.cornhillExcelMarksContext=null;'),'account changes clear prior marks context');
 });
 
 test('report-card renderer indexes assessment scores once and reuses period rankings',()=>{
  const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
  const start=html.indexOf('async function renderReportCard(options={})');
- const end=html.indexOf('\nfunction loadAdminAcademicInsights',start);
+ const end=html.indexOf('\nasync function loadAdminAcademicInsights',start);
  assert.ok(start>=0&&end>start,'report-card renderer is present');
  const source=html.slice(start,end);
  assert.ok(source.includes('data.__cornhillReportIndex'));
@@ -292,7 +296,7 @@ test('report-card renderer indexes assessment scores once and reuses period rank
  assert.ok(source.includes('scoreByAssessmentStudent'));
  assert.ok(source.includes('ranksByPeriod'));
  assert.ok(source.includes('const rankFor=p=>reportIndex.ranksByPeriod'));
- assert.doesNotMatch(source,/data\\.scores\\|\\|\\[\\]\\)\\.filter\\(sc=>sc\\.assessment_id===a\\.id/);
+ assert.doesNotMatch(source,/data\.scores\|\|\[\]\)\.filter\(sc=>sc\.assessment_id===a\.id/);
 });
 
 test('payment receipt preview is not blocked by a full Finance reload',()=>{

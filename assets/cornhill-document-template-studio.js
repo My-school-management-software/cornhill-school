@@ -49,8 +49,10 @@
  function rowFor(type,section){return prefs[type+'|'+section]||defaults[type+'|'+section]||(type==='receipt'?defaults['receipt|all']:defaults['report_card|p4']);}
  function getSettings(type,section){return rowFor(type,section).settings||{};}
  function syncReceiptPaperWidth(){
-  const width=getSettings('receipt','all').paperWidth;
-  if(width!=='58'&&width!=='80')return;
+  // The receipt renderer supports 58 mm and 80 mm thermal rolls only.
+  // Normalize any legacy/invalid saved value instead of leaving the device
+  // on a previous paper width while the editor appears to accept another one.
+  const width=getSettings('receipt','all').paperWidth==='58'?'58':'80';
   try{localStorage.setItem('cornhill_receipt_paper_width',width);}catch(_){}
   if(typeof window.applyReceiptPaperWidth==='function')window.applyReceiptPaperWidth();
  }
@@ -96,7 +98,7 @@
    '<div><label for="docTemplatePreset">Design · 50 options for this class</label><select id="docTemplatePreset"></select></div>'+
    '<div><label for="docTemplateLayout">Layout arrangement</label><select id="docTemplateLayout"><option value="classic">Classic</option><option value="split">Split header</option><option value="sidebar">Side panel</option><option value="minimal">Minimal</option><option value="blocks">Colour blocks</option><option value="compact">Compact</option><option value="ledger">Ledger</option><option value="outlined">Outlined</option><option value="wide">Wide</option></select></div>'+
    '<div><label for="docTemplateFont">Typeface</label><select id="docTemplateFont"><option>Arial</option><option>Verdana</option><option>Trebuchet MS</option><option>Georgia</option><option>Tahoma</option></select></div>'+
-   '<div id="docTemplatePaperWrap"><label for="docTemplatePaper">Receipt paper</label><select id="docTemplatePaper"><option value="58">58 mm thermal</option><option value="80">80 mm thermal</option><option value="a4">A4</option></select></div>'+
+   '<div id="docTemplatePaperWrap"><label for="docTemplatePaper">Receipt paper</label><select id="docTemplatePaper"><option value="58">58 mm thermal</option><option value="80">80 mm thermal</option></select></div>'+
    '<div><label for="docTemplateAccent">Accent colour</label><input id="docTemplateAccent" type="color" value="#14532d"></div>'+
    '<div><label for="docTemplateTint">Light background</label><input id="docTemplateTint" type="color" value="#f0fdf4"></div>'+
    '<div><label for="docTemplateMotif">Decorative style</label><select id="docTemplateMotif"><option value="none">No decoration</option><option value="cartoon">Cartoon / friendly</option><option value="nature">Nature / garden</option><option value="playful">Playful educational</option><option value="academic">Academic / formal</option><option value="geometric">Geometric</option><option value="ledger">Ledger</option></select></div></div>'+
@@ -179,7 +181,7 @@
    $('docTemplateAccent').value=state.settings.accent||choice.accent;
    $('docTemplateTint').value=state.settings.tint||choice.tint;
    $('docTemplateMotif').value=state.settings.motif||choice.motif;
-   $('docTemplatePaper').value=state.settings.paperWidth||'80';
+   $('docTemplatePaper').value=state.settings.paperWidth==='58'?'58':'80';
    document.querySelectorAll('[data-doc-show]').forEach(function(box){box.checked=state.settings.show?state.settings.show[box.dataset.docShow]!==false:true;box.closest('label').style.display=t.type==='receipt'&&box.dataset.docShow!=='signatures'?'none':'';});
    $('docTemplateShowOptions').style.display=t.type==='receipt'?'block':'grid';
    $('docTemplatePaperWrap').style.display=t.type==='receipt'?'':'none';

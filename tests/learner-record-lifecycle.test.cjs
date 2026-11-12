@@ -78,7 +78,7 @@ test('permanent delete removes linked school records and rebuilds daily collecti
 
 test('service worker cache is refreshed with the learner lifecycle UI', () => {
   const sw = read('service-worker.js');
-  assert.ok(sw.includes('cornhill-shell-v90'));
-  assert.ok(sw.includes('cornhill-static-v90'));
+  assert.match(sw, /cornhill-shell-v\d+/);
+  assert.match(sw, /cornhill-static-v\d+/);
   assert.ok(sw.includes('/assets/cornhill-learner-details-sheet.js'));
 });

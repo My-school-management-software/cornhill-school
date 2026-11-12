@@ -1,0 +1,21 @@
+name: CORNHILL individual staff access tests
+on:
+  push:
+    branches:
+      - feat/individual-leadership-signins-20261112
+      - feat/director-controlled-staff-activation-20261112
+  pull_request:
+    branches:
+      - main
+      - feat/role-based-staff-access-subject-teachers-20261111
+      - feat/director-controlled-staff-activation-20261112
+jobs:
+  staff-access-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run individual staff access contract tests
+        run: node --test tests/staff-access-login-contract.test.cjs tests/staff-account-activation.test.cjs

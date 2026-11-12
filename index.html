@@ -1058,12 +1058,151 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
   <script src="/assets/cornhill-notification-routing.js"></script>
   <script src="/assets/cornhill-mark-import-mapping.js"></script>
 <script src="/assets/cornhill-appearance.js"></script> <script src="/assets/cornhill-offline.js"></script> <script src="/assets/cornhill-draft-crypto.js"></script>
-<script src="/assets/app-isolation-guard.js"></script></head>
+<script src="/assets/app-isolation-guard.js"></script><style id="cornhill-unified-role-signin-v1">
+/* Compact role-first sign-in: no staff directory or account names are exposed publicly. */
+#login.login-design-surface{width:min(100%,860px);max-width:860px;margin:clamp(14px,3vh,30px) auto 28px;padding:clamp(18px,3vw,30px);border-radius:22px}
+#login>h2{font-size:clamp(23px,2.6vw,30px);margin-bottom:6px}
+#login>p.muted{font-size:13px;line-height:1.5;margin-bottom:14px}
+.login-role-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 14px}
+.login-role-heading{min-width:0;padding:9px 11px;border:1px solid #dce8df;border-radius:11px;background:#f7faf8}
+.login-role-heading strong,.login-role-heading span{display:block}
+.login-role-heading strong{font-size:12px;color:#174b2c}
+.login-role-heading span{margin-top:3px;font-size:10px;line-height:1.35;color:#647568}
+#classLoginDirectory.login-class-grid{grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:8px;margin:10px 0 12px}
+#classLoginDirectory .login-class-tile{min-height:66px;padding:9px 11px;border-radius:11px;box-shadow:none}
+#classLoginDirectory .login-class-tile strong{font-size:13px}
+#classLoginDirectory .login-class-tile span{font-size:10px;line-height:1.3;margin-top:3px}
+#selectedTeacherLogin{padding:14px!important;border-radius:13px!important;box-shadow:none!important}
+#selectedTeacherLogin input,#adminLoginPanel input,#staffLoginPanel input{min-height:42px;padding:9px 11px;border-radius:9px}
+#selectedTeacherLogin #signIn,#adminLoginPanel #adminSignIn,#staffLoginPanel #staffSignIn{min-height:42px;border-radius:9px}
+.login-staff-open{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;margin-top:8px;padding:10px 13px;border:1px solid #d6e5da;background:#edf6ef;color:#174b2c;border-radius:11px;text-align:left}
+.login-staff-open span{font-size:11px;font-weight:500;color:#607265}
+.login-compact-panel{margin-top:9px;padding:14px;border:1px solid #dce8df;border-radius:13px;background:#fff}
+.login-compact-panel .row{align-items:center;justify-content:space-between;gap:10px}
+.login-compact-panel .row strong{font-size:14px}
+.login-compact-panel .row p{margin:3px 0 8px;font-size:11px}
+.login-security-note{margin:10px 0 0;font-size:10px;line-height:1.4;color:#607265}
+#login>div[style*="border-top"]{margin-top:12px!important;padding-top:12px!important}
+#adminLoginOpen{min-height:42px;border-radius:10px}
+#adminLoginPanel{padding:14px;border-radius:13px}
+#login .notice{border-radius:10px}
+@media(max-width:560px){
+ #login.login-design-surface{padding:16px 12px;margin:10px auto 18px;border-radius:17px}
+ .login-role-strip{gap:6px}
+ .login-role-heading{padding:8px 7px}
+ .login-role-heading strong{font-size:11px}
+ .login-role-heading span{font-size:9px}
+ #classLoginDirectory.login-class-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #classLoginDirectory .login-class-tile{min-height:60px;padding:8px}
+ #selectedTeacherLogin{padding:11px!important}
+}
+@media(max-width:350px){.login-role-strip{grid-template-columns:1fr}.login-role-heading span{font-size:10px}}
+@media(prefers-reduced-motion:reduce){#classLoginDirectory .login-class-tile{transition:none}#classLoginDirectory .login-class-tile:hover{transform:none}}
+</style><style id="cornhill-individual-account-login-css">
+.school-staff-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.school-staff-role-choice{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-height:66px;padding:10px 12px;border:1px solid #dce8df;border-radius:11px;background:#fff;color:#17452a;text-align:left}
+.school-staff-role-choice strong{font-size:13px}.school-staff-role-choice small{font-size:10px;line-height:1.35;color:#607265;font-weight:500}
+.school-staff-role-choice:hover{border-color:#23824b;background:#f5fbf6}
+.school-staff-mode-switch,.teacher-login-mode-switch{display:flex;gap:7px;margin:9px 0 11px}
+.school-staff-mode-switch button,.teacher-login-mode-switch button{flex:1;min-height:38px;border:1px solid #dce8df;border-radius:9px;background:#edf6ef;color:#174b2c}
+.school-staff-mode-switch button.active,.teacher-login-mode-switch button.active{background:#14532d;color:#fff;border-color:#14532d}
+#schoolStaffCredentials{margin-top:10px;padding:12px;border:1px solid #dce8df;border-radius:11px;background:#f8fbf8}
+#schoolStaffCredentials input{width:100%}
+@media(max-width:560px){.school-staff-role-grid{grid-template-columns:1fr;gap:7px}.school-staff-role-choice{min-height:58px}.school-staff-mode-switch,.teacher-login-mode-switch{flex-direction:column}}
+</style>
+<style id="cornhill-professional-signin-v2">
+/* Professional split-panel sign-in: styling only; all existing account IDs and handlers stay intact. */
+#login.login-design-surface{
+ position:relative!important;isolation:isolate;overflow:hidden;
+ width:min(100% - 36px,1160px)!important;max-width:1160px!important;min-height:610px;
+ margin:clamp(18px,4vh,42px) auto 34px!important;padding:30px 28px 32px!important;
+ border:1px solid #d9e6dd!important;border-radius:28px!important;background:#fff!important;
+ box-shadow:0 24px 70px rgba(18,48,29,.12)!important;
+}
+#login.login-design-surface:before{
+ content:"CORNHILL\A NURSERY AND PRIMARY SCHOOL\A\A WE SHARE ONE DREAM\A\A SCHOOL MANAGEMENT PORTAL\A Secure access for teaching, leadership and school operations.";
+ position:absolute;z-index:0;top:0;bottom:0;left:0;width:32%;
+ display:flex;align-items:flex-end;box-sizing:border-box;padding:188px 27px 38px;
+ white-space:pre-line;text-align:left;color:#f7fff9;font-size:clamp(13px,1.2vw,16px);
+ font-weight:650;line-height:1.8;letter-spacing:.015em;
+ background-image:linear-gradient(180deg,rgba(7,47,28,.14) 0%,rgba(7,47,28,.44) 42%,#082d1d 100%),url('/assets/cornhill-school-badge.png'),linear-gradient(150deg,#17623a,#0a3522);
+ background-size:cover,104px auto,cover;background-position:center,center 48px,center;background-repeat:no-repeat;
+}
+#login.login-design-surface:after{display:none!important;content:none!important}
+#login.login-design-surface>*{position:relative;z-index:1;width:62%!important;max-width:none!important;margin-left:35%!important}
+#login.login-design-surface>h2{margin-top:18px!important;margin-bottom:7px!important;color:#173f29;font-size:clamp(25px,2.6vw,34px);font-weight:850;letter-spacing:-.035em}
+#login.login-design-surface>h2:before{display:none!important;content:none!important}
+#login.login-design-surface>p.muted{margin-top:0!important;margin-bottom:15px!important;color:#627368;font-size:13px;line-height:1.6}
+#login .login-role-strip{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+#login .login-role-heading{padding:11px 12px;border:1px solid #e0e9e3;border-radius:13px;background:#f7faf8;box-shadow:0 2px 8px rgba(15,45,27,.035)}
+#login .login-role-heading strong{font-size:12px;color:#17452b;font-weight:850}
+#login .login-role-heading span{font-size:10px;line-height:1.45;color:#66786d}
+#classLoginDirectory.login-class-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 16px}
+#classLoginDirectory .login-class-tile{min-height:90px;padding:13px 14px;border:1px solid #dce8df;border-radius:14px;background:linear-gradient(145deg,#fff,#f7fbf8);box-shadow:0 4px 13px rgba(18,48,29,.05);transition:border-color .16s,transform .16s,box-shadow .16s}
+#classLoginDirectory .login-class-tile:hover{border-color:#72a989;transform:translateY(-2px);box-shadow:0 8px 20px rgba(18,48,29,.09)}
+#classLoginDirectory .login-class-tile strong{font-size:15px;color:#17442a}
+#classLoginDirectory .login-class-tile span{font-size:11px;color:#66786d;line-height:1.4}
+#login .login-staff-open,#login #adminLoginOpen{min-height:48px;padding:12px 15px;border:1px solid #d5e4d9;border-radius:12px;background:#eef6f0;color:#17452b;font-weight:800;box-shadow:none}
+#login .login-staff-open:hover,#login #adminLoginOpen:hover{border-color:#83ad91;background:#e6f1e9}
+#login .login-compact-panel,#login #adminLoginPanel,#login #selectedTeacherLogin{padding:16px!important;border:1px solid #dce8df!important;border-radius:15px!important;background:#fbfdfb!important;box-shadow:0 5px 18px rgba(18,48,29,.055)!important}
+#login .school-staff-role-grid{gap:9px}
+#login .school-staff-role-choice{min-height:68px;border:1px solid #dce8df;border-radius:12px;background:#fff;color:#19462d;text-align:left}
+#login .school-staff-role-choice:hover{border-color:#79a88a;background:#f5faf6}
+#login input,#login select{min-height:46px;border:1px solid #cfded3;border-radius:10px;background:#fff}
+#login input:focus-visible,#login button:focus-visible{outline:3px solid #83ba94;outline-offset:2px}
+#login button.primary{min-height:48px;border-radius:11px;background:linear-gradient(110deg,#14532d,#237b48);box-shadow:0 7px 18px rgba(20,83,45,.18)}
+#login .login-security-note{color:#65786c;line-height:1.55}
+@media(max-width:760px){
+ #login.login-design-surface{width:min(100% - 20px,720px)!important;min-height:0;margin:12px auto 22px!important;padding:162px 15px 22px!important;border-radius:20px!important}
+ #login.login-design-surface:before{top:0;bottom:auto;left:0;width:100%;height:142px;padding:22px 18px 18px 116px;border-radius:19px 19px 0 0;font-size:12px;line-height:1.55;background-size:cover,78px auto,cover;background-position:center,20px center,center}
+ #login.login-design-surface>*{width:100%!important;margin-left:0!important}
+ #login.login-design-surface>h2{font-size:25px;margin-top:0!important}
+ #login .login-role-strip{gap:7px}
+ #login .login-role-heading{padding:9px 8px}
+ #login .login-role-heading strong{font-size:11px}
+ #login .login-role-heading span{font-size:9px}
+ #classLoginDirectory.login-class-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #classLoginDirectory .login-class-tile{min-height:78px;padding:11px}
+ #login .school-staff-role-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:420px){
+ #login.login-design-surface{padding-inline:12px!important}
+ #login .login-role-strip{grid-template-columns:1fr}
+ #login .login-role-heading{padding:8px 10px}
+ #classLoginDirectory.login-class-grid{grid-template-columns:1fr}
+ #login .school-staff-role-grid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+ #classLoginDirectory .login-class-tile{transition:none}
+ #classLoginDirectory .login-class-tile:hover{transform:none}
+}
+</style>
+</head>
 <body>
 <header class="top"><div><div class="brand" style="display:flex;align-items:center;gap:12px"><img src="/assets/cornhill-school-badge.png" alt="Cornhill Nursery and Primary School crest" style="width:48px;height:48px;object-fit:contain;background:#fff;border-radius:50%;padding:2px;flex:0 0 auto"><span>CORNHILL NURSERY AND PRIMARY SCHOOL</span></div><div class="sub">School Management System · Uganda</div>
 <div class="school-motto"><span>WE SHARE ONE DREAM</span><small>Learning together · Growing together · Achieving together</small></div></div><div class="row"><button id="refreshApp" type="button" title="Check for the latest CORNHILL version" style="background:#fff;color:#14532d">↻ Refresh app</button><button id="logout" class="hidden">Sign out</button></div></header>
 <main class="wrap">
-<section id="login" class="panel login login-design-surface" data-login-layout="classic"><h2>Welcome to CORNHILL</h2><p class="muted">Select your class to open its teacher sign-in. The administrator has a separate secure sign-in.</p><div id="loginMsg" class="notice hidden"></div><div id="classLoginDirectory" class="login-class-grid"><p class="muted">Loading class list…</p></div><div id="selectedTeacherLogin" class="hidden" style="margin-top:16px;padding:15px;border:1px solid var(--cornhill-line);border-radius:14px;background:var(--cornhill-page)"><div class="row"><div><strong id="selectedLoginClassName">Class teacher</strong><p id="selectedLoginTeacherName" class="muted" style="margin:5px 0 12px"></p></div><button type="button" id="backToClassList" class="tab">Back</button></div><label for="teacherEmail">Teacher email</label><input id="teacherEmail" type="email" autocomplete="username" maxlength="254" placeholder="Your own registered teacher email"><label for="teacherClassCode">Password</label><p class="muted">Use your own staff account email and password. Select the class workspace you are assigned to before signing in. Each teacher keeps one independent account, even when teaching several classes.</p><input id="teacherClassCode" type="password" autocomplete="current-password" minlength="8" maxlength="72" placeholder="Enter your account password"><button id="signIn" class="primary" style="width:100%">Sign in to teaching workspace</button><p class="muted">For class-code sign-in, leave this field blank and enter the private class code supplied by the administrator. If you have a registered teacher email, enter it above.</p></div><div style="border-top:1px solid var(--cornhill-line);margin-top:20px;padding-top:16px"><button id="adminLoginOpen" class="tab" style="width:100%">Administrator · <span id="adminLoginName">Full school access</span></button><div id="adminLoginPanel" class="hidden" style="margin-top:14px"><label for="adminEmail">Administrator email</label><input id="adminEmail" type="email" autocomplete="username" placeholder="Administrator email"><label for="adminPassword">Password</label><input id="adminPassword" type="password" autocomplete="current-password" placeholder="Administrator password"><button id="adminSignIn" class="primary" style="width:100%">Administrator sign in</button><button type="button" id="forgotAdminPassword" class="tab" style="width:100%;margin-top:8px">Forgot password?</button><div id="forgotPasswordPanel" class="hidden" style="margin-top:10px"><label for="forgotAdminEmail">Administrator email</label><input id="forgotAdminEmail" type="email" autocomplete="email" placeholder="Enter the email registered to your account"><button type="button" id="sendAdminRecovery" class="primary" style="width:100%">Send password recovery link</button><p class="muted">If this email belongs to a school account, a secure recovery email will be sent. Open it on this device to choose a new password.</p><div id="forgotPasswordMsg" class="notice hidden" role="status" aria-live="polite"></div></div></div></div></section>
+<section id="login" class="panel login login-design-surface" data-login-layout="classic"><h2>Welcome to CORNHILL</h2><p class="muted">Choose your account area. Each person signs in with their own school credentials; access is checked against their assigned role.</p><div id="loginMsg" class="notice hidden" role="status" aria-live="polite"></div><div class="login-role-strip" aria-label="School account areas"><div class="login-role-heading"><strong>Teaching staff</strong><span>Every teacher has an individual account and personal code</span></div><div class="login-role-heading"><strong>School administrators</strong><span>Separate Headteacher, Deputy Headteacher, DOS and bursar accounts</span></div><div class="login-role-heading"><strong>Director</strong><span>Original full-access account · Director only</span></div></div><div id="classLoginDirectory" class="login-class-grid"><p class="muted">Loading class list…</p></div><button type="button" id="staffLoginOpen" class="tab login-staff-open" aria-expanded="false" aria-controls="staffLoginPanel">School administrator sign in <span>Separate private accounts</span></button><div id="staffLoginPanel" class="login-compact-panel hidden">
+<div class="row"><div><strong>School administrator accounts</strong><p class="muted">Select your own office. Each office-holder signs in to their own named account; there is no shared administrator login.</p></div><button type="button" id="staffLoginBack" class="tab">Back</button></div>
+<div id="schoolStaffRoleChoices" class="school-staff-role-grid">
+ <button type="button" class="school-staff-role-choice" data-school-staff-role="Headteacher"><strong>Headteacher</strong><small>Individual access code and password</small></button>
+ <button type="button" class="school-staff-role-choice" data-school-staff-role="Deputy Headteacher"><strong>Deputy Headteacher</strong><small>Individual access code and password</small></button>
+ <button type="button" class="school-staff-role-choice" data-school-staff-role="DOS"><strong>Director of Studies (DOS)</strong><small>Personal code or own email and password</small></button>
+ <button type="button" class="school-staff-role-choice" data-school-staff-role="Main Bursar"><strong>Main Bursar</strong><small>Private email and password</small></button>
+ <button type="button" class="school-staff-role-choice" data-school-staff-role="Deputy Bursar"><strong>Deputy Bursar</strong><small>Private email and password</small></button>
+ <button type="button" class="school-staff-role-choice" data-school-staff-role="Other Staff"><strong>Other School Staff</strong><small>Own individual account and permissions</small></button>
+</div>
+<div id="schoolStaffCredentials" class="hidden">
+ <div class="row"><div><strong id="schoolStaffRoleTitle">Your account</strong><p id="schoolStaffRoleDescription" class="muted">Use your own private credentials.</p></div><button type="button" id="schoolStaffRoleBack" class="tab">Change role</button></div>
+ <div id="schoolStaffModeSwitch" class="school-staff-mode-switch hidden"><button type="button" data-school-staff-mode="code">Personal access code</button><button type="button" data-school-staff-mode="email">School email</button></div>
+ <input type="hidden" id="schoolStaffRoleKey"><input type="hidden" id="schoolStaffLoginMode" value="email">
+ <div id="schoolStaffCodeField" class="hidden"><label for="schoolStaffAccessCode">Your personal access code</label><input id="schoolStaffAccessCode" type="text" maxlength="18" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code issued to you by the Director"></div>
+ <div id="schoolStaffEmailField"><label for="staffLoginEmail">Your registered school email</label><input id="staffLoginEmail" type="email" autocomplete="username" maxlength="254" placeholder="Your own school email"></div>
+ <label for="staffLoginPassword" id="schoolStaffPasswordLabel">Your account password</label><input id="staffLoginPassword" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="Your password">
+ <button type="button" id="staffSignIn" class="primary" style="width:100%">Sign in to your own account</button>
+</div>
+<p class="login-security-note">Each account is checked against its real staff role after authentication. The Director remains the only full-access Director account. Never share passwords or access codes.</p>
+</div><div id="selectedTeacherLogin" class="hidden" style="margin-top:16px;padding:15px;border:1px solid var(--cornhill-line);border-radius:14px;background:var(--cornhill-page)"><div class="row"><div><strong id="selectedLoginClassName">Class teacher</strong><p id="selectedLoginTeacherName" class="muted" style="margin:5px 0 12px"></p></div><button type="button" id="backToClassList" class="tab">Back</button></div><div id="teacherLoginModeSwitch" class="teacher-login-mode-switch"><button type="button" data-teacher-login-mode="code" class="active">Personal access code</button><button type="button" data-teacher-login-mode="email">School email</button></div><div id="teacherAccessCodeField"><label for="teacherAccessCode">Your individual teacher access code</label><input id="teacherAccessCode" type="text" maxlength="18" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Personal code issued to you by the Director"></div><div id="teacherEmailField" class="hidden"><label for="teacherEmail">Your own registered teacher email</label><input id="teacherEmail" type="email" autocomplete="username" maxlength="254" placeholder="Your school email"></div><label for="teacherClassCode" id="teacherPasswordLabel">Your account password</label><p class="muted">Every teacher has one individual account and personal code. Select the class workspace you are assigned to; access to the class and subjects is verified from your teacher assignments.</p><input id="teacherClassCode" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="Enter your account password"><button id="signIn" class="primary" style="width:100%">Sign in to teaching workspace</button></div><div style="border-top:1px solid var(--cornhill-line);margin-top:20px;padding-top:16px"><button id="adminLoginOpen" class="tab" style="width:100%">Director / Main account · <span id="adminLoginName">Full school access</span></button><div id="adminLoginPanel" class="hidden" style="margin-top:14px"><label for="adminEmail">Administrator email</label><input id="adminEmail" type="email" autocomplete="username" placeholder="Administrator email"><label for="adminPassword">Password</label><input id="adminPassword" type="password" autocomplete="current-password" placeholder="Administrator password"><button id="adminSignIn" class="primary" style="width:100%">Director sign in</button><button type="button" id="forgotAdminPassword" class="tab" style="width:100%;margin-top:8px">Forgot password?</button><div id="forgotPasswordPanel" class="hidden" style="margin-top:10px"><label for="forgotAdminEmail">Administrator email</label><input id="forgotAdminEmail" type="email" autocomplete="email" placeholder="Enter the email registered to your account"><button type="button" id="sendAdminRecovery" class="primary" style="width:100%">Send password recovery link</button><p class="muted">If this email belongs to a school account, a secure recovery email will be sent. Open it on this device to choose a new password.</p><div id="forgotPasswordMsg" class="notice hidden" role="status" aria-live="polite"></div></div></div></div></section>
 <section id="passwordRecoveryPanel" class="panel hidden" style="max-width:560px;margin:24px auto"><h2>Choose a new password</h2><p class="muted">You opened a secure CORNHILL password-recovery link. Choose a new password below.</p><form id="passwordRecoveryForm"><label for="recoveryNewPassword">New password</label><input id="recoveryNewPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="8+ chars, upper/lower, number and symbol"><label for="recoveryConfirmPassword">Confirm new password</label><input id="recoveryConfirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="Enter it again"><p class="muted">Use at least 8 characters with uppercase, lowercase, a number and a symbol. CORNHILL also checks the password against known breach records without sending the password itself.</p><button type="submit" class="primary" style="width:100%">Save new password</button></form><div id="passwordRecoveryMsg" class="notice hidden" role="status" aria-live="polite"></div></section>
 <section id="app" class="hidden">
 <div class="row" id="dashboardWelcomeHeader"><div><h2 id="welcome">School dashboard</h2><p id="welcomeMessage" class="muted">Manage enrolment and class lists.</p></div><span id="role" class="badge">Staff</span></div>
@@ -1870,7 +2009,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 </div><div class="panel" style="margin:16px 0"><div class="dashboard-eyebrow">STAFF COLLABORATION</div><h3>Staff communication</h3><p class="muted">The staff noticeboard, private messages, voice/video messages and calls remain available below for authorised staff.</p></div><div id="staffCommMsg" class="notice hidden"></div>
 <form id="staffPostForm">
 <div class="full"><label>Announcement or message *</label><textarea name="body" rows="4" maxlength="5000" required placeholder="Write a staff update, reminder or announcement…"></textarea></div>
-<div><label>Who can see this?</label><select name="audience" id="staffPostAudience"><option value="all_staff">All staff</option><option value="teachers">Teachers only</option><option value="admins">Administrators only</option></select></div>
+<div><label>Who can see this?</label><select name="audience" id="staffPostAudience"><option value="all_staff">All staff</option><option value="teachers">Teachers only · academic leadership and teachers</option><option value="admins">Director / administrators only</option></select><small class="muted">Teachers-only announcements are available to teachers, the DOS, Headteacher and Director. All staff can use the school-wide channel.</small></div>
 <div><button class="primary" type="submit">Publish message</button></div>
 </form>
 <div class="row" style="justify-content:space-between;margin:18px 0"><h3>School staff feed</h3><button type="button" id="refreshStaffFeed">Refresh</button></div>
@@ -7003,20 +7142,32 @@ function openTeacherLogin(classKey){
  $('classLoginDirectory').classList.add('hidden');$('selectedTeacherLogin').classList.remove('hidden');$('adminLoginPanel').classList.add('hidden');$('teacherEmail').value='';$('teacherClassCode').value='';clearMessage('loginMsg');
 }
 $('classLoginDirectory').addEventListener('click',e=>{const tile=e.target.closest('[data-login-class]');if(tile)openTeacherLogin(tile.dataset.loginClass)});
-$('backToClassList').addEventListener('click',()=>{$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass='';$('teacherEmail').value='';$('teacherClassCode').value='';clearMessage('loginMsg')});
+$('backToClassList').addEventListener('click',()=>{$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass='';$('teacherEmail').value='';$('teacherAccessCode').value='';$('teacherClassCode').value='';setTeacherLoginMode('code');clearMessage('loginMsg')});
 $('adminLoginOpen').addEventListener('click',()=>{$('adminLoginPanel').classList.toggle('hidden');$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass=''});
-async function authenticateAccount(email,password,mode,selectedClass,button){
+async function authenticateAccount(email,password,mode,selectedClass,button,credentialType='email',accessCode=''){
  clearMessage('loginMsg');if(!db){message('loginMsg','The sign-in service is unavailable. Check your internet connection and refresh.',true);return}
- if(!password){message('loginMsg',mode==='Teacher'?'Enter your teacher account password or legacy class code.':'Enter your email address and password.',true);return}
+ if(!password){message('loginMsg',mode==='Teacher'?'Enter your own account password.':'Enter your password.',true);return}
  if(mode==='Teacher'&&!selectedClass){message('loginMsg','Select your class first.',true);return}
  button.disabled=true;button.textContent='Verifying account…';window.cornhillAuthStartupHold=true;
  try{
-  const {data,error}=await db.auth.signInWithPassword({email,password});if(error){message('loginMsg',error.message,true);return}
-  if(!data.session){message('loginMsg','Sign-in was not completed. Please try again.',true);return}
-  const userId=data.session.user.id;
-  const {data:account,error:profileError}=await db.from('user_profiles').select('role').eq('id',userId).single();
+  let activeSession=null;
+  if(credentialType==='code'){
+   const {data,error}=await db.functions.invoke('staff-access-code',{body:{action:'login',role_key:'Teacher',access_code:accessCode,password}});
+   if(error||!data?.session){message('loginMsg',data?.error||error?.message||'The personal code or password is not valid.',true);return}
+   const {data:sessionData,error:sessionError}=await db.auth.setSession({access_token:data.session.access_token,refresh_token:data.session.refresh_token});
+   if(sessionError||!sessionData?.session){message('loginMsg',sessionError?.message||'A secure sign-in session could not be created.',true);return}
+   activeSession=sessionData.session;
+  }else{
+   const {data,error}=await db.auth.signInWithPassword({email,password});if(error){message('loginMsg',error.message,true);return}
+   if(!data.session){message('loginMsg','Sign-in was not completed. Please try again.',true);return}
+   activeSession=data.session;
+  }
+  const userId=activeSession.user.id;
+  const {data:account,error:profileError}=await db.from('user_profiles').select('role,job_title,employment_status').eq('id',userId).single();
   if(profileError||!account){await db.auth.signOut({scope:'local'});message('loginMsg','Your staff profile could not be verified. Contact the administrator.',true);return}
   if(mode==='Admin'&&account.role!=='Admin'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not an administrator account.',true);return}
+  if(mode==='Staff'&&account.role!=='Staff'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as a school staff account.',true);return}
+  if(String(account.employment_status||'Active').trim().toLowerCase()!=='active'){await db.auth.signOut({scope:'local'});message('loginMsg','This school account is currently inactive. Contact the Director.',true);return}
   if(mode==='Teacher'){
    if(account.role!=='Teacher'){await db.auth.signOut({scope:'local'});message('loginMsg','This account is not registered as an active teacher.',true);return}
    const {data:myAssignments,error:assignmentError}=await db.rpc('teacher_list_my_assignments');
@@ -7027,14 +7178,122 @@ async function authenticateAccount(email,password,mode,selectedClass,button){
    sessionStorage.setItem('cornhill_teacher_class_id',ids[0]);sessionStorage.setItem('cornhill_login_mode','Teacher');
    try{localStorage.setItem('cornhill_teacher_class_id:'+userId,ids[0])}catch(_){}
    window.teacherClassId=ids[0];
-  }else{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.setItem('cornhill_login_mode','Admin')}
-  // Hold the automatic SIGNED_IN callback until the selected teacher class has been verified and stored.
-  window.cornhillLastAuthSessionId=userId;await startSession(data.session);
+  }else{sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.setItem('cornhill_login_mode',mode)}
+  window.cornhillLastAuthSessionId=userId;await startSession(activeSession);
  }catch(err){message('loginMsg','Could not complete sign-in. Check your connection and try again. '+(err?.message||''),true)}
- finally{window.cornhillAuthStartupHold=false;button.disabled=false;button.textContent=mode==='Admin'?'Administrator sign in':'Sign in to this class'}
+ finally{window.cornhillAuthStartupHold=false;button.disabled=false;button.textContent=mode==='Admin'?'Director sign in':mode==='Teacher'?'Sign in to this class':'Sign in'}
 }
-$('signIn').addEventListener('click',()=>{const teacherEmail=$('teacherEmail')?.value.trim()||('teacher.'+selectedLoginClass.toLowerCase()+'@cornhill.school');authenticateAccount(teacherEmail,$('teacherClassCode').value.trim(),'Teacher',selectedLoginClass,$('signIn'))});
+let teacherLoginCredentialType='code';
+function setTeacherLoginMode(mode){
+ teacherLoginCredentialType=mode==='email'?'email':'code';
+ $('teacherAccessCodeField').classList.toggle('hidden',teacherLoginCredentialType!=='code');
+ $('teacherEmailField').classList.toggle('hidden',teacherLoginCredentialType!=='email');
+ $('teacherAccessCode').required=teacherLoginCredentialType==='code';
+ $('teacherEmail').required=teacherLoginCredentialType==='email';
+ document.querySelectorAll('[data-teacher-login-mode]').forEach(b=>b.classList.toggle('active',b.dataset.teacherLoginMode===teacherLoginCredentialType));
+ $('teacherPasswordLabel').textContent='Your own account password';
+}
+document.querySelectorAll('[data-teacher-login-mode]').forEach(b=>b.addEventListener('click',()=>setTeacherLoginMode(b.dataset.teacherLoginMode)));
+setTeacherLoginMode('code');
+$('signIn').addEventListener('click',()=>{
+ const teacherEmail=$('teacherEmail')?.value.trim()||'';
+ const accessCode=$('teacherAccessCode')?.value.trim().toUpperCase()||'';
+ authenticateAccount(teacherEmail,$('teacherClassCode').value.trim(),'Teacher',selectedLoginClass,$('signIn'),teacherLoginCredentialType,accessCode);
+});
 $('adminSignIn').addEventListener('click',()=>authenticateAccount($('adminEmail').value.trim(),$('adminPassword').value,'Admin','',$('adminSignIn')));
+const SCHOOL_STAFF_LOGIN_TYPES={
+ Headteacher:{title:'Headteacher',description:'Private Headteacher account · use your individual access code and account password.',mode:'code',modes:['code']},
+ 'Deputy Headteacher':{title:'Deputy Headteacher',description:'Private Deputy Headteacher account · use your individual access code and account password.',mode:'code',modes:['code']},
+ DOS:{title:'Director of Studies (DOS)',description:'Your own DOS account · use your individual access code and account password, or switch to your own school email.',mode:'code',modes:['code','email']},
+ 'Main Bursar':{title:'Main Bursar',description:'Private Main Bursar account · use your own registered school email and password.',mode:'email',modes:['email']},
+ 'Deputy Bursar':{title:'Deputy Bursar',description:'Private Deputy Bursar account · use your own registered school email and password.',mode:'email',modes:['email']},
+ 'Other Staff':{title:'Other School Staff',description:'Your own individual staff account and permissions.',mode:'email',modes:['email']}
+};
+let selectedSchoolStaffRole='';
+function showSchoolStaffRole(role){
+ const config=SCHOOL_STAFF_LOGIN_TYPES[role];if(!config)return;
+ selectedSchoolStaffRole=role;$('schoolStaffRoleKey').value=role;
+ $('schoolStaffRoleTitle').textContent=config.title;$('schoolStaffRoleDescription').textContent=config.description;
+ $('schoolStaffRoleChoices').classList.add('hidden');$('schoolStaffCredentials').classList.remove('hidden');
+ $('schoolStaffModeSwitch').classList.toggle('hidden',config.modes.length<2);
+ setSchoolStaffLoginMode(config.mode);
+ $('staffLoginEmail').value='';$('staffLoginPassword').value='';$('schoolStaffAccessCode').value='';
+ clearMessage('loginMsg');
+}
+function setSchoolStaffLoginMode(mode){
+ const config=SCHOOL_STAFF_LOGIN_TYPES[selectedSchoolStaffRole];if(!config||!config.modes.includes(mode))return;
+ const isCode=mode==='code';$('schoolStaffLoginMode').value=mode;
+ $('schoolStaffCodeField').classList.toggle('hidden',!isCode);$('schoolStaffEmailField').classList.toggle('hidden',isCode);
+ $('schoolStaffAccessCode').required=isCode;$('staffLoginEmail').required=!isCode;
+ $('schoolStaffPasswordLabel').textContent=isCode?'Your account password / PIN':'Your account password';
+ document.querySelectorAll('[data-school-staff-mode]').forEach(b=>b.classList.toggle('active',b.dataset.schoolStaffMode===mode));
+}
+function backToSchoolStaffRoles(){
+ selectedSchoolStaffRole='';$('schoolStaffCredentials').classList.add('hidden');$('schoolStaffRoleChoices').classList.remove('hidden');
+ $('staffLoginEmail').value='';$('staffLoginPassword').value='';$('schoolStaffAccessCode').value='';clearMessage('loginMsg');
+}
+function schoolStaffRoleMatches(account,role){
+ const title=String(account?.job_title||'').trim().toLowerCase().replace(/\s+/g,' ');
+ const staff=account?.role==='Staff';
+ if(role==='Headteacher')return staff&&['headteacher','head teacher'].includes(title);
+ if(role==='Deputy Headteacher')return staff&&['deputy headteacher','deputy head teacher'].includes(title);
+ if(role==='DOS')return staff&&['dos','director of studies','director of studies (dos)'].includes(title);
+ if(role==='Main Bursar')return staff&&['bursar','school bursar','main bursar'].includes(title);
+ if(role==='Deputy Bursar')return staff&&['deputy bursar','deputy school bursar'].includes(title);
+ if(role==='Other Staff')return staff&&!['headteacher','head teacher','deputy headteacher','deputy head teacher','dos','director of studies','director of studies (dos)','bursar','school bursar','main bursar','deputy bursar','deputy school bursar'].includes(title);
+ return false;
+}
+async function authenticateSchoolStaffRole(){
+ clearMessage('loginMsg');if(!db){message('loginMsg','The sign-in service is unavailable. Check your internet connection and refresh.',true);return}
+ if(!selectedSchoolStaffRole){message('loginMsg','Choose your own school account first.',true);return}
+ const config=SCHOOL_STAFF_LOGIN_TYPES[selectedSchoolStaffRole];
+ const isCode=$('schoolStaffLoginMode').value==='code';
+ const password=$('staffLoginPassword').value;
+ const accessCode=$('schoolStaffAccessCode').value.trim().toUpperCase();
+ const email=$('staffLoginEmail').value.trim();
+ if(!password){message('loginMsg','Enter your account password.',true);return}
+ if(isCode&&!accessCode){message('loginMsg','Enter the personal access code issued to you.',true);return}
+ if(!isCode&&!email){message('loginMsg','Enter your own registered school email.',true);return}
+ const button=$('staffSignIn');button.disabled=true;button.textContent='Verifying your individual account…';window.cornhillAuthStartupHold=true;
+ try{
+  let activeSession=null;
+  if(isCode){
+   const {data,error}=await db.functions.invoke('staff-access-code',{body:{action:'login',role_key:selectedSchoolStaffRole,access_code:accessCode,password}});
+   if(error||!data?.session)throw new Error(data?.error||error?.message||'The personal access code or password is not valid.');
+   const {data:sessionData,error:sessionError}=await db.auth.setSession({access_token:data.session.access_token,refresh_token:data.session.refresh_token});
+   if(sessionError||!sessionData?.session)throw sessionError||new Error('A secure sign-in session could not be created.');
+   activeSession=sessionData.session;
+  }else{
+   const {data,error}=await db.auth.signInWithPassword({email,password});
+   if(error||!data?.session)throw error||new Error('The email address or password is not valid.');
+   activeSession=data.session;
+  }
+  const {data:account,error:profileError}=await db.from('user_profiles').select('role,job_title,employment_status').eq('id',activeSession.user.id).single();
+  if(profileError||!account)throw new Error('Your individual school staff profile could not be verified. Contact the Director.');
+  if(String(account.employment_status||'').trim().toLowerCase()!=='active')throw new Error('This school account is inactive. Contact the Director.');
+  if(!schoolStaffRoleMatches(account,selectedSchoolStaffRole))throw new Error('This account does not match the selected school office. Choose your own role and account.');
+  sessionStorage.removeItem('cornhill_teacher_class_id');sessionStorage.setItem('cornhill_login_mode','Staff');
+  window.cornhillLastAuthSessionId=activeSession.user.id;await startSession(activeSession);
+ }catch(err){
+  await db.auth.signOut({scope:'local'});message('loginMsg',err.message||'Could not complete sign-in. Check your connection and try again.',true);
+ }finally{
+  window.cornhillAuthStartupHold=false;button.disabled=false;button.textContent='Sign in to your own account';
+ }
+}
+document.querySelectorAll('[data-school-staff-role]').forEach(b=>b.addEventListener('click',()=>showSchoolStaffRole(b.dataset.schoolStaffRole)));
+document.querySelectorAll('[data-school-staff-mode]').forEach(b=>b.addEventListener('click',()=>setSchoolStaffLoginMode(b.dataset.schoolStaffMode)));
+$('schoolStaffRoleBack').addEventListener('click',backToSchoolStaffRoles);
+$('staffLoginOpen').addEventListener('click',()=>{
+ const panel=$('staffLoginPanel'),opening=panel.classList.contains('hidden');
+ panel.classList.toggle('hidden');$('staffLoginOpen').setAttribute('aria-expanded',String(opening));
+ $('selectedTeacherLogin').classList.add('hidden');$('adminLoginPanel').classList.add('hidden');
+ $('classLoginDirectory').classList.toggle('hidden',opening);selectedLoginClass='';backToSchoolStaffRoles();clearMessage('loginMsg');
+});
+$('staffLoginBack').addEventListener('click',()=>{
+ $('staffLoginPanel').classList.add('hidden');$('staffLoginOpen').setAttribute('aria-expanded','false');
+ $('classLoginDirectory').classList.remove('hidden');backToSchoolStaffRoles();clearMessage('loginMsg');
+});
+$('staffSignIn').addEventListener('click',authenticateSchoolStaffRole);
 
 loadPublicClassLoginDirectory();
 $('logout').addEventListener('click',async()=>{
@@ -8242,7 +8501,7 @@ async function loadStaffCommunication(){
  audienceSelect.value='all_staff';
  const teachersOption=audienceSelect.querySelector('option[value="teachers"]');
  const adminsOption=audienceSelect.querySelector('option[value="admins"]');
- if(teachersOption)teachersOption.disabled=!['Admin','Teacher'].includes(profile.role);
+ if(teachersOption)teachersOption.disabled=!(profile.role==='Teacher'||isCornhillAcademicViewer());
  if(adminsOption)adminsOption.disabled=profile.role!=='Admin';
  const {data:posts,error}=await db.from('staff_communication_posts').select('id,author_user_id,body,audience,is_pinned,created_at').order('is_pinned',{ascending:false}).order('created_at',{ascending:false}).limit(50);
  if(owner!==currentUserId||generation!==(window.cornhillSessionGeneration||0))return;
