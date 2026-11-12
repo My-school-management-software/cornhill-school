@@ -75,17 +75,23 @@ Production audit on 12 November found:
 - None of those six employee rows was linked to an account at the audit point.
 - No Headteacher, Deputy Headteacher, DOS, Main Bursar or Deputy Bursar staff login was provisioned by these changes. No fictitious identities, addresses or passwords have been created.
 
-The live login UI still has one generic `School staff sign in` email/password form, plus a separate Director/Main account form and individual Teacher sign-in. That generic School Staff panel technically authenticates a distinct user by email, but it does not give each school office-holder the distinct role tile/flow the user requested. This is a known outstanding defect, not a completed feature.
+The former shared `School staff sign in` entry has now been removed from the **production main dashboard**. The live sign-in page has separate choices for Headteacher, Deputy Headteacher, DOS, Main Bursar, Deputy Bursar and Other Staff. The standalone School Services page has the corresponding role-specific sign-in and Director code-management panel. The Director/Main form remains separate and continues to authenticate only the existing `Admin` profile; the 10 existing Teacher profiles retain their individual accounts and class/subject assignment checks.
 
-### Account UI and security work still required
+Credential paths in the deployed interface:
+- Headteacher and Deputy Headteacher: personal access code + that person's own Auth password.
+- DOS: personal access code + own password, or the same account's own school email + password.
+- Main Bursar and Deputy Bursar: each person's own registered school email + password.
+- Teacher: personal access code + own password by default, with individual email + password as an alternative.
+- Other Staff: individual email + password.
 
-- Replace the single generic School Staff sign-in entry with separate, clearly labelled role choices/flows for Headteacher, Deputy Headteacher, DOS, Main Bursar and Deputy Bursar. Do not publicly expose emails or list private staff identities unnecessarily.
-- Each person must authenticate against their own Supabase Auth user/profile and verified employment record. Do not let a role tile bypass authentication or act as authorization by itself.
-- Implement individual codes for the roles assigned code sign-in. A code must be unique to the employee, securely verified server-side, stored hashed (never plaintext), rate-limited and revocable. A common class code or shared office PIN is not acceptable.
-- Bursars use their own email and password. The Director's existing main account/credential/PIN arrangement remains Director-only. Resolve the DOS code-versus-email/password ambiguity before shipping the final DOS credential form.
-- Keep the individual security role/job title in the authenticated profile. Enforce permissions in server-side database policies/RPCs/Edge Functions, not just by hiding tabs.
-- Invitation/provisioning is Director-managed, tied to an existing employee row and a real verified email when email/password login is required. Do not invent emails or create an account for an unverified employee.
-- Avoid duplicate user identities. If an employee already has an account, link/update that identity rather than invite another.
+A role tile is only a sign-in choice, never authorization. After authentication the dashboard checks the authenticated profile's Staff role, matching job title and active employment status. Teacher class access still passes the existing `teacher_list_my_assignments` check. The separate code endpoint verifies the code on the server together with the account password and active linked employee, throttles failed attempts and writes an audit event. Codes are generated and HMAC-hashed; the browser cannot read the stored code table. Only the Director/Admin can issue or revoke codes.
+
+### Remaining account-provisioning and security work
+- Invite/link real office-holders only after the Director confirms the staff member's real employee record and official school email; do not invent emails or create placeholder users.
+- Link an existing employee row to an existing identity rather than creating a duplicate account.
+- Issue individual codes only after the employee record is active and linked to the correct Auth profile.
+- Complete real positive/negative login and per-role permission tests after the accounts exist; no login can be verified for a role that has no live account.
+- Keep the individual security role/job title and active status in the authenticated profile. Database RLS, guarded RPCs and Edge Functions remain the actual enforcement layer.
 
 ## 4. Role/permission rules already present in application code
 
@@ -234,16 +240,28 @@ Do not overstate these results:
 ### Verification and release status at this checkpoint
 - Main dashboard source was retrieved from the live site and its original Git blob SHA matched the feature-branch `index.html` before editing. The updated dashboard file was committed using Git's blob/tree/commit path (the file is over 1 MB).
 - Both GitHub Actions suites passed on development commit `48e740d22dfbf199d8105f0771f891fd49e42d0e`: CORNHILL individual staff access tests and CORNHILL appearance/workspace tests.
-- **This is not yet deployed to production.** The production website still serves the previous release at commit `f890af95b8a99187cf8a710d728db7d63a9fca77`. The production migration `20261112020000_individual_staff_access_codes` has not been applied, and the `staff-access-code` Edge Function has not yet been deployed.
+- **Production release completed on 12 November 2026.** The merged role-specific sign-in commit `2e6c1a4d5d8f5f7d11e3c7b99a9bc21f208fa4e5` is deployed READY to Vercel production as deployment `dpl_6zB7db5NEeUaQ9n1kz6ZmFpa9KFt`; the permanent main CORNHILL domain and all 20 module domains are attached, with no alias error. The production Supabase migration `20261112020000_individual_staff_access_codes` is applied and the `staff-access-code` Edge Function is ACTIVE (version 1; platform JWT verification is off because the pre-auth handler performs its own request validation, while issue/revoke actions independently validate a live Director bearer session).
 - The live database audit still showed 1 active Director/Admin profile, 10 active Teacher profiles and 0 active Staff profiles. No Headteacher, Deputy Headteacher, DOS or Bursar login has been created by this work. Existing employee directory records without confirmed individual emails must not be invited using invented addresses.
 - Positive end-to-end sign-in testing against real leadership/bursar users is blocked until the Director confirms/creates their actual employee records and registered school email addresses. Code-based logins cannot succeed until a code is issued to that real linked account.
 - Once production migration/function and frontend release are complete, the Director must issue individual codes to the relevant active Teacher, Headteacher, Deputy Headteacher and DOS accounts. Bursars must each accept their own email invitation and set their own passwords.
 
 ### Next actions — continue from this checkpoint
-1. Final-check PR #14 and its test results, then merge the role sign-in change into the current production source branch without reverting the compact header, expanded content area, report-card studio, stamps or review workflow.
-2. Apply the additive individual-access-code migration to the existing production Supabase project only after final source review; deploy `staff-access-code` with handler-level authentication (the pre-auth sign-in endpoint requires platform JWT verification off, while issuance/revocation still independently validate a live Director bearer session).
-3. Deploy the merged frontend to the permanent CORNHILL Vercel address; verify its exact commit SHA and the 21 existing app aliases before declaring release.
-4. Have the Director confirm the real names/job titles/official school emails for Headteacher, Deputy Headteacher, DOS, Main Bursar and Deputy Bursar. Link existing employee rows rather than creating duplicates; send real invitations; issue individual codes only after those accounts are active and linked.
-5. Run separate positive/negative login and permission tests for Director, each leadership role, each bursar, class teachers and subject-only teachers. Also test sign-out/session isolation on shared school computers and Android.
+1. Have the Director confirm the real names, job titles and official school emails for Headteacher, Deputy Headteacher, DOS, Main Bursar and Deputy Bursar. Link existing employee records rather than creating duplicates; send real invitations only to confirmed addresses.
+2. Issue individual codes to active Teacher accounts and eligible academic leadership accounts only after confirming they are active and linked to the right job title/profile. Do not issue a code to an unlinked employee-directory row.
+3. Complete positive and negative end-to-end sign-in tests for the Director, each leadership office, each bursar, class teachers and subject-only teachers once their real accounts exist. Test wrong-role tiles, inactive accounts, wrong codes/passwords, revocation and rate limits.
+4. Test sign-out/session isolation on shared school computers and Android, including teacher class switching and return to the correct role login page.
+5. Continue the pending report-card review cycle, finance payment/reversal E2E, fingerprint-device integration, offline sign-in/synchronisation and SMS-provider verification as separate workstreams.
 
-Do not describe the separate accounts as active until those real accounts exist. Do not change the Director's existing credentials or provision placeholder users.
+Do not describe a role account as active until its real profile and Auth identity exist. Do not change the Director's existing credentials or provision placeholder users.
+
+
+## Authoritative production release status — 12 November 2026, 04:00 UTC
+
+This section supersedes older staged-only statements earlier in this document.
+
+- GitHub PR #14 was merged into `feat/role-based-staff-access-subject-teachers-20261111` as commit `2e6c1a4d5d8f5f7d11e3c7b99a9bc21f208fa4e5`. The individual staff access suite and CORNHILL appearance/workspace suite both passed on the final change before merge.
+- Vercel production deployment `dpl_6zB7db5NEeUaQ9n1kz6ZmFpa9KFt` is READY from the merged commit. The main site and all 20 module domains were verified against the same deployment. Live requests to the root and `/school-services.html` returned HTTP 200 and showed role-specific login forms.
+- Supabase migration `20261112020000_individual_staff_access_codes` is applied. Database verification confirmed RLS on the code table; anon/authenticated cannot select codes or call the rate-limit helper; only `service_role` can use the code table/rate-limit helper. The code table contains 0 issued codes.
+- Supabase Edge Function `staff-access-code` is ACTIVE at version 1.
+- Latest account audit: 1 active Admin (Director), 10 active Teacher profiles, 0 active Staff profiles, 0 issued personal codes and 0 linked active leadership accounts. This release separates the login routes but does not itself create staff identities.
+- Real positive login tests for Headteacher, Deputy Headteacher, DOS, Main Bursar and Deputy Bursar remain pending until the Director confirms the real employees and official emails and the individual accounts are invited/linked. No placeholder accounts or invented email addresses were created.
