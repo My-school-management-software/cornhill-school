@@ -46,6 +46,18 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e8eee9;vertical-alig
 .kpi{font-variant-numeric:tabular-nums}.module .card{box-shadow:none;background:#fbfdfb}
 @media(max-width:680px){.wrap{padding:0 10px;margin:12px auto}.panel{padding:14px;border-radius:13px}.top{align-items:flex-start}.brand img{width:42px;height:42px}form{grid-template-columns:1fr}form .full{grid-column:auto}.navlinks{flex-wrap:nowrap;overflow:auto;padding-bottom:7px}.navlinks a{white-space:nowrap}.module-head{flex-direction:column}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+.login-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0}
+.login-role-choice{min-height:72px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;gap:5px;border:1px solid #d7e4d9;background:#fff;border-radius:12px;padding:12px 14px;color:#173e27}
+.login-role-choice strong{font-size:13px}.login-role-choice small{font-size:11px;line-height:1.35;color:#5f7365;font-weight:600}
+.login-role-choice:hover{border-color:#23824b;background:#f5fbf6}
+.login-director-choice{border-color:#afcdb7;background:#f5faf6}
+.login-selected{margin-top:14px;padding:14px;border:1px solid #dce7de;border-radius:14px;background:#f9fcfa}
+.login-mode-switch{display:flex;gap:7px;margin:10px 0 14px;flex-wrap:wrap}
+.login-mode-switch button{flex:1;min-width:130px;background:#eef4ef;border:1px solid #dce7de}
+.login-mode-switch button.active{background:#14532d;color:#fff;border-color:#14532d}
+@media(max-width:520px){.login-role-grid{grid-template-columns:1fr}.login-role-choice{min-height:62px}.login-mode-switch{flex-direction:column}}
+
 </style>
 <script id="cornhill-workspace-boot">
 (function(){
@@ -79,17 +91,45 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
 </header>
 <main class="wrap">
 <section id="loginPanel" class="panel login">
-  <span class="kicker">STAFF ACCESS</span><h1>School Services</h1>
-  <p class="muted">Sign in using your own active CORNHILL staff account. Access to each service is checked again by the database.</p>
-  <form id="loginForm">
-    <div class="full"><label for="loginEmail">School email</label><input id="loginEmail" name="email" type="email" autocomplete="username" required></div>
-    <div class="full"><label for="loginPassword">Password</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required></div>
-    <div class="full"><button class="primary" type="submit">Sign in to School Services</button><div id="loginMsg" class="notice hidden" role="status"></div></div>
-  </form>
-  <p class="muted">Parents should use the separate <a href="/parents.html">Parent & Guardian Portal</a>. Never share staff passwords.</p>
+  <span class="kicker">PRIVATE INDIVIDUAL ACCOUNTS</span><h1>CORNHILL Staff Sign In</h1>
+  <p class="muted">Choose your own office or teaching role. Every person signs in to a separate account. The Director’s existing main account remains reserved for the Director only.</p>
+  <div id="loginRoleChoices" class="login-role-grid">
+    <button type="button" class="login-role-choice" data-login-role="Teacher"><strong>Teaching Staff</strong><small>Individual teacher account · personal code</small></button>
+    <button type="button" class="login-role-choice" data-login-role="Headteacher"><strong>Headteacher</strong><small>Separate account · personal code</small></button>
+    <button type="button" class="login-role-choice" data-login-role="Deputy Headteacher"><strong>Deputy Headteacher</strong><small>Separate account · personal code</small></button>
+    <button type="button" class="login-role-choice" data-login-role="DOS"><strong>Director of Studies (DOS)</strong><small>Own account · personal code or email/password</small></button>
+    <button type="button" class="login-role-choice" data-login-role="Main Bursar"><strong>Main Bursar</strong><small>Private email and password</small></button>
+    <button type="button" class="login-role-choice" data-login-role="Deputy Bursar"><strong>Deputy Bursar</strong><small>Private email and password</small></button>
+    <button type="button" class="login-role-choice" data-login-role="Other Staff"><strong>Other School Staff</strong><small>Each employee uses their own account</small></button>
+    <button type="button" class="login-role-choice login-director-choice" data-login-role="Director"><strong>Director · Existing Main Account</strong><small>Same original Director identity · no second Director account</small></button>
+  </div>
+  <section id="selectedLoginPanel" class="login-selected hidden">
+    <div class="row"><div><span class="kicker">YOUR PRIVATE ACCOUNT</span><h2 id="selectedLoginTitle">Sign in</h2></div><button id="backToLoginRoles" type="button">Change account</button></div>
+    <p id="selectedLoginDescription" class="muted"></p>
+    <div id="loginModeSwitch" class="login-mode-switch hidden">
+      <button type="button" data-login-mode="code" class="active">Personal access code</button>
+      <button type="button" data-login-mode="email">School email</button>
+    </div>
+    <form id="loginForm">
+      <input id="loginRoleKey" type="hidden">
+      <input id="loginMode" type="hidden" value="email">
+      <div class="full" id="loginCodeField" hidden><label for="loginAccessCode">Your individual access code</label><input id="loginAccessCode" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+      <div class="full" id="loginEmailField"><label for="loginEmail">Your school email</label><input id="loginEmail" name="email" type="email" autocomplete="username"></div>
+      <div class="full"><label for="loginPassword" id="loginPasswordLabel">Password</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required></div>
+      <div class="full"><button class="primary" type="submit" id="loginSubmit">Sign in to your account</button><div id="loginMsg" class="notice hidden" role="status" aria-live="polite"></div></div>
+    </form>
+  </section>
+  <p class="muted">Parents must use the separate <a href="/parents.html">Parent & Guardian Portal</a>. Never share staff passwords, codes or browser sessions.</p>
 </section>
 
 <section id="appPanel" class="hidden">
+<section id="staffAccessCodeAdminPanel" class="panel hidden" aria-labelledby="staffAccessCodeAdminTitle">
+  <div class="module-head"><div><span class="kicker">DIRECTOR-ONLY ACCOUNT CONTROL</span><h2 id="staffAccessCodeAdminTitle">Individual Staff Access Codes</h2><p class="muted">Issue or revoke a personal code for an existing active Teacher, Headteacher, Deputy Headteacher or DOS account. Codes are shown once and are never stored in plain text.</p></div></div>
+  <div class="grid" style="grid-template-columns:minmax(0,1fr) auto;align-items:end"><div><label for="staffAccessCodeAccount">Individual staff account</label><select id="staffAccessCodeAccount"><option value="">Loading eligible accounts…</option></select></div><button type="button" id="refreshStaffAccessAccounts">Refresh accounts</button></div>
+  <div class="row" style="margin-top:10px;justify-content:flex-start"><button type="button" class="primary" id="issueStaffAccessCode">Issue / reset personal code</button><button type="button" class="danger" id="revokeStaffAccessCode">Revoke personal code</button></div>
+  <div id="staffAccessCodeResult" class="notice hidden" role="status" aria-live="polite"></div>
+  <p class="muted">The Director alone can issue or revoke these codes. Bursar accounts continue to use their own email and password. This panel does not create staff accounts or invent email addresses.</p>
+</section>
   <div id="scopedWorkspaceBar" class="panel hidden" style="margin-bottom:14px"><div class="row" style="align-items:center;justify-content:space-between;gap:12px"><div><span class="kicker">CORNHILL · SINGLE-PURPOSE WORKSPACE</span><h1 id="scopedWorkspaceTitle" style="margin:6px 0">School workspace</h1><p class="muted" id="scopedWorkspaceDescription" style="margin:0">Only this application workspace is shown.</p></div><a class="button primary" href="https://cornhill-school-swart.vercel.app/apps/school-management/">← Main School System</a></div><div id="scopedServiceMsg" class="notice hidden" role="status" aria-live="polite" style="margin-bottom:0"></div></div>
   <div id="servicePortalOverviewPanel" class="panel">
     <div class="row"><div><span class="kicker">ONE PORTAL · ROLE-RESTRICTED WORKSPACES</span><h1 id="welcome">Welcome to CORNHILL Services</h1><p class="muted" id="roleInfo">Your available services are based on your active school account.</p></div><span class="badge" id="roleBadge">Verified account</span></div>
@@ -475,7 +515,9 @@ function configureModules(){
 }
 async function enterApp(){
  await loadProfile();configureModules();
+ show('staffAccessCodeAdminPanel',isAdmin());
  show('loginPanel',false);show('appPanel',true);show('signOut',true);
+ if(isAdmin())await loadStaffAccessCodeAccounts();
  await refreshAll();
  if(location.hash)setTimeout(()=>document.querySelector(location.hash)?.scrollIntoView({behavior:'instant',block:'start'}),150);
 }
@@ -507,16 +549,115 @@ async function refreshAll(){
  jobs.push((async()=>{await loadBooks();if(isLibrarian())await loadLoans()})());if(isTransport())jobs.push(loadTransport());if(isWelfare())jobs.push(loadWelfare());if(isGateStaff())jobs.push(loadVisitors());jobs.push(loadMaintenance());if(isAssetViewer())jobs.push(loadAssets());
  const results=await Promise.allSettled(jobs);if(results.some(x=>x.status==='rejected'))note('globalMsg','Some panels could not refresh. Check their individual status messages; database permissions remain in force.','error');
 }
+
+const LOGIN_ROLE_SETTINGS={
+ Teacher:{title:'Teaching Staff',description:'Use your individual teacher account. A personal code can be issued by the Director.',mode:'code',modes:['code','email']},
+ Headteacher:{title:'Headteacher',description:'This is the Headteacher’s own account. Use the personal access code and password/PIN issued for this account.',mode:'code',modes:['code']},
+ 'Deputy Headteacher':{title:'Deputy Headteacher',description:'This is the Deputy Headteacher’s own account. Use the personal access code and password/PIN issued for this account.',mode:'code',modes:['code']},
+ DOS:{title:'Director of Studies (DOS)',description:'This is the DOS’s own account. Use the personal code and password, or switch to this same account’s email/password sign-in.',mode:'code',modes:['code','email']},
+ 'Main Bursar':{title:'Main Bursar',description:'Use the Main Bursar’s private email and password for their individual account.',mode:'email',modes:['email']},
+ 'Deputy Bursar':{title:'Deputy Bursar',description:'Use the Deputy Bursar’s private email and password for their individual account.',mode:'email',modes:['email']},
+ 'Other Staff':{title:'Other School Staff',description:'Every employee signs in with their own account, with access limited by their verified job title.',mode:'email',modes:['email']},
+ Director:{title:'Director · Existing Main Account',description:'The existing full-access Director identity only. This does not create a second Director account.',mode:'email',modes:['email']}
+};
+let selectedLoginRole='';
+function selectLoginRole(role){
+ const config=LOGIN_ROLE_SETTINGS[role];if(!config)return;
+ selectedLoginRole=role;$('loginRoleKey').value=role;$('selectedLoginTitle').textContent=config.title;$('selectedLoginDescription').textContent=config.description;
+ $('loginRoleChoices').classList.add('hidden');$('selectedLoginPanel').classList.remove('hidden');
+ $('loginModeSwitch').classList.toggle('hidden',config.modes.length<2);
+ setLoginMode(config.mode);$('loginMsg').classList.add('hidden');$('loginPassword').value='';$('loginEmail').value='';$('loginAccessCode').value='';
+}
+function setLoginMode(mode){
+ const cfg=LOGIN_ROLE_SETTINGS[selectedLoginRole];if(!cfg||!cfg.modes.includes(mode))return;
+ $('loginMode').value=mode;const useCode=mode==='code';
+ $('loginCodeField').hidden=!useCode;$('loginEmailField').hidden=useCode;
+ $('loginAccessCode').required=useCode;$('loginEmail').required=!useCode;
+ $('loginPasswordLabel').textContent=useCode?'Your account password / PIN':'Your account password';
+ document.querySelectorAll('[data-login-mode]').forEach(b=>b.classList.toggle('active',b.dataset.loginMode===mode));
+}
+function returnToRoleChoices(){
+ selectedLoginRole='';$('loginForm').reset();$('loginRoleKey').value='';$('loginMode').value='email';
+ $('selectedLoginPanel').classList.add('hidden');$('loginRoleChoices').classList.remove('hidden');$('loginMsg').classList.add('hidden');
+}
+function matchesSelectedLoginRole(p,role){
+ const t=String(p?.job_title||'').trim().toLowerCase().replace(/\s+/g,' ');
+ const staff=p?.role==='Staff',teacher=p?.role==='Teacher',admin=p?.role==='Admin';
+ if(role==='Director')return admin;
+ if(role==='Teacher')return teacher;
+ if(role==='Headteacher')return staff&&['headteacher','head teacher'].includes(t);
+ if(role==='Deputy Headteacher')return staff&&['deputy headteacher','deputy head teacher'].includes(t);
+ if(role==='DOS')return staff&&['dos','director of studies','director of studies (dos)'].includes(t);
+ if(role==='Main Bursar')return staff&&['bursar','school bursar','main bursar'].includes(t);
+ if(role==='Deputy Bursar')return staff&&['deputy bursar','deputy school bursar'].includes(t);
+ if(role==='Other Staff')return staff&&!['headteacher','head teacher','deputy headteacher','deputy head teacher','dos','director of studies','director of studies (dos)','bursar','school bursar','main bursar','deputy bursar','deputy school bursar'].includes(t);
+ return false;
+}
+async function validateSelectedLoginRole(){
+ await loadProfile();
+ if(!matchesSelectedLoginRole(profile,selectedLoginRole)){
+  await db.auth.signOut({scope:'local'});user=null;profile=null;
+  throw new Error('This account does not match the sign-in area selected. Choose your own role and account.');
+ }
+}
+document.querySelectorAll('[data-login-role]').forEach(b=>b.addEventListener('click',()=>selectLoginRole(b.dataset.loginRole)));
+document.querySelectorAll('[data-login-mode]').forEach(b=>b.addEventListener('click',()=>setLoginMode(b.dataset.loginMode)));
+$('backToLoginRoles').addEventListener('click',returnToRoleChoices);
 $('loginForm').addEventListener('submit',async e=>{
- e.preventDefault();const btn=e.submitter;btn.disabled=true;btn.textContent='Checking account…';
+ e.preventDefault();const btn=e.submitter;btn.disabled=true;btn.textContent='Verifying your individual account…';
  try{
-  const {data,error}=await db.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});
-  if(error)throw error;user=data.user;await enterApp();
+  let authUser=null;
+  if($('loginMode').value==='code'){
+   const {data,error}=await db.functions.invoke('staff-access-code',{body:{action:'login',role_key:$('loginRoleKey').value,access_code:$('loginAccessCode').value.trim(),password:$('loginPassword').value}});
+   if(error||!data?.session)throw new Error(data?.error||error?.message||'The access code or password is not valid.');
+   const {data:sessionData,error:sessionError}=await db.auth.setSession({access_token:data.session.access_token,refresh_token:data.session.refresh_token});
+   if(sessionError||!sessionData?.user)throw sessionError||new Error('A secure session could not be established.');
+   authUser=sessionData.user;
+  }else{
+   const {data,error}=await db.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});
+   if(error||!data?.user)throw error||new Error('Email or password is not valid.');
+   authUser=data.user;
+  }
+  user=authUser;await validateSelectedLoginRole();await enterApp();
  }catch(err){await db.auth.signOut({scope:'local'});user=null;profile=null;note('loginMsg',err.message||'Sign in failed.','error')}
- finally{btn.disabled=false;btn.textContent='Sign in to School Services'}
+ finally{btn.disabled=false;btn.textContent='Sign in to your account'}
 });
+async function loadStaffAccessCodeAccounts(){
+ if(!isAdmin())return;
+ const select=$('staffAccessCodeAccount');if(!select)return;
+ select.innerHTML='<option value="">Loading active individual accounts…</option>';
+ const {data,error}=await db.from('staff_account_directory').select('user_id,owner_name,account_section,account_title,security_role,employment_status').eq('employment_status','Active').order('owner_name');
+ if(error){select.innerHTML='<option value="">Could not load eligible accounts</option>';note('staffAccessCodeResult','The Director-only account list could not be loaded. '+error.message,'error');return}
+ const eligible=(data||[]).filter(r=>{const title=String(r.account_title||'').toLowerCase();return r.security_role==='Teacher'||/headteacher|head teacher|director of studies|\bdos\b/.test(title)});
+ select.innerHTML='<option value="">Choose one named individual account</option>';
+ for(const r of eligible){const title=String(r.account_title||'').toLowerCase().replace(/\s+/g,' ');let roleKey=r.security_role==='Teacher'?'Teacher':'';if(!roleKey){if(/deputy headteacher|deputy head teacher/.test(title))roleKey='Deputy Headteacher';else if(/headteacher|head teacher/.test(title))roleKey='Headteacher';else if(/director of studies|^dos$/.test(title))roleKey='DOS'}if(!roleKey)continue;const option=document.createElement('option');option.value=r.user_id;option.dataset.roleKey=roleKey;option.textContent=(r.owner_name||'Unnamed staff')+' — '+(r.account_title||r.security_role);select.appendChild(option)}
+ if(!eligible.length)select.innerHTML='<option value="">No eligible active accounts are available</option>';
+}
+async function manageStaffAccessCode(action){
+ if(!isAdmin()){note('staffAccessCodeResult','Only the Director main account can manage personal access codes.','error');return}
+ const accountSelect=$('staffAccessCodeAccount');const selectedOption=accountSelect?.selectedOptions?.[0];const userId=accountSelect?.value||'';const roleKey=selectedOption?.dataset?.roleKey||'';if(!userId||!roleKey){note('staffAccessCodeResult','Select one eligible individual account first.','error');return}
+ if(action==='revoke'&&!confirm('Revoke this person’s individual access code?'))return;
+ const btn=action==='issue'?$('issueStaffAccessCode'):$('revokeStaffAccessCode');btn.disabled=true;
+ try{
+  const {data,error}=await db.functions.invoke('staff-access-code',{body:{action,user_id:userId,role_key:roleKey}});
+  if(error||!data?.success)throw new Error(data?.error||error?.message||'The access-code action did not complete.');
+  if(action==='issue'){
+   const result=$('staffAccessCodeResult');result.innerHTML='';
+   const label=document.createElement('div');label.textContent='New personal code for '+(data.account_name||'the selected account')+':';
+   const code=document.createElement('strong');code.textContent=data.access_code;code.style.display='block';code.style.margin='8px 0';
+   const copy=document.createElement('button');copy.type='button';copy.textContent='Copy code';
+   copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(data.access_code);copy.textContent='Copied'}catch{copy.textContent='Copy unavailable'}});
+   result.append(label,code,copy);result.className='notice success';result.classList.remove('hidden');
+  }else note('staffAccessCodeResult','The selected person’s access code has been revoked.','success');
+ }catch(err){note('staffAccessCodeResult',err.message||'The request failed.','error')}
+ finally{btn.disabled=false}
+}
+$('refreshStaffAccessAccounts').addEventListener('click',loadStaffAccessCodeAccounts);
+$('issueStaffAccessCode').addEventListener('click',()=>manageStaffAccessCode('issue'));
+$('revokeStaffAccessCode').addEventListener('click',()=>manageStaffAccessCode('revoke'));
+
 $('signOut').addEventListener('click',async()=>{
- await db.auth.signOut({scope:'local'});user=null;profile=null;show('appPanel',false);show('loginPanel',true);show('signOut',false);$('userLabel').textContent='';$('loginForm').reset();
+ await db.auth.signOut({scope:'local'});user=null;profile=null;show('appPanel',false);show('loginPanel',true);show('signOut',false);$('userLabel').textContent='';returnToRoleChoices();
 });
 document.querySelectorAll('[data-service]').forEach(a=>a.addEventListener('click',()=>{setTimeout(()=>document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth',block:'start'}),0)}));
 async function loadAdmissions(){
