@@ -9,6 +9,7 @@ on:
       - feat/role-based-staff-access-subject-teachers-20261111
       - main
       - feat/system-health-capacity-monitoring-20261112
+      - feat/cloudflare-r2-evidence-storage-20261112
 jobs:
   full-regression:
     runs-on: ubuntu-latest
