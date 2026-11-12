@@ -106,7 +106,8 @@ test('access-code issue, revoke and use actions check their audit writes', () =>
 });
 
 test('staff login rate limiting cannot be reset by changing the browser user-agent', () => {
-  assert.match(edge, /cornhill-login-rate-v1:" \\+ forwarded/);
-  assert.doesNotMatch(edge, /const userAgent\\s*=/);
-  assert.doesNotMatch(edge, /req\\.headers\\.get\\(["']user-agent["']\\)/);
+  assert.ok(edge.includes('cornhill-login-rate-v1:" + forwarded'));
+  assert.ok(!edge.includes('const userAgent ='));
+  assert.ok(!edge.includes('req.headers.get("user-agent")'));
+  assert.ok(!edge.includes("req.headers.get('user-agent')"));
 });
