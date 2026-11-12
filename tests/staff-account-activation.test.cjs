@@ -82,7 +82,7 @@ test('activation database tables deny browser access and store only hashed one-t
 
 test('Headteacher, Deputy Headteacher and DOS can use email/password after activation', () => {
   assert.match(services, /Headteacher:[\s\S]{0,260}mode:'email',modes:\['email','code'\]/);
-  assert.match(services, /Deputy Headteacher:[\s\S]{0,300}mode:'email',modes:\['email','code'\]/);
+  assert.match(services, /Deputy Headteacher'?:[\s\S]{0,300}mode:'email',modes:\['email','code'\]/);
   assert.match(services, /DOS:[\s\S]{0,260}mode:'email',modes:\['email','code'\]/);
 });
 
@@ -94,6 +94,10 @@ test('Director staff account page links to the independent Supabase activation c
 test('the Director identity remains separate and is never included as an activation target', () => {
   assert.match(edge, /employee\.staff_category !== "Non-teaching"/);
   assert.match(edge, /roleForTitle\(employee\.job_title\)/);
-  assert.match(edge, /\["Main Bursar", "Deputy Bursar", "Headteacher", "Deputy Headteacher", "DOS"\]/);
+  assert.match(edge, /if \(\["main bursar"/);
+  assert.match(edge, /if \(\["deputy bursar"/);
+  assert.match(edge, /if \(\["headteacher"/);
+  assert.match(edge, /if \(\["deputy headteacher"/);
+  assert.match(edge, /if \(\["dos"/);
   assert.doesNotMatch(edge, /role:\s*"Admin"[^\n]*createUser/);
 });
