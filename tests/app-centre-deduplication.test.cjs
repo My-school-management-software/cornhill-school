@@ -78,3 +78,12 @@ test('main dashboard loads the shared App Centre helper before its inline applic
   assert.ok(dashboardSource.includes('CornhillAppCentre?.groupRowsByCategory?.(displayRows)'));
   assert.ok(dashboardSource.includes('app-centre-group-grid'));
 });
+
+test('shared workspace bridge does not overwrite the central App Centre renderer or restore duplicate/inactive cards', () => {
+  const bridge = fs.readFileSync(path.join(root, 'assets', 'main-school-workspace-bridge.js'), 'utf8');
+  assert.doesNotMatch(bridge, /function updateWorkspaceCards\\s*\\(/);
+  assert.doesNotMatch(bridge, /const originalRenderAppCentre\\s*=\\s*renderAppCentre/);
+  assert.doesNotMatch(bridge, /updateWorkspaceCards\\s*\\(/);
+  assert.match(dashboardSource, /data-share-workspace="\\'\\+esc\\(app\\.id\\)\\+'/);
+  assert.ok(bridge.includes("document.addEventListener('click'"));
+});
