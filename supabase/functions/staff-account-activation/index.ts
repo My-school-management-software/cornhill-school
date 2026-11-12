@@ -214,7 +214,6 @@ Deno.serve(async (req: Request) => {
       .eq("code_hash", codeHash).maybeSingle();
     if (lookupError || !found || !found.is_active || found.redeemed_at || found.revoked_at ||
         new Date(found.expires_at).getTime() <= Date.now()) {
-      await admin.rpc("consume_staff_access_code_attempt", { p_ip_hash: ipHash, p_reset: false });
       return json(401, { error: "The activation code is invalid, expired, revoked or already used." }, origin);
     }
 
@@ -269,6 +268,7 @@ Deno.serve(async (req: Request) => {
     }
 
     let activatedUserId = existingAuthId;
+    let activatedEnrollmentId: string | null = bursarEnrollment?.id || null;
     let signinCode: string | null = null;
     if (isBursar && existingAuthId) {
       const { error: updateAuthError } = await admin.auth.admin.updateUserById(existingAuthId, {
@@ -312,6 +312,7 @@ Deno.serve(async (req: Request) => {
         return json(500, { error: "The new bursar login was created but its enrollment record could not be saved. Ask the Director to issue a fresh activation code." }, origin);
       }
       enrollmentId = enrollment.id;
+      activatedEnrollmentId = enrollmentId;
       const { error: codeLinkError } = await admin.from("staff_activation_codes")
         .update({ enrollment_id: enrollmentId, redeemed_by: activatedUserId, updated_at: now })
         .eq("staff_directory_id", employee.id);
@@ -375,23 +376,22 @@ Deno.serve(async (req: Request) => {
 
     if (isBursar) {
       const { data: activated, error: activationError } = await admin.rpc("activate_bursar_account_enrollment", {
-        p_enrollment_id: bursarEnrollment?.id || claimed.enrollment_id ||
-          (await admin.from("bursar_account_enrollments").select("id").eq("staff_directory_id", employee.id).eq("auth_user_id", activatedUserId).single()).data?.id,
+        p_enrollment_id: activatedEnrollmentId || claimed.enrollment_id,
         p_auth_user_id: activatedUserId,
       });
       if (activationError || !activated?.success) {
         return json(500, { error: "Your credentials were saved, but account linking did not finish. Do not request another invitation or code; ask the Director to complete the existing activation." }, origin);
       }
-    } else {
-      const { error: markCodeError } = await admin.from("staff_activation_codes")
-        .update({ redeemed_by: activatedUserId, updated_at: new Date().toISOString() })
-        .eq("staff_directory_id", employee.id);
-      if (markCodeError) return json(500, { error: "The account is active, but the activation audit needs Director review." }, origin);
     }
+
+    const { error: markCodeError } = await admin.from("staff_activation_codes")
+      .update({ redeemed_by: activatedUserId, updated_at: new Date().toISOString() })
+      .eq("staff_directory_id", employee.id);
+    if (markCodeError) return json(500, { error: "The account is active, but the activation audit needs Director review." }, origin);
 
     await logActivation(admin, {
       staff_directory_id: employee.id,
-      enrollment_id: bursarEnrollment?.id || claimed.enrollment_id || null,
+      enrollment_id: activatedEnrollmentId || claimed.enrollment_id || null,
       role_key: found.role_key,
       action: "redeemed",
       performed_by: activatedUserId,
