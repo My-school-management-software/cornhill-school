@@ -135,7 +135,7 @@ test('school staff sign-in rejects inactive employment before opening the worksp
   const inactive = flow.indexOf("employment_status");
   const start = flow.indexOf("await startSession(activeSession)");
   assert.ok(inactive >= 0 && start > inactive, 'Active-employment validation must precede session startup');
-  assert.match(flow, /employment_status\|\|''\)\)\.trim\(\)\.toLowerCase\(\)!=='active'/);
+  assert.ok(flow.includes("String(account.employment_status||'').trim().toLowerCase()!=='active'"));
 });
 
 test('selected office is checked against the authenticated staff job title and role', () => {
