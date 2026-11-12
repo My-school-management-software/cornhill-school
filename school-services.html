@@ -83,7 +83,52 @@ html[data-service-workspace] #appPanel>section.module:not(.hidden){display:block
 html[data-service-workspace] #appPanel>section.module .table-wrap{max-width:100%;overflow:auto}
 html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-width:100%;overflow-wrap:anywhere}
 </style>
-<script src="/assets/cornhill-offline.js"></script><script src="/assets/app-isolation-guard.js"></script></head>
+<script src="/assets/cornhill-offline.js"></script><script src="/assets/app-isolation-guard.js"></script>
+<style id="cornhill-services-professional-signin-v2">
+/* The services portal uses the same school identity and responsive account-first layout. */
+#loginPanel.login{
+ position:relative!important;isolation:isolate;overflow:hidden;
+ width:min(100% - 36px,1080px)!important;max-width:1080px!important;min-height:590px;
+ margin:clamp(18px,4vh,42px) auto 34px!important;padding:32px 30px 34px!important;
+ border:1px solid #d9e6dd!important;border-radius:27px!important;background:#fff!important;
+ box-shadow:0 24px 70px rgba(18,48,29,.12)!important;
+}
+#loginPanel.login:before{
+ content:"CORNHILL\A NURSERY AND PRIMARY SCHOOL\A\A WE SHARE ONE DREAM\A\A STAFF & LEADERSHIP PORTAL\A Your own account. Your assigned responsibilities. Your private workspace.";
+ position:absolute;z-index:0;top:0;bottom:0;left:0;width:33%;
+ display:flex;align-items:flex-end;box-sizing:border-box;padding:190px 28px 38px;
+ white-space:pre-line;color:#f7fff9;font-size:clamp(13px,1.2vw,16px);font-weight:650;line-height:1.8;
+ background-image:linear-gradient(180deg,rgba(7,47,28,.12) 0%,rgba(7,47,28,.48) 42%,#082d1d 100%),url('/assets/cornhill-school-badge.png'),linear-gradient(150deg,#17623a,#0a3522);
+ background-size:cover,104px auto,cover;background-position:center,center 48px,center;background-repeat:no-repeat;
+}
+#loginPanel.login>*{position:relative;z-index:1;width:61%!important;max-width:none!important;margin-left:36%!important}
+#loginPanel.login>.kicker{display:block;margin-top:16px!important;color:#237047;letter-spacing:.16em}
+#loginPanel.login>h1{margin:8px 0 8px!important;color:#173f29;font-size:clamp(25px,2.7vw,34px);letter-spacing:-.035em}
+#loginPanel.login>p.muted{margin:0 0 14px!important;color:#627368;font-size:13px;line-height:1.6}
+#loginRoleChoices.login-role-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+#loginRoleChoices .login-role-choice{min-height:78px;padding:13px 15px;border:1px solid #dce8df;border-radius:13px;background:linear-gradient(145deg,#fff,#f7fbf8);box-shadow:0 3px 11px rgba(18,48,29,.045)}
+#loginRoleChoices .login-role-choice strong{font-size:13px;color:#17452b;font-weight:850}
+#loginRoleChoices .login-role-choice small{font-size:11px;line-height:1.45;color:#65766b}
+#loginRoleChoices .login-role-choice:hover{border-color:#79a88a;background:#f1f8f3}
+#loginPanel .login-selected{padding:18px;border:1px solid #dce8df;border-radius:15px;background:#fbfdfb}
+#loginPanel input{min-height:46px;border:1px solid #cfded3;border-radius:10px}
+#loginPanel button{border-radius:10px}
+#loginPanel button.primary{min-height:48px;background:linear-gradient(110deg,#14532d,#237b48);box-shadow:0 7px 18px rgba(20,83,45,.18)}
+#loginPanel button:focus-visible,#loginPanel input:focus-visible{outline:3px solid #83ba94;outline-offset:2px}
+@media(max-width:760px){
+ #loginPanel.login{width:min(100% - 20px,720px)!important;min-height:0;margin:12px auto 22px!important;padding:162px 15px 22px!important;border-radius:20px!important}
+ #loginPanel.login:before{top:0;bottom:auto;left:0;width:100%;height:142px;padding:22px 18px 18px 116px;border-radius:19px 19px 0 0;font-size:12px;line-height:1.55;background-size:cover,78px auto,cover;background-position:center,20px center,center}
+ #loginPanel.login>*{width:100%!important;margin-left:0!important}
+ #loginPanel.login>.kicker{margin-top:0!important}
+ #loginRoleChoices.login-role-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #loginRoleChoices .login-role-choice{min-height:72px;padding:11px}
+}
+@media(max-width:420px){
+ #loginPanel.login{padding-inline:12px!important}
+ #loginRoleChoices.login-role-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
 <body data-theme="warm-corporate">
 <header class="top">
   <div class="brand"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL badge"><div>CORNHILL NURSERY AND PRIMARY SCHOOL<small>Secure School Services Portal · Uganda</small></div></div>

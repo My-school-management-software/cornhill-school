@@ -1,0 +1,21 @@
+name: CORNHILL full application regression suite
+on:
+  push:
+    branches:
+      - feat/professional-signin-layout-full-audit-20261112
+  pull_request:
+    branches:
+      - feat/role-based-staff-access-subject-teachers-20261111
+      - main
+jobs:
+  full-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run all application regression tests
+        run: node --test tests/*.test.cjs
+      - name: Check root JavaScript syntax
+        run: find . -maxdepth 2 -type f -name '*.js' -not -path './native/*' -print0 | xargs -0 -n1 node --check
