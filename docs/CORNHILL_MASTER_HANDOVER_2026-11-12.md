@@ -372,3 +372,12 @@ No access codes were issued, no staff invitation was sent and no account/passwor
 - Final PR checks on commit `c7fbd840c1d83f7945bdd53108b44903a5b5c2f5`: staff access **21/21 passed**, bursar enrollment contract suite passed, appearance/workspace suite passed. The first test attempt exposed one overly strict test regex; it was corrected and the complete rerun passed.
 - This was a test-only change. No staff account, password, access code, Auth configuration, production database row or deployment alias was changed.
 - Production frontend status remains separate: the permanent Vercel alias must still be checked against the exact current integrated release commit before the school is told that the latest screens are live. A successful PR/preview check is not proof of production deployment.
+
+
+### Production deployment recheck — 12 November 2026, 09:29 UTC
+
+- One targeted production deployment was attempted from the exact integrated release head `ab477409e2cf572f465df1c1e095f07850f0608d`.
+- Vercel rejected the request with HTTP 402, code `api-deployments-free-per-day`, and `retryAfter: 86400` (24 hours). This confirms the free daily deployment quota remains exhausted.
+- No deployment was created, no permanent alias was moved, and no billing/plan change was made.
+- Permanent production remains on commit `a9f55fe1b796dd9190a21ae43dfdf7648ec11dc0`. The READY preview from the staff-login test PR is not production.
+- Do not retry before the stated quota window; after it resets, perform one production deployment from the then-current integrated release head and verify the main URL plus all 21 module aliases.
