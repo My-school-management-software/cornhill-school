@@ -64,6 +64,24 @@ async function requireStaff(req: Request) {
   if (!token) throw new Error("A signed-in staff account is required.");
   const { data: authData, error: authError } = await adminDb.auth.getUser(token);
   if (authError || !authData.user) throw new Error("Your staff session is invalid or has expired.");
+  let claims: Record<string, unknown>;
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) throw new Error("Missing JWT payload");
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    claims = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")));
+  } catch {
+    throw new Error("Your staff session could not be verified.");
+  }
+  const sessionId = String(claims.session_id || "");
+  if (!isUuid(sessionId)) throw new Error("Your staff session is no longer active. Please sign in again.");
+  const { data: sessionActive, error: sessionCheckError } = await adminDb.rpc(
+    "cornhill_auth_session_is_active",
+    { p_session_id: sessionId, p_user_id: authData.user.id }
+  );
+  if (sessionCheckError || sessionActive !== true) {
+    throw new Error("Your staff session has ended. Please sign in again.");
+  }
   const { data: profile, error } = await adminDb
     .from("user_profiles")
     .select("id,role,employment_status")
