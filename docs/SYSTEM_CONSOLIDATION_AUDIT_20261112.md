@@ -71,3 +71,41 @@ UI correction staged on this branch:
 6. Reconcile Supabase migration history against repository migration files before any schema deployment.
 7. Run all browser smoke tests on Android and desktop, then verify backup recovery and offline conflict handling.
 8. Preview the integrated release and keep production unchanged until all required gates pass.
+
+
+## Confirmed inventory authority overreach
+
+A read-only check of the live RLS policies and table grants found:
+
+- `is_school_finance_operator()` includes active Main Bursar and Deputy Bursar profiles.
+- The policies named `Finance operators manage inventory categories/items/movements` apply `ALL` commands using that helper.
+- The `authenticated` role has SELECT and INSERT on all three inventory tables and UPDATE on categories/items. It has no DELETE table grant on those tables.
+- The main dashboard hides the Inventory tab from Staff roles, but the database policies are broader than the hidden navigation. A Bursar can therefore reach some inventory writes directly through the Data API.
+
+This is an actual least-privilege mismatch. Replace the finance-operator policies with a separate inventory permission boundary for the Director and active Store Manager job titles. Keep read/write scopes on inventory movements narrow and append-oriented; do not grant Bursars stock-management rights merely because they handle school fees.
+
+## Confirmed payroll workflow mismatch
+
+The live payroll UI and database currently require the Director/Admin for:
+- salary-agreement creation and changes;
+- salary advances;
+- payroll-period creation;
+- payroll-line preparation and adjustment;
+- payroll approval; and
+- marking payroll lines as paid.
+
+The UI hides those payroll controls from non-Admin users, its save/approve handlers reject non-Admin roles, and RLS insert/update/delete policies on `payroll_periods`, `payroll_items` and `staff_salary_agreements` are Admin-controlled. Staff can read only their own payroll items and related periods.
+
+That protects payroll from other Staff accounts, but it does not implement the school's requested responsibility split. The next payroll design should separate:
+1. **Bursar preparation:** draft a payroll period, prepare staff lines, calculate allowances/deductions/advance recovery and submit the draft.
+2. **Director approval:** inspect the exact immutable payroll totals and approve or reject the draft. A Bursar must not approve their own draft.
+3. **Bursar disbursement recording:** after approval, record actual salary payments through a narrow server-side operation that cannot change approved salary amounts, allowances, deductions or aggregate totals.
+4. **Staff self-service:** each employee sees only their own payslip and payment history.
+
+Do not loosen the current `payroll_items` UPDATE policy to all Bursars. The current payment handler changes salary components and marks a line Paid in the same update; broadening that policy would let a Bursar change approved totals after approval. Introduce separate guarded draft, approval and payment-recording operations and test the exact allowed columns/state transitions before changing live permissions. Salary-agreement changes should remain separately approval-controlled.
+
+## Cross-app authentication review
+
+The main dashboard, Banking, Evidence Capture and School Services create per-tab Supabase sessions using `sessionStorage`; if browser storage is unavailable, they fall back to non-persistent in-memory auth. This prevents ordinary sibling tabs from silently sharing one privileged staff session. Parent Admissions uses its own persistent key, separate from staff applications. Notifications and Guardian PIN Administration intentionally share the same staff-auth key; Guardian PIN operations call dedicated administrator RPCs. Link routing is not itself a permission grant: each app still relies on profile checks and database policies.
+
+The new contract tests assert these storage boundaries and the Guardian RPC usage. These are static-source contracts; separate real-user browser sessions are still required to verify that opening another app, changing account, revoking a session and signing out behave correctly on actual Android and desktop browsers.
