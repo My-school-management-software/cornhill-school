@@ -106,6 +106,58 @@ let user=null,profile=null,devices=[],staff=[],timerHandle=null,realtimeChannel=
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function note(id,text,type='notice'){const el=$(id);if(!el)return;el.textContent=text;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.classList.remove('hidden')}
 function clearNote(id){$(id)?.classList.add('hidden')}
+function isR2EvidencePath(path){return String(path||'').split('/')[1]==='r2'}
+let r2StatusCache=null;
+async function getR2StorageStatus(force=false){
+ if(r2StatusCache&&!force)return r2StatusCache;
+ try{
+  const {data,error}=await db.functions.invoke('r2-storage-gateway',{body:{action:'status'}});
+  r2StatusCache=!error&&data?data:{configured:false,unavailable:true};
+ }catch(_){r2StatusCache={configured:false,unavailable:true}}
+ return r2StatusCache;
+}
+function evidenceExtension(type){return ({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[type]||'bin'}
+async function uploadEvidenceObject(requestId,file){
+ const status=await getR2StorageStatus();
+ if(status.configured){
+  const {data:ticket,error:ticketError}=await db.functions.invoke('r2-storage-gateway',{body:{
+   action:'presign-upload',request_id:requestId,content_type:file.type,size_bytes:file.size
+  }});
+  if(ticketError||!ticket?.url||!ticket?.storage_path)throw new Error(ticketError?.message||ticket?.error||'Cloud storage could not authorise the upload.');
+  const put=await fetch(ticket.url,{method:'PUT',headers:{'Content-Type':file.type},body:file});
+  if(!put.ok)throw new Error('Cloud storage upload failed (HTTP '+put.status+'). Check the private R2 bucket CORS configuration and retry.');
+  const {data:verified,error:verifyError}=await db.functions.invoke('r2-storage-gateway',{body:{
+   action:'verify-upload',request_id:requestId,storage_path:ticket.storage_path,content_type:file.type,size_bytes:file.size
+  }});
+  if(verifyError||verified?.verified!==true){
+   await db.functions.invoke('r2-storage-gateway',{body:{action:'delete-orphan',request_id:requestId,storage_path:ticket.storage_path}}).catch(()=>{});
+   throw new Error(verifyError?.message||verified?.error||'Cloud storage could not verify the uploaded file.');
+  }
+  return ticket.storage_path;
+ }
+ const path=requestId+'/'+crypto.randomUUID()+'.'+evidenceExtension(file.type);
+ const {error}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+ if(error)throw error;
+ return path;
+}
+async function removeEvidenceObject(requestId,path){
+ if(isR2EvidencePath(path)){
+  const {error,data}=await db.functions.invoke('r2-storage-gateway',{body:{action:'delete-orphan',request_id:requestId,storage_path:path}});
+  if(error||data?.deleted!==true)throw new Error(error?.message||data?.error||'Could not remove the unlinked cloud file.');
+ }else{
+  const {error}=await db.storage.from(bucket).remove([path]);
+  if(error)throw error;
+ }
+}
+async function evidenceFileUrl(file){
+ if(isR2EvidencePath(file.storage_path)){
+  const {data,error}=await db.functions.invoke('r2-storage-gateway',{body:{action:'presign-download',file_id:file.id}});
+  if(error||!data?.url)return null;
+  return data.url;
+ }
+ const {data}=await db.storage.from(bucket).createSignedUrl(file.storage_path,600);
+ return data?.signedUrl||null;
+}
 function isExpired(r){return new Date(r.expires_at).getTime()<=Date.now()}
 function statusBadge(r){if(r.status==='Submitted')return '<span class="badge">Submitted</span>';if(isExpired(r))return '<span class="badge bad">Expired</span>';if(r.status==='Cancelled')return '<span class="badge bad">Cancelled</span>';return '<span class="badge warn">Awaiting photo</span>'}
 function startCountdowns(){if(timerHandle)clearInterval(timerHandle);timerHandle=setInterval(()=>{document.querySelectorAll('[data-expiry]').forEach(el=>{const ms=new Date(el.dataset.expiry).getTime()-Date.now();if(ms<=0){el.textContent='Expired';el.classList.add('badge','bad');}else{const sec=Math.floor(ms/1000);el.textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}});},1000)}
@@ -163,7 +215,7 @@ function focusRequestedEvidenceRequest(requestRows){
  card.classList.add('evidence-request-focus');card.setAttribute('tabindex','-1');
  card.scrollIntoView({behavior:'smooth',block:'center'});card.focus({preventScroll:true});
 }
-async function loadAdminRequests(){const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,context_type,context_record_id,amount_ugx,description,status,expires_at,created_at,assigned_user_id,assigned_device_id').order('created_at',{ascending:false}).limit(80);if(error){$('adminRequests').textContent='Could not load requests: '+error.message;return}const rows=data||[];const {data:files}=await db.from('evidence_capture_files').select('id,request_id,storage_path,original_file_name,content_type,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']);const {data:reviews}=await db.from('evidence_capture_reviews').select('request_id,action,review_note,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']).order('created_at',{ascending:false});const fileMap={};for(const f of files||[]){fileMap[f.request_id]??=[];fileMap[f.request_id].push(f)}const reviewMap={};for(const r of reviews||[])if(!reviewMap[r.request_id])reviewMap[r.request_id]=r;const userName=id=>id?(staff.find(s=>s.id===id)?.full_name||'Assigned staff'):'School computer upload';let cards=[];for(const r of rows){const fs=fileMap[r.id]||[],signed=[];for(const f of fs){const {data}=await db.storage.from(bucket).createSignedUrl(f.storage_path,600);if(data?.signedUrl)signed.push('<a href="'+esc(data.signedUrl)+'" target="_blank" rel="noopener">Open '+esc(f.original_file_name)+'</a>')}const review=reviewMap[r.id],finalReview=['Approved','Rejected','Needs clearer photo'].includes(review?.action);cards.push('<div class="request" data-evidence-request-id="'+esc(r.id)+'"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">Assigned to '+esc(userName(r.assigned_user_id))+' · '+esc(new Date(r.created_at).toLocaleString())+' · '+(r.status==='Pending'&&!isExpired(r)?'<span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span>':'')+'</p>'+(r.description?'<p class="muted">'+esc(r.description)+'</p>':'')+(signed.length?'<p>'+signed.join(' · ')+'</p>':'<p class="muted">No evidence uploaded yet.</p>')+(r.status==='Pending'&&!isExpired(r)?'<div class="capture"><label>Attach an existing file from this computer / phone</label><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-admin-evidence="'+esc(r.id)+'"><button type="button" class="primary" data-admin-upload="'+esc(r.id)+'">Upload selected file(s)</button><p class="small">Up to 8 files, 15 MB each. If there is no saved file, the assigned phone can capture it instead.</p></div>':'')+(review?'<p><strong>Latest review: '+esc(review.action)+'</strong> '+esc(review.review_note||'')+'</p>':'')+(r.status==='Submitted'&&!finalReview?'<div class="row"><button class="primary" data-review="Approved" data-id="'+esc(r.id)+'">Approve evidence</button><button class="danger" data-review="Rejected" data-id="'+esc(r.id)+'">Reject evidence</button><button data-review="Needs clearer photo" data-id="'+esc(r.id)+'">Request clearer photo</button></div>':'')+'</div>')} $('adminRequests').innerHTML=cards.join('')||'<p class="muted">No capture requests have been created.</p>';focusRequestedEvidenceRequest(rows)}
+async function loadAdminRequests(){const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,context_type,context_record_id,amount_ugx,description,status,expires_at,created_at,assigned_user_id,assigned_device_id').order('created_at',{ascending:false}).limit(80);if(error){$('adminRequests').textContent='Could not load requests: '+error.message;return}const rows=data||[];const {data:files}=await db.from('evidence_capture_files').select('id,request_id,storage_path,original_file_name,content_type,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']);const {data:reviews}=await db.from('evidence_capture_reviews').select('request_id,action,review_note,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']).order('created_at',{ascending:false});const fileMap={};for(const f of files||[]){fileMap[f.request_id]??=[];fileMap[f.request_id].push(f)}const reviewMap={};for(const r of reviews||[])if(!reviewMap[r.request_id])reviewMap[r.request_id]=r;const userName=id=>id?(staff.find(s=>s.id===id)?.full_name||'Assigned staff'):'School computer upload';let cards=[];for(const r of rows){const fs=fileMap[r.id]||[],signed=[];for(const f of fs){const fileUrl=await evidenceFileUrl(f);if(fileUrl)signed.push('<a href="'+esc(fileUrl)+'" target="_blank" rel="noopener">Open '+esc(f.original_file_name)+'</a>')}const review=reviewMap[r.id],finalReview=['Approved','Rejected','Needs clearer photo'].includes(review?.action);cards.push('<div class="request" data-evidence-request-id="'+esc(r.id)+'"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">Assigned to '+esc(userName(r.assigned_user_id))+' · '+esc(new Date(r.created_at).toLocaleString())+' · '+(r.status==='Pending'&&!isExpired(r)?'<span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span>':'')+'</p>'+(r.description?'<p class="muted">'+esc(r.description)+'</p>':'')+(signed.length?'<p>'+signed.join(' · ')+'</p>':'<p class="muted">No evidence uploaded yet.</p>')+(r.status==='Pending'&&!isExpired(r)?'<div class="capture"><label>Attach an existing file from this computer / phone</label><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-admin-evidence="'+esc(r.id)+'"><button type="button" class="primary" data-admin-upload="'+esc(r.id)+'">Upload selected file(s)</button><p class="small">Up to 8 files, 15 MB each. New uploads use private Cloudflare R2 when configured; otherwise CORNHILL keeps using its existing private file storage. If there is no saved file, the assigned phone can capture it instead.</p></div>':'')+(review?'<p><strong>Latest review: '+esc(review.action)+'</strong> '+esc(review.review_note||'')+'</p>':'')+(r.status==='Submitted'&&!finalReview?'<div class="row"><button class="primary" data-review="Approved" data-id="'+esc(r.id)+'">Approve evidence</button><button class="danger" data-review="Rejected" data-id="'+esc(r.id)+'">Reject evidence</button><button data-review="Needs clearer photo" data-id="'+esc(r.id)+'">Request clearer photo</button></div>':'')+'</div>')} $('adminRequests').innerHTML=cards.join('')||'<p class="muted">No capture requests have been created.</p>';focusRequestedEvidenceRequest(rows)}
 $('adminRequests').addEventListener('click',async e=>{
  const uploadButton=e.target.closest('[data-admin-upload]');
  if(uploadButton){
@@ -176,11 +228,9 @@ $('adminRequests').addEventListener('click',async e=>{
     if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);
     if(file.size>15728640)throw new Error(file.name+' exceeds the 15 MB limit.');
     const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];
-    const storagePath=requestId+'/'+crypto.randomUUID()+'.'+ext;
-    const {error:uploadError}=await db.storage.from(bucket).upload(storagePath,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
-    if(uploadError)throw uploadError;
+    const storagePath=await uploadEvidenceObject(requestId,file);
     const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:requestId,storage_path:storagePath,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});
-    if(metaError){await db.storage.from(bucket).remove([storagePath]);throw metaError}
+    if(metaError){await removeEvidenceObject(requestId,storagePath).catch(cleanupError=>console.error('Evidence object cleanup failed:',cleanupError));throw metaError}
    }
    const {error:statusError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',requestId).eq('status','Pending');
    if(statusError)throw statusError;
@@ -220,7 +270,7 @@ $('adminRequests').addEventListener('click',async e=>{
 });
 async function loadPhoneRequests(){if(!user)return;const {data:myDevices,error:deviceError}=await db.from('evidence_capture_devices').select('id,device_name,status').eq('assigned_user_id',user.id).eq('status','Active');if(deviceError){note('globalMsg','Could not check authorised phone: '+deviceError.message,'error');return}phoneDevices=myDevices||[];if(!myDevices?.length){$('phoneRequests').innerHTML='<p class="muted">This account has no active authorised phone yet. Ask an administrator to issue a pairing code.</p>';return}const deviceIds=myDevices.map(d=>d.id);const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,amount_ugx,description,status,expires_at,created_at,assigned_device_id').in('assigned_device_id',deviceIds).order('created_at',{ascending:false}).limit(30);if(error){$('phoneRequests').textContent='Could not load requests: '+error.message;return}const rows=(data||[]).filter(r=>r.status==='Submitted'||!isExpired(r));$('phoneRequests').innerHTML=rows.length?rows.map(r=>'<div class="request"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">'+esc(r.description||'Photograph the requested document clearly. You may add several pages.')+'</p>'+(r.status==='Pending'&&!isExpired(r)?'<div class="row"><span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span><span class="small">Time remaining</span></div><div class="capture"><p><strong>Capture document evidence</strong></p><p class="muted">Use the camera to take one or more clear photos, or select a PDF. Check each page before submitting.</p><input type="file" accept="image/*,application/pdf" capture="environment" multiple data-capture="'+esc(r.id)+'"><div class="preview" id="preview-'+esc(r.id)+'"></div><button class="primary" type="button" data-submit-capture="'+esc(r.id)+'">Upload evidence and finish request</button></div>':'')+'</div>').join(''):'<p class="muted">No active requests at the moment.</p>'}
 $('phoneRequests').addEventListener('change',e=>{const input=e.target.closest('[data-capture]');if(!input)return;selectedFiles=Array.from(input.files||[]);const id=input.dataset.capture,preview=$('preview-'+id);if(preview)preview.innerHTML=selectedFiles.filter(f=>f.type.startsWith('image/')).map(f=>'<img alt="Selected evidence preview" src="'+URL.createObjectURL(f)+'">').join('')+(selectedFiles.length?'<span class="small">'+selectedFiles.length+' file(s) selected</span>':'')});
-$('phoneRequests').addEventListener('click',async e=>{const b=e.target.closest('[data-submit-capture]');if(!b)return;const id=b.dataset.submitCapture,card=b.closest('.request'),input=card.querySelector('[data-capture]'),files=Array.from(input?.files||[]);if(!files.length){note('globalMsg','Take or select at least one photo or PDF first.','error');return}if(files.length>8){note('globalMsg','Please submit no more than eight pages per request.','error');return}b.disabled=true;b.textContent='Uploading…';try{for(const file of files){if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];const path=id+'/'+crypto.randomUUID()+'.'+ext;const {error:uploadError}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});if(uploadError)throw uploadError;const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:id,storage_path:path,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});if(metaError)throw metaError}const {error:updateError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',id).eq('status','Pending');if(updateError)throw updateError;note('globalMsg','Evidence uploaded and request submitted. The administrator can now review it.','success');await loadPhoneRequests()}catch(err){note('globalMsg','Upload did not finish: '+(err.message||'Unknown error')+'. Keep the selected files and try again while the request is still active.','error')}finally{b.disabled=false;b.textContent='Upload evidence and finish request'}});
+$('phoneRequests').addEventListener('click',async e=>{const b=e.target.closest('[data-submit-capture]');if(!b)return;const id=b.dataset.submitCapture,card=b.closest('.request'),input=card.querySelector('[data-capture]'),files=Array.from(input?.files||[]);if(!files.length){note('globalMsg','Take or select at least one photo or PDF first.','error');return}if(files.length>8){note('globalMsg','Please submit no more than eight pages per request.','error');return}b.disabled=true;b.textContent='Uploading…';try{for(const file of files){if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];const path=await uploadEvidenceObject(id,file);const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:id,storage_path:path,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});if(metaError){await removeEvidenceObject(id,path).catch(cleanupError=>console.error('Evidence object cleanup failed:',cleanupError));throw metaError}}const {error:updateError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',id).eq('status','Pending');if(updateError)throw updateError;note('globalMsg','Evidence uploaded and request submitted. The administrator can now review it.','success');await loadPhoneRequests()}catch(err){note('globalMsg','Upload did not finish: '+(err.message||'Unknown error')+'. Keep the selected files and try again while the request is still active.','error')}finally{b.disabled=false;b.textContent='Upload evidence and finish request'}});
 async function loadPhoneRequests(){
  if(!user)return;
  const {data:myDevices,error:deviceError}=await db.from('evidence_capture_devices')
@@ -259,9 +309,7 @@ async function uploadEvidenceFiles(requestId,files,options={}){
    if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);
    if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');
    const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];
-   const path=requestId+'/'+crypto.randomUUID()+'.'+ext;
-   const {error:uploadError}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
-   if(uploadError)throw uploadError;
+   const path=await uploadEvidenceObject(requestId,file);
    uploadedPaths.push(path);
    const {data:metadata,error:metaError}=await db.from('evidence_capture_files').insert({
     request_id:requestId,storage_path:path,original_file_name:file.name,content_type:file.type,
@@ -288,7 +336,7 @@ async function uploadEvidenceFiles(requestId,files,options={}){
   // Existing metadata and successfully indexed evidence are never deleted here.
   for(const path of uploadedPaths){
    const {data:existing}=await db.from('evidence_capture_files').select('id').eq('storage_path',path).maybeSingle();
-   if(!existing)await db.storage.from(bucket).remove([path]);
+   if(!existing)await removeEvidenceObject(requestId,path).catch(cleanupError=>console.error('Evidence object cleanup failed:',cleanupError));
   }
   throw error;
  }
