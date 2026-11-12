@@ -36,6 +36,15 @@ button:disabled{opacity:.5;cursor:wait}.notice{padding:12px 13px;border-radius:1
   <section id="activePanel" class="stack hidden">
     <p>Your email is verified and your account is active. You can now sign in using your own email and password.</p>
     <a class="button" href="https://cornhill-school-swart.vercel.app/apps/school-management/">Go to CORNHILL sign in</a>
+    <button type="button" id="showResetRequest">Forgot your password? Send a reset email</button>
+  </section>
+  <section id="requestResetPanel" class="stack hidden">
+    <p>Enter the email address registered to your CORNHILL bursar account. We will show the same confirmation whether or not an eligible account exists.</p>
+    <form id="requestResetForm" class="stack">
+      <div><label for="resetEmail">Your registered school email</label><input id="resetEmail" type="email" autocomplete="email" maxlength="254" required></div>
+      <button type="submit" id="requestResetButton">Send secure password reset email</button>
+    </form>
+    <p class="muted">Reset links are single-use and expire according to the school's Supabase Auth email expiration setting. Repeated requests are subject to Auth rate limits.</p>
   </section>
   <p class="muted">Never forward your invitation link. CORNHILL staff accounts are individual and access is limited by the assigned role.</p>
 </main>
@@ -47,12 +56,17 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{
 }});
 const $=id=>document.getElementById(id);
 let currentStatus="";
+let recoveryMode=false;
 function message(text,type="info"){const el=$("status");el.textContent=text;el.className="notice"+(type==="error"?" error":type==="success"?" success":"")}
 function render(status){
   currentStatus=status;
   $("approvalPending").classList.toggle("hidden",status!=="email_verified");
-  $("passwordForm").classList.toggle("hidden",status!=="approved");
-  $("activePanel").classList.toggle("hidden",status!=="active");
+  const canSetInitialPassword=status==="approved";
+  const canResetActivePassword=status==="active"&&recoveryMode;
+  $("passwordForm").classList.toggle("hidden",!(canSetInitialPassword||canResetActivePassword));
+  $("activePanel").classList.toggle("hidden",status!=="active"||canResetActivePassword);
+  $("requestResetPanel").classList.add("hidden");
+  $("savePassword").textContent=canResetActivePassword?"Save new password":"Save password and activate account";
   if(status==="email_verified")message("Email verified. Your account is waiting for the Director's approval.");
   else if(status==="approved")message("The Director has approved your account. You can now create your private password.","success");
   else if(status==="active")message("Your bursar account has been activated successfully.","success");
@@ -63,11 +77,29 @@ function render(status){
 async function checkStatus(verify=false){
   const {data:sessionData,error:sessionError}=await db.auth.getSession();
   if(sessionError)throw sessionError;
-  if(!sessionData.session){message("Open this page from the secure invitation email in the same browser. The invitation may have expired; ask the Director to review the invitation status.","error");return}
+  if(!sessionData.session){message("Open this page from your CORNHILL invitation or password reset email. You can request another secure email below if your previous link expired or your browser session was lost.","error");$("requestResetPanel").classList.remove("hidden");return}
   const {data,error}=await db.functions.invoke("bursar-account-admin",{body:{action:verify?"verify_email":"status"}});
   if(error||!data?.success)throw new Error(data?.error||error?.message||"The invitation status could not be checked.");
   render(data.status);
 }
+$("showResetRequest").addEventListener("click",()=>$("requestResetPanel").classList.toggle("hidden"));
+$("requestResetForm").addEventListener("submit",async(event)=>{
+  event.preventDefault();
+  const button=$("requestResetButton");button.disabled=true;button.textContent="Requesting secure email…";
+  try{
+    const email=$("resetEmail").value.trim();
+    const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:"https://cornhill-school-swart.vercel.app/bursar-account.html"});
+    if(error)throw error;
+    message("If this address belongs to an eligible CORNHILL bursar account, a secure reset email will be sent. Check your inbox and use the link once.","success");
+  }catch(error){message("The reset request could not be submitted. Please wait before trying again or contact the Director.","error")}
+  finally{button.disabled=false;button.textContent="Send secure password reset email"}
+});
+db.auth.onAuthStateChange((event,session)=>{
+  if(event==="PASSWORD_RECOVERY"&&session){
+    recoveryMode=true;
+    setTimeout(()=>checkStatus(false).catch(error=>message(error.message||"The recovery session could not be checked.","error")),0);
+  }
+});
 $("checkApproval").addEventListener("click",async()=>{
   $("checkApproval").disabled=true;
   try{await checkStatus(false)}catch(error){message(error.message||"Could not check approval.","error")}
@@ -82,13 +114,23 @@ $("passwordForm").addEventListener("submit",async(event)=>{
   try{
     const {data:updated,error:updateError}=await db.auth.updateUser({password});
     if(updateError||!updated?.user)throw updateError||new Error("The password could not be saved.");
-    const {data,error}=await db.functions.invoke("bursar-account-admin",{body:{action:"complete_setup"}});
-    if(error||!data?.success)throw new Error(data?.error||error?.message||"The account could not be activated.");
-    render("active");
+    if(currentStatus==="approved"){
+      const {data,error}=await db.functions.invoke("bursar-account-admin",{body:{action:"complete_setup"}});
+      if(error||!data?.success)throw new Error(data?.error||error?.message||"The account could not be activated.");
+      recoveryMode=false;
+      render("active");
+    }else if(currentStatus==="active"&&recoveryMode){
+      const {data,error}=await db.functions.invoke("bursar-account-admin",{body:{action:"record_password_reset"}});
+      if(error||!data?.success)throw new Error(data?.error||error?.message||"The password reset could not be recorded.");
+      recoveryMode=false;
+      render("active");
+    }else{
+      throw new Error("The Director's approval or a valid password-recovery session is required.");
+    }
     $("passwordForm").reset();
     await db.auth.signOut({scope:"local"});
   }catch(error){message(error.message||"Password setup failed. Your account has not been activated.","error")}
-  finally{button.disabled=false;button.textContent="Save password and activate account"}
+  finally{button.disabled=false;button.textContent=currentStatus==="active"?"Save new password":"Save password and activate account"}
 });
 (async()=>{
   try{await checkStatus(true)}

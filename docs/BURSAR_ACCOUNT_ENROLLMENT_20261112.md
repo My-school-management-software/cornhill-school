@@ -17,7 +17,9 @@
 - No password is sent to the Director, placed in invitation metadata, or stored in the enrollment table. Supabase Auth stores the password hash.
 - Director approvals, email verification, delivery result, rejection and activation are recorded in a restricted audit table.
 - Main and Deputy Bursar identities are separate and the employee's exact recorded role is checked before activation.
-- Password reset/renewal remains through Supabase Auth; no password is visible to the Director.
+- Password recovery uses Supabase Auth's expiring, single-use recovery link and built-in rate limits. A bursar may request a recovery email from the setup page if the browser session is lost. Password recovery cannot activate an unapproved account.
+- After a password is changed on an already active bursar account, the server records a `password_reset_completed` audit event. Supabase Auth can also send the standard **Password changed** security notification to the bursar. The project-level security notification must be enabled under Authentication email/security notification settings; it is not enabled by this code change.
+- No password is visible to the Director.
 
 The older generic `staff-invite` Edge Function is explicitly blocked from inviting job titles recognised as Bursar, so it cannot bypass this separate approval process.
 
@@ -25,9 +27,10 @@ The older generic `staff-invite` Edge Function is explicitly blocked from inviti
 
 1. Add `https://cornhill-school-swart.vercel.app/bursar-account.html` to Authentication > URL Configuration > Redirect URLs. Supabase silently falls back to Site URL when a redirect target is not allow-listed.
 2. Configure a verified custom SMTP sender for the school's authentication emails. Supabase's default SMTP server is for development/testing, sends only to pre-authorised organisation addresses, and currently has a two-email-per-hour limit. A successful Edge Function response means Supabase Auth accepted the request for delivery; it is not proof that the recipient opened or received the message.
-3. Review the Auth Invite User email template and expiration setting. If the school changes the expiration, the page and written instructions must be updated to match.
-4. Do not deploy the migration/function or send a real invitation until the redirect, sender, and template settings have been verified. No real bursar accounts are created by this change.
+3. Review the Auth Invite User and Reset Password email templates and expiration setting. If the school changes the expiration, the page and written instructions must be updated to match.
+4. Enable the **Password changed** security notification for the project, customise its template if desired, and verify that it uses the school's configured SMTP sender. Supabase only sends these security emails when the corresponding project-level notification is enabled.
+5. Do not deploy the migration/function or send a real invitation until the redirect, sender, templates and password-change notification have been verified. No real bursar accounts are created by this change.
 
 ## Current implementation boundaries
 
-This change adds the database migration, server function, Director interface in the School Services portal, dedicated invitation/activation page, and contract tests. It does not configure SMTP, change Supabase Auth redirect allowlists, create real bursar accounts, or deploy this migration/function to the live project.
+This change adds the database migration, server function, Director interface in the School Services portal, dedicated invitation/activation and recovery page, password-reset audit event, and contract tests. It does not configure SMTP, change Supabase Auth redirect allowlists, create real bursar accounts, or deploy this migration/function to the live project.
