@@ -46,3 +46,6 @@ Do not send or resend either bursar invitation until all of these are verified:
 4. A test invitation/recovery flow verifies the session survives the redirect and the page can call the protected function.
 
 No existing invitation, staff profile, password, or employee link is changed by these source changes. Keep the existing invitations intact during acceptance testing.
+
+
+Regression suite note: the bursar redirect contract test loads the redirect Edge Function source explicitly and checks its fixed destination, 302 status, no-store policy, and no-referrer policy.
