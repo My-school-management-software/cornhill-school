@@ -1,0 +1,35 @@
+name: CORNHILL system consolidation contracts
+on:
+  push:
+    branches:
+      - audit/system-consolidation-hardening-20261112
+    paths:
+      - "*.html"
+      - "*.webmanifest"
+      - "assets/*.js"
+      - "vercel.json"
+      - "tests/*.test.cjs"
+      - ".github/workflows/system-consolidation-contract-tests.yml"
+  pull_request:
+    branches:
+      - release/cornhill-integrated-20261112
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  system-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify application routing, role boundaries and regression contracts
+        run: >-
+          node --test
+          tests/app-architecture-contract.test.cjs
+          tests/finance-receipt-integrity.test.cjs
+          tests/bursar-account-enrollment.test.cjs
+          tests/staff-access-login-contract.test.cjs
