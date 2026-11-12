@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, '..');
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261112080000_bursar_account_enrollment.sql'), 'utf8');
 const edge = fs.readFileSync(path.join(root, 'supabase/functions/bursar-account-admin/index.ts'), 'utf8');
 const page = fs.readFileSync(path.join(root, 'bursar-account.html'), 'utf8');
+const webPage = fs.readFileSync(path.join(root, 'supabase/functions/bursar-account-web/index.ts'), 'utf8');
 const staffInvite = fs.readFileSync(path.join(root, 'supabase/functions/staff-invite/index.ts'), 'utf8');
 const services = fs.readFileSync(path.join(root, 'school-services.html'), 'utf8');
 const docs = fs.readFileSync(path.join(root, 'docs/BURSAR_ACCOUNT_ENROLLMENT_20261112.md'), 'utf8');
@@ -103,6 +104,8 @@ test('Director-only bursar invitation controls are available in the staff servic
 
 test('bursar admin CORS permits the exact review preview while rejecting unlisted origins', () => {
   assert.ok(edge.includes('"https://cornhill-school-git-feat-login-contract-0df38b-cypher-projects1.vercel.app"'));
+  assert.ok(edge.includes('"https://yemhortbudwbcrzsoozk.supabase.co"'));
+  assert.ok(edge.includes('https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/bursar-account-web'));
   assert.ok(edge.includes('origin && allowedOrigins.has(origin) ? origin : "null"'));
   assert.ok(!edge.includes('"Access-Control-Allow-Origin": "*"'));
 });
