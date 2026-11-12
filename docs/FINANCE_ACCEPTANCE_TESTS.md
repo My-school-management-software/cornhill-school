@@ -4,6 +4,19 @@
 **Environment:** connected Supabase project; read-only inspection only  
 **Important:** no test payment, receipt, allocation, reversal or school finance record was created or changed during this review.
 
+## Current role-control correction — 12 November 2026
+
+The source review below contains historical migration checks and must not be interpreted as proof that the current live posting role is Director-only. A fresh read of the connected database's function definitions and RLS metadata on 12 November 2026 established:
+
+- post_school_payment and post_school_payment_complete are both SECURITY DEFINER RPCs and currently call is_school_finance_operator().
+- is_school_finance_operator() returns true for Admin and an active Staff profile whose job title is Main Bursar/Bursar/Deputy Bursar.
+- Therefore the Director currently has backend permission to post learner payments. This does not match the requested operating model, where the Bursar handles routine fee, sweater and other learner receipts while the Director oversees and may reverse through a separate audited permission.
+- reverse_school_payment remains Director/Admin-only.
+- Payroll-period and payroll-item INSERT/UPDATE, salary-agreement management and salary-advance management remain Admin-only. Bursar payroll preparation is not yet implemented.
+- Direct table writes remain more restricted than the controlled posting RPC; the SECURITY DEFINER RPC is the intended delegated write path.
+
+**Required target workflow:** introduce a Bursar-specific posting helper, change both posting RPCs to require it, keep Director read/oversight and reversal capabilities separate, then implement payroll preparation → Director approval → Bursar payment recording. Do not fix this by hiding menu buttons alone. The change needs a migration, SQL role contracts and negative tests using dedicated non-production accounts. No live financial rows were altered during the review.
+
 ## 1. Live schema and migration checks
 
 | Check | Observed result | Status |
