@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feat/individual-leadership-signins-20261112
+      - feat/director-controlled-staff-activation-20261112
   pull_request:
     branches:
       - main
