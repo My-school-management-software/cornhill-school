@@ -31,24 +31,24 @@ const restrictedTables = [
   'staff_work_schedules'
 ];
 
-test('generic active-staff write/read policy is removed from all sensitive staff tables', () => {
+test('generic active-staff policy is removed from all sensitive staff tables', () => {
   for (const table of restrictedTables) {
     const statement = new RegExp(
-      'DROP\\\\s+POLICY\\\\s+IF\\\\s+EXISTS\\\\s+"active_staff_session_required"\\\\s+ON\\\\s+public\\\\.' + table + '\\\\s*;',
+      'DROP\\s+POLICY\\s+IF\\s+EXISTS\\s+"active_staff_session_required"\\s+ON\\s+public\\.' + table + '\\s*;',
       'i'
     );
     assert.match(migration, statement, 'Missing policy removal for ' + table);
   }
 });
 
-test('attendance import batch finalisation remains available only to the active Director/Admin role', () => {
+test('attendance import batch finalisation remains limited to the active school administrator', () => {
   assert.match(migration, /CREATE POLICY "Admins update attendance import batches"/);
-  assert.match(migration, /FOR UPDATE\\s+TO authenticated\\s+USING \\(public\\.is_school_admin\\(\\)\\)/);
-  assert.match(migration, /WITH CHECK \\(public\\.is_school_admin\\(\\)\\)/);
+  assert.match(migration, /FOR UPDATE\s+TO authenticated\s+USING \(public\.is_school_admin\(\)\)/);
+  assert.match(migration, /WITH CHECK \(public\.is_school_admin\(\)\)/);
 });
 
-test('the migration does not grant access to anonymous users or all authenticated users', () => {
-  assert.doesNotMatch(migration, /TO\\s+(anon|public)\\b/i);
-  assert.doesNotMatch(migration, /USING\\s*\\(true\\)/i);
-  assert.doesNotMatch(migration, /WITH CHECK\\s*\\(true\\)/i);
+test('the migration does not grant anonymous or unrestricted authenticated access', () => {
+  assert.doesNotMatch(migration, /TO\s+(anon|public)\b/i);
+  assert.doesNotMatch(migration, /USING\s*\(true\)/i);
+  assert.doesNotMatch(migration, /WITH CHECK\s*\(true\)/i);
 });
