@@ -36,6 +36,8 @@ test('only the active Director can issue or revoke a staff code', () => {
   assert.ok(edge.includes('action === "issue" || action === "revoke"'));
   assert.ok(edge.includes('staff_access_code_audit'));
   assert.ok(/enable row level security/i.test(migration));
+  assert.ok(/security invoker/i.test(migration));
+  assert.ok(!/security definer/i.test(migration));
   assert.ok(/grant execute on function public\.consume_staff_access_code_attempt[\s\S]*service_role/i.test(migration));
 });
 
