@@ -3,11 +3,11 @@
 ## Intended workflow
 
 1. The Director selects the existing active, unlinked Main Bursar or Deputy Bursar employee record and enters the confirmed official email address.
-2. The server calls Supabase Auth `inviteUserByEmail` with the static Vercel-hosted `bursar-account.html` page. Supabase Auth creates an unconfirmed identity and accepts the invitation for email delivery. No `user_profiles` row is created and no employee directory link is assigned at this stage.
-3. The bursar opens the invitation email. Supabase Auth verifies the email and returns a session to the static Vercel-hosted setup page.
-4. The setup page asks the server to verify the signed-in identity and confirmation timestamp. The enrollment moves to `email_verified`; the bursar sees an approval-pending message and no school data.
+2. The JWT-protected server function calls Supabase Auth `inviteUserByEmail` with the established callback `https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/bursar-account-web`. No `user_profiles` row is created and no employee directory link is assigned at this stage.
+3. Supabase verifies the one-time invitation and redirects the browser to that callback. The callback returns a no-store HTTP 302 to the static GitHub Pages setup page. The 302 Location deliberately has no fragment; browsers inherit the original URL fragment so the page's Supabase client can receive and consume the signed-in session.
+4. The setup page asks the JWT-protected server to verify the signed-in identity and confirmation timestamp. The enrollment moves to `email_verified`; the bursar sees an approval-pending message and no school data.
 5. The Director reviews the pending list and explicitly approves or rejects the verified enrollment. The bursar can keep the setup page open or return to it in the same browser session and select Check approval status. This version does not send a separate second email after approval.
-6. After approval, the bursar returns to the same Vercel-hosted setup page and creates/confirms a private password. The browser updates the password through Supabase Auth.
+6. After approval, the bursar returns to the GitHub Pages setup page and creates/confirms a private password. The browser updates the password through Supabase Auth.
 7. The server-only activation function verifies the confirmed email, approved state, employee record and job title, then atomically creates the Staff profile, links the existing employee record and marks the enrollment active.
 8. The bursar signs in through the normal CORNHILL sign-in page using their own email and password.
 
@@ -23,23 +23,29 @@
 
 The older generic `staff-invite` Edge Function is explicitly blocked from inviting job titles recognised as Bursar, so it cannot bypass this separate approval process.
 
-## Required Supabase project configuration before live use
+## Required configuration
 
-1. Set Authentication > URL Configuration > Site URL to `https://cornhill-school-swart.vercel.app` (not localhost).
-2. Only after the setup page is present on the chosen stable host, add its exact full URL (currently intended to be `https://cornhill-school-swart.vercel.app/bursar-account.html`) to Authentication > URL Configuration > Redirect URLs. Supabase ignores an unapproved `redirectTo` and falls back to the Site URL.
-3. Configure a verified custom SMTP sender for the school's authentication emails. Supabase's default SMTP server is for development/testing, sends only to pre-authorised organisation addresses, and currently has a two-email-per-hour limit. A successful Edge Function response means Supabase Auth accepted the request for delivery; it is not proof that the recipient opened or received the message.
-4. Review the Auth Invite User and Reset Password email templates and expiration setting. If the school changes the expiration, the page and written instructions must be updated to match.
-5. Enable the **Password changed** security notification for the project, customise its template if desired, and verify that it uses the school's configured SMTP sender. Supabase only sends these security emails when the corresponding project-level notification is enabled.
-6. Do not deploy the migration/function or send a real invitation until the redirect, sender, templates and password-change notification have been verified. No real bursar accounts are created by this change.
+1. Keep the project's Site URL set to the normal CORNHILL production website.
+2. Keep the existing callback URL `https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/bursar-account-web` on the Supabase Auth Redirect URLs allowlist. Both invitations and password recovery continue using this same callback; the GitHub Pages destination is reached only after the callback's HTTP redirect, so no new GitHub Pages URL is needed in the Auth allowlist.
+3. In the public GitHub repository, set **Settings → Pages → Build and deployment → Source → GitHub Actions** once. GitHub Pages is available for this public repository on GitHub Free. The Actions workflow publishes only `bursar-account.html`; it does not publish the rest of the school application.
+4. Configure a verified custom SMTP sender for the school's authentication emails. Review the Auth Invite User and Reset Password email templates and their expiration setting. A successful Edge Function response means Supabase Auth accepted the request for delivery; it is not proof that the recipient opened or received the message.
+5. Enable the **Password changed** security notification for the project and verify its email template and sender.
+6. The bursar admin function's explicit CORS allowlist must include `https://my-school-management-software.github.io`. It must continue requiring a valid JWT; Director-only operations must continue checking the active Director profile.
 
-## Preview CORS configuration
+## Redirect behavior and security
 
-The bursar administration Edge Function uses an explicit origin allowlist. It now also allows the exact Supabase project origin used by the hosted setup page. The permanent CORNHILL hosts remain allowed, and the exact current review preview host is added for authenticated Director testing:
+The public `bursar-account-web` function accepts only GET and HEAD and returns a fixed 302 destination. It does not read account data, accept user-supplied destinations, or perform account mutations. The redirect uses `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The static page contains only the Supabase publishable key, not a service-role or secret key. Account status, approval, activation and password-reset audit operations remain in `bursar-account-admin`, which requires a JWT and verifies the signed-in user.
 
-`https://cornhill-school-git-feat-login-contract-0df38b-cypher-projects1.vercel.app`
+## Release gates
 
-Unknown origins continue to receive `Access-Control-Allow-Origin: null`; the function does not use wildcard CORS. When the review preview address changes, only the exact replacement host should be added after confirming it belongs to the CORNHILL Vercel project. This preview-origin entry does not change Supabase Auth's email redirect allowlist or SMTP configuration.
+Do not send or resend either bursar invitation until all of these are verified:
 
-## Current implementation boundaries
+1. GitHub Pages workflow succeeds and the static URL displays the green CORNHILL setup page, not source code.
+2. `bursar-account-web` is deployed as the fixed HTTP redirect described above.
+3. `bursar-account-admin` includes the GitHub Pages origin in its CORS allowlist and remains JWT-protected.
+4. A test invitation/recovery flow verifies the session survives the redirect and the page can call the protected function.
 
-The database migration, bursar account Edge Function and Director interface are already deployed. The setup page is a static file in the release branch and the PR preview build completed successfully, avoiding the Supabase Edge Function HTML response rewriting. However, the current production alias `cornhill-school-swart.vercel.app` points to branch `feat/role-based-staff-access-subject-teachers-20261111` at commit `a9f55fe1`, whose repository tree does not contain `bursar-account.html`. The PR preview is for visual validation only; Vercel SSO protection is enabled for previews. Do not send or resend invitations until the static page is deployed on the stable production host and its exact URL is allowed in Supabase Auth Redirect URLs. The bursar account API still requires a valid JWT and checks the signed-in account; the Director-only operations still require the active Director profile. The Auth Site URL and exact Redirect URL must still be saved in the dashboard. SMTP, password-change notifications and live delivery checks remain separate configuration items.
+No existing invitation, staff profile, password, or employee link is changed by these source changes. Keep the existing invitations intact during acceptance testing.
+
+
+Regression suite note: the bursar redirect contract test loads the redirect Edge Function source explicitly and checks its fixed destination, 302 status, no-store policy, and no-referrer policy.
