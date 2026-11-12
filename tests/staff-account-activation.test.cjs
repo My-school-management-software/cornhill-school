@@ -12,9 +12,9 @@ test('activation centre is served as a real HTML page without GitHub Pages or Ve
   assert.match(edge, /req\.method === "GET" \|\| req\.method === "HEAD"/);
   assert.match(edge, /"Content-Type": "text\/html; charset=utf-8"/);
   assert.match(edge, /const PAGE =/);
-  assert.match(edge, /id="activateForm"/);
-  assert.match(edge, /id="directorLoginForm"/);
-  assert.match(edge, /id="directorPanel"/);
+  assert.match(edge, /id=\\?"activateForm\\?"/);
+  assert.match(edge, /id=\\?"directorLoginForm\\?"/);
+  assert.match(edge, /id=\\?"directorPanel\\?"/);
   assert.doesNotMatch(edge, /text\/xhtml|application\/xhtml\+xml/i);
 });
 
