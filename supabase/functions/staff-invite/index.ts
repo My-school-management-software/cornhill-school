@@ -59,7 +59,7 @@ Deno.serve(async (req: Request) => {
   if (employeeError || !employee) return json(409, { error: "The selected employee record is already linked or no longer available. Refresh Staff profiles and select it again." });
   if (employee.employment_status !== "Active") return json(400, { error: "Only an active employee record can be invited to sign in." });
 
-  const normalizedJobTitle = String(employee.job_title || "").trim().toLowerCase().replace(/\\s+/g, " ");
+  const normalizedJobTitle = String(employee.job_title || "").trim().toLowerCase().replace(/\s+/g, " ");
   if (["main bursar", "bursar", "school bursar", "bursar (main)", "bursar main",
        "deputy bursar", "deputy school bursar", "deputy bursar (school)"].includes(normalizedJobTitle)) {
     return json(409, { error: "Bursar accounts must use the separate Director-approval enrollment process. No general staff invitation was sent." });
