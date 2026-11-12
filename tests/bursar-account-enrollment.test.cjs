@@ -14,7 +14,7 @@ const docs = fs.readFileSync(path.join(root, 'docs/BURSAR_ACCOUNT_ENROLLMENT_202
 test('bursar enrollment keeps profiles and employee links pending until Director approval and password setup', () => {
   assert.match(edge, /inviteUserByEmail/);
   assert.match(edge, /status:\s*"invited"/);
-  assert.match(edge, /status === "email_verified"/);
+  assert.match(edge, /\.eq\("status", "email_verified"\)/);
   assert.match(edge, /status: "approved"/);
   assert.match(edge, /complete_setup/);
   assert.match(edge, /activate_bursar_account_enrollment/);
