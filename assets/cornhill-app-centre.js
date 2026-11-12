@@ -1,6 +1,23 @@
 (function (root) {
   'use strict';
 
+  const CATEGORY_ORDER = [
+    'School',
+    'Learning',
+    'Finance',
+    'Communication',
+    'Parent Access',
+    'External Service'
+  ];
+  const CATEGORY_LABELS = {
+    'School': 'School administration',
+    'Learning': 'Learning & academics',
+    'Finance': 'Finance & accounting',
+    'Communication': 'Communication',
+    'Parent Access': 'Parents & guardians',
+    'External Service': 'System management'
+  };
+
   function getVisibleRows(rows) {
     const origin = root.location && root.location.origin
       ? root.location.origin
@@ -34,5 +51,26 @@
     return visible;
   }
 
-  root.CornhillAppCentre = Object.freeze({ getVisibleRows });
+  function groupRowsByCategory(rows) {
+    const groups = new Map();
+    for (const app of Array.isArray(rows) ? rows : []) {
+      const category = String(app && app.category || 'School').trim() || 'School';
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(app);
+    }
+
+    return Array.from(groups, ([category, categoryRows]) => ({
+      category,
+      label: CATEGORY_LABELS[category] || category,
+      rows: categoryRows
+    })).sort((a, b) => {
+      const aIndex = CATEGORY_ORDER.indexOf(a.category);
+      const bIndex = CATEGORY_ORDER.indexOf(b.category);
+      const aRank = aIndex < 0 ? CATEGORY_ORDER.length : aIndex;
+      const bRank = bIndex < 0 ? CATEGORY_ORDER.length : bIndex;
+      return aRank - bRank || a.label.localeCompare(b.label);
+    });
+  }
+
+  root.CornhillAppCentre = Object.freeze({ getVisibleRows, groupRowsByCategory });
 })(typeof window === 'undefined' ? globalThis : window);
