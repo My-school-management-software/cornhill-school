@@ -296,6 +296,9 @@ BEGIN
     PERFORM cron.unschedule(v_job_id);
   END IF;
 
+  -- Run once during migration so the new function is exercised immediately.
+  PERFORM private.check_school_capacity_thresholds();
+
   PERFORM cron.schedule(
     'cornhill-system-capacity-monitor',
     '*/15 * * * *',
