@@ -60,3 +60,14 @@ The existing staff communication feed and private messaging were audited. Headte
 ## Latest verification
 
 The current feature-branch head passed both GitHub Actions suites (appearance/workspace and marks-import mapping), and Vercel generated a READY preview for the same commit. The staff communication RLS migration remains staged only; its permissions are not active in the live database until it is safely tested and applied through the approved release process.
+
+
+## Main dashboard role-specific login implementation — 12 November 2026
+
+The previously generic School Staff panel in the main dashboard has been replaced by separate named office choices. Headteacher and Deputy Headteacher use personal access code + account password; DOS supports personal code + password or private email/password; Main Bursar and Deputy Bursar use their own email/password; Other Staff uses an individual email/password account. Teaching Staff have a personal-code route by default and an email/password alternative. The Director/Main login remains the original independent Admin flow.
+
+The sign-in page does not publish staff names or email addresses. Each login is verified against the authenticated user's active profile, role and job title. Role labels are only a user-interface choice and do not grant permission.
+
+Personal codes are 18-character generated values, stored only as HMAC hashes in a service-only table. The same user must also supply their own Supabase Auth password. The code endpoint checks active employee linkage and exact job title, rate-limits lookup attempts and writes an audit event. Only the active Director/Admin can issue or revoke a code.
+
+The dashboard and services-page updates, migration and Edge Function are in the development branch. CI passed both individual staff access and appearance/workspace test suites on commit `48e740d22dfbf199d8105f0771f891fd49e42d0e`. The migration and function have not yet been applied/deployed to production; the real leadership/bursar accounts remain to be provisioned using confirmed school employee records and official email addresses.
