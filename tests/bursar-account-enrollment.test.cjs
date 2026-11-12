@@ -18,6 +18,8 @@ test('bursar enrollment keeps profiles and employee links pending until Director
   assert.match(edge, /status: "approved"/);
   assert.match(edge, /complete_setup/);
   assert.match(edge, /activate_bursar_account_enrollment/);
+  assert.match(edge, /action === "record_password_reset"/);
+  assert.match(edge, /password_reset_completed/);
   assert.doesNotMatch(edge, /from\(["']user_profiles["']\)\.upsert/);
   assert.doesNotMatch(edge, /from\(["']school_staff_directory["']\)\.update/);
   assert.match(edge, /enrollment\.status !== "approved"/);
@@ -67,6 +69,11 @@ test('all five agreed safeguards are present in the implementation and records',
   assert.match(page, /autocomplete="new-password"/);
   assert.match(page, /at least 12 characters/);
   assert.match(page, /password is private/i);
+  assert.match(page, /resetPasswordForEmail/);
+  assert.match(page, /PASSWORD_RECOVERY/);
+  assert.match(page, /record_password_reset/);
+  assert.match(docs, /Password changed/);
+  assert.match(docs, /rate limits/i);
 });
 
 test('activation SQL is server-only, validates email and role, and performs profile/link creation transactionally', () => {

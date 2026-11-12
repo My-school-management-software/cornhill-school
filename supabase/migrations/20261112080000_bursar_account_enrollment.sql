@@ -37,7 +37,7 @@ create table if not exists public.bursar_account_enrollment_events (
   enrollment_id uuid not null references public.bursar_account_enrollments(id) on delete restrict,
   event_key text not null check (event_key in (
     'invitation_requested','invitation_accepted_for_delivery','delivery_failed',
-    'email_verified','director_approved','director_rejected','account_activated'
+    'email_verified','director_approved','director_rejected','account_activated','password_reset_completed'
   )),
   performed_by uuid references auth.users(id) on delete set null,
   metadata jsonb not null default '{}'::jsonb,

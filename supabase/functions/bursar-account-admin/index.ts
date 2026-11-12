@@ -194,6 +194,23 @@ Deno.serve(async (req: Request) => {
     return json(200, { success: true, status: "rejected" }, origin);
   }
 
+  if (action === "record_password_reset") {
+    const authUser = authData.user;
+    const { data: enrollment, error } = await admin.from("bursar_account_enrollments")
+      .select("id,email,role_key,status")
+      .eq("auth_user_id", authUser.id).eq("status", "active").maybeSingle();
+    const confirmedAt = authUser.email_confirmed_at || authUser.confirmed_at || null;
+    if (error || !enrollment || !confirmedAt ||
+        String(authUser.email || "").toLowerCase() !== enrollment.email.toLowerCase()) {
+      return json(403, { error: "This password reset is not attached to an active verified bursar account." }, origin);
+    }
+    const recorded = await recordEvent(enrollment.id, "password_reset_completed", authUser.id, {
+      role_key: enrollment.role_key,
+    });
+    if (!recorded) return json(500, { error: "The password changed, but the school audit record could not be saved. Contact the Director." }, origin);
+    return json(200, { success: true, status: "active", message: "Your password reset has been recorded." }, origin);
+  }
+
   if (action === "verify_email" || action === "status" || action === "complete_setup") {
     const authUser = authData.user;
     const { data: enrollment, error } = await admin.from("bursar_account_enrollments")
