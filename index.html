@@ -7074,7 +7074,7 @@ function openTeacherLogin(classKey){
  $('classLoginDirectory').classList.add('hidden');$('selectedTeacherLogin').classList.remove('hidden');$('adminLoginPanel').classList.add('hidden');$('teacherEmail').value='';$('teacherClassCode').value='';clearMessage('loginMsg');
 }
 $('classLoginDirectory').addEventListener('click',e=>{const tile=e.target.closest('[data-login-class]');if(tile)openTeacherLogin(tile.dataset.loginClass)});
-$('backToClassList').addEventListener('click',()=>{$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass='';$('teacherEmail').value='';$('teacherClassCode').value='';clearMessage('loginMsg')});
+$('backToClassList').addEventListener('click',()=>{$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass='';$('teacherEmail').value='';$('teacherAccessCode').value='';$('teacherClassCode').value='';setTeacherLoginMode('code');clearMessage('loginMsg')});
 $('adminLoginOpen').addEventListener('click',()=>{$('adminLoginPanel').classList.toggle('hidden');$('selectedTeacherLogin').classList.add('hidden');$('classLoginDirectory').classList.remove('hidden');selectedLoginClass=''});
 async function authenticateAccount(email,password,mode,selectedClass,button,credentialType='email',accessCode=''){
  clearMessage('loginMsg');if(!db){message('loginMsg','The sign-in service is unavailable. Check your internet connection and refresh.',true);return}
