@@ -130,6 +130,21 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
   <div id="staffAccessCodeResult" class="notice hidden" role="status" aria-live="polite"></div>
   <p class="muted">The Director alone can issue or revoke these codes. Bursar accounts continue to use their own email and password. This panel does not create staff accounts or invent email addresses.</p>
 </section>
+
+<section id="bursarAccountAdminPanel" class="panel hidden" aria-labelledby="bursarAccountAdminTitle">
+  <div class="module-head"><div><span class="kicker">DIRECTOR-ONLY · TWO-STEP APPROVAL</span><h2 id="bursarAccountAdminTitle">Main and Deputy Bursar Accounts</h2>
+    <p class="muted">Invite only an existing active bursar employee. The bursar must verify their own email. The Director must then approve the account before the bursar can create a password.</p></div></div>
+  <div class="notice warning">Email sending requires a verified custom SMTP sender and the bursar setup redirect URL in Supabase Auth settings. The default test email service may refuse ordinary staff email addresses. No account is activated by sending an invitation.</div>
+  <form id="bursarInviteForm">
+    <div class="full"><label for="bursarEmployeeSelect">Existing bursar employee record</label><select id="bursarEmployeeSelect" required><option value="">Loading eligible bursar records…</option></select></div>
+    <div class="full"><label for="bursarInviteEmail">Bursar's official email address</label><input id="bursarInviteEmail" type="email" autocomplete="email" maxlength="254" required placeholder="Enter the bursar's own email address"></div>
+    <div class="full"><button type="submit" id="sendBursarInvitation" class="primary">Send verification invitation</button><div id="bursarInviteResult" class="notice hidden" role="status" aria-live="polite"></div></div>
+  </form>
+  <div class="row" style="margin:18px 0 8px"><h3>Pending and previous bursar invitations</h3><button type="button" id="refreshBursarEnrollments">Refresh status</button></div>
+  <div class="table-wrap"><table style="min-width:760px"><thead><tr><th>Bursar</th><th>Email</th><th>Role</th><th>Status</th><th>Last updated</th><th>Director action</th></tr></thead><tbody id="bursarAccountRows"><tr><td colspan="6">No invitation status loaded yet.</td></tr></tbody></table></div>
+  <p class="muted">Approval is available only after email verification. Rejecting an invitation prevents activation. Passwords are never displayed to the Director.</p>
+</section>
+
   <div id="scopedWorkspaceBar" class="panel hidden" style="margin-bottom:14px"><div class="row" style="align-items:center;justify-content:space-between;gap:12px"><div><span class="kicker">CORNHILL · SINGLE-PURPOSE WORKSPACE</span><h1 id="scopedWorkspaceTitle" style="margin:6px 0">School workspace</h1><p class="muted" id="scopedWorkspaceDescription" style="margin:0">Only this application workspace is shown.</p></div><a class="button primary" href="https://cornhill-school-swart.vercel.app/apps/school-management/">← Main School System</a></div><div id="scopedServiceMsg" class="notice hidden" role="status" aria-live="polite" style="margin-bottom:0"></div></div>
   <div id="servicePortalOverviewPanel" class="panel">
     <div class="row"><div><span class="kicker">ONE PORTAL · ROLE-RESTRICTED WORKSPACES</span><h1 id="welcome">Welcome to CORNHILL Services</h1><p class="muted" id="roleInfo">Your available services are based on your active school account.</p></div><span class="badge" id="roleBadge">Verified account</span></div>
@@ -515,9 +530,9 @@ function configureModules(){
 }
 async function enterApp(){
  await loadProfile();configureModules();
- show('staffAccessCodeAdminPanel',isAdmin());
+ show('staffAccessCodeAdminPanel',isAdmin());show('bursarAccountAdminPanel',isAdmin());
  show('loginPanel',false);show('appPanel',true);show('signOut',true);
- if(isAdmin())await loadStaffAccessCodeAccounts();
+ if(isAdmin())await Promise.all([loadStaffAccessCodeAccounts(),loadBursarCandidates(),loadBursarEnrollments()]);
  await refreshAll();
  if(location.hash)setTimeout(()=>document.querySelector(location.hash)?.scrollIntoView({behavior:'instant',block:'start'}),150);
 }
@@ -655,6 +670,74 @@ async function manageStaffAccessCode(action){
 $('refreshStaffAccessAccounts').addEventListener('click',loadStaffAccessCodeAccounts);
 $('issueStaffAccessCode').addEventListener('click',()=>manageStaffAccessCode('issue'));
 $('revokeStaffAccessCode').addEventListener('click',()=>manageStaffAccessCode('revoke'));
+
+async function callBursarAdmin(action,extra={}){
+ const {data,error}=await db.functions.invoke('bursar-account-admin',{body:{action,...extra}});
+ if(error||!data?.success)throw new Error(data?.error||error?.message||'The bursar account request did not complete.');
+ return data;
+}
+async function loadBursarCandidates(){
+ if(!isAdmin())return;
+ const select=$('bursarEmployeeSelect');if(!select)return;
+ select.innerHTML='<option value="">Loading eligible bursar employees…</option>';
+ try{
+  const data=await callBursarAdmin('candidates');
+  select.innerHTML='<option value="">Choose the existing bursar employee</option>';
+  (data.candidates||[]).forEach(employee=>{
+   const option=document.createElement('option');option.value=employee.id;option.dataset.roleKey=employee.role_key;
+   option.textContent=(employee.full_name||'Unnamed employee')+' — '+employee.role_key;
+   select.appendChild(option);
+  });
+  if(!(data.candidates||[]).length)select.innerHTML='<option value="">No active, unlinked bursar records found</option>';
+ }catch(error){select.innerHTML='<option value="">Could not load bursar employee records</option>';note('bursarInviteResult',error.message||'Could not load eligible bursar employees.','error')}
+}
+async function loadBursarEnrollments(){
+ if(!isAdmin())return;
+ const body=$('bursarAccountRows');if(!body)return;
+ body.innerHTML='<tr><td colspan="6">Loading bursar account status…</td></tr>';
+ try{
+  const data=await callBursarAdmin('list');
+  const rows=data.records||[];
+  if(!rows.length){body.innerHTML='<tr><td colspan="6">No bursar invitations have been created.</td></tr>';return}
+  body.innerHTML=rows.map(row=>{
+   const canApprove=row.status==='email_verified';
+   const canReject=['inviting','invited','email_verified','approved'].includes(row.status);
+   const action=(canApprove?'<button type="button" class="primary" data-bursar-action="approve" data-id="'+esc(row.id)+'">Approve</button> ':'')+
+    (canReject?'<button type="button" class="danger" data-bursar-action="reject" data-id="'+esc(row.id)+'">Reject</button>':'—');
+   const label=String(row.status||'').replace(/_/g,' ');
+   const when=row.updated_at||row.created_at;
+   return '<tr><td>'+esc(row.employee_name)+'</td><td>'+esc(row.email)+'</td><td>'+esc(row.role_key)+'</td><td><span class="badge">'+esc(label)+'</span></td><td>'+esc(when?new Date(when).toLocaleString(): '—')+'</td><td>'+action+'</td></tr>';
+  }).join('');
+ }catch(error){body.innerHTML='<tr><td colspan="6">Could not load bursar status: '+esc(error.message||'Request failed')+'</td></tr>'}
+}
+$('bursarInviteForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ if(!isAdmin()){note('bursarInviteResult','Only the Director can send bursar invitations.','error');return}
+ const employeeId=$('bursarEmployeeSelect').value,email=$('bursarInviteEmail').value.trim();
+ if(!employeeId||!email){note('bursarInviteResult','Select the existing bursar employee and enter their official email.','error');return}
+ const button=$('sendBursarInvitation');button.disabled=true;button.textContent='Requesting secure invitation…';
+ try{
+  const data=await callBursarAdmin('create_invitation',{staff_directory_id:employeeId,email});
+  note('bursarInviteResult','Supabase Auth accepted the invitation for email delivery to '+data.email+'. The bursar must verify the address; the Director must then approve before password setup.','success');
+  $('bursarInviteEmail').value='';await Promise.all([loadBursarCandidates(),loadBursarEnrollments()]);
+ }catch(error){note('bursarInviteResult',error.message||'Invitation could not be sent. No bursar account was activated.','error');await loadBursarEnrollments()}
+ finally{button.disabled=false;button.textContent='Send verification invitation'}
+});
+$('refreshBursarEnrollments').addEventListener('click',async()=>{await Promise.all([loadBursarCandidates(),loadBursarEnrollments()])});
+$('bursarAccountRows').addEventListener('click',async event=>{
+ const button=event.target.closest('[data-bursar-action]');if(!button)return;
+ if(!isAdmin()){note('bursarInviteResult','Only the Director can approve or reject bursar invitations.','error');return}
+ const action=button.dataset.bursarAction,id=button.dataset.id;
+ if(action==='reject'&&!confirm('Reject this bursar invitation? The account will not be activated.'))return;
+ button.disabled=true;
+ try{
+  await callBursarAdmin(action,{enrollment_id:id});
+  note('bursarInviteResult',action==='approve'?'Bursar email verified and account approved. The bursar can return to the secure setup page to create a private password.':'The bursar invitation was rejected.','success');
+  await loadBursarEnrollments();
+ }catch(error){note('bursarInviteResult',error.message||'The account action failed.','error');await loadBursarEnrollments()}
+ finally{button.disabled=false}
+});
+
 
 $('signOut').addEventListener('click',async()=>{
  await db.auth.signOut({scope:'local'});user=null;profile=null;show('appPanel',false);show('loginPanel',true);show('signOut',false);$('userLabel').textContent='';returnToRoleChoices();

@@ -1,0 +1,19 @@
+name: CORNHILL bursar enrollment tests
+on:
+  push:
+    branches:
+      - feat/bursar-invitation-approval-20261112
+  pull_request:
+    branches:
+      - feat/individual-leadership-signins-20261112
+      - release/cornhill-integrated-20261112
+jobs:
+  bursar-enrollment-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run bursar enrollment contract tests
+        run: node --test tests/bursar-account-enrollment.test.cjs
