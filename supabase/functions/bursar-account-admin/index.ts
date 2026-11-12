@@ -5,7 +5,8 @@ const allowedOrigins = new Set([
   "https://cornhill-school.vercel.app",
   "https://services-cornhill-school.vercel.app",
   "https://cornhill-school-git-feat-login-contract-0df38b-cypher-projects1.vercel.app", // exact current review preview; keep CORS restricted to known CORNHILL hosts
-  "https://yemhortbudwbcrzsoozk.supabase.co", // exact origin serving the bursar setup page
+  "https://yemhortbudwbcrzsoozk.supabase.co", // retained for the existing callback origin
+  "https://my-school-management-software.github.io", // exact GitHub Pages origin serving the static setup UI
 ]);
 const headersFor = (origin: string | null) => ({
   "Access-Control-Allow-Origin": origin && allowedOrigins.has(origin) ? origin : "null",
@@ -17,7 +18,7 @@ const json = (status: number, body: Record<string, unknown>, origin: string | nu
   new Response(JSON.stringify(body), { status, headers: { ...headersFor(origin), "Content-Type": "application/json" } });
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const setupRedirect = "https://cornhill-school-swart.vercel.app/bursar-account.html";
+const setupRedirect = "https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/bursar-account-web";
 const activeStatuses = ["inviting", "invited", "email_verified", "approved", "active"] as const;
 
 function normalizeTitle(value: unknown) {
