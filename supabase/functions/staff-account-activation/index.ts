@@ -301,17 +301,33 @@ Deno.serve(async (req: Request) => {
       }
       activatedUserId = created.user.id;
       let enrollmentId: string | null = null;
-      const { data: enrollment, error: enrollmentInsertError } = await admin.from("bursar_account_enrollments").insert({
-        staff_directory_id: employee.id, auth_user_id: activatedUserId, email,
-        role_key: found.role_key, status: "approved",
-        created_by: claimed.issued_by, approved_by: claimed.issued_by,
-        approved_at: now, email_verified_at: now,
-      }).select("id").single();
-      if (enrollmentInsertError || !enrollment) {
-        await admin.auth.admin.deleteUser(activatedUserId);
-        return json(500, { error: "The new bursar login was created but its enrollment record could not be saved. Ask the Director to issue a fresh activation code." }, origin);
+      if (bursarEnrollment) {
+        const { data: updatedEnrollment, error: enrollmentUpdateError } = await admin.from("bursar_account_enrollments")
+          .update({
+            auth_user_id: activatedUserId, email, status: "approved",
+            approved_by: claimed.issued_by, approved_at: now,
+            email_verified_at: now, delivery_error_code: null, updated_at: now,
+          })
+          .eq("id", bursarEnrollment.id).is("auth_user_id", null)
+          .select("id").maybeSingle();
+        if (enrollmentUpdateError || !updatedEnrollment) {
+          await admin.auth.admin.deleteUser(activatedUserId);
+          return json(500, { error: "The new bursar login was created but its existing enrollment could not be updated. Ask the Director to review this record." }, origin);
+        }
+        enrollmentId = updatedEnrollment.id;
+      } else {
+        const { data: enrollment, error: enrollmentInsertError } = await admin.from("bursar_account_enrollments").insert({
+          staff_directory_id: employee.id, auth_user_id: activatedUserId, email,
+          role_key: found.role_key, status: "approved",
+          created_by: claimed.issued_by, approved_by: claimed.issued_by,
+          approved_at: now, email_verified_at: now,
+        }).select("id").single();
+        if (enrollmentInsertError || !enrollment) {
+          await admin.auth.admin.deleteUser(activatedUserId);
+          return json(500, { error: "The new bursar login was created but its enrollment record could not be saved. Ask the Director to issue a fresh activation code." }, origin);
+        }
+        enrollmentId = enrollment.id;
       }
-      enrollmentId = enrollment.id;
       activatedEnrollmentId = enrollmentId;
       const { error: codeLinkError } = await admin.from("staff_activation_codes")
         .update({ enrollment_id: enrollmentId, redeemed_by: activatedUserId, updated_at: now })
