@@ -353,3 +353,22 @@ No access codes were issued, no staff invitation was sent and no account/passwor
 3. After production frontend is live, have the Director issue codes individually to the existing eligible active linked teachers; separately provision leadership accounts only after the school confirms the records and identity details.
 4. Complete Supabase Auth redirect and SMTP configuration, then test bursar email onboarding with a designated test address.
 5. Continue grouped regression testing. No complete real-account multi-role E2E test has yet been completed for this checkpoint.
+
+
+---
+
+## Sign-in regression coverage checkpoint — 12 November 2026, 09:29 UTC
+
+- PR #29 merged into `release/cornhill-integrated-20261112`: https://github.com/My-school-management-software/cornhill-school/pull/29
+- Merge commit: `02bdc2ad3cca0ffe9227f1aa67ba3f82143a32aa`.
+- Expanded `tests/staff-access-login-contract.test.cjs` from 13 to 21 focused tests.
+- The 8 additional checks cover:
+  - Headteacher and Deputy Headteacher code-only login; DOS code or private email/password; bursar private email/password.
+  - Role tiles cannot bypass real Supabase authentication, active employment, or matching authenticated job title.
+  - Other Staff cannot impersonate reserved leadership or bursar job titles.
+  - Switching roles clears previously entered credentials.
+  - Director sign-in remains separate and sole Admin.
+  - The role selector remains responsive on narrow Android screens.
+- Final PR checks on commit `c7fbd840c1d83f7945bdd53108b44903a5b5c2f5`: staff access **21/21 passed**, bursar enrollment contract suite passed, appearance/workspace suite passed. The first test attempt exposed one overly strict test regex; it was corrected and the complete rerun passed.
+- This was a test-only change. No staff account, password, access code, Auth configuration, production database row or deployment alias was changed.
+- Production frontend status remains separate: the permanent Vercel alias must still be checked against the exact current integrated release commit before the school is told that the latest screens are live. A successful PR/preview check is not proof of production deployment.
