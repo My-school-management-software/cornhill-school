@@ -2189,6 +2189,7 @@ async function approveNewPassword(password,messageId){
 
 if(!db){message('loginMsg','The secure sign-in service could not load. Check your internet connection, then refresh this page. If the problem continues, contact the school administrator.',true);$('signIn').disabled=true;$('signIn').textContent='Sign-in service unavailable'}
 function tab(name){
+ window.cornhillResetSettingsCardWorkspaces?.();
  const workspaces=['dashboard','notifications','workPlan','helpAssistant','modulePreview','students','achievedLearners','trashBin','register','classes','academics','finance','staffProfiles','attendance','inventory','reports','midtermAdmissions','communication','settings','learnerProfile','parentAccess','appCentre'];
  if(!workspaces.includes(name))return;
  $('adminParentPortalDirectory')?.classList.toggle('hidden',profile?.role!=='Admin');
@@ -8681,16 +8682,33 @@ document.addEventListener('DOMContentLoaded',()=>{
    back.type='button';back.className='tab settings-workspace-back';
    back.textContent='← Back to settings cards';
    back.addEventListener('click',()=>{
-    panel.classList.add('hidden');launcher.classList.remove('hidden');intro.classList.remove('hidden');
-    current=null;launcher.scrollIntoView({behavior:'smooth',block:'start'});
+    window.cornhillResetSettingsCardWorkspaces?.();
+    launcher.scrollIntoView({behavior:'smooth',block:'start'});
    });
-   panel.insertBefore(back,panel.firstChild);
+   const dashboardBack=document.createElement('button');
+   dashboardBack.type='button';dashboardBack.className='tab settings-workspace-dashboard-back';
+   dashboardBack.textContent='⌂ Back to dashboard';
+   dashboardBack.addEventListener('click',()=>{
+    window.cornhillResetSettingsCardWorkspaces?.();
+    if(typeof window.tab==='function')window.tab('dashboard');
+   });
+   const controls=document.createElement('div');
+   controls.className='row settings-workspace-navigation';
+   controls.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px';
+   controls.append(back,dashboardBack);
+   panel.insertBefore(controls,panel.firstChild);
   }
   [...root.children].forEach(node=>{
    if(node===launcher||node===intro||node.classList.contains('settings-workspace-section'))return;
    if(node.matches('.row')&&node.querySelector('h2'))return;
    if(node.classList.contains('notice'))node.classList.add('hidden');
   });
+  window.cornhillResetSettingsCardWorkspaces=()=>{
+   root.querySelectorAll('.settings-workspace-section').forEach(x=>x.classList.add('hidden'));
+   launcher.classList.remove('hidden');
+   intro.classList.remove('hidden');
+   current=null;
+  };
   launcher.addEventListener('click',event=>{
    const card=event.target.closest('[data-settings-jump]');
    if(!card)return;
