@@ -247,3 +247,68 @@ Do not overstate these results:
 5. Run separate positive/negative login and permission tests for Director, each leadership role, each bursar, class teachers and subject-only teachers. Also test sign-out/session isolation on shared school computers and Android.
 
 Do not describe the separate accounts as active until those real accounts exist. Do not change the Director's existing credentials or provision placeholder users.
+
+
+---
+
+## Consolidated update — 12 November 2026, 08:40 UTC
+
+This checkpoint supersedes earlier statements in this document about the staff sign-in work still being unimplemented. Read the following status as the current development/release handover.
+
+### Work included in the current staff-access development PR
+
+The current consolidated development work is tracked in [PR #21 — individual staff sign-in and bursar enrollment](https://github.com/My-school-management-software/cornhill-school/pull/21).
+
+- Separate sign-in choices are implemented for the existing Director, Teachers, Headteacher, Deputy Headteacher, DOS, Main Bursar, Deputy Bursar and Other Staff.
+- Teacher and academic leadership individual access codes are generated and verified server-side; codes are hashed, rate-limited, revocable and audited. A code is used together with the person's own account password.
+- The original Director remains the only unrestricted Admin identity.
+- Main Bursar and Deputy Bursar use separate individual email/password accounts. The bursar invitation path is separate from general staff invitations.
+- The Director selects an existing active, unlinked bursar employee record and sends a verification invitation to that person's confirmed official email.
+- The bursar verifies the email. The account remains pending and cannot access school records until the Director separately approves it.
+- Only after approval does the bursar create and confirm a private password. The Director cannot see the password.
+- A dedicated setup page supports invitation verification, approval-status checks and password recovery. Recovery of an unapproved account cannot activate it.
+- Password reset completion is written to the restricted bursar enrollment audit. The Supabase project-level Password changed security notification still has to be enabled in Auth settings.
+- The legacy general staff-invitation Edge Function rejects bursar job titles, preventing it from bypassing the two-step bursar approval process.
+- Settings navigation has a separate fix in release commit `06725a061c20ba1efe1af97072ddfb44147f3322`, merged into the release branch before this checkpoint.
+
+### Five bursar safeguards
+
+1. **Verified, expiring links:** invitation and recovery links use Supabase Auth, are single-use/expiring under the project's Auth settings, and recovery requests are rate-limited.
+2. **Private passwords:** the bursar sets the password; the Director never receives, views or stores it. Supabase Auth manages the password hash.
+3. **Audit and account-owner alert:** Director approval/rejection, email verification, invitation delivery, activation and completed password resets are audited. Enable the project's Password changed security notification to email the account owner after a reset.
+4. **Separate identities and least privilege:** Main Bursar and Deputy Bursar have separate employee-linked accounts and role checks; neither becomes the Director/Admin.
+5. **Protected recovery:** only the bursar's own verified account can complete recovery; reset links expire, are single-use/rate-limited, are audited, and cannot bypass Director approval.
+
+### Automated verification
+
+- Bursar enrollment contract tests: passed on the latest bursar password-recovery commit.
+- Existing appearance/workspace regression tests: passed on the latest bursar password-recovery commit.
+- Individual staff access contract tests: passed on development commit `131c74578e15e4e59189eb55d2c855b237910ae7`.
+- These are automated contract/regression tests. They are not proof of live email delivery, real-user login, end-to-end school payment processing, or a complete role-by-role acceptance test.
+
+### Integration and production status — important
+
+- The staff-access and bursar changes are in the development PR and its branch. The PR is **not yet merged into the current release branch** because the release branch advanced while the work was being prepared; the overlapping dashboard and services files must be reconciled without losing the Settings navigation fix or other newer release work.
+- The bursar migration and `bursar-account-admin` Edge Function have **not** been applied/deployed to the live Supabase project.
+- No real bursar invitation has been sent, no real bursar password has been created, and no placeholder staff accounts have been made.
+- Before live invitations: add `https://cornhill-school-swart.vercel.app/bursar-account.html` to Supabase Auth allowed redirect URLs, configure a verified custom SMTP sender, enable the Password changed security notification, apply the reviewed migration, deploy the Edge Function with JWT verification, and test delivery with a designated test account.
+- Vercel's free-plan daily deployment quota was exhausted during the previous deployment attempt. Do not upgrade or retry repeated production deployments. Wait for the free quota reset, then make one deployment attempt and verify the production commit and permanent alias before saying it is live.
+- Permanent application link: https://cornhill-school-swart.vercel.app/
+- Development/review link: https://github.com/My-school-management-software/cornhill-school/pull/21
+
+### Remaining school-wide work
+
+The following requirements remain part of the full CORNHILL system plan and must not be forgotten or represented as complete merely because the sign-in work is implemented:
+
+- Confirm the actual Headteacher, Deputy Headteacher and DOS employee records and official email details; provision only real staff identities.
+- Finish the live role-by-role sign-in and permission tests after account provisioning.
+- Complete report-card submit/review/publish/reopen end-to-end testing with authorised accounts.
+- Complete real finance payment, bursary balance, previous-term allocation, receipt printing and reversal tests.
+- Configure and verify MTN/Airtel parent payment notifications before claiming SMS delivery.
+- Complete the isolated guardian portal and its learner-code plus second-factor checks.
+- Complete offline authentication and safe synchronisation; current encrypted read-only offline snapshots are not full offline operation.
+- Verify the selected fingerprint terminal and its driver/SDK before claiming staff fingerprint attendance is operational.
+- Continue school communications, admissions, academics, finance, staff attendance, inventory and all other modules without replacing the full system with a demo.
+- Preserve the requested Windows 10/11 and Android support, multiple school-computer access, role restrictions, more than seven themes, more than twenty fonts and the no-paid-upgrade constraint.
+
+Do not merge or deploy this feature until the branch reconciliation, current CI checks, Supabase pre-live configuration and release verification are complete. Continue updating this handover as each batch is integrated and tested.
