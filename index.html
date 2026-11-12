@@ -1109,7 +1109,75 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 #schoolStaffCredentials{margin-top:10px;padding:12px;border:1px solid #dce8df;border-radius:11px;background:#f8fbf8}
 #schoolStaffCredentials input{width:100%}
 @media(max-width:560px){.school-staff-role-grid{grid-template-columns:1fr;gap:7px}.school-staff-role-choice{min-height:58px}.school-staff-mode-switch,.teacher-login-mode-switch{flex-direction:column}}
-</style></head>
+</style>
+<style id="cornhill-professional-signin-v2">
+/* Professional split-panel sign-in: styling only; all existing account IDs and handlers stay intact. */
+#login.login-design-surface{
+ position:relative!important;isolation:isolate;overflow:hidden;
+ width:min(100% - 36px,1160px)!important;max-width:1160px!important;min-height:610px;
+ margin:clamp(18px,4vh,42px) auto 34px!important;padding:30px 28px 32px!important;
+ border:1px solid #d9e6dd!important;border-radius:28px!important;background:#fff!important;
+ box-shadow:0 24px 70px rgba(18,48,29,.12)!important;
+}
+#login.login-design-surface:before{
+ content:"CORNHILL\A NURSERY AND PRIMARY SCHOOL\A\A WE SHARE ONE DREAM\A\A SCHOOL MANAGEMENT PORTAL\A Secure access for teaching, leadership and school operations.";
+ position:absolute;z-index:0;top:0;bottom:0;left:0;width:32%;
+ display:flex;align-items:flex-end;box-sizing:border-box;padding:188px 27px 38px;
+ white-space:pre-line;text-align:left;color:#f7fff9;font-size:clamp(13px,1.2vw,16px);
+ font-weight:650;line-height:1.8;letter-spacing:.015em;
+ background-image:linear-gradient(180deg,rgba(7,47,28,.14) 0%,rgba(7,47,28,.44) 42%,#082d1d 100%),url('/assets/cornhill-school-badge.png'),linear-gradient(150deg,#17623a,#0a3522);
+ background-size:cover,104px auto,cover;background-position:center,center 48px,center;background-repeat:no-repeat;
+}
+#login.login-design-surface:after{display:none!important;content:none!important}
+#login.login-design-surface>*{position:relative;z-index:1;width:62%!important;max-width:none!important;margin-left:35%!important}
+#login.login-design-surface>h2{margin-top:18px!important;margin-bottom:7px!important;color:#173f29;font-size:clamp(25px,2.6vw,34px);font-weight:850;letter-spacing:-.035em}
+#login.login-design-surface>h2:before{display:none!important;content:none!important}
+#login.login-design-surface>p.muted{margin-top:0!important;margin-bottom:15px!important;color:#627368;font-size:13px;line-height:1.6}
+#login .login-role-strip{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+#login .login-role-heading{padding:11px 12px;border:1px solid #e0e9e3;border-radius:13px;background:#f7faf8;box-shadow:0 2px 8px rgba(15,45,27,.035)}
+#login .login-role-heading strong{font-size:12px;color:#17452b;font-weight:850}
+#login .login-role-heading span{font-size:10px;line-height:1.45;color:#66786d}
+#classLoginDirectory.login-class-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 16px}
+#classLoginDirectory .login-class-tile{min-height:90px;padding:13px 14px;border:1px solid #dce8df;border-radius:14px;background:linear-gradient(145deg,#fff,#f7fbf8);box-shadow:0 4px 13px rgba(18,48,29,.05);transition:border-color .16s,transform .16s,box-shadow .16s}
+#classLoginDirectory .login-class-tile:hover{border-color:#72a989;transform:translateY(-2px);box-shadow:0 8px 20px rgba(18,48,29,.09)}
+#classLoginDirectory .login-class-tile strong{font-size:15px;color:#17442a}
+#classLoginDirectory .login-class-tile span{font-size:11px;color:#66786d;line-height:1.4}
+#login .login-staff-open,#login #adminLoginOpen{min-height:48px;padding:12px 15px;border:1px solid #d5e4d9;border-radius:12px;background:#eef6f0;color:#17452b;font-weight:800;box-shadow:none}
+#login .login-staff-open:hover,#login #adminLoginOpen:hover{border-color:#83ad91;background:#e6f1e9}
+#login .login-compact-panel,#login #adminLoginPanel,#login #selectedTeacherLogin{padding:16px!important;border:1px solid #dce8df!important;border-radius:15px!important;background:#fbfdfb!important;box-shadow:0 5px 18px rgba(18,48,29,.055)!important}
+#login .school-staff-role-grid{gap:9px}
+#login .school-staff-role-choice{min-height:68px;border:1px solid #dce8df;border-radius:12px;background:#fff;color:#19462d;text-align:left}
+#login .school-staff-role-choice:hover{border-color:#79a88a;background:#f5faf6}
+#login input,#login select{min-height:46px;border:1px solid #cfded3;border-radius:10px;background:#fff}
+#login input:focus-visible,#login button:focus-visible{outline:3px solid #83ba94;outline-offset:2px}
+#login button.primary{min-height:48px;border-radius:11px;background:linear-gradient(110deg,#14532d,#237b48);box-shadow:0 7px 18px rgba(20,83,45,.18)}
+#login .login-security-note{color:#65786c;line-height:1.55}
+@media(max-width:760px){
+ #login.login-design-surface{width:min(100% - 20px,720px)!important;min-height:0;margin:12px auto 22px!important;padding:162px 15px 22px!important;border-radius:20px!important}
+ #login.login-design-surface:before{top:0;bottom:auto;left:0;width:100%;height:142px;padding:22px 18px 18px 116px;border-radius:19px 19px 0 0;font-size:12px;line-height:1.55;background-size:cover,78px auto,cover;background-position:center,20px center,center}
+ #login.login-design-surface>*{width:100%!important;margin-left:0!important}
+ #login.login-design-surface>h2{font-size:25px;margin-top:0!important}
+ #login .login-role-strip{gap:7px}
+ #login .login-role-heading{padding:9px 8px}
+ #login .login-role-heading strong{font-size:11px}
+ #login .login-role-heading span{font-size:9px}
+ #classLoginDirectory.login-class-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #classLoginDirectory .login-class-tile{min-height:78px;padding:11px}
+ #login .school-staff-role-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:420px){
+ #login.login-design-surface{padding-inline:12px!important}
+ #login .login-role-strip{grid-template-columns:1fr}
+ #login .login-role-heading{padding:8px 10px}
+ #classLoginDirectory.login-class-grid{grid-template-columns:1fr}
+ #login .school-staff-role-grid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+ #classLoginDirectory .login-class-tile{transition:none}
+ #classLoginDirectory .login-class-tile:hover{transform:none}
+}
+</style>
+</head>
 <body>
 <header class="top"><div><div class="brand" style="display:flex;align-items:center;gap:12px"><img src="/assets/cornhill-school-badge.png" alt="Cornhill Nursery and Primary School crest" style="width:48px;height:48px;object-fit:contain;background:#fff;border-radius:50%;padding:2px;flex:0 0 auto"><span>CORNHILL NURSERY AND PRIMARY SCHOOL</span></div><div class="sub">School Management System · Uganda</div>
 <div class="school-motto"><span>WE SHARE ONE DREAM</span><small>Learning together · Growing together · Achieving together</small></div></div><div class="row"><button id="refreshApp" type="button" title="Check for the latest CORNHILL version" style="background:#fff;color:#14532d">↻ Refresh app</button><button id="logout" class="hidden">Sign out</button></div></header>

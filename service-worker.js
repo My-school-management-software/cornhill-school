@@ -2,8 +2,8 @@
 /* CORNHILL offline application shell.
    Only public app shells, static assets and approved public CDN libraries are cached.
    Supabase/auth/API traffic, learner records, guardian data and financial data stay network-only. */
-const CACHE_NAME = 'cornhill-shell-v98';
-const STATIC_CACHE = 'cornhill-static-v98';
+const CACHE_NAME = 'cornhill-shell-v99';
+const STATIC_CACHE = 'cornhill-static-v99';
 const SHELL = [
   '/', '/index.html', '/school.html', '/admissions.html', '/parents.html',
   '/evidence.html', '/notifications.html', '/records.html', '/banking.html',
@@ -148,7 +148,7 @@ self.addEventListener('fetch', event => {
       const cache = await caches.open(CACHE_NAME);
       const path = url.pathname === '/' ? '/' : url.pathname;
       try {
-        let response = await fetch(request);
+        let response = await fetch(new Request(request, { cache: 'no-store' }));
         if (response.ok) {
           const includeRecordsTools = ['/', '/index.html', '/apps/school-management/', '/apps/school-management'].includes(path);
           response = await enhanceHtml(response, includeRecordsTools);
@@ -170,23 +170,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Cache-first for same-origin public files; revalidate in the background.
+  // Network-first for public same-origin app shells and assets. When online, the
+  // installed PWA receives current files immediately; cached files remain the offline fallback.
   if (SHELL.includes(url.pathname) || url.pathname.startsWith('/assets/')) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(request);
-      if (cached) {
-        fetch(request).then(async response => {
-          if (response.ok) await cache.put(request, response);
-        }).catch(() => {});
-        return cached;
-      }
       try {
-        const response = await fetch(request);
+        const response = await fetch(new Request(request, { cache: 'no-store' }));
         if (response.ok) await cache.put(request, response.clone());
         return response;
       } catch {
-        return Response.error();
+        const cached = await cache.match(request);
+        return cached || Response.error();
       }
     })());
   }
