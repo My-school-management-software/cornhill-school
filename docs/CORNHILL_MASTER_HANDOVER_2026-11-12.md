@@ -300,3 +300,56 @@ This checkpoint supersedes any earlier deployment or release statements in the h
 - **New integrated frontend deployed to production:** no — Vercel free build-rate-limit blocked it.
 - **New integrated frontend available on the installed PWA:** not yet verified; do not claim it is updated.
 - **Real bursar accounts or credentials created:** no.
+
+---
+
+## Individual staff access-code security checkpoint — 12 November 2026, 09:18 UTC
+
+This is the latest access-code operational checkpoint and supersedes earlier statements above that the access-code migration/function had not been deployed.
+
+### Supabase production deployment — verified
+
+- Production project: `yemhortbudwbcrzsoozk`.
+- Migration `individual_staff_access_codes` is present in the production migration ledger (actual recorded version: `20261112035651`).
+- Edge Function `staff-access-code` is ACTIVE, **version 2**, with `verify_jwt=false`. The pre-authentication login action has no user session yet; the handler itself validates the bearer session and active Admin profile for Director-only `issue` and `revoke` actions. The login action validates role, active linked staff identity, access-code hash and the account password before returning a real Supabase Auth session.
+- The deployed version-2 `index.ts` was retrieved and compared byte-for-byte with the merged release-branch source; the contents matched exactly.
+- The function hardening in PR #27 now keys the rate-limit bucket to the connection IP hash (not browser user-agent) and checks security audit writes for issue, revoke, and successful-login actions. If issuance audit writing fails, the newly generated code is deactivated and is not returned. The Director revoke operation remains applied if its audit write fails, and the caller receives an error rather than a false success.
+- Three access-code tables have RLS enabled. Browser roles `anon` and `authenticated` have no SELECT privilege; the server-only rate-limit RPC is executable only by `service_role`.
+
+### Current account counts — no staff changes made
+
+Production database audit at this checkpoint:
+- Active Director/Admin profiles: 1.
+- Active linked teacher accounts: 10.
+- Active teacher accounts with a personal access code: 0.
+- Access-code records: 0.
+- Access-code audit events: 0.
+- Active Headteacher, Deputy Headteacher and DOS employee records: 0.
+- Active non-teaching Staff profiles: 0.
+
+No access codes were issued, no staff invitation was sent and no account/password was created or changed during this checkpoint. The Director can issue codes only after selecting an eligible, active, linked staff account; the Director should personally issue the codes and deliver them privately to the correct staff members. Do not place codes in this document or in public records.
+
+### GitHub source and test status
+
+- PR #27 (access-code audit and throttling hardening) is merged: https://github.com/My-school-management-software/cornhill-school/pull/27
+- Merge commit: `9090e0289cdf4e64d7315b8e4fe40313096ce983`.
+- The individual staff access test run passed **13/13**, 0 failures: https://github.com/My-school-management-software/cornhill-school/actions/runs/43189939200
+- The bursar enrollment contract test run passed; the appearance/workspace test run passed.
+- The staff-access workflow was updated so pull requests into `release/cornhill-integrated-20261112` run the individual staff suite. This was necessary because the previous workflow only listed older target branches.
+
+### Frontend and staff onboarding boundaries
+
+- The production website is still on commit `a9f55fe1b796dd9190a21ae43dfdf7648ec11dc0`; the free Vercel build-rate limit is still blocking the new integrated frontend deployment.
+- Therefore the current production website has not yet exposed the latest merged role-based login interface or PR #25 bursar onboarding page to users. The production Supabase backend being active does not mean the new login screens are live on the website.
+- Do not tell teachers to use access-code sign-in until the frontend is deployed and their personal codes have been issued by the Director.
+- Do not tell Headteacher, Deputy Headteacher or DOS to sign in until the school has added and verified their active employee records, linked their accounts, and issued credentials.
+- Bursar account invitations still require the approved Auth redirect URL, a verified custom SMTP sender and tested password-change security notification before real invitations can be sent.
+- No PWA update is confirmed until the permanent Vercel alias points at a READY deployment with the exact integrated release SHA.
+
+### Next operational steps
+
+1. When the free Vercel build quota becomes available, make one production deployment from the current integrated release branch and verify the permanent URL and 21 module aliases against the exact deployment SHA.
+2. Run desktop and Android/PWA smoke tests against that exact deployed build before asking staff to refresh or reinstall.
+3. After production frontend is live, have the Director issue codes individually to the existing eligible active linked teachers; separately provision leadership accounts only after the school confirms the records and identity details.
+4. Complete Supabase Auth redirect and SMTP configuration, then test bursar email onboarding with a designated test address.
+5. Continue grouped regression testing. No complete real-account multi-role E2E test has yet been completed for this checkpoint.
