@@ -43,7 +43,7 @@ create or replace function public.consume_staff_access_code_attempt(
 )
 returns boolean
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $function$
 declare
