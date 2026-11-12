@@ -9,6 +9,7 @@ const edge = fs.readFileSync(path.join(root, 'supabase/functions/staff-access-co
 const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261112020000_individual_staff_access_codes.sql'), 'utf8');
 
 const dashboard = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const staffInvite = fs.readFileSync(path.join(root, 'supabase/functions/staff-invite/index.ts'), 'utf8');
 
 test('main dashboard exposes separate named leadership and bursar sign-in choices', () => {
   for (const role of ['Headteacher','Deputy Headteacher','DOS','Main Bursar','Deputy Bursar','Other Staff']) {
@@ -96,4 +97,15 @@ test('Director code manager sends the selected staff identity and exact role to 
   assert.ok(html.includes("roleKey='Deputy Headteacher'"));
   assert.ok(html.includes("roleKey='Headteacher'"));
   assert.ok(html.includes("roleKey='DOS'"));
+});
+
+
+test('staff invitations require the active Director and cannot create a duplicate Director account', () => {
+  assert.ok(staffInvite.includes('.select("role,employment_status")'));
+  assert.ok(staffInvite.includes('actor?.role !== "Admin" || actor?.employment_status !== "Active"'));
+  assert.ok(staffInvite.includes('const normalizedJobTitle'));
+  assert.ok(staffInvite.includes('["director", "school director"].includes(normalizedJobTitle)'));
+  const directorGuard = staffInvite.indexOf('["director", "school director"].includes(normalizedJobTitle)');
+  const inviteCall = staffInvite.indexOf('admin.auth.admin.inviteUserByEmail');
+  assert.ok(directorGuard >= 0 && inviteCall > directorGuard, 'The Director identity must be protected before any invitation is created.');
 });

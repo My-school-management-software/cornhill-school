@@ -33,8 +33,8 @@ Deno.serve(async (req: Request) => {
   if (authError || !authData.user) return json(401, { error: "Your session could not be verified. Sign in again." });
 
   const { data: actor, error: actorError } = await admin
-    .from("user_profiles").select("role").eq("id", authData.user.id).single();
-  if (actorError || actor?.role !== "Admin") return json(403, { error: "Only a school administrator can invite staff." });
+    .from("user_profiles").select("role,employment_status").eq("id", authData.user.id).single();
+  if (actorError || actor?.role !== "Admin" || actor?.employment_status !== "Active") return json(403, { error: "Only the active Director account can invite staff." });
 
   let payload: Record<string, unknown>;
   try { payload = await req.json(); } catch { return json(400, { error: "Invalid request body." }); }
@@ -61,6 +61,10 @@ Deno.serve(async (req: Request) => {
 
   const expectedRole = employee.staff_category === "Teaching" ? "Teacher" : "Staff";
   if (role !== expectedRole) return json(400, { error: "The invitation role does not match the selected employee's teaching / non-teaching category." });
+  const normalizedJobTitle = String(employee.job_title || "").trim().toLocaleLowerCase().replace(/\s+/g, " ");
+  if (role === "Staff" && ["director", "school director"].includes(normalizedJobTitle)) {
+    return json(409, { error: "The Director's original full-access account is reserved and cannot be recreated through staff invitations." });
+  }
   const fullName = String(employee.full_name || "").trim();
   if (fullNameInput.toLocaleLowerCase() !== fullName.toLocaleLowerCase()) {
     return json(400, { error: "The typed name does not match the selected employee record. Refresh the form and choose the correct employee." });
