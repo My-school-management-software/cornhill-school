@@ -9,6 +9,7 @@ const edge = fs.readFileSync(path.join(root, 'supabase/functions/bursar-account-
 const page = fs.readFileSync(path.join(root, 'bursar-account.html'), 'utf8');
 const staffInvite = fs.readFileSync(path.join(root, 'supabase/functions/staff-invite/index.ts'), 'utf8');
 const services = fs.readFileSync(path.join(root, 'school-services.html'), 'utf8');
+const docs = fs.readFileSync(path.join(root, 'docs/BURSAR_ACCOUNT_ENROLLMENT_20261112.md'), 'utf8');
 
 test('bursar enrollment keeps profiles and employee links pending until Director approval and password setup', () => {
   assert.match(edge, /inviteUserByEmail/);
@@ -19,7 +20,8 @@ test('bursar enrollment keeps profiles and employee links pending until Director
   assert.match(edge, /activate_bursar_account_enrollment/);
   assert.doesNotMatch(edge, /from\(["']user_profiles["']\)\.upsert/);
   assert.doesNotMatch(edge, /from\(["']school_staff_directory["']\)\.update/);
-  assert.match(migration, /status <> 'approved'/);
+  assert.match(edge, /enrollment\.status !== "approved"/);
+  assert.match(migration, /status in \('inviting','invited','email_verified','approved','active','rejected','delivery_failed'\)/);
   assert.match(migration, /where id = p_enrollment_id[\s\S]*and auth_user_id = p_auth_user_id/);
 });
 
@@ -57,7 +59,8 @@ test('email verification must happen before approval and password activation', (
 });
 
 test('all five agreed safeguards are present in the implementation and records', () => {
-  assert.match(edge, /single|once/i);
+  assert.match(docs, /single-use/i);
+  assert.match(docs, /expire according to the project's Auth email OTP expiration configuration/i);
   assert.match(migration, /bursar_account_enrollment_events/);
   assert.match(migration, /revoke all on table public\.bursar_account_enrollments from public, anon, authenticated/i);
   assert.match(migration, /grant execute on function public\.activate_bursar_account_enrollment\(uuid, uuid\) to service_role/i);

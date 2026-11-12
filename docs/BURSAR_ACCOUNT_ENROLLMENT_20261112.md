@@ -6,14 +6,14 @@
 2. The server calls Supabase Auth `inviteUserByEmail` with the dedicated `bursar-account.html` redirect. Supabase Auth creates an unconfirmed identity and accepts the invitation for email delivery. No `user_profiles` row is created and no employee directory link is assigned at this stage.
 3. The bursar opens the invitation email. Supabase Auth verifies the email and returns a session to the dedicated setup page.
 4. The setup page asks the server to verify the signed-in identity and confirmation timestamp. The enrollment moves to `email_verified`; the bursar sees an approval-pending message and no school data.
-5. The Director reviews the pending list and explicitly approves or rejects the verified enrollment.
+5. The Director reviews the pending list and explicitly approves or rejects the verified enrollment. The bursar can keep the setup page open or return to it in the same browser session and select Check approval status. This version does not send a separate second email after approval.
 6. After approval, the bursar returns to the same setup page and creates/confirms a private password. The browser updates the password through Supabase Auth.
 7. The server-only activation function verifies the confirmed email, approved state, employee record and job title, then atomically creates the Staff profile, links the existing employee record and marks the enrollment active.
 8. The bursar signs in through the normal CORNHILL sign-in page using their own email and password.
 
 ## Safeguards
 
-- Supabase Auth invitation links are single-use and expire according to the project's Auth email OTP expiration configuration. Do not put tokens or full URLs in the enrollment audit.
+- Supabase Auth invitation links are single-use and expire according to the project's Auth email OTP expiration configuration. Do not put tokens or full URLs in the enrollment audit. The setup page keeps an authenticated session in that browser so the bursar can check approval status later.
 - No password is sent to the Director, placed in invitation metadata, or stored in the enrollment table. Supabase Auth stores the password hash.
 - Director approvals, email verification, delivery result, rejection and activation are recorded in a restricted audit table.
 - Main and Deputy Bursar identities are separate and the employee's exact recorded role is checked before activation.
