@@ -14,12 +14,12 @@ h1{font-size:clamp(22px,4vw,29px);margin:0 0 8px}p{line-height:1.55}.muted{color
 label{display:block;font-weight:750;font-size:13px;margin:12px 0 6px}input{display:block;width:100%;padding:13px;border:1px solid #cbd8ce;border-radius:10px;font:inherit}
 button,a.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:10px;padding:12px 15px;background:var(--green);color:#fff;font-weight:800;text-decoration:none;cursor:pointer}
 button:disabled{opacity:.5;cursor:wait}.notice{padding:12px 13px;border-radius:10px;background:#eff6ff;color:#1e40af;font-size:13px;margin:14px 0}.notice.error{background:#fff1f2;color:#9f1239}.notice.success{background:#ecfdf3;color:#166534}
-.hidden{display:none!important}.stack{display:grid;gap:9px}.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}.brand img{width:46px;height:46px;object-fit:contain}.brand strong{display:block;font-size:13px}.brand small{font-size:11px;color:var(--muted)}
+.hidden{display:none!important}.stack{display:grid;gap:9px}.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}.brand-mark{width:46px;height:46px;display:grid;place-items:center;background:var(--green);color:#fff;border-radius:12px;font-weight:900;font-size:24px}.brand strong{display:block;font-size:13px}.brand small{font-size:11px;color:var(--muted)}
 </style>
 </head>
 <body>
 <main>
-  <div class="brand"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL school badge"><div><strong>CORNHILL NURSERY AND PRIMARY SCHOOL</strong><small>Secure staff account activation</small></div></div>
+  <div class="brand"><div class="brand-mark" aria-hidden="true">C</div><div><strong>CORNHILL NURSERY AND PRIMARY SCHOOL</strong><small>Secure staff account activation</small></div></div>
   <h1>Bursar account setup</h1>
   <p class="muted">This page verifies your invitation and lets you choose your own password only after the Director approves your account. Your password is private and is never shown to the Director.</p>
   <div id="status" class="notice" role="status" aria-live="polite">Checking your secure invitation…</div>
@@ -51,6 +51,7 @@ button:disabled{opacity:.5;cursor:wait}.notice{padding:12px 13px;border-radius:1
 <script>
 const SUPABASE_URL="https://yemhortbudwbcrzsoozk.supabase.co";
 const SUPABASE_KEY="sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97";
+const SETUP_REDIRECT="https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/bursar-account-web";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{
   persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"cornhill-bursar-enrollment-v1"
 }});
@@ -88,7 +89,7 @@ $("requestResetForm").addEventListener("submit",async(event)=>{
   const button=$("requestResetButton");button.disabled=true;button.textContent="Requesting secure email…";
   try{
     const email=$("resetEmail").value.trim();
-    const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:"https://cornhill-school-swart.vercel.app/bursar-account.html"});
+    const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:SETUP_REDIRECT});
     if(error)throw error;
     message("If this address belongs to an eligible CORNHILL bursar account, a secure reset email will be sent. Check your inbox and use the link once.","success");
   }catch(error){message("The reset request could not be submitted. Please wait before trying again or contact the Director.","error")}
