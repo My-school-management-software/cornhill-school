@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js" defer></script>
 <style>
-:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:16px max(16px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:850;font-size:18px}.sub{font-size:12px;opacity:.8;margin-top:4px}.wrap{max-width:1080px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid #dce7de;border-radius:15px;padding:18px;margin:0 0 14px;box-shadow:0 3px 14px #183d2010}.hidden{display:none!important}.muted{color:#647568;font-size:13px;line-height:1.5}.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf3;color:#166534}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-size:13px;font-weight:700;color:#435449;margin:8px 0 5px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:#fff;font:inherit;margin:0 0 9px}button,.button{border:0;border-radius:9px;padding:11px 14px;background:#e6efe7;color:#17452a;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}.badge{font-size:11px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:800}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#991b1b}.device,.request.evidence-request-focus{border:2px solid #166534;box-shadow:0 0 0 4px #16653422}
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:16px max(16px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:850;font-size:18px}.sub{font-size:12px;opacity:.8;margin-top:4px}.wrap{max-width:1080px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid #dce7de;border-radius:15px;padding:18px;margin:0 0 14px;box-shadow:0 3px 14px #183d2010}.hidden{display:none!important}.muted{color:#647568;font-size:13px;line-height:1.5}.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf3;color:#166534}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-size:13px;font-weight:700;color:#435449;margin:8px 0 5px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:#fff;font:inherit;margin:0 0 9px}button,.button{border:0;border-radius:9px;padding:11px 14px;background:#e6efe7;color:#17452a;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}.badge{font-size:11px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:800}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#991b1b}.storage-stat{background:#f5f8f5;border:1px solid #dce7de;border-radius:10px;padding:12px;display:grid;gap:6px;min-width:0}.storage-stat strong{font-size:20px;color:#14532d;overflow-wrap:anywhere}.storage-stat small{font-size:11px;color:#647568}.device,.request.evidence-request-focus{border:2px solid #166534;box-shadow:0 0 0 4px #16653422}
 .request{border:1px solid #e0e9e1;border-radius:12px;padding:13px;margin:10px 0}.request h3{margin:0 0 5px;font-size:16px}.request p{margin:5px 0}.code{font:700 20px ui-monospace,monospace;letter-spacing:2px;background:#f1f5f2;padding:12px;border-radius:8px;overflow-wrap:anywhere}.preview{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.preview img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid #d8e2da}.timer{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums;color:#9a3412}.capture{border:2px dashed #9fb5a4;border-radius:13px;padding:18px;text-align:center;background:#f8fbf8}.small{font-size:11px;color:#647568}
 .scan-video-wrap{background:#17251c;border-radius:12px;overflow:hidden;min-height:200px;display:flex;align-items:center;justify-content:center}
 .scan-video-wrap video{width:100%;max-height:55vh;object-fit:contain}
@@ -35,8 +35,17 @@
 <form id="loginForm"><label>Email address</label><input name="email" type="email" autocomplete="username" required><label>Password</label><input name="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">Sign in securely</button></form><div id="loginMsg" class="notice hidden" role="status"></div>
 </section>
 <section id="appPanel" class="hidden">
-<div class="panel"><div class="row"><div><h2 id="hello">Welcome</h2><p id="roleInfo" class="muted">Your access is limited to your assigned permissions and capture requests.</p></div><span id="connectionBadge" class="badge">Connected</span></div><div id="globalMsg" class="notice hidden" role="status"></div></div>
+<div class="panel"><div class="row"><div><h2 id="hello">Welcome</h2><p id="roleInfo" class="muted">Your access is limited to your assigned permissions and capture requests.</p></div><span id="connectionBadge" class="badge">Connected</span></div><div id="globalMsg" class="notice hidden" role="status"></div><div class="row" style="margin-top:10px"><div id="r2StorageStatus" class="notice warning" role="status" aria-live="polite" style="flex:1;margin:0">Checking private evidence storage…</div><button id="refreshR2Status" type="button">Refresh storage status</button></div></div>
 <section id="adminPanel" class="hidden">
+<div class="panel" id="r2UsageCard">
+ <div class="row"><div><h2>Cloud evidence storage</h2><p class="muted">Private Cloudflare R2 bucket usage. Visible to administrators only.</p></div><button type="button" id="refreshR2Usage">Refresh usage</button></div>
+ <div class="grid" id="r2UsageGrid">
+  <div class="storage-stat"><span class="muted">Stored data</span><strong>Loading…</strong></div>
+  <div class="storage-stat"><span class="muted">Objects</span><strong>Loading…</strong></div>
+  <div class="storage-stat"><span class="muted">Bucket capacity</span><strong>No fixed limit</strong></div>
+ </div>
+ <p id="r2UsageUpdated" class="muted" aria-live="polite">Usage has not been checked yet.</p>
+</div>
 <div class="panel"><h2>1. Authorise a phone</h2><p class="muted">Choose the staff account that will use the phone. The staff member must sign in on that phone with their own account and enter the one-time pairing code. Codes expire after ten minutes and can be used once.</p>
 <form id="deviceForm"><div><label>Staff account *</label><select id="deviceStaff" required><option value="">Loading staff accounts…</option></select></div><div><label>Phone/device name *</label><input id="deviceName" required maxlength="80" placeholder="e.g. Deputy Bursar phone"></div><div><label>Device type</label><select id="devicePlatform"><option>Android</option><option>iOS</option><option>Windows</option><option>Other</option></select></div><div class="row" style="align-items:end"><button class="primary" type="submit">Generate pairing code</button></div></form>
 <div id="pairCodePanel" class="notice hidden"><strong>One-time pairing code</strong><div id="pairCode" class="code"></div><p id="pairExpiry" class="small"></p><button type="button" id="copyPairCode">Copy code</button></div>
@@ -106,6 +115,58 @@ let user=null,profile=null,devices=[],staff=[],timerHandle=null,realtimeChannel=
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function note(id,text,type='notice'){const el=$(id);if(!el)return;el.textContent=text;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.classList.remove('hidden')}
 function clearNote(id){$(id)?.classList.add('hidden')}
+function isR2EvidencePath(path){return String(path||'').split('/')[1]==='r2'}
+let r2StatusCache=null;
+async function getR2StorageStatus(force=false){
+ if(r2StatusCache&&!force)return r2StatusCache;
+ try{
+  const {data,error}=await db.functions.invoke('r2-storage-gateway',{body:{action:'status'}});
+  r2StatusCache=!error&&data?data:{configured:false,unavailable:true};
+ }catch(_){r2StatusCache={configured:false,unavailable:true}}
+ return r2StatusCache;
+}
+function evidenceExtension(type){return ({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[type]||'bin'}
+async function uploadEvidenceObject(requestId,file){
+ const status=await getR2StorageStatus();
+ if(status.configured){
+  const {data:ticket,error:ticketError}=await db.functions.invoke('r2-storage-gateway',{body:{
+   action:'presign-upload',request_id:requestId,content_type:file.type,size_bytes:file.size
+  }});
+  if(ticketError||!ticket?.url||!ticket?.storage_path)throw new Error(ticketError?.message||ticket?.error||'Cloud storage could not authorise the upload.');
+  const put=await fetch(ticket.url,{method:'PUT',headers:{'Content-Type':file.type},body:file});
+  if(!put.ok)throw new Error('Cloud storage upload failed (HTTP '+put.status+'). Check the private R2 bucket CORS configuration and retry.');
+  const {data:verified,error:verifyError}=await db.functions.invoke('r2-storage-gateway',{body:{
+   action:'verify-upload',request_id:requestId,storage_path:ticket.storage_path,content_type:file.type,size_bytes:file.size
+  }});
+  if(verifyError||verified?.verified!==true){
+   await db.functions.invoke('r2-storage-gateway',{body:{action:'delete-orphan',request_id:requestId,storage_path:ticket.storage_path}}).catch(()=>{});
+   throw new Error(verifyError?.message||verified?.error||'Cloud storage could not verify the uploaded file.');
+  }
+  return ticket.storage_path;
+ }
+ const path=requestId+'/'+crypto.randomUUID()+'.'+evidenceExtension(file.type);
+ const {error}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+ if(error)throw error;
+ return path;
+}
+async function removeEvidenceObject(requestId,path){
+ if(isR2EvidencePath(path)){
+  const {error,data}=await db.functions.invoke('r2-storage-gateway',{body:{action:'delete-orphan',request_id:requestId,storage_path:path}});
+  if(error||data?.deleted!==true)throw new Error(error?.message||data?.error||'Could not remove the unlinked cloud file.');
+ }else{
+  const {error}=await db.storage.from(bucket).remove([path]);
+  if(error)throw error;
+ }
+}
+async function evidenceFileUrl(file){
+ if(isR2EvidencePath(file.storage_path)){
+  const {data,error}=await db.functions.invoke('r2-storage-gateway',{body:{action:'presign-download',file_id:file.id}});
+  if(error||!data?.url)return null;
+  return data.url;
+ }
+ const {data}=await db.storage.from(bucket).createSignedUrl(file.storage_path,600);
+ return data?.signedUrl||null;
+}
 function isExpired(r){return new Date(r.expires_at).getTime()<=Date.now()}
 function statusBadge(r){if(r.status==='Submitted')return '<span class="badge">Submitted</span>';if(isExpired(r))return '<span class="badge bad">Expired</span>';if(r.status==='Cancelled')return '<span class="badge bad">Cancelled</span>';return '<span class="badge warn">Awaiting photo</span>'}
 function startCountdowns(){if(timerHandle)clearInterval(timerHandle);timerHandle=setInterval(()=>{document.querySelectorAll('[data-expiry]').forEach(el=>{const ms=new Date(el.dataset.expiry).getTime()-Date.now();if(ms<=0){el.textContent='Expired';el.classList.add('badge','bad');}else{const sec=Math.floor(ms/1000);el.textContent=Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}});},1000)}
@@ -140,9 +201,61 @@ function startPhoneHeartbeat(){
   if(profile?.role==='Admin')loadAdminRequests();
  },25000);
 }
-async function enterApp(){await loadProfile();$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');$('signOut').classList.remove('hidden');$('userLabel').textContent=profile.full_name||'Staff';$('recordsCentreLink').classList.toggle('hidden',profile.role!=='Admin');$('hello').textContent='Welcome, '+(profile.full_name||'staff member');$('roleInfo').textContent=profile.role+' account · Phone evidence access is limited to authorised devices and assigned requests.';$('adminPanel').classList.toggle('hidden',profile.role!=='Admin');$('phonePanel').classList.toggle('hidden',false);if(profile.role==='Admin'){await loadStaff();await loadDevices();await loadAdminRequests()}await loadPhoneRequests();setupRealtime();startCountdowns();startPhoneHeartbeat();}
+function formatR2Bytes(value){
+ let bytes=Number(value||0);if(!Number.isFinite(bytes)||bytes<0)bytes=0;
+ if(bytes<1024)return bytes+' B';
+ const units=['KB','MB','GB','TB','PB'];let unit=-1;
+ do{bytes/=1024;unit++}while(bytes>=1024&&unit<units.length-1);
+ return bytes.toFixed(bytes<10?2:1)+' '+units[unit];
+}
+async function refreshR2StorageUsage(){
+ const grid=$('r2UsageGrid'),updated=$('r2UsageUpdated'),button=$('refreshR2Usage');
+ if(!grid||!updated)return;
+ if(button)button.disabled=true;
+ grid.innerHTML='<div class="notice">Reading the private R2 bucket…</div>';
+ try{
+  const status=await getR2StorageStatus(true);
+  if(!status.configured){
+   grid.innerHTML='<div class="notice warning">R2 is not configured. No usage figures are available.</div>';
+   updated.textContent='Check the connection status above.';
+   return;
+  }
+  const {data,error}=await db.functions.invoke('r2-storage-gateway',{body:{action:'usage'}});
+  if(error||!data||data.error)throw new Error(error?.message||data?.error||'Usage could not be retrieved.');
+  const bytes=Number(data.payload_bytes||0),objects=Number(data.object_count||0);
+  grid.innerHTML=
+   '<div class="storage-stat"><span class="muted">Stored data</span><strong>'+formatR2Bytes(bytes)+'</strong><small>'+bytes.toLocaleString('en-US')+' bytes</small></div>'+
+   '<div class="storage-stat"><span class="muted">Objects</span><strong>'+objects.toLocaleString('en-US')+'</strong><small>Files and objects currently listed</small></div>'+
+   '<div class="storage-stat"><span class="muted">Bucket capacity</span><strong>No fixed limit</strong><small>Cloudflare R2 does not publish a per-bucket storage ceiling</small></div>';
+  const when=data.measured_at?new Date(data.measured_at).toLocaleString():'just now';
+  updated.textContent=(data.complete?'Full bucket scan':'Partial scan — more objects remain beyond the scan limit')+
+   ' · '+Number(data.pages_scanned||0).toLocaleString('en-US')+' page(s) checked · Updated '+when+
+   '. These are object payload bytes, not a billing invoice.';
+ }catch(error){
+  grid.innerHTML='<div class="notice error">Storage usage is unavailable right now. '+esc(error.message||'Please retry.')+'</div>';
+  updated.textContent='The connection status above may still be healthy; usage lookup is a separate check.';
+ }finally{if(button)button.disabled=false}
+}
+$('refreshR2Usage').addEventListener('click',refreshR2StorageUsage);
+async function refreshR2StorageStatus(force=true){
+ const status=await getR2StorageStatus(force),el=$('r2StorageStatus');
+ if(!el)return;
+ if(status.configured){
+  el.textContent='Cloudflare R2 is configured. New evidence files will use private R2 storage; existing files remain where they are.';
+  el.className='notice success';return;
+ }
+ el.textContent=status.unavailable
+  ?'Cloudflare R2 status is temporarily unavailable. CORNHILL will continue using its existing private evidence storage.'
+  :'Cloudflare R2 is not connected yet. CORNHILL will continue using its existing private evidence storage until the authorised setup is completed.';
+ el.className='notice warning';
+}
+$('refreshR2Status').addEventListener('click',()=>refreshR2StorageStatus(true));
+async function enterApp(){await loadProfile();await refreshR2StorageStatus(true);$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');$('signOut').classList.remove('hidden');$('userLabel').textContent=profile.full_name||'Staff';$('recordsCentreLink').classList.toggle('hidden',profile.role!=='Admin');$('hello').textContent='Welcome, '+(profile.full_name||'staff member');$('roleInfo').textContent=profile.role+' account · Phone evidence access is limited to authorised devices and assigned requests.';$('adminPanel').classList.toggle('hidden',profile.role!=='Admin');$('phonePanel').classList.toggle('hidden',false);if(profile.role==='Admin'){await loadStaff();await loadDevices();await loadAdminRequests();refreshR2StorageUsage()}await loadPhoneRequests();setupRealtime();startCountdowns();startPhoneHeartbeat();}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const {data,error}=await db.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error){note('loginMsg',error.message,'error');return}user=data.user;try{await enterApp()}catch(err){await db.auth.signOut({scope:'local'});note('loginMsg',err.message||'Could not load your staff profile.','error')}});
-$('signOut').addEventListener('click',async()=>{if(realtimeChannel)await db.removeChannel(realtimeChannel);if(timerHandle)clearInterval(timerHandle);if(heartbeatHandle)clearInterval(heartbeatHandle);if(pollHandle)clearInterval(pollHandle);await db.auth.signOut({scope:'local'});user=null;profile=null;phoneDevices=[];$('appPanel').classList.add('hidden');$('loginPanel').classList.remove('hidden');$('signOut').classList.add('hidden');$('userLabel').textContent=''});
+function lockEvidenceUi(){user=null;profile=null;phoneDevices=[];selectedFiles=[];if(realtimeChannel){db.removeChannel(realtimeChannel);realtimeChannel=null}if(timerHandle){clearInterval(timerHandle);timerHandle=null}if(heartbeatHandle){clearInterval(heartbeatHandle);heartbeatHandle=null}if(pollHandle){clearInterval(pollHandle);pollHandle=null}$('appPanel').classList.add('hidden');$('loginPanel').classList.remove('hidden');$('signOut').classList.add('hidden');$('userLabel').textContent='';$('loginForm')?.reset();$('loginMsg')?.classList.add('hidden');}
+db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||!session)lockEvidenceUi()});
+$('signOut').addEventListener('click',async()=>{if(realtimeChannel)await db.removeChannel(realtimeChannel);if(timerHandle)clearInterval(timerHandle);if(heartbeatHandle)clearInterval(heartbeatHandle);if(pollHandle)clearInterval(pollHandle);const {error}=await db.auth.signOut({scope:'global'});if(error){note('globalMsg','Sign-out could not be confirmed. Please retry before leaving this device.','error');return}lockEvidenceUi()});
+window.addEventListener('pageshow',async()=>{const {data,error}=await db.auth.getSession();if(error||!data.session)lockEvidenceUi()});
 async function loadStaff(){const {data,error}=await db.from('user_profiles').select('id,full_name,role,employment_status').eq('employment_status','Active').order('full_name');if(error){$('deviceStaff').innerHTML='<option value="">Staff directory unavailable</option>';note('globalMsg','Could not load active staff accounts: '+error.message,'error');return}staff=data||[];$('deviceStaff').innerHTML='<option value="">Choose a staff member…</option>'+staff.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.full_name||'Unnamed staff')+' · '+esc(s.role)+'</option>').join('')}
 async function loadDevices(){const {data,error}=await db.from('evidence_capture_devices').select('id,assigned_user_id,device_name,platform,status,paired_at,last_seen_at,created_at').order('created_at',{ascending:false});if(error){note('globalMsg','Could not load authorised phones: '+error.message,'error');return}devices=data||[];const staffName=id=>staff.find(s=>s.id===id)?.full_name||'Staff account';$('deviceList').innerHTML=devices.length?devices.map(d=>'<div class="device"><div class="row"><strong>'+esc(d.device_name)+'</strong><span class="badge '+(d.status==='Active'?'':'warn')+'">'+esc(d.status)+'</span></div><p class="muted">'+esc(staffName(d.assigned_user_id))+' · '+esc(d.platform)+' · '+(d.last_seen_at?'Last active '+esc(new Date(d.last_seen_at).toLocaleString()):'Not yet connected')+'</p>'+(d.status==='Active'?'<button class="danger" type="button" data-revoke="'+esc(d.id)+'">Revoke device</button>':'')+'</div>').join(''):'<p class="muted">No phones registered yet.</p>';$('requestDevice').innerHTML='<option value="">Choose how to attach the document…</option><option value="__local__">Upload an existing file from this computer / phone</option>'+devices.filter(d=>d.status==='Active').map(d=>'<option value="'+esc(d.id)+'">Phone capture · '+esc(d.device_name)+' · '+esc(staffName(d.assigned_user_id))+'</option>').join('')}
 $('deviceList').addEventListener('click',async e=>{const b=e.target.closest('[data-revoke]');if(!b)return;if(!confirm('Revoke this phone? It will no longer receive or submit new requests.'))return;const {error}=await db.from('evidence_capture_devices').update({status:'Revoked',pairing_code_hash:null,pairing_expires_at:null}).eq('id',b.dataset.revoke);if(error)note('globalMsg','Could not revoke device: '+error.message,'error');else{note('globalMsg','Phone access revoked.','success');await loadDevices()}});
@@ -163,7 +276,7 @@ function focusRequestedEvidenceRequest(requestRows){
  card.classList.add('evidence-request-focus');card.setAttribute('tabindex','-1');
  card.scrollIntoView({behavior:'smooth',block:'center'});card.focus({preventScroll:true});
 }
-async function loadAdminRequests(){const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,context_type,context_record_id,amount_ugx,description,status,expires_at,created_at,assigned_user_id,assigned_device_id').order('created_at',{ascending:false}).limit(80);if(error){$('adminRequests').textContent='Could not load requests: '+error.message;return}const rows=data||[];const {data:files}=await db.from('evidence_capture_files').select('id,request_id,storage_path,original_file_name,content_type,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']);const {data:reviews}=await db.from('evidence_capture_reviews').select('request_id,action,review_note,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']).order('created_at',{ascending:false});const fileMap={};for(const f of files||[]){fileMap[f.request_id]??=[];fileMap[f.request_id].push(f)}const reviewMap={};for(const r of reviews||[])if(!reviewMap[r.request_id])reviewMap[r.request_id]=r;const userName=id=>id?(staff.find(s=>s.id===id)?.full_name||'Assigned staff'):'School computer upload';let cards=[];for(const r of rows){const fs=fileMap[r.id]||[],signed=[];for(const f of fs){const {data}=await db.storage.from(bucket).createSignedUrl(f.storage_path,600);if(data?.signedUrl)signed.push('<a href="'+esc(data.signedUrl)+'" target="_blank" rel="noopener">Open '+esc(f.original_file_name)+'</a>')}const review=reviewMap[r.id],finalReview=['Approved','Rejected','Needs clearer photo'].includes(review?.action);cards.push('<div class="request" data-evidence-request-id="'+esc(r.id)+'"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">Assigned to '+esc(userName(r.assigned_user_id))+' · '+esc(new Date(r.created_at).toLocaleString())+' · '+(r.status==='Pending'&&!isExpired(r)?'<span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span>':'')+'</p>'+(r.description?'<p class="muted">'+esc(r.description)+'</p>':'')+(signed.length?'<p>'+signed.join(' · ')+'</p>':'<p class="muted">No evidence uploaded yet.</p>')+(r.status==='Pending'&&!isExpired(r)?'<div class="capture"><label>Attach an existing file from this computer / phone</label><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-admin-evidence="'+esc(r.id)+'"><button type="button" class="primary" data-admin-upload="'+esc(r.id)+'">Upload selected file(s)</button><p class="small">Up to 8 files, 15 MB each. If there is no saved file, the assigned phone can capture it instead.</p></div>':'')+(review?'<p><strong>Latest review: '+esc(review.action)+'</strong> '+esc(review.review_note||'')+'</p>':'')+(r.status==='Submitted'&&!finalReview?'<div class="row"><button class="primary" data-review="Approved" data-id="'+esc(r.id)+'">Approve evidence</button><button class="danger" data-review="Rejected" data-id="'+esc(r.id)+'">Reject evidence</button><button data-review="Needs clearer photo" data-id="'+esc(r.id)+'">Request clearer photo</button></div>':'')+'</div>')} $('adminRequests').innerHTML=cards.join('')||'<p class="muted">No capture requests have been created.</p>';focusRequestedEvidenceRequest(rows)}
+async function loadAdminRequests(){const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,context_type,context_record_id,amount_ugx,description,status,expires_at,created_at,assigned_user_id,assigned_device_id').order('created_at',{ascending:false}).limit(80);if(error){$('adminRequests').textContent='Could not load requests: '+error.message;return}const rows=data||[];const {data:files}=await db.from('evidence_capture_files').select('id,request_id,storage_path,original_file_name,content_type,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']);const {data:reviews}=await db.from('evidence_capture_reviews').select('request_id,action,review_note,created_at').in('request_id',rows.map(r=>r.id).length?rows.map(r=>r.id):['00000000-0000-0000-0000-000000000000']).order('created_at',{ascending:false});const fileMap={};for(const f of files||[]){fileMap[f.request_id]??=[];fileMap[f.request_id].push(f)}const reviewMap={};for(const r of reviews||[])if(!reviewMap[r.request_id])reviewMap[r.request_id]=r;const userName=id=>id?(staff.find(s=>s.id===id)?.full_name||'Assigned staff'):'School computer upload';let cards=[];for(const r of rows){const fs=fileMap[r.id]||[],signed=[];for(const f of fs){const fileUrl=await evidenceFileUrl(f);if(fileUrl)signed.push('<a href="'+esc(fileUrl)+'" target="_blank" rel="noopener">Open '+esc(f.original_file_name)+'</a>')}const review=reviewMap[r.id],finalReview=['Approved','Rejected','Needs clearer photo'].includes(review?.action);cards.push('<div class="request" data-evidence-request-id="'+esc(r.id)+'"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">Assigned to '+esc(userName(r.assigned_user_id))+' · '+esc(new Date(r.created_at).toLocaleString())+' · '+(r.status==='Pending'&&!isExpired(r)?'<span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span>':'')+'</p>'+(r.description?'<p class="muted">'+esc(r.description)+'</p>':'')+(signed.length?'<p>'+signed.join(' · ')+'</p>':'<p class="muted">No evidence uploaded yet.</p>')+(r.status==='Pending'&&!isExpired(r)?'<div class="capture"><label>Attach an existing file from this computer / phone</label><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-admin-evidence="'+esc(r.id)+'"><button type="button" class="primary" data-admin-upload="'+esc(r.id)+'">Upload selected file(s)</button><p class="small">Up to 8 files, 15 MB each. New uploads use private Cloudflare R2 when configured; otherwise CORNHILL keeps using its existing private file storage. If there is no saved file, the assigned phone can capture it instead.</p></div>':'')+(review?'<p><strong>Latest review: '+esc(review.action)+'</strong> '+esc(review.review_note||'')+'</p>':'')+(r.status==='Submitted'&&!finalReview?'<div class="row"><button class="primary" data-review="Approved" data-id="'+esc(r.id)+'">Approve evidence</button><button class="danger" data-review="Rejected" data-id="'+esc(r.id)+'">Reject evidence</button><button data-review="Needs clearer photo" data-id="'+esc(r.id)+'">Request clearer photo</button></div>':'')+'</div>')} $('adminRequests').innerHTML=cards.join('')||'<p class="muted">No capture requests have been created.</p>';focusRequestedEvidenceRequest(rows)}
 $('adminRequests').addEventListener('click',async e=>{
  const uploadButton=e.target.closest('[data-admin-upload]');
  if(uploadButton){
@@ -176,11 +289,9 @@ $('adminRequests').addEventListener('click',async e=>{
     if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);
     if(file.size>15728640)throw new Error(file.name+' exceeds the 15 MB limit.');
     const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];
-    const storagePath=requestId+'/'+crypto.randomUUID()+'.'+ext;
-    const {error:uploadError}=await db.storage.from(bucket).upload(storagePath,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
-    if(uploadError)throw uploadError;
+    const storagePath=await uploadEvidenceObject(requestId,file);
     const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:requestId,storage_path:storagePath,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});
-    if(metaError){await db.storage.from(bucket).remove([storagePath]);throw metaError}
+    if(metaError){await removeEvidenceObject(requestId,storagePath).catch(cleanupError=>console.error('Evidence object cleanup failed:',cleanupError));throw metaError}
    }
    const {error:statusError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',requestId).eq('status','Pending');
    if(statusError)throw statusError;
@@ -220,7 +331,7 @@ $('adminRequests').addEventListener('click',async e=>{
 });
 async function loadPhoneRequests(){if(!user)return;const {data:myDevices,error:deviceError}=await db.from('evidence_capture_devices').select('id,device_name,status').eq('assigned_user_id',user.id).eq('status','Active');if(deviceError){note('globalMsg','Could not check authorised phone: '+deviceError.message,'error');return}phoneDevices=myDevices||[];if(!myDevices?.length){$('phoneRequests').innerHTML='<p class="muted">This account has no active authorised phone yet. Ask an administrator to issue a pairing code.</p>';return}const deviceIds=myDevices.map(d=>d.id);const {data,error}=await db.from('evidence_capture_requests').select('id,purpose,context_label,amount_ugx,description,status,expires_at,created_at,assigned_device_id').in('assigned_device_id',deviceIds).order('created_at',{ascending:false}).limit(30);if(error){$('phoneRequests').textContent='Could not load requests: '+error.message;return}const rows=(data||[]).filter(r=>r.status==='Submitted'||!isExpired(r));$('phoneRequests').innerHTML=rows.length?rows.map(r=>'<div class="request"><div class="row"><h3>'+esc(r.purpose)+'</h3>'+statusBadge(r)+'</div><p><strong>'+esc(r.context_label)+'</strong>'+(r.amount_ugx?' · UGX '+Number(r.amount_ugx).toLocaleString('en-UG'):'')+'</p><p class="muted">'+esc(r.description||'Photograph the requested document clearly. You may add several pages.')+'</p>'+(r.status==='Pending'&&!isExpired(r)?'<div class="row"><span class="timer" data-expiry="'+esc(r.expires_at)+'">10:00</span><span class="small">Time remaining</span></div><div class="capture"><p><strong>Capture document evidence</strong></p><p class="muted">Use the camera to take one or more clear photos, or select a PDF. Check each page before submitting.</p><input type="file" accept="image/*,application/pdf" capture="environment" multiple data-capture="'+esc(r.id)+'"><div class="preview" id="preview-'+esc(r.id)+'"></div><button class="primary" type="button" data-submit-capture="'+esc(r.id)+'">Upload evidence and finish request</button></div>':'')+'</div>').join(''):'<p class="muted">No active requests at the moment.</p>'}
 $('phoneRequests').addEventListener('change',e=>{const input=e.target.closest('[data-capture]');if(!input)return;selectedFiles=Array.from(input.files||[]);const id=input.dataset.capture,preview=$('preview-'+id);if(preview)preview.innerHTML=selectedFiles.filter(f=>f.type.startsWith('image/')).map(f=>'<img alt="Selected evidence preview" src="'+URL.createObjectURL(f)+'">').join('')+(selectedFiles.length?'<span class="small">'+selectedFiles.length+' file(s) selected</span>':'')});
-$('phoneRequests').addEventListener('click',async e=>{const b=e.target.closest('[data-submit-capture]');if(!b)return;const id=b.dataset.submitCapture,card=b.closest('.request'),input=card.querySelector('[data-capture]'),files=Array.from(input?.files||[]);if(!files.length){note('globalMsg','Take or select at least one photo or PDF first.','error');return}if(files.length>8){note('globalMsg','Please submit no more than eight pages per request.','error');return}b.disabled=true;b.textContent='Uploading…';try{for(const file of files){if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];const path=id+'/'+crypto.randomUUID()+'.'+ext;const {error:uploadError}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});if(uploadError)throw uploadError;const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:id,storage_path:path,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});if(metaError)throw metaError}const {error:updateError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',id).eq('status','Pending');if(updateError)throw updateError;note('globalMsg','Evidence uploaded and request submitted. The administrator can now review it.','success');await loadPhoneRequests()}catch(err){note('globalMsg','Upload did not finish: '+(err.message||'Unknown error')+'. Keep the selected files and try again while the request is still active.','error')}finally{b.disabled=false;b.textContent='Upload evidence and finish request'}});
+$('phoneRequests').addEventListener('click',async e=>{const b=e.target.closest('[data-submit-capture]');if(!b)return;const id=b.dataset.submitCapture,card=b.closest('.request'),input=card.querySelector('[data-capture]'),files=Array.from(input?.files||[]);if(!files.length){note('globalMsg','Take or select at least one photo or PDF first.','error');return}if(files.length>8){note('globalMsg','Please submit no more than eight pages per request.','error');return}b.disabled=true;b.textContent='Uploading…';try{for(const file of files){if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];const path=await uploadEvidenceObject(id,file);const {error:metaError}=await db.from('evidence_capture_files').insert({request_id:id,storage_path:path,original_file_name:file.name,content_type:file.type,size_bytes:file.size,uploaded_by:user.id,captured_at:new Date().toISOString()});if(metaError){await removeEvidenceObject(id,path).catch(cleanupError=>console.error('Evidence object cleanup failed:',cleanupError));throw metaError}}const {error:updateError}=await db.from('evidence_capture_requests').update({status:'Submitted',submitted_at:new Date().toISOString()}).eq('id',id).eq('status','Pending');if(updateError)throw updateError;note('globalMsg','Evidence uploaded and request submitted. The administrator can now review it.','success');await loadPhoneRequests()}catch(err){note('globalMsg','Upload did not finish: '+(err.message||'Unknown error')+'. Keep the selected files and try again while the request is still active.','error')}finally{b.disabled=false;b.textContent='Upload evidence and finish request'}});
 async function loadPhoneRequests(){
  if(!user)return;
  const {data:myDevices,error:deviceError}=await db.from('evidence_capture_devices')
@@ -259,9 +370,7 @@ async function uploadEvidenceFiles(requestId,files,options={}){
    if(!['image/jpeg','image/png','image/webp','application/pdf'].includes(file.type))throw new Error('Unsupported file type: '+file.name);
    if(file.size>15728640)throw new Error(file.name+' is larger than the 15 MB limit.');
    const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type];
-   const path=requestId+'/'+crypto.randomUUID()+'.'+ext;
-   const {error:uploadError}=await db.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
-   if(uploadError)throw uploadError;
+   const path=await uploadEvidenceObject(requestId,file);
    uploadedPaths.push(path);
    const {data:metadata,error:metaError}=await db.from('evidence_capture_files').insert({
     request_id:requestId,storage_path:path,original_file_name:file.name,content_type:file.type,
@@ -288,7 +397,7 @@ async function uploadEvidenceFiles(requestId,files,options={}){
   // Existing metadata and successfully indexed evidence are never deleted here.
   for(const path of uploadedPaths){
    const {data:existing}=await db.from('evidence_capture_files').select('id').eq('storage_path',path).maybeSingle();
-   if(!existing)await db.storage.from(bucket).remove([path]);
+   if(!existing)await removeEvidenceObject(requestId,path).catch(cleanupError=>console.error('Evidence object cleanup failed:',cleanupError));
   }
   throw error;
  }
