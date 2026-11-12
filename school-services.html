@@ -630,16 +630,16 @@ async function loadStaffAccessCodeAccounts(){
  if(error){select.innerHTML='<option value="">Could not load eligible accounts</option>';note('staffAccessCodeResult','The Director-only account list could not be loaded. '+error.message,'error');return}
  const eligible=(data||[]).filter(r=>{const title=String(r.account_title||'').toLowerCase();return r.security_role==='Teacher'||/headteacher|head teacher|director of studies|\bdos\b/.test(title)});
  select.innerHTML='<option value="">Choose one named individual account</option>';
- for(const r of eligible){const option=document.createElement('option');option.value=r.user_id;option.textContent=(r.owner_name||'Unnamed staff')+' — '+(r.account_title||r.security_role);select.appendChild(option)}
+ for(const r of eligible){const title=String(r.account_title||'').toLowerCase().replace(/\s+/g,' ');let roleKey=r.security_role==='Teacher'?'Teacher':'';if(!roleKey){if(/deputy headteacher|deputy head teacher/.test(title))roleKey='Deputy Headteacher';else if(/headteacher|head teacher/.test(title))roleKey='Headteacher';else if(/director of studies|^dos$/.test(title))roleKey='DOS'}if(!roleKey)continue;const option=document.createElement('option');option.value=r.user_id;option.dataset.roleKey=roleKey;option.textContent=(r.owner_name||'Unnamed staff')+' — '+(r.account_title||r.security_role);select.appendChild(option)}
  if(!eligible.length)select.innerHTML='<option value="">No eligible active accounts are available</option>';
 }
 async function manageStaffAccessCode(action){
  if(!isAdmin()){note('staffAccessCodeResult','Only the Director main account can manage personal access codes.','error');return}
- const userId=$('staffAccessCodeAccount').value;if(!userId){note('staffAccessCodeResult','Select one individual account first.','error');return}
+ const accountSelect=$('staffAccessCodeAccount');const selectedOption=accountSelect?.selectedOptions?.[0];const userId=accountSelect?.value||'';const roleKey=selectedOption?.dataset?.roleKey||'';if(!userId||!roleKey){note('staffAccessCodeResult','Select one eligible individual account first.','error');return}
  if(action==='revoke'&&!confirm('Revoke this person’s individual access code?'))return;
  const btn=action==='issue'?$('issueStaffAccessCode'):$('revokeStaffAccessCode');btn.disabled=true;
  try{
-  const {data,error}=await db.functions.invoke('staff-access-code',{body:{action,user_id:userId}});
+  const {data,error}=await db.functions.invoke('staff-access-code',{body:{action,user_id:userId,role_key:roleKey}});
   if(error||!data?.success)throw new Error(data?.error||error?.message||'The access-code action did not complete.');
   if(action==='issue'){
    const result=$('staffAccessCodeResult');result.innerHTML='';
