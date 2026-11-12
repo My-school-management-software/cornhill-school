@@ -88,3 +88,46 @@ test('Director retains finance oversight but the payment collection desk is Burs
   assert.match(handler, /!isCornhillBursar\(\)/);
   assert.match(handler, /Only the Main or Deputy Bursar can post learner payments/);
 });
+
+test('main, banking, evidence and School Services staff workspaces isolate sessions per browser tab', () => {
+  const main = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const banking = fs.readFileSync(path.join(root, 'banking.html'), 'utf8');
+  const evidence = fs.readFileSync(path.join(root, 'evidence.html'), 'utf8');
+  const services = fs.readFileSync(path.join(root, 'school-services.html'), 'utf8');
+
+  assert.match(main, /authTabStorageKey='cornhill-auth-tab-'\+authTabId/);
+  assert.match(main, /storage:authTabStorage,persistSession:true/);
+  assert.match(main, /persistSession:false/);
+  assert.match(main, /Remove the previous shared project-wide session key/);
+
+  assert.match(banking, /bankAuthStorageKey='cornhill-bank-tab-'\+tabId/);
+  assert.match(banking, /storage:bankAuthStorage,persistSession:true/);
+  assert.match(banking, /persistSession:false/);
+
+  assert.match(evidence, /evidenceAuthStorageKey='cornhill-evidence-tab-'\+tabId/);
+  assert.match(evidence, /storage:evidenceAuthStorage,persistSession:true/);
+  assert.match(evidence, /persistSession:false/);
+
+  assert.match(services, /authStorageKey='cornhill-services-tab-'\+tabId/);
+  assert.match(services, /storage:authStorage,persistSession:true/);
+  assert.match(services, /persistSession:false/);
+});
+
+test('Notifications and Guardian PIN administration share staff sign-in but retain separate server-side role checks', () => {
+  const notifications = fs.readFileSync(path.join(root, 'notifications.html'), 'utf8');
+  const guardian = fs.readFileSync(path.join(root, 'guardian-accounts.html'), 'utf8');
+
+  assert.match(notifications, /storageKey:'cornhill-notifications-v1'/);
+  assert.match(guardian, /storageKey:'cornhill-notifications-v1'/);
+  assert.match(notifications, /list_school_notification_center/);
+  assert.match(guardian, /admin_parent_contact_directory/);
+  assert.match(guardian, /admin_get_parent_portal_security_settings/);
+  assert.match(guardian, /admin_issue_guardian_pin/);
+  assert.match(guardian, /An administrator-only RPC is the authoritative access check/);
+});
+
+test('public parent admissions accounts use a separate authentication storage key from staff workspaces', () => {
+  const admissions = fs.readFileSync(path.join(root, 'admissions.html'), 'utf8');
+  assert.match(admissions, /storageKey:'cornhill-parent-admissions-v1'/);
+  assert.doesNotMatch(admissions, /cornhill-notifications-v1|cornhill-auth-tab-|cornhill-services-tab-/);
+});
