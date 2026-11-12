@@ -57,7 +57,10 @@ test('invitation email uses the existing Supabase callback and does not include 
   assert.ok(page.includes('complete_setup'));
   assert.ok(webPage.includes('https://my-school-management-software.github.io/cornhill-school/bursar-account.html'));
   assert.ok(webPage.includes('status: 302'));
-  assert.ok(webPage.includes('"Location": DESTINATION'));
+  assert.ok(webPage.includes('const incomingUrl = new URL(req.url)'));
+  assert.ok(webPage.includes('const destinationUrl = new URL(DESTINATION)'));
+  assert.ok(webPage.includes('destinationUrl.search = incomingUrl.search'));
+  assert.ok(webPage.includes('"Location": destinationUrl.toString()'));
   assert.ok(webPage.includes('"Referrer-Policy": "no-referrer"'));
   assert.ok(webPage.includes('"Cache-Control": "no-store, max-age=0"'));
 });

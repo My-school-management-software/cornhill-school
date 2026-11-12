@@ -9,7 +9,6 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const DESTINATION = "https://my-school-management-software.github.io/cornhill-school/bursar-account.html";
 
 const redirectHeaders = {
-  "Location": DESTINATION,
   "Cache-Control": "no-store, max-age=0",
   "Referrer-Policy": "no-referrer",
   "X-Content-Type-Options": "nosniff",
@@ -27,8 +26,19 @@ Deno.serve((req: Request) => {
     });
   }
 
+  // Keep any Supabase auth parameters in the query string (for example, an
+  // authorization code or error details). The fixed origin/path above cannot
+  // be overridden by query values. Do not set a fragment here: the browser
+  // inherits the original URL fragment as required for 3xx redirects.
+  const incomingUrl = new URL(req.url);
+  const destinationUrl = new URL(DESTINATION);
+  destinationUrl.search = incomingUrl.search;
+
   return new Response(null, {
     status: 302,
-    headers: redirectHeaders,
+    headers: {
+      ...redirectHeaders,
+      "Location": destinationUrl.toString(),
+    },
   });
 });

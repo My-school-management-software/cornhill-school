@@ -34,7 +34,7 @@ The older generic `staff-invite` Edge Function is explicitly blocked from inviti
 
 ## Redirect behavior and security
 
-The public `bursar-account-web` function accepts only GET and HEAD and returns a fixed 302 destination. It does not read account data, accept user-supplied destinations, or perform account mutations. The redirect uses `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The static page contains only the Supabase publishable key, not a service-role or secret key. Account status, approval, activation and password-reset audit operations remain in `bursar-account-admin`, which requires a JWT and verifies the signed-in user.
+The public `bursar-account-web` function accepts only GET and HEAD and returns a fixed 302 destination. It does not read account data, accept user-supplied destinations, or perform account mutations. The redirect copies the callback's query string to the fixed GitHub Pages URL so authentication codes and error details are not dropped; it does not accept a caller-supplied destination. It deliberately leaves the destination fragment unset so the browser inherits the original session fragment. It uses `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The static page contains only the Supabase publishable key, not a service-role or secret key. Account status, approval, activation and password-reset audit operations remain in `bursar-account-admin`, which requires a JWT and verifies the signed-in user.
 
 ## Release gates
 
