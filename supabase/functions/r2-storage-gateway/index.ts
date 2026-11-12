@@ -199,6 +199,100 @@ function r2ObjectPath(value: unknown, requestId: string) {
   return path;
 }
 
+
+function decodeXml(value: string) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+async function readR2Usage() {
+  const cfg = r2Config();
+  if (!cfg.configured) throw new Error("Cloudflare R2 is not configured yet.");
+  const host = cfg.accountId + ".r2.cloudflarestorage.com";
+  const uri = "/" + encodePath(cfg.bucket);
+  const maxKeys = 1000;
+  const maxPages = 50;
+  let continuationToken: string | null = null;
+  let objectCount = 0;
+  let payloadBytes = 0;
+  let pagesScanned = 0;
+  let complete = true;
+
+  while (pagesScanned < maxPages) {
+    const now = new Date();
+    const amzDate = now.toISOString().replace(/[:-]|\\.\\d{3}/g, "");
+    const shortDate = amzDate.slice(0, 8);
+    const scope = shortDate + "/auto/s3/aws4_request";
+    const params: Array<[string, string]> = [
+      ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
+      ["X-Amz-Credential", cfg.accessKeyId + "/" + scope],
+      ["X-Amz-Date", amzDate],
+      ["X-Amz-Expires", "60"],
+      ["X-Amz-SignedHeaders", "host"],
+      ["list-type", "2"],
+      ["max-keys", String(maxKeys)]
+    ];
+    if (continuationToken) params.push(["continuation-token", continuationToken]);
+    const canonicalQuery = params
+      .map(([key, value]) => [awsEncode(key), awsEncode(value)] as [string, string])
+      .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : 1)
+      .map(([key, value]) => key + "=" + value)
+      .join("&");
+    const canonicalRequest = [
+      "GET",
+      uri,
+      canonicalQuery,
+      "host:" + host + "\\n",
+      "host",
+      "UNSIGNED-PAYLOAD"
+    ].join("\\n");
+    const stringToSign = [
+      "AWS4-HMAC-SHA256",
+      amzDate,
+      scope,
+      await sha256(canonicalRequest)
+    ].join("\\n");
+    const keyBytes = await signingKey(cfg.secretAccessKey, shortDate);
+    const signature = hex(await hmac(keyBytes, stringToSign));
+    const url = "https://" + host + uri + "?" + canonicalQuery + "&X-Amz-Signature=" + signature;
+    const response = await fetch(url, { method: "GET" });
+    const xml = await response.text();
+    if (!response.ok) {
+      console.error("R2 usage listing failed:", response.status, xml.slice(0, 400));
+      throw new Error("Cloudflare R2 could not return bucket usage (HTTP " + response.status + ").");
+    }
+
+    const sizes = [...xml.matchAll(/<Size>(\\d+)<\\/Size>/g)].map((match) => Number(match[1]));
+    objectCount += sizes.length;
+    payloadBytes += sizes.reduce((sum, size) => sum + size, 0);
+    pagesScanned++;
+
+    const isTruncated = /<IsTruncated>true<\\/IsTruncated>/i.test(xml);
+    if (!isTruncated) break;
+    const nextToken = xml.match(/<NextContinuationToken>([\\s\\S]*?)<\\/NextContinuationToken>/i)?.[1];
+    if (!nextToken) {
+      complete = false;
+      break;
+    }
+    continuationToken = decodeXml(nextToken);
+    if (pagesScanned >= maxPages) complete = false;
+  }
+
+  return {
+    provider: "Cloudflare R2",
+    bucket: cfg.bucket,
+    object_count: objectCount,
+    payload_bytes: payloadBytes,
+    pages_scanned: pagesScanned,
+    complete,
+    scan_limit: maxPages * maxKeys,
+    measured_at: new Date().toISOString()
+  };
+}
+
 async function handle(req: Request) {
   const origin = req.headers.get("origin") || "";
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders(origin) });
@@ -218,6 +312,12 @@ async function handle(req: Request) {
         configured: cfg.configured,
         missing: cfg.configured ? [] : cfg.missing
       }, 200, origin);
+    }
+
+    if (action === "usage") {
+      if (!session.isAdmin) return json({ error: "Only administrators can view cloud storage usage." }, 403, origin);
+      const usage = await readR2Usage();
+      return json(usage, 200, origin);
     }
 
     const requestId = cleanText(body.request_id, 60);
