@@ -31,6 +31,14 @@ The older generic `staff-invite` Edge Function is explicitly blocked from inviti
 4. Enable the **Password changed** security notification for the project, customise its template if desired, and verify that it uses the school's configured SMTP sender. Supabase only sends these security emails when the corresponding project-level notification is enabled.
 5. Do not deploy the migration/function or send a real invitation until the redirect, sender, templates and password-change notification have been verified. No real bursar accounts are created by this change.
 
+## Preview CORS configuration
+
+The bursar administration Edge Function uses an explicit origin allowlist. The permanent CORNHILL hosts remain allowed, and the exact current review preview host is added for authenticated Director testing:
+
+`https://cornhill-school-git-feat-login-contract-0df38b-cypher-projects1.vercel.app`
+
+Unknown origins continue to receive `Access-Control-Allow-Origin: null`; the function does not use wildcard CORS. When the review preview address changes, only the exact replacement host should be added after confirming it belongs to the CORNHILL Vercel project. This preview-origin entry does not change Supabase Auth's email redirect allowlist or SMTP configuration.
+
 ## Current implementation boundaries
 
-This change adds the database migration, server function, Director interface in the School Services portal, dedicated invitation/activation and recovery page, password-reset audit event, and contract tests. It does not configure SMTP, change Supabase Auth redirect allowlists, create real bursar accounts, or deploy this migration/function to the live project.
+The database migration, bursar account Edge Function and Director interface are already deployed. This origin-only update enables the current review preview to call the bursar function; it does not configure SMTP or Supabase Auth redirect URLs, create real bursar accounts, or send invitations.
