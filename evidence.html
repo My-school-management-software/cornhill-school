@@ -35,7 +35,7 @@
 <form id="loginForm"><label>Email address</label><input name="email" type="email" autocomplete="username" required><label>Password</label><input name="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">Sign in securely</button></form><div id="loginMsg" class="notice hidden" role="status"></div>
 </section>
 <section id="appPanel" class="hidden">
-<div class="panel"><div class="row"><div><h2 id="hello">Welcome</h2><p id="roleInfo" class="muted">Your access is limited to your assigned permissions and capture requests.</p></div><span id="connectionBadge" class="badge">Connected</span></div><div id="globalMsg" class="notice hidden" role="status"></div></div>
+<div class="panel"><div class="row"><div><h2 id="hello">Welcome</h2><p id="roleInfo" class="muted">Your access is limited to your assigned permissions and capture requests.</p></div><span id="connectionBadge" class="badge">Connected</span></div><div id="globalMsg" class="notice hidden" role="status"></div><div class="row" style="margin-top:10px"><div id="r2StorageStatus" class="notice warning" role="status" aria-live="polite" style="flex:1;margin:0">Checking private evidence storage…</div><button id="refreshR2Status" type="button">Refresh storage status</button></div></div>
 <section id="adminPanel" class="hidden">
 <div class="panel"><h2>1. Authorise a phone</h2><p class="muted">Choose the staff account that will use the phone. The staff member must sign in on that phone with their own account and enter the one-time pairing code. Codes expire after ten minutes and can be used once.</p>
 <form id="deviceForm"><div><label>Staff account *</label><select id="deviceStaff" required><option value="">Loading staff accounts…</option></select></div><div><label>Phone/device name *</label><input id="deviceName" required maxlength="80" placeholder="e.g. Deputy Bursar phone"></div><div><label>Device type</label><select id="devicePlatform"><option>Android</option><option>iOS</option><option>Windows</option><option>Other</option></select></div><div class="row" style="align-items:end"><button class="primary" type="submit">Generate pairing code</button></div></form>
@@ -192,7 +192,20 @@ function startPhoneHeartbeat(){
   if(profile?.role==='Admin')loadAdminRequests();
  },25000);
 }
-async function enterApp(){await loadProfile();$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');$('signOut').classList.remove('hidden');$('userLabel').textContent=profile.full_name||'Staff';$('recordsCentreLink').classList.toggle('hidden',profile.role!=='Admin');$('hello').textContent='Welcome, '+(profile.full_name||'staff member');$('roleInfo').textContent=profile.role+' account · Phone evidence access is limited to authorised devices and assigned requests.';$('adminPanel').classList.toggle('hidden',profile.role!=='Admin');$('phonePanel').classList.toggle('hidden',false);if(profile.role==='Admin'){await loadStaff();await loadDevices();await loadAdminRequests()}await loadPhoneRequests();setupRealtime();startCountdowns();startPhoneHeartbeat();}
+async function refreshR2StorageStatus(force=true){
+ const status=await getR2StorageStatus(force),el=$('r2StorageStatus');
+ if(!el)return;
+ if(status.configured){
+  el.textContent='Cloudflare R2 is configured. New evidence files will use private R2 storage; existing files remain where they are.';
+  el.className='notice success';return;
+ }
+ el.textContent=status.unavailable
+  ?'Cloudflare R2 status is temporarily unavailable. CORNHILL will continue using its existing private evidence storage.'
+  :'Cloudflare R2 is not connected yet. CORNHILL will continue using its existing private evidence storage until the authorised setup is completed.';
+ el.className='notice warning';
+}
+$('refreshR2Status').addEventListener('click',()=>refreshR2StorageStatus(true));
+async function enterApp(){await loadProfile();await refreshR2StorageStatus(true);$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');$('signOut').classList.remove('hidden');$('userLabel').textContent=profile.full_name||'Staff';$('recordsCentreLink').classList.toggle('hidden',profile.role!=='Admin');$('hello').textContent='Welcome, '+(profile.full_name||'staff member');$('roleInfo').textContent=profile.role+' account · Phone evidence access is limited to authorised devices and assigned requests.';$('adminPanel').classList.toggle('hidden',profile.role!=='Admin');$('phonePanel').classList.toggle('hidden',false);if(profile.role==='Admin'){await loadStaff();await loadDevices();await loadAdminRequests()}await loadPhoneRequests();setupRealtime();startCountdowns();startPhoneHeartbeat();}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const {data,error}=await db.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error){note('loginMsg',error.message,'error');return}user=data.user;try{await enterApp()}catch(err){await db.auth.signOut({scope:'local'});note('loginMsg',err.message||'Could not load your staff profile.','error')}});
 $('signOut').addEventListener('click',async()=>{if(realtimeChannel)await db.removeChannel(realtimeChannel);if(timerHandle)clearInterval(timerHandle);if(heartbeatHandle)clearInterval(heartbeatHandle);if(pollHandle)clearInterval(pollHandle);await db.auth.signOut({scope:'local'});user=null;profile=null;phoneDevices=[];$('appPanel').classList.add('hidden');$('loginPanel').classList.remove('hidden');$('signOut').classList.add('hidden');$('userLabel').textContent=''});
 async function loadStaff(){const {data,error}=await db.from('user_profiles').select('id,full_name,role,employment_status').eq('employment_status','Active').order('full_name');if(error){$('deviceStaff').innerHTML='<option value="">Staff directory unavailable</option>';note('globalMsg','Could not load active staff accounts: '+error.message,'error');return}staff=data||[];$('deviceStaff').innerHTML='<option value="">Choose a staff member…</option>'+staff.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.full_name||'Unnamed staff')+' · '+esc(s.role)+'</option>').join('')}
