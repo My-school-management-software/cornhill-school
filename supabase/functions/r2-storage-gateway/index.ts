@@ -265,14 +265,14 @@ async function readR2Usage() {
       throw new Error("Cloudflare R2 could not return bucket usage (HTTP " + response.status + ").");
     }
 
-    const sizes = [...xml.matchAll(/<Size>(\\d+)<\\/Size>/g)].map((match) => Number(match[1]));
+    const sizes = [...xml.matchAll(new RegExp("<Size>([0-9]+)</Size>", "g"))].map((match) => Number(match[1]));
     objectCount += sizes.length;
     payloadBytes += sizes.reduce((sum, size) => sum + size, 0);
     pagesScanned++;
 
-    const isTruncated = /<IsTruncated>true<\\/IsTruncated>/i.test(xml);
+    const isTruncated = xml.includes("<IsTruncated>true</IsTruncated>");
     if (!isTruncated) break;
-    const nextToken = xml.match(/<NextContinuationToken>([\\s\\S]*?)<\\/NextContinuationToken>/i)?.[1];
+    const nextToken = new RegExp("<NextContinuationToken>([^<]+)</NextContinuationToken>", "i").exec(xml)?.[1];
     if (!nextToken) {
       complete = false;
       break;
