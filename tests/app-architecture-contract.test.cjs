@@ -123,7 +123,10 @@ test('Notifications and Guardian PIN administration share staff sign-in but reta
   assert.match(guardian, /admin_parent_contact_directory/);
   assert.match(guardian, /admin_get_parent_portal_security_settings/);
   assert.match(guardian, /admin_issue_guardian_pin/);
-  assert.match(guardian, /An administrator-only RPC is the authoritative access check/);
+  assert.match(guardian, /db\.rpc\('admin_parent_contact_directory'/);
+  assert.match(guardian, /db\.rpc\('admin_get_parent_portal_security_settings'/);
+  assert.match(guardian, /db\.rpc\('admin_issue_guardian_pin'/);
+  assert.match(guardian, /An active CORNHILL staff account is required\./);
 });
 
 test('public parent admissions accounts use a separate authentication storage key from staff workspaces', () => {
