@@ -17,7 +17,7 @@ const json = (status: number, body: Record<string, unknown>, origin: string | nu
   new Response(JSON.stringify(body), { status, headers: { ...headersFor(origin), "Content-Type": "application/json" } });
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const setupRedirect = "https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/bursar-account-web";
+const setupRedirect = "https://cornhill-school-swart.vercel.app/bursar-account.html";
 const activeStatuses = ["inviting", "invited", "email_verified", "approved", "active"] as const;
 
 function normalizeTitle(value: unknown) {
