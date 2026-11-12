@@ -23,7 +23,7 @@ test('main dashboard checks each selected school-office role after authenticatio
     assert.ok(dashboard.includes(role), 'Missing role matcher for ' + role);
   }
   assert.ok(dashboard.includes('schoolStaffRoleMatches'));
-  assert.ok(dashboard.includes("account.role==='Staff'"));
+  assert.ok(dashboard.includes("account?.role==='Staff'"));
   assert.ok(dashboard.includes("sessionStorage.setItem('cornhill_login_mode','Staff')"));
 });
 
