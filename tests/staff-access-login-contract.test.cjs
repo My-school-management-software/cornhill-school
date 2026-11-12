@@ -111,3 +111,72 @@ test('staff login rate limiting cannot be reset by changing the browser user-age
   assert.ok(!edge.includes('req.headers.get("user-agent")'));
   assert.ok(!edge.includes("req.headers.get('user-agent')"));
 });
+
+test('leadership credential methods match the agreed account model', () => {
+  const config = dashboard.slice(dashboard.indexOf('const SCHOOL_STAFF_LOGIN_TYPES'), dashboard.indexOf('let selectedSchoolStaffRole'));
+  assert.match(config, /Headteacher:[\s\S]*mode:'code',modes:\['code'\]/);
+  assert.match(config, /'Deputy Headteacher':[\s\S]*mode:'code',modes:\['code'\]/);
+  assert.match(config, /DOS:[\s\S]*mode:'code',modes:\['code','email'\]/);
+  assert.match(config, /'Main Bursar':[\s\S]*mode:'email',modes:\['email'\]/);
+  assert.match(config, /'Deputy Bursar':[\s\S]*mode:'email',modes:\['email'\]/);
+});
+
+test('a role tile is not treated as authentication or permission by itself', () => {
+  const flow = dashboard.slice(dashboard.indexOf('async function authenticateSchoolStaffRole'), dashboard.indexOf("document.querySelectorAll('[data-school-staff-role]'"));
+  assert.match(flow, /db\.auth\.signInWithPassword/);
+  assert.match(flow, /db\.functions\.invoke\('staff-access-code'/);
+  assert.match(flow, /user_profiles/);
+  assert.match(flow, /schoolStaffRoleMatches\(account,selectedSchoolStaffRole\)/);
+  assert.match(flow, /await startSession\(activeSession\)/);
+});
+
+test('school staff sign-in rejects inactive employment before opening the workspace', () => {
+  const flow = dashboard.slice(dashboard.indexOf('async function authenticateSchoolStaffRole'), dashboard.indexOf("document.querySelectorAll('[data-school-staff-role]'"));
+  const inactive = flow.indexOf("employment_status");
+  const start = flow.indexOf("await startSession(activeSession)");
+  assert.ok(inactive >= 0 && start > inactive, 'Active-employment validation must precede session startup');
+  assert.ok(flow.includes("String(account.employment_status||'').trim().toLowerCase()!=='active'"));
+});
+
+test('selected office is checked against the authenticated staff job title and role', () => {
+  const matcher = dashboard.slice(dashboard.indexOf('function schoolStaffRoleMatches'), dashboard.indexOf('async function authenticateSchoolStaffRole'));
+  assert.match(matcher, /account\?\.role==='Staff'/);
+  assert.match(matcher, /account\?\.job_title/);
+  assert.match(matcher, /role==='Headteacher'/);
+  assert.match(matcher, /role==='Deputy Headteacher'/);
+  assert.match(matcher, /role==='DOS'/);
+  assert.match(matcher, /role==='Main Bursar'/);
+  assert.match(matcher, /role==='Deputy Bursar'/);
+});
+
+test('Other Staff cannot use a reserved leadership or bursar role title', () => {
+  const matcher = dashboard.slice(dashboard.indexOf('function schoolStaffRoleMatches'), dashboard.indexOf('async function authenticateSchoolStaffRole'));
+  assert.match(matcher, /if\(role==='Other Staff'\)return staff&&!\[/);
+  for (const title of ['headteacher','deputy headteacher','director of studies','main bursar','deputy bursar']) {
+    assert.ok(matcher.includes("'" + title + "'"), 'Other Staff exclusion missing: ' + title);
+  }
+});
+
+test('switching school office clears previously entered private credentials', () => {
+  const back = dashboard.slice(dashboard.indexOf('function backToSchoolStaffRoles'), dashboard.indexOf('function schoolStaffRoleMatches'));
+  assert.match(back, /staffLoginEmail.*value=''/);
+  assert.match(back, /staffLoginPassword.*value=''/);
+  assert.match(back, /schoolStaffAccessCode.*value=''/);
+  assert.match(dashboard, /selectedSchoolStaffRole='';\$\('schoolStaffCredentials'\)\.classList\.add\('hidden'\)/);
+});
+
+test('main login keeps the Director entry separate from the school-office role selector', () => {
+  const login = dashboard.slice(dashboard.indexOf('id="login"'), dashboard.indexOf('id="app"'));
+  assert.match(login, /id="adminLoginPanel"/);
+  assert.match(login, /id="staffLoginPanel"/);
+  assert.match(login, /Director/);
+  assert.match(login, /Original full-access account/);
+  assert.match(login, /school administrator sign in/i);
+});
+
+test('role selector is responsive and supports narrow Android screens', () => {
+  assert.match(dashboard, /\.school-staff-role-grid/);
+  assert.match(dashboard, /@media\s*\(max-width:\s*520px\)/);
+  assert.match(dashboard, /\.school-staff-role-choice/);
+  assert.match(dashboard, /grid-template-columns:\s*1fr/);
+});
