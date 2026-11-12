@@ -1,0 +1,51 @@
+name: Publish CORNHILL bursar setup page
+
+on:
+  push:
+    branches:
+      - feat/role-based-staff-access-subject-teachers-20261111
+    paths:
+      - bursar-account.html
+      - .github/workflows/deploy-bursar-setup-pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: cornhill-bursar-github-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out production website source
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Prepare the isolated bursar setup page
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf site
+          mkdir -p site
+          cp bursar-account.html site/bursar-account.html
+          touch site/.nojekyll
+          test -s site/bursar-account.html
+
+      - name: Upload only the bursar setup page
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Publish GitHub Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v5
