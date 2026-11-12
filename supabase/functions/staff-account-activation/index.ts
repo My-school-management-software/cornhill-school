@@ -175,7 +175,7 @@ Deno.serve(async (req: Request) => {
       headers: {
         ...headersFor(origin),
         "Content-Type": "text/html; charset=utf-8",
-        "Content-Security-Policy": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://yemhortbudwbcrzsoozk.supabase.co https://cdn.jsdelivr.net; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://yemhortbudwbcrzsoozk.supabase.co https://cdn.jsdelivr.net; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
         "X-Frame-Options": "DENY",
       },
     });
