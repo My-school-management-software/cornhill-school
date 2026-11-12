@@ -2189,6 +2189,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  </section>
 <p class="muted" style="text-align:center;margin:20px 0">Cornhill School · Student and class management · Amounts in UGX in future finance modules</p>
 </section></main>
+<script src="/assets/cornhill-app-centre.js"></script>
 <script>
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
@@ -8893,10 +8894,11 @@ function appCentreSafeAddress(value){
 }
 function renderAppCentre(){
  const host=$('appCentreCards');if(!host)return;
- if(!appCentreRows.length){
-  host.innerHTML='<div class="empty">No applications are assigned to this account yet. Ask the school administrator to review your access.</div>';
+ const displayRows=window.CornhillAppCentre?.getVisibleRows?.(appCentreRows)||[];
+ if(!displayRows.length){
+  host.innerHTML='<div class="empty">No active applications are assigned to this account yet. Ask the school administrator to review your access.</div>';
  }else{
-  host.innerHTML=appCentreRows.map(app=>{
+  host.innerHTML=displayRows.map(app=>{
    const href=esc(app.app_url),icon=esc(app.icon||'📱'),name=esc(app.name),desc=esc(app.description||'Approved CORNHILL application');
    const type=app.app_kind==='External'?'External secure link':'CORNHILL application';
    return '<a class="app-centre-card" href="'+href+'" target="_blank" rel="noopener noreferrer" aria-label="Open '+name+' in a new tab"><div class="app-centre-card-head"><span class="app-centre-icon" aria-hidden="true">'+icon+'</span><strong>'+name+'</strong></div><p>'+desc+'</p><em>Open application ↗</em><span class="muted" style="font-size:10px">'+type+'</span></a>';
@@ -8904,6 +8906,8 @@ function renderAppCentre(){
  }
  const rows=$('appRegistryRows');
  if(rows){
+  // Keep the full registry for administrators to review, edit or deactivate entries.
+  // The launcher above displays only active, unique destinations.
   rows.innerHTML=profile?.role==='Admin'?appCentreRows.map(app=>{
    const roles=(app.allowed_roles||[]).map(esc).join(', ');
    return '<tr><td><strong>'+esc(app.name)+'</strong><br><span class="muted">'+esc(app.app_url)+'</span></td><td>'+esc(app.category)+'</td><td>'+roles+(app.allowed_job_titles?.length?'<br><span class="muted">'+app.allowed_job_titles.map(esc).join(', ')+'</span>':'')+'</td><td>'+(app.is_active?'<span class="badge">Active</span>':'<span class="badge">Inactive</span>')+'</td><td><button type="button" data-app-edit="'+esc(app.id)+'">Edit</button></td></tr>';
