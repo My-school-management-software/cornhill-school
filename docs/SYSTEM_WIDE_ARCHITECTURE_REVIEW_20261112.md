@@ -29,6 +29,8 @@ The live `school_apps` registry contained 24 entries (23 active and one inactive
 
 The App Centre previously rendered both rows as separate cards. This branch adds a shared URL-normalisation/deduplication helper and changes the launcher to display only active, unique destinations. It keeps the full registry available to the administrator so the duplicate can be reviewed or deactivated deliberately. It does not delete or alter either database row, and it does not remove distinct School Services workspaces.
 
+A second competing renderer was found in `assets/main-school-workspace-bridge.js`: it wrapped the main App Centre render function and then rebuilt cards directly from the unfiltered registry. That could undo deduplication and category grouping after the primary render. The bridge's duplicate card renderer/wrapper has been removed. The main App Centre now owns rendering and retains the Director's existing workspace-share control. A regression test verifies that the bridge cannot overwrite it.
+
 ## Static page consistency scan
 
 A source-level scan of the main dashboard, School Services, Banking, Evidence Capture, Notifications, Records, Admissions, Parent/Guardian, Public School Website and the staff-communications launcher found no duplicate HTML element IDs. This is a useful structural check, not proof that every page interaction is correct. Repeated `data-tab` values in the dashboard correspond to navigation and intentional “back to dashboard” controls (plus CSS selectors); they are not duplicate record forms. The only confirmed duplicate App Centre destination is the pair recorded above.
