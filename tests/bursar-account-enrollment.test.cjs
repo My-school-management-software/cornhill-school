@@ -44,19 +44,21 @@ test('bursar role is matched to the existing non-teaching employee job title', (
 });
 
 test('invitation email redirects to the Supabase-hosted secure setup page and does not include a password', () => {
-  assert.match(edge, /functions\\/v1\\/bursar-account-web/);
+  assert.ok(edge.includes('/functions/v1/bursar-account-web'));
   assert.match(edge, /redirectTo: setupRedirect/);
   assert.doesNotMatch(edge, /payload\\.password|data:\\s*\\{[^}]*password/i);
-  assert.match(page, /detectSessionInUrl:\\s*true/);
-  assert.match(page, /SETUP_REDIRECT/);
-  assert.match(page, /redirectTo:SETUP_REDIRECT/);
-  assert.match(page, /updateUser\\(\\{password\\}\\)/);
-  assert.match(page, /complete_setup/);
-  assert.match(webPage, /text\\/html; charset=utf-8/);
-  assert.match(webPage, /no-store/);
-  assert.match(webPage, /req\\.method !== "GET"/);
-  assert.match(webPage, /frame-ancestors 'none'/);
-});test('email verification must happen before approval and password activation', () => {
+  assert.ok(page.includes('detectSessionInUrl:true'));
+  assert.ok(page.includes('SETUP_REDIRECT'));
+  assert.ok(page.includes('redirectTo:SETUP_REDIRECT'));
+  assert.ok(page.includes('updateUser({password})'));
+  assert.ok(page.includes('complete_setup'));
+  assert.ok(webPage.includes('text/html; charset=utf-8'));
+  assert.ok(webPage.includes('no-store'));
+  assert.ok(webPage.includes('req.method !== "GET"'));
+  assert.ok(webPage.includes("frame-ancestors 'none'"));
+});
+
+test('email verification must happen before approval and password activation', () => {
   assert.match(edge, /email_confirmed_at/);
   assert.match(edge, /email_verified/);
   assert.match(edge, /only a bursar whose email has been verified/i);
