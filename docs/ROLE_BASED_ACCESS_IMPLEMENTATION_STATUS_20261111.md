@@ -2,7 +2,7 @@
 
 **Review date:** 11 November 2026  
 **Working branch:** `feat/role-based-staff-access-subject-teachers-20261111`  
-**Production status:** No live Supabase migration has been applied by this work cycle. Existing accounts, credentials, learner records and finance records have not been changed.
+**Production status:** Role-specific sign-in frontend and access-code backend migration/function are deployed. Existing Director/Teacher identities and learner/finance records were preserved; no non-teaching Staff accounts have been provisioned by this release.
 
 ## Executive decision: every teacher has an individual identity
 
@@ -152,3 +152,15 @@ Vercel generated a READY preview for that same commit. The front-end preview is 
 The shared School Staff sign-in was removed from the main dashboard in development. The main dashboard and standalone School Services page now provide distinct role choices for Headteacher, Deputy Headteacher, DOS, Main Bursar, Deputy Bursar and Other Staff. The existing Director/Admin main account and teacher class assignment path remain separate and intact. Teachers can use an individual access code plus password, with their existing individual email/password path as an alternative. DOS can use code/password or email/password; Headteacher/Deputy Headteacher use code/password; each bursar uses private email/password.
 
 Role checks are performed after authentication against the signed-in profile's `role`, `job_title` and active employment status. The only full `Admin` remains the Director. No real Staff accounts have yet been provisioned. The feature branch includes an additive migration and a Director-managed code Edge Function; neither is yet deployed to production. CI's individual-access and appearance/workspace suites passed at commit `48e740d22dfbf199d8105f0771f891fd49e42d0e`.
+
+
+## Production deployment confirmation — 12 November 2026
+
+This section is authoritative and supersedes earlier staged-only statements in this document.
+
+- PR #14 was merged to `feat/role-based-staff-access-subject-teachers-20261111` as `2e6c1a4d5d8f5f7d11e3c7b99a9bc21f208fa4e5`. Both individual staff access and appearance/workspace CI suites passed.
+- Vercel production deployment `dpl_6zB7db5NEeUaQ9n1kz6ZmFpa9KFt` is READY from that merged commit. The permanent main domain and all 20 module aliases were attached. Main and School Services pages returned HTTP 200 and showed separate role sign-in flows.
+- The production Supabase migration `20261112020000_individual_staff_access_codes` is applied. The access-code table has RLS enabled; anon and authenticated cannot read codes or execute the service-only rate limiter; only service_role can. No code has been issued yet.
+- Edge Function `staff-access-code` is ACTIVE version 1. Its handler authenticates the signed-in Director for issuing/revoking access codes. The pre-auth login branch verifies a personal code and the same account's password and exact active employee/job-title linkage, with throttling and audit events.
+- Live profile audit: 1 Admin/Director; 10 active Teacher profiles; 0 active Staff profiles; 0 linked leadership accounts; 0 issued access codes. A role-selection tile does not create an account and cannot grant access without the matching authenticated role/profile.
+- Remaining: Director confirms real Headteacher, Deputy Headteacher, DOS, Main Bursar and Deputy Bursar employee details and official emails; existing rows are linked rather than duplicated; individual invitations/password setup and personal-code issuance follow; then run role-by-role end-to-end tests.
