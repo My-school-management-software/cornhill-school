@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js" defer></script>
 <style>
-:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:16px max(16px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:850;font-size:18px}.sub{font-size:12px;opacity:.8;margin-top:4px}.wrap{max-width:1080px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid #dce7de;border-radius:15px;padding:18px;margin:0 0 14px;box-shadow:0 3px 14px #183d2010}.hidden{display:none!important}.muted{color:#647568;font-size:13px;line-height:1.5}.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf3;color:#166534}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-size:13px;font-weight:700;color:#435449;margin:8px 0 5px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:#fff;font:inherit;margin:0 0 9px}button,.button{border:0;border-radius:9px;padding:11px 14px;background:#e6efe7;color:#17452a;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}.badge{font-size:11px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:800}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#991b1b}.device,.request.evidence-request-focus{border:2px solid #166534;box-shadow:0 0 0 4px #16653422}
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17251c;background:#f3f7f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}.top{background:#14532d;color:white;padding:16px max(16px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:850;font-size:18px}.sub{font-size:12px;opacity:.8;margin-top:4px}.wrap{max-width:1080px;margin:20px auto;padding:0 14px}.panel{background:white;border:1px solid #dce7de;border-radius:15px;padding:18px;margin:0 0 14px;box-shadow:0 3px 14px #183d2010}.hidden{display:none!important}.muted{color:#647568;font-size:13px;line-height:1.5}.notice{padding:11px 13px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin:10px 0}.error{background:#fff1f2;color:#9f1239}.success{background:#ecfdf3;color:#166534}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block;font-size:13px;font-weight:700;color:#435449;margin:8px 0 5px}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd8ce;border-radius:8px;background:#fff;font:inherit;margin:0 0 9px}button,.button{border:0;border-radius:9px;padding:11px 14px;background:#e6efe7;color:#17452a;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}button.primary{background:#166534;color:#fff}button.danger{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}.badge{font-size:11px;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:800}.badge.warn{background:#fef3c7;color:#92400e}.badge.bad{background:#fee2e2;color:#991b1b}.storage-stat{background:#f5f8f5;border:1px solid #dce7de;border-radius:10px;padding:12px;display:grid;gap:6px;min-width:0}.storage-stat strong{font-size:20px;color:#14532d;overflow-wrap:anywhere}.storage-stat small{font-size:11px;color:#647568}.device,.request.evidence-request-focus{border:2px solid #166534;box-shadow:0 0 0 4px #16653422}
 .request{border:1px solid #e0e9e1;border-radius:12px;padding:13px;margin:10px 0}.request h3{margin:0 0 5px;font-size:16px}.request p{margin:5px 0}.code{font:700 20px ui-monospace,monospace;letter-spacing:2px;background:#f1f5f2;padding:12px;border-radius:8px;overflow-wrap:anywhere}.preview{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.preview img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid #d8e2da}.timer{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums;color:#9a3412}.capture{border:2px dashed #9fb5a4;border-radius:13px;padding:18px;text-align:center;background:#f8fbf8}.small{font-size:11px;color:#647568}
 .scan-video-wrap{background:#17251c;border-radius:12px;overflow:hidden;min-height:200px;display:flex;align-items:center;justify-content:center}
 .scan-video-wrap video{width:100%;max-height:55vh;object-fit:contain}
@@ -37,6 +37,15 @@
 <section id="appPanel" class="hidden">
 <div class="panel"><div class="row"><div><h2 id="hello">Welcome</h2><p id="roleInfo" class="muted">Your access is limited to your assigned permissions and capture requests.</p></div><span id="connectionBadge" class="badge">Connected</span></div><div id="globalMsg" class="notice hidden" role="status"></div><div class="row" style="margin-top:10px"><div id="r2StorageStatus" class="notice warning" role="status" aria-live="polite" style="flex:1;margin:0">Checking private evidence storage…</div><button id="refreshR2Status" type="button">Refresh storage status</button></div></div>
 <section id="adminPanel" class="hidden">
+<div class="panel" id="r2UsageCard">
+ <div class="row"><div><h2>Cloud evidence storage</h2><p class="muted">Private Cloudflare R2 bucket usage. Visible to administrators only.</p></div><button type="button" id="refreshR2Usage">Refresh usage</button></div>
+ <div class="grid" id="r2UsageGrid">
+  <div class="storage-stat"><span class="muted">Stored data</span><strong>Loading…</strong></div>
+  <div class="storage-stat"><span class="muted">Objects</span><strong>Loading…</strong></div>
+  <div class="storage-stat"><span class="muted">Bucket capacity</span><strong>No fixed limit</strong></div>
+ </div>
+ <p id="r2UsageUpdated" class="muted" aria-live="polite">Usage has not been checked yet.</p>
+</div>
 <div class="panel"><h2>1. Authorise a phone</h2><p class="muted">Choose the staff account that will use the phone. The staff member must sign in on that phone with their own account and enter the one-time pairing code. Codes expire after ten minutes and can be used once.</p>
 <form id="deviceForm"><div><label>Staff account *</label><select id="deviceStaff" required><option value="">Loading staff accounts…</option></select></div><div><label>Phone/device name *</label><input id="deviceName" required maxlength="80" placeholder="e.g. Deputy Bursar phone"></div><div><label>Device type</label><select id="devicePlatform"><option>Android</option><option>iOS</option><option>Windows</option><option>Other</option></select></div><div class="row" style="align-items:end"><button class="primary" type="submit">Generate pairing code</button></div></form>
 <div id="pairCodePanel" class="notice hidden"><strong>One-time pairing code</strong><div id="pairCode" class="code"></div><p id="pairExpiry" class="small"></p><button type="button" id="copyPairCode">Copy code</button></div>
@@ -192,6 +201,42 @@ function startPhoneHeartbeat(){
   if(profile?.role==='Admin')loadAdminRequests();
  },25000);
 }
+function formatR2Bytes(value){
+ let bytes=Number(value||0);if(!Number.isFinite(bytes)||bytes<0)bytes=0;
+ if(bytes<1024)return bytes+' B';
+ const units=['KB','MB','GB','TB','PB'];let unit=-1;
+ do{bytes/=1024;unit++}while(bytes>=1024&&unit<units.length-1);
+ return bytes.toFixed(bytes<10?2:1)+' '+units[unit];
+}
+async function refreshR2StorageUsage(){
+ const grid=$('r2UsageGrid'),updated=$('r2UsageUpdated'),button=$('refreshR2Usage');
+ if(!grid||!updated)return;
+ if(button)button.disabled=true;
+ grid.innerHTML='<div class="notice">Reading the private R2 bucket…</div>';
+ try{
+  const status=await getR2StorageStatus(true);
+  if(!status.configured){
+   grid.innerHTML='<div class="notice warning">R2 is not configured. No usage figures are available.</div>';
+   updated.textContent='Check the connection status above.';
+   return;
+  }
+  const {data,error}=await db.functions.invoke('r2-storage-gateway',{body:{action:'usage'}});
+  if(error||!data||data.error)throw new Error(error?.message||data?.error||'Usage could not be retrieved.');
+  const bytes=Number(data.payload_bytes||0),objects=Number(data.object_count||0);
+  grid.innerHTML=
+   '<div class="storage-stat"><span class="muted">Stored data</span><strong>'+formatR2Bytes(bytes)+'</strong><small>'+bytes.toLocaleString('en-US')+' bytes</small></div>'+
+   '<div class="storage-stat"><span class="muted">Objects</span><strong>'+objects.toLocaleString('en-US')+'</strong><small>Files and objects currently listed</small></div>'+
+   '<div class="storage-stat"><span class="muted">Bucket capacity</span><strong>No fixed limit</strong><small>Cloudflare R2 does not publish a per-bucket storage ceiling</small></div>';
+  const when=data.measured_at?new Date(data.measured_at).toLocaleString():'just now';
+  updated.textContent=(data.complete?'Full bucket scan':'Partial scan — more objects remain beyond the scan limit')+
+   ' · '+Number(data.pages_scanned||0).toLocaleString('en-US')+' page(s) checked · Updated '+when+
+   '. These are object payload bytes, not a billing invoice.';
+ }catch(error){
+  grid.innerHTML='<div class="notice error">Storage usage is unavailable right now. '+esc(error.message||'Please retry.')+'</div>';
+  updated.textContent='The connection status above may still be healthy; usage lookup is a separate check.';
+ }finally{if(button)button.disabled=false}
+}
+$('refreshR2Usage').addEventListener('click',refreshR2StorageUsage);
 async function refreshR2StorageStatus(force=true){
  const status=await getR2StorageStatus(force),el=$('r2StorageStatus');
  if(!el)return;
@@ -205,7 +250,7 @@ async function refreshR2StorageStatus(force=true){
  el.className='notice warning';
 }
 $('refreshR2Status').addEventListener('click',()=>refreshR2StorageStatus(true));
-async function enterApp(){await loadProfile();await refreshR2StorageStatus(true);$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');$('signOut').classList.remove('hidden');$('userLabel').textContent=profile.full_name||'Staff';$('recordsCentreLink').classList.toggle('hidden',profile.role!=='Admin');$('hello').textContent='Welcome, '+(profile.full_name||'staff member');$('roleInfo').textContent=profile.role+' account · Phone evidence access is limited to authorised devices and assigned requests.';$('adminPanel').classList.toggle('hidden',profile.role!=='Admin');$('phonePanel').classList.toggle('hidden',false);if(profile.role==='Admin'){await loadStaff();await loadDevices();await loadAdminRequests()}await loadPhoneRequests();setupRealtime();startCountdowns();startPhoneHeartbeat();}
+async function enterApp(){await loadProfile();await refreshR2StorageStatus(true);$('loginPanel').classList.add('hidden');$('appPanel').classList.remove('hidden');$('signOut').classList.remove('hidden');$('userLabel').textContent=profile.full_name||'Staff';$('recordsCentreLink').classList.toggle('hidden',profile.role!=='Admin');$('hello').textContent='Welcome, '+(profile.full_name||'staff member');$('roleInfo').textContent=profile.role+' account · Phone evidence access is limited to authorised devices and assigned requests.';$('adminPanel').classList.toggle('hidden',profile.role!=='Admin');$('phonePanel').classList.toggle('hidden',false);if(profile.role==='Admin'){await loadStaff();await loadDevices();await loadAdminRequests();refreshR2StorageUsage()}await loadPhoneRequests();setupRealtime();startCountdowns();startPhoneHeartbeat();}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const {data,error}=await db.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error){note('loginMsg',error.message,'error');return}user=data.user;try{await enterApp()}catch(err){await db.auth.signOut({scope:'local'});note('loginMsg',err.message||'Could not load your staff profile.','error')}});
 function lockEvidenceUi(){user=null;profile=null;phoneDevices=[];selectedFiles=[];if(realtimeChannel){db.removeChannel(realtimeChannel);realtimeChannel=null}if(timerHandle){clearInterval(timerHandle);timerHandle=null}if(heartbeatHandle){clearInterval(heartbeatHandle);heartbeatHandle=null}if(pollHandle){clearInterval(pollHandle);pollHandle=null}$('appPanel').classList.add('hidden');$('loginPanel').classList.remove('hidden');$('signOut').classList.add('hidden');$('userLabel').textContent='';$('loginForm')?.reset();$('loginMsg')?.classList.add('hidden');}
 db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||!session)lockEvidenceUi()});
