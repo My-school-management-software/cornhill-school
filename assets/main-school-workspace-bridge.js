@@ -77,18 +77,6 @@
   $('refreshMainStaffNotices')?.addEventListener('click',loadMainStaffNotices);
   $('refreshMainCalendar')?.addEventListener('click',loadMainCalendarEvents);
  }
- function appCard(app){
-  const url=escapeHtml(app.app_url),name=escapeHtml(app.name),icon=escapeHtml(app.icon||'📱'),description=escapeHtml(app.description||'CORNHILL workspace');
-  const type=app.app_kind==='External'?'External secure link':'CORNHILL workspace';
-  const share=profile?.role==='Admin'?'<button type="button" data-share-workspace="'+escapeHtml(app.id)+'" style="width:100%;margin-top:6px">Share access link</button>':'';
-  return '<div class="app-centre-launch" style="min-width:0"><a class="app-centre-card" href="'+url+'" target="_blank" rel="noopener noreferrer"><div class="app-centre-card-head"><span class="app-centre-icon" aria-hidden="true">'+icon+'</span><strong>'+name+'</strong></div><p>'+description+'</p><em>Open application ↗</em><span class="muted" style="font-size:10px">'+type+'</span></a>'+share+'</div>';
- }
- function updateWorkspaceCards(){
-  if(!Array.isArray(appCentreRows))return;
-  const cards=appCentreRows.map(appCard).join('');
-  const centre=$('appCentreCards');
-  if(centre&&appCentreRows.length)centre.innerHTML=cards;
- }
  async function loadDashboardAdmissionEnquiries(){
   const panel=$('dashboardAdmissionEnquiriesPanel'),host=$('dashboardAdmissionEnquiryRows'),status=$('dashboardAdmissionQueueStatus');
   if(!panel||!host)return;
@@ -204,8 +192,6 @@
   const review=event.target.closest('[data-enquiry-save]');
   if(review)reviewAdmissionEnquiry(review.dataset.enquirySave);
  });
- const originalRenderAppCentre=renderAppCentre;
- renderAppCentre=function(){originalRenderAppCentre();updateWorkspaceCards()};
  const originalTab=tab;
  tab=function(name){
   originalTab(name);
@@ -244,6 +230,6 @@
    });
    window.addEventListener('appinstalled',()=>{button.style.display='none'});
   }
- function start(){if(bridgeReady)return;bridgeReady=true;setupMainInstallButton();setupDashboardRefinements();buildDashboardPanels();updateWorkspaceCards();routeRequestedWorkspace();}
+ function start(){if(bridgeReady)return;bridgeReady=true;setupMainInstallButton();setupDashboardRefinements();buildDashboardPanels();routeRequestedWorkspace();}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

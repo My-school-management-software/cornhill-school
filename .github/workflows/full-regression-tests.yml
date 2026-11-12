@@ -3,10 +3,13 @@ on:
   push:
     branches:
       - feat/professional-signin-layout-full-audit-20261112
+      - feat/system-architecture-security-review-20261112
   pull_request:
     branches:
       - feat/role-based-staff-access-subject-teachers-20261111
       - main
+      - feat/system-health-capacity-monitoring-20261112
+      - feat/cloudflare-r2-evidence-storage-20261112
 jobs:
   full-regression:
     runs-on: ubuntu-latest

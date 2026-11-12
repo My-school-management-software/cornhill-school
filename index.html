@@ -1039,6 +1039,11 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 .excel-import-grid .excel-grid-match{color:#287148}.excel-import-grid .excel-grid-unmatched{color:#b42318;font-weight:700}
 </style><style id="cornhill-app-centre-styles">
 .app-centre-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+.app-centre-group{grid-column:1/-1;display:grid;gap:10px;margin:4px 0 12px}
+.app-centre-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 2px 8px;border-bottom:1px solid var(--line,#dce7de)}
+.app-centre-group-head h3{margin:0;font-size:14px;color:var(--text,#17452a)}
+.app-centre-group-count{font-size:11px;color:var(--muted,#607265);font-weight:700}
+.app-centre-group-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
 .app-centre-card{display:flex;flex-direction:column;gap:9px;min-height:150px;padding:17px;border:1px solid var(--line,#dce7de);border-radius:14px;background:var(--panel,#fff);color:var(--text,#17452a);text-decoration:none;box-shadow:0 3px 14px #183d2010;transition:transform .16s ease,border-color .16s ease}
 .app-centre-card:hover{transform:translateY(-2px);border-color:var(--accent,#166534)}
 .app-centre-card-head{display:flex;align-items:center;gap:10px}
@@ -2189,6 +2194,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  </section>
 <p class="muted" style="text-align:center;margin:20px 0">Cornhill School · Student and class management · Amounts in UGX in future finance modules</p>
 </section></main>
+<script src="/assets/cornhill-app-centre.js"></script>
 <script>
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
@@ -8893,17 +8899,25 @@ function appCentreSafeAddress(value){
 }
 function renderAppCentre(){
  const host=$('appCentreCards');if(!host)return;
- if(!appCentreRows.length){
-  host.innerHTML='<div class="empty">No applications are assigned to this account yet. Ask the school administrator to review your access.</div>';
+ const displayRows=window.CornhillAppCentre?.getVisibleRows?.(appCentreRows)||[];
+ const groups=window.CornhillAppCentre?.groupRowsByCategory?.(displayRows)||[];
+ if(!groups.length){
+  host.innerHTML='<div class="empty">No active applications are assigned to this account yet. Ask the school administrator to review your access.</div>';
  }else{
-  host.innerHTML=appCentreRows.map(app=>{
-   const href=esc(app.app_url),icon=esc(app.icon||'📱'),name=esc(app.name),desc=esc(app.description||'Approved CORNHILL application');
-   const type=app.app_kind==='External'?'External secure link':'CORNHILL application';
-   return '<a class="app-centre-card" href="'+href+'" target="_blank" rel="noopener noreferrer" aria-label="Open '+name+' in a new tab"><div class="app-centre-card-head"><span class="app-centre-icon" aria-hidden="true">'+icon+'</span><strong>'+name+'</strong></div><p>'+desc+'</p><em>Open application ↗</em><span class="muted" style="font-size:10px">'+type+'</span></a>';
+  host.innerHTML=groups.map(group=>{
+   const cards=group.rows.map(app=>{
+    const href=esc(app.app_url),icon=esc(app.icon||'📱'),name=esc(app.name),desc=esc(app.description||'Approved CORNHILL application');
+    const type=app.app_kind==='External'?'External secure link':'CORNHILL application';
+    const share=profile?.role==='Admin'?'<button type="button" data-share-workspace="'+esc(app.id)+'" style="width:100%;margin-top:6px">Share access link</button>':'';
+    return '<div class="app-centre-launch" style="min-width:0"><a class="app-centre-card" href="'+href+'" target="_blank" rel="noopener noreferrer" aria-label="Open '+name+' in a new tab"><div class="app-centre-card-head"><span class="app-centre-icon" aria-hidden="true">'+icon+'</span><strong>'+name+'</strong></div><p>'+desc+'</p><em>Open application ↗</em><span class="muted" style="font-size:10px">'+type+'</span></a>'+share+'</div>';
+   }).join('');
+   return '<section class="app-centre-group" aria-label="'+esc(group.label)+'"><div class="app-centre-group-head"><h3>'+esc(group.label)+'</h3><span class="app-centre-group-count">'+group.rows.length+' app'+(group.rows.length===1?'':'s')+'</span></div><div class="app-centre-group-grid">'+cards+'</div></section>';
   }).join('');
  }
  const rows=$('appRegistryRows');
  if(rows){
+  // Keep the full registry for administrators to review, edit or deactivate entries.
+  // The launcher above displays only active, unique destinations.
   rows.innerHTML=profile?.role==='Admin'?appCentreRows.map(app=>{
    const roles=(app.allowed_roles||[]).map(esc).join(', ');
    return '<tr><td><strong>'+esc(app.name)+'</strong><br><span class="muted">'+esc(app.app_url)+'</span></td><td>'+esc(app.category)+'</td><td>'+roles+(app.allowed_job_titles?.length?'<br><span class="muted">'+app.allowed_job_titles.map(esc).join(', ')+'</span>':'')+'</td><td>'+(app.is_active?'<span class="badge">Active</span>':'<span class="badge">Inactive</span>')+'</td><td><button type="button" data-app-edit="'+esc(app.id)+'">Edit</button></td></tr>';
