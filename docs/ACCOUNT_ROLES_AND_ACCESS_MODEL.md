@@ -16,7 +16,7 @@
 
 ## Current implementation state
 
-- Live school account profiles currently contain **1 Admin and 10 Teacher accounts**. There are no Staff accounts yet.
+- The latest aggregate profile check (12 November 2026) returned **1 Admin, 2 Staff and 10 Teacher accounts**. These are counts only; no staff names or account credentials are included.
 - The profile role constraint currently permits `Admin`, `Teacher` and `Staff`.
 - The current staff invitation endpoint invites `Teacher` or `Staff`; it does not create administrators.
 - Class Teacher sign-in verifies an assigned class. The teacher is not allowed to select a different class at sign-in.
@@ -37,6 +37,19 @@ The data model and core database helpers are already present for subject-scoped 
 7. Use separate non-production test accounts to prove allowed access to an assigned subject and denied access to an unassigned subject, another class, other report-card subjects, finance and administrator settings.
 
 A subject teacher can be a teacher in several classes and subjects with one account. If the person is also a class teacher, combine the expressly approved assignments on that same account; do not issue duplicate accounts.
+## Leadership and finance responsibility separation (12 November 2026)
+
+The intended duty split is:
+- **Director (Admin):** school-wide governance, admission approval, account/permission control, final approvals, receipt reversals and finance oversight. The Director should not be the routine learner-payment cashier.
+- **Main Bursar:** payment posting, charge allocation, receipts/reprints, daily collections, deposit requests, expense requests and preparation of payroll where explicitly authorised.
+- **Deputy Bursar:** delegated cashier and finance duties with limits; no self-approval or Director-only reversals.
+- **Headteacher:** school operations and academic oversight, separate from routine finance posting and payroll approval.
+- **DOS:** academic programme, assessments, mark verification and report workflow; no finance or payroll by default.
+- **Teachers:** only assigned class/subject work, own staff information and permitted communication.
+- **Accountant (if separately assigned):** may prepare payroll only after the Director formally grants that capability; do not infer it from an account name or general Staff role.
+
+**Important live gap:** the current database helper is_school_finance_operator() includes both Admin and Staff Bursar/Deputy Bursar job titles, and both learner-payment posting RPCs use that helper. The Director therefore still qualifies to post learner payments in the backend. Payroll insert/update policies and the current browser preparation workflow are Admin-only, so the Bursar cannot yet prepare payroll. The new architecture review records the target design; these two backend workflows must not be described as fixed until guarded RPC/RLS changes and allowed/denied-role tests pass.
+
 ## Operational Staff
 
 A bursar, store manager or matron should not each become a new privileged database role just because their job title differs. Start with one individual `Staff` identity and attach job title, department and approved capability grants. Examples:
