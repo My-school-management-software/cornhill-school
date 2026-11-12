@@ -100,3 +100,9 @@ test('Director-only bursar invitation controls are available in the staff servic
   assert.match(services, /email_verified/);
   assert.match(services, /bursarAccountRows/);
 });
+
+test('bursar admin CORS permits the exact review preview while rejecting unlisted origins', () => {
+  assert.match(edge, /https://cornhill-school-git-feat-login-contract-0df38b-cypher-projects1\.vercel\.app/);
+  assert.match(edge, /origin && allowedOrigins\\.has\\(origin\\) \\? origin : "null"/);
+  assert.doesNotMatch(edge, /Access-Control-Allow-Origin[^\\n]*\\*/);
+});
