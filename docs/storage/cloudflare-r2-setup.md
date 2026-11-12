@@ -1,6 +1,6 @@
 # CORNHILL Cloudflare R2 setup
 
-Status: code integration prepared; provider account and bucket credentials are not yet connected.
+Status: connected. The private R2 bucket and server-side Supabase secrets are configured. A harmless test upload was opened successfully in the Evidence Capture preview; continue using dummy files until the remaining rollout checks are complete.
 
 ## Free allowance
 
