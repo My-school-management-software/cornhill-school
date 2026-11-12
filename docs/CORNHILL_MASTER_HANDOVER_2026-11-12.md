@@ -71,8 +71,8 @@ Production audit on 12 November found:
 - 1 active `Admin` profile (the existing Director identity).
 - 10 `Teacher` profiles.
 - 0 active `Staff` profiles.
-- Six employee-directory records exist (including Cook, Deputy School Bursar, Director, Matron, School Bursar and Security Guard); no Headteacher or DOS employee row was found in the audited directory.
-- None of those six employee rows was linked to an account at the audit point.
+- Six active employee-directory records exist: Cook, Deputy School Bursar, Director, Matron, School Bursar and Security Guard. No Headteacher or DOS employee row exists in the audited directory.
+- A fresh production query on 12 November confirmed all six rows remain unlinked to Auth accounts. The `school_staff_directory` schema has no email column; each of the six current rows has a phone number, but there is no stored official school email for invitation. The Director must confirm the correct real staff names/titles and official emails through the school's records before invitation; do not use a phone number as a substitute email or create duplicates.
 - No Headteacher, Deputy Headteacher, DOS, Main Bursar or Deputy Bursar staff login was provisioned by these changes. No fictitious identities, addresses or passwords have been created.
 
 The former shared `School staff sign in` entry has now been removed from the **production main dashboard**. The live sign-in page has separate choices for Headteacher, Deputy Headteacher, DOS, Main Bursar, Deputy Bursar and Other Staff. The standalone School Services page has the corresponding role-specific sign-in and Director code-management panel. The Director/Main form remains separate and continues to authenticate only the existing `Admin` profile; the 10 existing Teacher profiles retain their individual accounts and class/subject assignment checks.
