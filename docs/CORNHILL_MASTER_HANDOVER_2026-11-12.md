@@ -247,3 +247,56 @@ Do not overstate these results:
 5. Run separate positive/negative login and permission tests for Director, each leadership role, each bursar, class teachers and subject-only teachers. Also test sign-out/session isolation on shared school computers and Android.
 
 Do not describe the separate accounts as active until those real accounts exist. Do not change the Director's existing credentials or provision placeholder users.
+
+---
+
+## Release integration checkpoint — 12 November 2026, 08:53 UTC
+
+This checkpoint supersedes any earlier deployment or release statements in the historical sections above where they conflict. The earlier dated entries are retained as history; use this section as the current operational baseline.
+
+### Source control — merged and verified
+
+- Integrated release branch: `release/cornhill-integrated-20261112`.
+- Current integrated release commit: `b81479ea0a027373391d5d1f2a39d2c7a1cc472b`.
+- Pull request #25 (Director-controlled bursar enrollment integrated into the existing release) is merged: https://github.com/My-school-management-software/cornhill-school/pull/25
+- Merge commit message: `feat: add bursar enrollment to release`.
+- The integration preserved the existing role-based sign-in and Settings/dashboard navigation rather than replacing the live shell with an older branch.
+- The PR's bursar enrollment contract workflow succeeded: https://github.com/My-school-management-software/cornhill-school/actions/runs/43186048394
+
+### Supabase production backend — deployed, but email setup remains blocked
+
+- Production Supabase project remains `yemhortbudwbcrzsoozk`.
+- Migration `20261112080000_bursar_account_enrollment` is applied.
+- Edge Function `bursar-account-admin` is ACTIVE (version 1; JWT verification enabled).
+- Edge Function `staff-invite` is ACTIVE (version 13; JWT verification enabled) and explicitly blocks bursar titles from the generic invitation path.
+- Verification confirmed the enrollment and audit tables exist, RLS is enabled on both, and the server-only activation function exists. No enrollment rows were created.
+- No real bursar account was invited or activated, and no staff invitation email was sent.
+- Before real use, configure the exact allowed redirect URL `https://cornhill-school-swart.vercel.app/bursar-account.html`, configure a verified custom SMTP sender, and enable/test the project-level Password changed security notification. These Auth dashboard settings were not accessible through the connected management tools during this checkpoint.
+- Test mail delivery with a designated test account before sending any real staff invitation. Do not invent staff emails.
+
+### Vercel production — NOT updated to this release
+
+- Permanent production address: https://cornhill-school-swart.vercel.app/
+- Verified production deployment remains `dpl_AKKwsNgxR2WVtywcTjpfUvXXsG8m`, READY, with alias error null.
+- Its source commit is still `a9f55fe1b796dd9190a21ae43dfdf7648ec11dc0` on `feat/role-based-staff-access-subject-teachers-20261111`.
+- A deployment lookup filtered to release commit `b81479ea0a027373391d5d1f2a39d2c7a1cc472b` returned no deployment.
+- GitHub's combined status for `b81479e` reports the Vercel check as failed with the Vercel build-rate-limit destination. The free deployment allowance is therefore still the blocker; do not upgrade or repeatedly retry while the limit is active.
+- The latest READY deployment on the project at this checkpoint is a preview from a different, older handover commit `9d9addf761a063dece597b21af1c30ad7342fca1`. It is not production and must not be treated as the integrated release.
+- Do not say the website or installed Android PWA contains PR #25 until the production deployment is READY, the permanent alias is attached, and the alias is verified against the exact release SHA. A separate APK, if one is used, requires its own build and distribution.
+
+### Immediate next actions
+
+1. After the Vercel free deployment allowance resets, make one carefully targeted production deployment from the integrated release commit `b81479ea0a027373391d5d1f2a39d2c7a1cc472b`; confirm the intended project, production target and commit before release.
+2. After deployment, verify the permanent domain resolves to the exact commit, check the 21 existing module aliases, and run smoke tests on desktop and Android/PWA before telling the school to refresh/install the update.
+3. Complete Supabase Auth redirect, SMTP and password-change notification configuration, then test mail delivery with a designated test account.
+4. Only after the Director supplies confirmed active bursar employee records and official email addresses, test the invitation → email verification → Director approval → private password setup → activation flow. Never create placeholder staff accounts.
+5. Continue the agreed grouped regression batches (about 20 related checks per cycle where practical), recording actual pass/fail/blocked counts. Do not call the full school system complete: finance, academic workflows, parent portal isolation, fingerprint attendance, SMS, and full offline sync still require their own end-to-end verification.
+
+### Status language for the next handover
+
+- **Merged in GitHub:** yes — PR #25 at `b81479e`.
+- **Bursar backend deployed to Supabase:** yes — migration and Edge Functions verified.
+- **Bursar invitation email configuration:** pending.
+- **New integrated frontend deployed to production:** no — Vercel free build-rate-limit blocked it.
+- **New integrated frontend available on the installed PWA:** not yet verified; do not claim it is updated.
+- **Real bursar accounts or credentials created:** no.
