@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#14532d">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://yemhortbudwbcrzsoozk.supabase.co; form-action 'self'; base-uri 'none'; object-src 'none'">
 <title>CORNHILL · Bursar Account Setup</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -51,7 +53,7 @@ button:disabled{opacity:.5;cursor:wait}.notice{padding:12px 13px;border-radius:1
 <script>
 const SUPABASE_URL="https://yemhortbudwbcrzsoozk.supabase.co";
 const SUPABASE_KEY="sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97";
-const SETUP_REDIRECT="https://cornhill-school-swart.vercel.app/bursar-account.html";
+const SETUP_REDIRECT="https://yemhortbudwbcrzsoozk.supabase.co/functions/v1/bursar-account-web";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{
   persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"cornhill-bursar-enrollment-v1"
 }});
