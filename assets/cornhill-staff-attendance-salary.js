@@ -164,10 +164,16 @@
   }
 
   function installMySalaryCard() {
-    const host = byId('attendanceStaff');
-    if (!host || byId('myAttendanceSalarySummary')) return;
+    const host = isAdmin() ? byId('attendanceAdmin') : byId('attendanceStaff');
+    if (!host) return;
+    let card = byId('myAttendanceSalarySummary');
+    if (card && card.parentNode !== host) {
+      const heading = host.querySelector('h3');
+      host.insertBefore(card, heading || host.firstChild);
+    }
+    if (card) return;
     const heading = host.querySelector('h3');
-    const card = document.createElement('div');
+    card = document.createElement('div');
     card.id = 'myAttendanceSalarySummary';
     card.className = 'card';
     card.style.cssText = 'padding:14px;margin:10px 0;border:1px solid #d7e5dc';
@@ -177,7 +183,7 @@
 
   async function loadMySalarySummary() {
     const box = byId('myAttendanceSalarySummary');
-    if (!box || !currentUserId || !db || isAdmin() || demoMode) return;
+    if (!box || !currentUserId || !db || demoMode) return;
     const [salaryResult, incidentResult] = await Promise.all([
       db.from('staff_salary_agreements')
         .select('salary_basis,base_salary_ugx,daily_rate_ugx,effective_from,effective_to,is_active')
@@ -471,6 +477,7 @@
             (staff.data || []).map((x) => '<option value="' + x.id + '">' + html(x.full_name || 'Staff') + '</option>').join('');
         }
       }
+      await loadMySalarySummary();
       return;
     }
     await loadMySalarySummary();
