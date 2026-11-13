@@ -712,57 +712,45 @@
   }
 
   async function hydrateAttendanceExtras() {
-    if (!currentUserId || !db || demoMode) return;
+    if (!currentUserId || !db || demoMode) {
+      const status = byId('attendanceLoadStatus');
+      if (status) {
+        status.textContent = !currentUserId
+          ? 'Sign in to load Director attendance controls.'
+          : (!db ? 'The school database connection is unavailable.' : 'Attendance controls are disabled in demo mode.');
+      }
+      return;
+    }
     installAttendancePanels();
     if (isAdmin()) {
-      let isDirector = false;
-      try {
-        const director = await attendanceRequest(() => db.rpc('is_school_director'), 'Director access check', 12000);
-        if (director.error) throw director.error;
-        isDirector = director.data === true;
-      } catch (error) {
-        const detail = error && error.message ? error.message : String(error || 'Unknown error');
-        const panel = byId('attendanceGovernancePanel');
-        if (panel) panel.classList.add('hidden');
-        safeMessage('attendanceMsg','Director attendance access could not be verified: ' + detail,true);
-        return;
-      }
-      const panel = byId('attendanceGovernancePanel');
-      if (panel) panel.classList.toggle('hidden', !isDirector);
-      if (isDirector) {
-        const jobs = [
-          ['Director attendance settings', loadDirectorSettings],
-          ['Attendance calendar', loadCalendarExceptions],
-          ['Prep sessions', loadPrepSessions],
-          ['Attendance reviews', loadGovernanceIncidents],
-          ['Director staff dropdowns', loadDirectorKioskOptions],
-          ['Approved session dropdown', loadDirectorSpecialSessions]
-        ];
-        await Promise.allSettled(jobs.map(async ([label, load]) => {
-          try {
-            await attendanceRequest(load, label);
-          } catch (error) {
-            const detail = error && error.message ? error.message : String(error || 'Unknown error');
-            if (label === 'Approved session dropdown') {
-              const select = byId('directorSessionChoice');
-              if (select) select.innerHTML = '<option value="">Sessions unavailable — refresh attendance</option>';
-            }
-            if (label === 'Prep sessions') {
-              const host = byId('staffPrepSessionRows');
-              if (host) host.textContent = 'Prep sessions could not finish loading: ' + detail;
-            }
-            if (label === 'Attendance reviews') {
-              const host = byId('governanceIncidentRows');
-              if (host) host.innerHTML = '<tr><td colspan="6">Attendance reviews could not finish loading: ' + html(detail) + '</td></tr>';
-            }
-            safeMessage('attendanceMsg',label + ' failed: ' + detail,true);
+      const isDirector = await ensureAttendanceDropdowns();
+      if (!isDirector) return;
+      const jobs = [
+        ['Director attendance settings', loadDirectorSettings],
+        ['Attendance calendar', loadCalendarExceptions],
+        ['Prep sessions', loadPrepSessions],
+        ['Attendance reviews', loadGovernanceIncidents]
+      ];
+      await Promise.allSettled(jobs.map(async ([label, load]) => {
+        try {
+          await attendanceRequest(load, label);
+        } catch (error) {
+          const detail = error && error.message ? error.message : String(error || 'Unknown error');
+          if (label === 'Prep sessions') {
+            const host = byId('staffPrepSessionRows');
+            if (host) host.textContent = 'Prep sessions could not finish loading: ' + detail;
           }
-        }));
-      }
+          if (label === 'Attendance reviews') {
+            const host = byId('governanceIncidentRows');
+            if (host) host.innerHTML = '<tr><td colspan="6">Attendance reviews could not finish loading: ' + html(detail) + '</td></tr>';
+          }
+          safeMessage('attendanceMsg', label + ' failed: ' + detail, true);
+        }
+      }));
       try {
         await attendanceRequest(loadMySalarySummary, 'My salary summary');
       } catch (error) {
-        safeMessage('attendanceMsg','Salary summary could not finish loading: ' + (error?.message || String(error)),true);
+        safeMessage('attendanceMsg', 'Salary summary could not finish loading: ' + (error?.message || String(error)), true);
       }
       return;
     }
@@ -770,7 +758,7 @@
       await attendanceRequest(loadMySalarySummary, 'My salary summary');
       await attendanceRequest(loadLeadershipStatementPanel, 'Leadership attendance panel');
     } catch (error) {
-      safeMessage('attendanceMsg','Attendance extras could not finish loading: ' + (error?.message || String(error)),true);
+      safeMessage('attendanceMsg', 'Attendance extras could not finish loading: ' + (error?.message || String(error)), true);
     }
   }
 
