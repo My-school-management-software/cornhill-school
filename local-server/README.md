@@ -4,12 +4,14 @@ This folder contains the first isolated local-server component for the move away
 
 ## What is included
 
-- A Node.js HTTP server.
+- A dependency-free Node.js health-only server.
 - A local status page.
 - A read-only health endpoint at /api/v1/health.
 - Automated tests for the health endpoint, prototype warning, unavailable routes and rejected write methods.
+- A draft PostgreSQL identity foundation under migrations/001_local_identity_foundation.sql.
+- Identity/session security design notes.
 
-## Run on the development computer
+## Run the health-only scaffold
 
 Use Node.js 22 or later.
 
@@ -23,9 +25,15 @@ From this folder:
 
 You can select another local port with CORNHILL_LOCAL_PORT, for example 4180. The server still binds only to 127.0.0.1.
 
+## Database migration status
+
+The SQL under migrations/ is a design-stage migration for a brand-new local PostgreSQL database. It has not been run because a PostgreSQL test instance is not available in this development environment. It must be validated against a disposable PostgreSQL instance before it is considered executable.
+
+It is not for the live Supabase project. Do not run it against production.
+
 ## Important safety boundary
 
-This is not yet the school management system. It has no database, authentication, learner/staff data, finance or school workflows. The home page warns users not to enter real school data.
+This is not yet the school management system. It has no database connection, authentication, learner/staff data, finance or school workflows. The home page warns users not to enter real school data.
 
 The server intentionally binds to loopback only. Do not change it to 0.0.0.0 or expose it to the school LAN. LAN operation must wait for local authentication, role enforcement, HTTPS and the security/backup acceptance tests.
 
