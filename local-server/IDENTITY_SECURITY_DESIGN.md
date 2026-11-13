@@ -26,7 +26,8 @@ Status: isolated database schema, server-side authorization helpers, Argon2id ad
 ## Authorisation
 
 - Browser code does not receive database credentials and never connects directly to PostgreSQL.
-- The local API must use a dedicated least-privilege database role. No table-wide generic CRUD endpoint is permitted.
+- The local API must use the dedicated `cornhill_auth_api` role, inheriting the NOLOGIN `cornhill_auth_runtime` privilege group. It has column-level privileges only and cannot change role grants or guardian links. No table-wide generic CRUD endpoint is permitted.
+- Both roles remain NOLOGIN until a private password-provisioning step is approved. The app must never connect using the database administrator account.
 - The permission catalog includes specific learner, academics, finance, staff, guardian and system capabilities.
 - No role permissions are granted by default. A school-approved permission matrix is required before accounts can perform protected operations.
 - Role names alone never authorise a workflow.
@@ -47,7 +48,7 @@ Status: isolated database schema, server-side authorization helpers, Argon2id ad
 - Migration files 001–003 are for a new local PostgreSQL database only. None has been run against Supabase or any production database.
 - Legacy Supabase Auth user UUIDs can be recorded for controlled mapping, but the actual user export/import is a separate approved migration stage.
 - Learner and class foreign keys are intentionally deferred until local learner/class schemas and UUID mappings have been validated.
-- The local HTTP scaffold still has no login routes or school records. It remains loopback-only.
+- The local HTTP scaffold still has no login routes or school records. It remains loopback-only. The runtime DB role remains NOLOGIN and no runtime password is stored in source control.
 
 ## Next implementation gates
 
