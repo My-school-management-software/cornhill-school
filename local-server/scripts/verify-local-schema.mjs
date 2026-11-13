@@ -54,6 +54,20 @@ try {
     throw new Error("PUBLIC unexpectedly has access to the cornhill_auth schema.");
   }
 
+  const rateLimitIndexes = await pool.query(`
+    SELECT indexname
+    FROM pg_indexes
+    WHERE schemaname = 'cornhill_auth'
+      AND indexname IN (
+        'login_attempts_identifier_failures_idx',
+        'login_attempts_source_failures_idx'
+      )
+    ORDER BY indexname
+  `);
+  if (rateLimitIndexes.rows.length !== 2) {
+    throw new Error("Expected both identifier and source rate-limit indexes.");
+  }
+
   const constraints = await pool.query(`
     SELECT count(*)::int AS count
     FROM information_schema.table_constraints
@@ -63,7 +77,7 @@ try {
     throw new Error("Expected identity and authorization constraints were not installed.");
   }
 
-  console.log("PostgreSQL schema verified: 11 tables, 17 roles, 14 permission codes, 0 role grants, no PUBLIC schema access.");
+  console.log("PostgreSQL schema verified: 11 tables, 17 roles, 14 permission codes, 0 role grants, rate-limit indexes, no PUBLIC schema access.");
 } finally {
   await pool.end();
 }
