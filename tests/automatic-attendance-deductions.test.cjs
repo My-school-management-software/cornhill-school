@@ -31,7 +31,7 @@ test('two-hour review deadline must have passed', () => {
 });
 
 test('Headteacher or DOS statement prevents automatic deduction', () => {
-  assert.match(sql, /nullif\(btrim\(i\.headteacher_statement\),' '\) is null/i);
+  assert.match(sql, /nullif\\(btrim\\(i\\.headteacher_statement\\),'\\'\\) is null/i);
 });
 
 test('salary agreement must provide a valid daily rate', () => {
