@@ -4,28 +4,33 @@ Branch: `feat/local-first-self-hosted-migration-20261113`
 
 ## Added in this development cycle
 
-- Staff sign-in by normalised username.
-- Guardian sign-in by E.164 phone number.
-- Generic authentication failure messages that do not disclose whether an account exists.
-- Password verification through an injected Argon2id adapter contract; the service rejects malformed/non-Argon2id encoded hashes and uses a dummy Argon2id hash for unknown users.
-- A keyed HMAC fingerprint contract for account identifiers and source addresses; raw usernames, phone numbers and source addresses are not written to the login-attempt store.
-- An atomic login-attempt store contract for server-side rate limiting. The production PostgreSQL implementation must serialise updates per identifier/source pair and record failed attempts as failed by default.
-- Separate configurable staff and guardian session lifetimes.
-- Opaque session and CSRF tokens; only token hashes are passed to session persistence.
+- Staff sign-in by normalised username and guardian sign-in by E.164 phone number.
+- Generic authentication failure messages, dummy-hash verification for unknown accounts and keyed HMAC identifier/source fingerprints.
+- Argon2id adapter pinned to `@node-rs/argon2@2.2.2`, with a policy of 19,456 KiB memory, two passes, one lane and a 32-byte output.
+- An atomic login-attempt store implemented with PostgreSQL transactions and advisory locks across account and source fingerprints.
+- PostgreSQL account, session, audit and login-attempt repositories.
+- Session creation, account last-login update and successful-authentication audit insertion in one transaction.
 - Session authentication, account-status and expiry checks, CSRF checks for unsafe methods, and session revocation on logout.
 - Secure host-only session cookie builders with Secure, HttpOnly, Path=/ and SameSite=Strict.
-- Unit tests covering success/failure, unknown accounts, status changes, throttling, token hashing, staff/guardian separation, cookie parsing, CSRF and logout.
+- Migration 003 adds indexes supporting identifier/source failed-attempt checks.
+- Disposable PostgreSQL integration verifier exercises staff/guardian lookups, concurrent rate limiting, session creation/revocation and audit writing.
+- CI includes a PostgreSQL integration job on Ubuntu and an additional Windows unit-test job.
 
 ## Security boundaries
 
-- These are backend service modules and dependency contracts, not browser-side authentication.
-- No Argon2id implementation or production password/PIN creation route is included yet. The next step must select and pin a maintained Argon2id package, create hashes using that adapter, and test it on the actual supported Windows/Linux deployment targets.
-- No production PostgreSQL repository adapter is included yet. The attempt-store method `beginAttempt` must be implemented as an atomic, concurrency-safe database operation before this can protect real accounts.
-- The successful session repository method `createAuthenticatedSession` must atomically insert the session, update last-login metadata and write the success audit record in one database transaction.
-- The HTTP server has not been wired to these modules. Do not enable sign-in, expose a port to the LAN, or import real staff/guardian accounts yet.
-- HTTPS is mandatory before any non-loopback LAN or Android access. The Secure cookie is intentionally not downgraded for plain HTTP.
-- The current app still uses its hosted services. This work does not disconnect Vercel or Supabase.
+- These are backend service modules and repository contracts, not browser-side authentication.
+- The production authentication service is not yet wired into the local HTTP server.
+- The Argon2id package is pinned exactly in package.json. A generated npm lockfile still needs to be added after a real dependency install on a network-enabled build runner.
+- The rate-limit repository uses PostgreSQL advisory transaction locks and records attempts as failures until successful verification completes.
+- The successful session repository creates the session, updates last-login metadata and writes the success audit event in one database transaction.
+- No production staff/guardian accounts or school records have been imported.
+- Do not expose a LAN port until the HTTPS endpoint, administrator bootstrap, role permission matrix and full integration tests are accepted.
+- The existing school application still uses its hosted services. This work does not disconnect Vercel or Supabase.
 
-## Verification
+## Password-hashing rationale
 
-Targeted Node.js tests are included for the auth service and cookie module. Their results must be reported only after the exact committed sources have been run. PostgreSQL integration and full HTTP/browser tests remain outstanding.
+The selected package has an MIT licence, a Rust-based Node binding, no node-gyp/postinstall requirement and cross-platform support. OWASP's current Password Storage Cheat Sheet recommends Argon2id with at least 19 MiB memory, two iterations and parallelism one. The local policy uses that baseline and must still be benchmarked on the actual Windows school PC before production rollout.
+
+## Verification plan
+
+The committed tests cover the service contracts, cookie rules and the real Argon2id adapter. The GitHub Actions workflow is configured to run unit tests on Ubuntu and Windows, and PostgreSQL integration tests on Ubuntu. These checks must pass before real accounts are enabled. The local development environment has not yet connected a disposable PostgreSQL server, so repository integration remains pending until CI confirms it.
