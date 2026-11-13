@@ -351,6 +351,7 @@
     panel.style.cssText = 'padding:16px;margin:14px 0;border:1px solid #d7e5dc';
     panel.innerHTML =
       '<div class="row" style="justify-content:space-between;align-items:center"><div><h3 style="margin:0">Director attendance controls</h3><p class="muted" style="margin:4px 0">Two-hour review · Saturday P.3–P.7 · public holiday calendar · prep planning</p></div><span class="badge">Director approval only</span></div>' +
+      '<p id="attendanceLoadStatus" class="muted" role="status">Attendance controls are waiting for the active Director session.</p>' +
       '<div class="card" style="padding:14px;margin:12px 0;border:1px solid #cbded0">' +
         '<h4 style="margin-top:0">Central office attendance kiosk</h4>' +
         '<p class="muted">Only the Director account can record clock-in, break-start, break-end and clock-out. Staff accounts and personal phones are history-only.</p>' +
