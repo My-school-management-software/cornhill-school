@@ -1,9 +1,17 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const PROJECT_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SERVICE_KEY = Deno.env.get("SUPABASE_SECRET_KEYS")
-  ? JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")!).default
-  : (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+let namedSecretKeys: Record<string, string> = {};
+try {
+  namedSecretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
+} catch (_) {
+  namedSecretKeys = {};
+}
+const SERVICE_KEY =
+  Deno.env.get("SUPABASE_SECRET_KEY") ||
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
+  Object.values(namedSecretKeys)[0] ||
+  "";
 const ANALYTICS_SECRET = Deno.env.get("USAGE_ANALYTICS_HMAC_KEY") || SERVICE_KEY;
 const db = createClient(PROJECT_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const enc = new TextEncoder();
