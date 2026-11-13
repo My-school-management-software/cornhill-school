@@ -49,7 +49,7 @@ footer{margin-top:18px;color:var(--muted);font-size:12px}
 <p class="muted">A temporary test page served directly by the Windows computer.</p>
 <div id="status" class="status"><span class="dot"></span><span id="statusText">Checking the local test server...</span></div>
 <div class="details">
-<div class="tile"><strong>Connection</strong><span id="connection">Checking…</span></div>
+<div class="tile"><strong>Connection</strong><span id="connection">Checking...</span></div>
 <div class="tile"><strong>Test page</strong><span>Served from this PC</span></div>
 <div class="tile"><strong>Internet dependency</strong><span>None for this page</span></div>
 <div class="tile"><strong>Database</strong><span>Not connected</span></div>
