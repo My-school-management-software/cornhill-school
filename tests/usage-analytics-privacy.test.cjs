@@ -32,7 +32,7 @@ test('usage notice explains pseudonymised account/browser identifiers and retent
 test('analytics does not collect full URLs, query strings or raw IP addresses', () => {
   assert.doesNotMatch(tracker, /location\.href|document\.URL|remoteAddress|x-forwarded-for/i);
   assert.match(tracker, /location\.pathname/);
-  assert.match(edge, /No request bodies, session tokens or user identifiers/);
+  assert.match(edge, /do not log request bodies, session tokens or user identifiers/i);
 });
 
 test('browser identifiers are HMAC-hashed before being written to the database', () => {
@@ -126,7 +126,7 @@ test('parent can share public school and admission links', () => {
 });
 
 test('Director usage report is hidden until Director authorization succeeds', () => {
-  assert.match(services, /id="schoolUsageAnalyticsCard" class="card hidden"/);
+  assert.match(services, /class="card hidden" id="schoolUsageAnalyticsCard"/);
   assert.match(services, /db\.rpc\('is_school_director'\)/);
   assert.match(services, /panel\.classList\.remove\('hidden'\)/);
 });
