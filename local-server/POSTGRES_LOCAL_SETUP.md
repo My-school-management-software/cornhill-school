@@ -46,7 +46,7 @@ The runner discovers all numbered SQL migration files, applies them in numeric o
 
 Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments. Migration 003 adds the failed-login rate-limit indexes. The migrations deliberately create no role-to-permission grants and no application database grants. They do not create staff or guardian logins, import records, or enable the application API.
 
-The migration runner and test verifiers use the development administrator account from `.env`. The separate `cornhill_auth_api` role is created with NOLOGIN, no password, no superuser attributes and explicit column-level privileges. Do not enable LOGIN or set a runtime password until the API wiring, private credential storage and full integration tests have passed. The local API must use `CORNHILL_DB_RUNTIME_USER` and `CORNHILL_DB_RUNTIME_PASSWORD`, never the administrator account.
+The migration runner and test verifiers use the development administrator account from `.env`. The separate `cornhill_auth_api` role is created with NOLOGIN, no password, no superuser attributes and explicit column-level privileges. Sequence usage is granted only for generated authentication attempt and audit-event IDs. Do not enable LOGIN or set a runtime password until the API wiring, private credential storage and full integration tests have passed. The local API must use `CORNHILL_DB_RUNTIME_USER` and `CORNHILL_DB_RUNTIME_PASSWORD`, never the administrator account.
 
 ## Verify the installed schema
 
