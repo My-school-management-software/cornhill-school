@@ -325,7 +325,7 @@
       '</div>' +
       '<form id="attendancePolicyForm" class="grid" style="margin-top:10px">' +
         '<div><label>Saturday start</label><input type="time" id="attendanceSaturdayStart" value="08:00" required></div>' +
-        '<div><label>Saturday end</label><input type="time" id="attendanceSaturdayEnd" value="15:00" required></div>' +
+        '<div><label>Saturday end</label><input type="time" id="attendanceSaturdayEnd" value="13:00" required></div>' +
         '<div><label>Review window</label><input type="number" value="120" disabled><small class="muted">Minutes · fixed two-hour protection</small></div>' +
         '<div><label>Prep deduction (UGX)</label><input type="number" min="0" step="1" id="attendancePrepDeduction" value="0"></div>' +
         '<div class="full"><label><input type="checkbox" id="attendancePrepEnabled"> Enable prep attendance/deduction policy when prep sessions are introduced</label></div>' +
@@ -346,10 +346,12 @@
       '<form id="staffPrepSessionForm" class="grid">' +
         '<div><label>Prep date *</label><input type="date" id="prepDate" required></div>' +
         '<div><label>Session title *</label><input id="prepTitle" maxlength="120" required placeholder="e.g. P.7 revision prep"></div>' +
+        '<div><label>Session type *</label><select id="prepSessionType" required><option value="evening_prep">Evening prep</option><option value="morning_winter">Morning winter</option><option value="saturday_study">Saturday study (8:00 AM–1:00 PM)</option></select></div>' +
         '<div><label>Class *</label><input id="prepClass" maxlength="60" required placeholder="P.7"></div>' +
-        '<div><label>Teacher assigned *</label><select id="prepStaffUser" required><option value="">Choose teacher</option></select></div>' +
+        '<div><label>Teachers assigned *</label><select id="prepStaffUser" multiple size="4" required></select><small class="muted">Select one or more assigned teachers.</small></div>' +
         '<div><label>Start time *</label><input type="time" id="prepStart" value="16:00" required></div>' +
         '<div><label>End time *</label><input type="time" id="prepEnd" value="18:00" required></div>' +
+        '<div><label>Special-session deduction (UGX)</label><input type="number" id="prepSessionDeduction" value="0" min="0" step="1"></div>' +
         '<div class="full"><label>Notes</label><input id="prepNotes" maxlength="500" placeholder="Optional Director instructions"></div>' +
         '<div class="full"><button type="submit" class="primary">Create prep session and assign teacher</button></div>' +
       '</form><div id="staffPrepSessionRows" class="muted">No prep sessions loaded.</div>' +
@@ -374,10 +376,17 @@
     const options = '<option value="">Choose active staff member</option>' +
       (result.data || []).map((x) => '<option value="' + x.id + '">' +
         html(x.full_name || x.job_title || 'Staff') + ' · ' + html(x.role || 'Staff') + '</option>').join('');
-    ['directorKioskStaff','directorSessionStaff','prepStaffUser'].forEach((id) => {
+    ['directorKioskStaff'].forEach((id) => {
       const select = byId(id);
       if (select) select.innerHTML = options;
     });
+    const prepSelect = byId('prepStaffUser');
+    if (prepSelect) prepSelect.innerHTML = (result.data || []).map((x) =>
+      '<option value="' + x.id + '">' + html(x.full_name || x.job_title || 'Staff') +
+      ' · ' + html(x.role || 'Staff') + '</option>'
+    ).join('');
+    const sessionStaff = byId('directorSessionStaff');
+    if (sessionStaff) sessionStaff.innerHTML = '<option value="">Choose an approved session first</option>';
   }
 
   async function loadDirectorSpecialSessions() {
@@ -399,6 +408,29 @@
         html(x.prep_date) + ' · ' + html(x.class_name) + ' · ' + html(x.title) +
         ' (' + html((x.session_type || '').replace(/_/g,' ')) + ')</option>').join('') ||
       '<option value="">No approved special sessions</option>';
+  }
+
+  async function loadDirectorSessionStaffOptions() {
+    const sessionId = byId('directorSessionChoice')?.value;
+    const select = byId('directorSessionStaff');
+    if (!select) return;
+    if (!sessionId) {
+      select.innerHTML = '<option value="">Choose an approved session first</option>';
+      return;
+    }
+    const result = await db.from('staff_prep_assignments')
+      .select('staff_user_id,user_profiles(full_name)')
+      .eq('prep_session_id',sessionId)
+      .order('assigned_at',{ascending:true});
+    if (result.error) {
+      select.innerHTML = '<option value="">Assigned staff could not load</option>';
+      safeMessage('attendanceMsg','Assigned staff for this session could not load: ' + result.error.message,true);
+      return;
+    }
+    select.innerHTML = '<option value="">Choose assigned staff</option>' +
+      (result.data || []).map((x) => '<option value="' + x.staff_user_id + '">' +
+        html(x.user_profiles?.full_name || 'Assigned staff member') + '</option>').join('');
+    if (!(result.data || []).length) select.innerHTML = '<option value="">No staff assigned</option>';
   }
 
   async function loadDirectorSettings() {
@@ -435,8 +467,11 @@
     const host = byId('staffPrepSessionRows');
     if (!host) return;
     const [sessions, assignments] = await Promise.all([
-      db.from('staff_prep_sessions').select('id,prep_date,title,start_time,end_time,class_name,notes,is_published').order('prep_date',{ascending:false}).limit(80),
-      db.from('staff_prep_assignments').select('prep_session_id,staff_user_id,user_profiles(full_name)').limit(200)
+      db.from('staff_prep_sessions')
+        .select('id,prep_date,title,start_time,end_time,class_name,notes,is_published,session_type,approval_status,deduction_amount_ugx')
+        .order('prep_date',{ascending:false}).limit(80),
+      db.from('staff_prep_assignments')
+        .select('prep_session_id,staff_user_id,user_profiles(full_name)').limit(300)
     ]);
     if (sessions.error || assignments.error) {
       host.textContent = 'Prep sessions could not load: ' + ((sessions.error || assignments.error).message || 'Database request failed');
@@ -447,12 +482,19 @@
       assigned[x.prep_session_id] = assigned[x.prep_session_id] || [];
       assigned[x.prep_session_id].push(x.user_profiles?.full_name || 'Staff member');
     });
-    host.innerHTML = (sessions.data || []).map((x) =>
-      '<div style="padding:8px;border-bottom:1px solid #eee"><strong>' + html(x.prep_date) + ' · ' + html(x.class_name) + '</strong> — ' +
-      html(x.title) + ' · ' + html(String(x.start_time).slice(0,5)) + '–' + html(String(x.end_time).slice(0,5)) +
-      '<br><small>Assigned: ' + html((assigned[x.id] || []).join(', ') || 'No teacher assigned') + '</small>' +
-      (x.notes ? '<br><small>' + html(x.notes) + '</small>' : '') + '</div>'
-    ).join('') || 'No prep sessions have been created.';
+    host.innerHTML = (sessions.data || []).map((x) => {
+      const approved = x.approval_status === 'approved' && x.is_published === true;
+      const approveButton = !approved && x.approval_status !== 'cancelled'
+        ? '<button type="button" data-approve-special-session="' + x.id + '">Approve and publish</button>'
+        : '<span class="badge">' + (approved ? 'Approved / published' : html(x.approval_status || 'draft')) + '</span>';
+      return '<div style="padding:8px;border-bottom:1px solid #eee"><strong>' + html(x.prep_date) + ' · ' +
+        html(x.class_name) + '</strong> — ' + html((x.session_type || 'evening_prep').replace(/_/g,' ')) +
+        ' · ' + html(x.title) + ' · ' + html(String(x.start_time).slice(0,5)) + '–' + html(String(x.end_time).slice(0,5)) +
+        '<br><small>Assigned: ' + html((assigned[x.id] || []).join(', ') || 'No teacher assigned') + '</small>' +
+        '<br><small>Special-session deduction proposal: ' + ugx(x.deduction_amount_ugx || 0) + '</small>' +
+        (x.notes ? '<br><small>' + html(x.notes) + '</small>' : '') +
+        '<div style="margin-top:6px">' + approveButton + '</div></div>';
+    }).join('') || 'No special sessions have been created.';
   }
 
   async function loadGovernanceIncidents() {
@@ -604,6 +646,8 @@
   }
 
   function installDirectorEventHandlers() {
+    byId('directorSessionChoice')?.addEventListener('change',loadDirectorSessionStaffOptions);
+
     byId('directorAttendanceKioskForm')?.addEventListener('submit',async (event) => {
       event.preventDefault();
       if (!isAdmin()) return;
@@ -698,32 +742,80 @@
       const prepDate = byId('prepDate').value;
       const title = byId('prepTitle').value.trim();
       const className = byId('prepClass').value.trim();
-      const staffId = byId('prepStaffUser').value;
+      const sessionType = byId('prepSessionType').value;
+      const staffIds = Array.from(byId('prepStaffUser').selectedOptions || [])
+        .map((option) => option.value).filter(Boolean);
       const start = byId('prepStart').value;
       const end = byId('prepEnd').value;
-      if (!prepDate || !title || !className || !staffId || !start || !end || end <= start) {
-        safeMessage('attendanceMsg','Complete the prep date, class, teacher and valid start/end times.',true);
+      const deduction = Number(byId('prepSessionDeduction').value || 0);
+      if (!prepDate || !title || !className || !staffIds.length || !sessionType ||
+          !start || !end || end <= start || !Number.isSafeInteger(deduction) || deduction < 0) {
+        safeMessage('attendanceMsg','Complete the date, session type, class, one or more teachers, valid times and non-negative whole-UGX deduction.',true);
+        return;
+      }
+      if (sessionType === 'saturday_study' && (start !== '08:00' || end !== '13:00')) {
+        safeMessage('attendanceMsg','Saturday study sessions must run from 8:00 AM to 1:00 PM.',true);
         return;
       }
       const session = await db.from('staff_prep_sessions').insert({
         prep_date:prepDate,title,start_time:start,end_time:end,class_name:className,
-        notes:byId('prepNotes').value.trim() || null,is_published:true,created_by:currentUserId
+        session_type:sessionType,deduction_amount_ugx:deduction,
+        approval_status:'draft',is_published:false,
+        notes:byId('prepNotes').value.trim() || null,created_by:currentUserId
       }).select('id').single();
       if (session.error) {
-        safeMessage('attendanceMsg','Prep session was not saved: ' + session.error.message,true);
+        safeMessage('attendanceMsg','Special session was not saved: ' + session.error.message,true);
         return;
       }
-      const assignment = await db.from('staff_prep_assignments').insert({
+      const assignmentRows = staffIds.map((staffId) => ({
         prep_session_id:session.data.id,staff_user_id:staffId,assigned_by:currentUserId
-      });
+      }));
+      const assignment = await db.from('staff_prep_assignments').insert(assignmentRows);
       if (assignment.error) {
-        safeMessage('attendanceMsg','Prep session was saved, but teacher assignment failed: ' + assignment.error.message,true);
+        await db.from('staff_prep_sessions').delete().eq('id',session.data.id);
+        safeMessage('attendanceMsg','The teacher assignments could not be saved. The incomplete session was removed: ' + assignment.error.message,true);
         await loadPrepSessions();
         return;
       }
+      const approval = await db.rpc('director_approve_staff_session',{p_session_id:session.data.id});
+      if (approval.error) {
+        safeMessage('attendanceMsg','Session and assignments were saved as a draft, but approval failed: ' + approval.error.message + '. Use Approve and publish in the session list after resolving the issue.',true);
+      } else {
+        safeMessage('attendanceMsg','Session approved and published. ' + Number(approval.data?.assigned_staff_count || staffIds.length) + ' staff member(s) are now available at the Director kiosk.');
+      }
       byId('staffPrepSessionForm').reset();
-      await loadPrepSessions();
-      safeMessage('attendanceMsg','Prep session created and assigned. Prep penalties remain separate from normal daily attendance.');
+      byId('prepStart').value='16:00';
+      byId('prepEnd').value='18:00';
+      byId('prepSessionDeduction').value='0';
+      await Promise.all([loadPrepSessions(),loadDirectorSpecialSessions()]);
+    });
+    byId('prepSessionType')?.addEventListener('change',() => {
+      const type = byId('prepSessionType').value;
+      if (type === 'saturday_study') {
+        byId('prepStart').value='08:00';
+        byId('prepEnd').value='13:00';
+      } else if (type === 'morning_winter') {
+        byId('prepStart').value='06:00';
+        byId('prepEnd').value='07:00';
+      } else {
+        byId('prepStart').value='16:00';
+        byId('prepEnd').value='18:00';
+      }
+    });
+    byId('staffPrepSessionRows')?.addEventListener('click',async (event) => {
+      const button = event.target.closest('[data-approve-special-session]');
+      if (!button || !isAdmin()) return;
+      const sessionId = button.dataset.approveSpecialSession;
+      if (!sessionId || !confirm('Approve and publish this special attendance session for the assigned staff?')) return;
+      button.disabled = true;
+      const result = await db.rpc('director_approve_staff_session',{p_session_id:sessionId});
+      if (result.error) {
+        button.disabled = false;
+        safeMessage('attendanceMsg','Special session could not be approved: ' + result.error.message,true);
+        return;
+      }
+      await Promise.all([loadPrepSessions(),loadDirectorSpecialSessions()]);
+      safeMessage('attendanceMsg','Special session approved and published. Assigned staff can now be recorded at the Director kiosk.');
     });
 
     byId('governanceIncidentRows')?.addEventListener('click',async (event) => {
