@@ -503,10 +503,8 @@ using (
     select 1 from public.payroll_periods pp
     where pp.id = payroll_items.payroll_period_id
       and pp.status in ('Draft','Returned')
-      and (
-        public.is_school_admin()
-        or (public.is_school_bursar_operator() and pp.created_by = (select auth.uid()))
-      )
+      and public.is_school_bursar_operator()
+      and pp.created_by = (select auth.uid())
   )
 )
 with check (
@@ -514,10 +512,8 @@ with check (
     select 1 from public.payroll_periods pp
     where pp.id = payroll_items.payroll_period_id
       and pp.status in ('Draft','Returned')
-      and (
-        public.is_school_admin()
-        or (public.is_school_bursar_operator() and pp.created_by = (select auth.uid()))
-      )
+      and public.is_school_bursar_operator()
+      and pp.created_by = (select auth.uid())
   )
 );
 
