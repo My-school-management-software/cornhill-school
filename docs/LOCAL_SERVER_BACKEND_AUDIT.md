@@ -51,7 +51,11 @@ The service worker attempts to cache the Supabase JS library from a public CDN. 
 
 The inspected pages contain absolute links to separate `*.vercel.app` hosts. The notifications workspace links to 18 distinct Vercel hostnames for the main system and satellite workspaces. Banking, records, evidence, admissions and public-site pages also contain cross-deployment links.
 
-A local pilot must use same-origin relative workspace routes (or a controlled environment-aware route map). Otherwise, a local operator may unintentionally leave the pilot and open a cloud page. This is a data-integrity and operator-confusion risk, not just a cosmetic issue.
+The shared `assets/app-isolation-guard.js` additionally hardcodes the deployed main-system URL and maps satellite deployment hostnames to their app routes. That hostname map is useful for the existing multi-domain deployment but is not a local-pilot route resolver.
+
+At least one inspected notification migration (`20261109202420_central_notifications_for_all_staff_services.sql`) stores absolute Vercel URLs in notification payloads for Noticeboard, School Calendar, Staff Communications, System Health and Provider Integrations. Therefore, changing HTML anchors alone will not be sufficient; generated notification URLs also need to be made environment-aware or rendered through a same-origin route resolver.
+
+A local pilot must use same-origin relative workspace routes (or a controlled environment-aware route map) for page links, the app-isolation guard and generated notification records. Otherwise, a local operator may unintentionally leave the pilot and open a cloud page. This is a data-integrity and operator-confusion risk, not just a cosmetic issue.
 
 ## Server-side and migration dependencies
 
@@ -119,7 +123,9 @@ These checks must be run after implementation; this audit does not claim that th
 - [x] Parent portal Edge Function dependency recorded.
 - [x] Vercel rewrite map and cross-workspace links inspected.
 - [x] Service-worker cache boundary recorded.
+- [x] Shared asset scripts inspected; the app-isolation guard's production hostname map identified.
 - [x] Main management `index.html` inspected for Supabase client, Edge Function endpoints and CDN dependencies.
+- [x] One notification migration inspected; database-stored cloud workspace URLs identified.
 - [ ] Remaining server-side route values, database-generated URLs and all scripts fully inventoried.
 - [x] Four Edge Function files and their environment-variable dependencies inspected.
 - [x] 213 migration files counted; selected scheduled-work migrations inspected for pg_cron, pg_net and Vault dependencies.
