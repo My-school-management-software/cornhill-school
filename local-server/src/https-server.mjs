@@ -124,7 +124,7 @@ export async function createCornhillHttpsServer({
     expectedHostname: origin.hostname
   });
 
-  return createHttpsServer({
+  const server = createHttpsServer({
     ...tls,
     minVersion: "TLSv1.2",
     maxVersion: "TLSv1.3",
