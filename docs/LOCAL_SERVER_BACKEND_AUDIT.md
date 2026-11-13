@@ -30,11 +30,16 @@ Authentication storage keys are deliberately different between several workspace
 
 The inspected `school.html` page is a public-information website and links to admissions and the parent portal. It does not show a direct Supabase client initialization in the inspected source. Its navigation currently points to separate Vercel deployment domains.
 
-### 3. The main management entry point still needs source inspection
+### 3. Main management entry point inspected
 
-`vercel.json` rewrites `/apps/school-management/` to `/index.html`. GitHub tree metadata reports `index.html` is 1,083,497 bytes, but the repository file-reading connector returned an empty body for that file, including for requested line ranges. Its actual backend initialisation, endpoints, direct fetches, and script loading have therefore **not** been verified in this audit.
+`vercel.json` rewrites `/apps/school-management/` to `/index.html`. The 1,083,497-byte `index.html` was retrieved through its Git blob and inspected.
 
-Do not implement the runtime switch or claim that the full system is locally configurable until the main `index.html` and any scripts it loads are inspected by a reliable method.
+- The management page embeds the same hosted Supabase project URL and a browser publishable key, then creates the main Supabase client.
+- It loads Supabase JS from jsDelivr using the floating `@2` tag, plus QR-code and spreadsheet libraries from CDNs.
+- It directly calls two Supabase Edge Functions: `google-drive-backup` and `parent-portal-api`.
+- The main page does not contain a hard-coded `*.vercel.app` destination in the inspected source; the separate workspace pages and some database-generated notification records do contain cloud deployment URLs.
+
+This closes the main-page source gap, but the scripts, Edge Functions, database-stored route values and every migration still need to be considered before declaring the full application local-ready.
 
 ### 4. Current service-worker boundary
 
@@ -48,6 +53,28 @@ The inspected pages contain absolute links to separate `*.vercel.app` hosts. The
 
 A local pilot must use same-origin relative workspace routes (or a controlled environment-aware route map). Otherwise, a local operator may unintentionally leave the pilot and open a cloud page. This is a data-integrity and operator-confusion risk, not just a cosmetic issue.
 
+## Server-side and migration dependencies
+
+The repository tree contains four Edge Function implementations and 213 SQL migrations under `supabase/migrations/`. The four function files were inspected for runtime configuration, privileges and external services:
+
+| Edge Function | Server-side dependencies to configure for local pilot |
+|---|---|
+| `class-teacher-code` | Reads `SUPABASE_URL` and a server-only secret/service-role key; imports Supabase JS from `esm.sh`. |
+| `staff-invite` | Reads `SUPABASE_URL` and a server-only secret/service-role key; imports Supabase JS from `esm.sh`. |
+| `parent-portal-api` | Uses a server-only service-role key; its CORS allow-list currently names production Vercel origins and will not admit a school LAN origin by default. The local origin must be explicitly configured without making sensitive guardian endpoints public. |
+| `google-drive-backup` | Uses a server-only Supabase key, `BACKUP_ENCRYPTION_KEY`, Google OAuth client/secret/redirect settings and external Google OAuth/Drive APIs. Its return URL defaults to a Vercel site unless `APP_BASE_URL` is set. Google Drive backup requires internet access and must not be treated as the school's only offline backup. |
+
+The Edge Functions import Supabase JS through remote `esm.sh` or `npm:` specifiers. Pin and pre-cache/vendor dependencies as appropriate for the local deployment; do not assume the first function startup can resolve dependencies without internet.
+
+Selected migrations confirm that the system uses platform extensions and scheduled work:
+
+- A staff-attendance alert job is registered with `pg_cron` on a five-minute schedule.
+- The scheduled Google Drive backup path uses `pg_cron`, `pg_net`, and Vault-stored URL/token values to call the `google-drive-backup` Edge Function.
+- The notification records scanner also registers scheduled work through `pg_cron`.
+- Parent payment SMS is first placed into a protected `school_sms_outbox` table by a database trigger. Provider delivery is a separate dependency and is not proven by the outbox migration alone.
+
+The repository tree does not contain `supabase/config.toml` or a `supabase/seed.sql` file. The 213 migration files must be reviewed and applied in order against a clean local database, with a reproducible local configuration and a separate synthetic-data seed plan. Check extension availability, Vault secrets, scheduled jobs, function environment variables, auth redirects, storage buckets and CORS before declaring service parity.
+
 ## Recommended implementation design
 
 1. Complete the source inventory, starting with `index.html` and any scripts that it loads. Enumerate Supabase clients, direct REST/Edge Function URLs, Storage operations, auth redirects, Realtime subscriptions, CDN scripts and absolute workspace links.
@@ -58,6 +85,8 @@ A local pilot must use same-origin relative workspace routes (or a controlled en
 6. Replace hard-coded external workspace links with same-origin routes for the local environment. Verify every route in `vercel.json` has a matching local static-host route.
 7. Pin and serve the browser client library locally. Confirm local Auth, REST, Realtime and private Storage behavior before testing any school workflow.
 8. Keep separate local test users and synthetic records. Do not copy live learner, staff, guardian, attendance or finance data into this pilot.
+9. Configure and verify the four Edge Functions, their server-only secrets, the parent portal LAN-origin allow-list and the Google Drive callback URL.
+10. Verify `pg_cron`, `pg_net`, Vault secrets and each scheduled job on the self-hosted stack. Keep SMS and Google Drive outbound delivery disabled during LAN-only tests.
 
 ## Acceptance checks for the backend-switch batch
 
@@ -77,10 +106,10 @@ These checks must be run after implementation; this audit does not claim that th
 12. Auth sign-in, sign-out and refresh work against the local Auth service.
 13. Parent guardian verification remains isolated to the selected learner and guardian.
 14. Private evidence upload, signed URL and download work against local Storage policies.
-15. Realtime-dependent screens reconnect to the local Realtime service.
+15. Realtime-dependent screens reconnect to the local Realtime service, and the required scheduled jobs run on local extensions.
 16. Missing or invalid local configuration fails visibly and does not contact production.
-17. No local navigation link opens a cloud Vercel workspace.
-18. The app shell and required libraries load after the pilot device has been disconnected from the internet.
+17. No local navigation link or generated notification opens a cloud Vercel workspace.
+18. The app shell, pinned JS libraries and Edge Functions start successfully without relying on an unplanned CDN fetch.
 19. At least ten concurrent LAN sessions can use the isolated environment without cross-session data leakage.
 20. After a test transaction, a restart and a backup/restore rehearsal preserve the test data and referential integrity.
 
@@ -90,8 +119,10 @@ These checks must be run after implementation; this audit does not claim that th
 - [x] Parent portal Edge Function dependency recorded.
 - [x] Vercel rewrite map and cross-workspace links inspected.
 - [x] Service-worker cache boundary recorded.
-- [ ] Main management `index.html` and its loaded scripts fully inspected.
-- [ ] Complete direct-endpoint and route inventory signed off.
+- [x] Main management `index.html` inspected for Supabase client, Edge Function endpoints and CDN dependencies.
+- [ ] Remaining server-side route values, database-generated URLs and all scripts fully inventoried.
+- [x] Four Edge Function files and their environment-variable dependencies inspected.
+- [x] 213 migration files counted; selected scheduled-work migrations inspected for pg_cron, pg_net and Vault dependencies.
 - [ ] Shared runtime configuration implemented and tested.
 - [ ] Same-origin local navigation implemented and tested.
 - [ ] Local Supabase functions, Auth, Realtime and Storage tested.
