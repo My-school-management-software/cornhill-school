@@ -77,6 +77,9 @@ jobs:
       - name: Exercise PostgreSQL authentication repositories
         run: npm run db:verify-auth
 
+      - name: Verify least-privilege authentication database role
+        run: npm run db:verify-runtime
+
   windows-unit:
     runs-on: windows-latest
     defaults:
