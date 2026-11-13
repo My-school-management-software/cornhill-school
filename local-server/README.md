@@ -10,13 +10,15 @@ This folder contains the isolated local-server foundation for the move away from
 - A permission catalog with no default role grants.
 - Staff-to-class assignment records, guardian learner-scope checks and deny-by-default authorization helpers.
 - An Argon2id adapter pinned to `@node-rs/argon2@2.2.2`.
-- Staff/guardian authentication service contracts, opaque session and CSRF tokens, and secure cookie helpers.
+- Staff/guardian authentication service contracts, opaque session and CSRF tokens, secure session/CSRF cookie helpers, and an HTTPS-only authentication HTTP route handler.
 - PostgreSQL account, session, audit and transaction-locked login-attempt repositories.
 - PostgreSQL permission, staff class-scope and guardian approved-learner-scope repositories.
 - A disposable PostgreSQL integration verifier for concurrent login throttling, role grants, class/guardian scope and session create/revoke.
 - A database-role verifier that checks exact column-level privileges and ensures the runtime role remains NOLOGIN.
 - Loopback-only database connection configuration and an ordered checksum-tracked migration runner.
 - GitHub Actions checks for Ubuntu/PostgreSQL integration and Windows unit tests.
+
+Authentication HTTP routes are defined in `src/security/auth-http-handler.mjs`, but are not wired to the health-only server. They reject requests unless HTTPS is confirmed and an exact configured HTTPS origin/Host is used.
 
 ## Run the health-only scaffold
 
