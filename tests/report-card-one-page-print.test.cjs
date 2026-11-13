@@ -67,6 +67,16 @@ test('the printed report card has a visible frame and sensible inner spacing', (
   assert.match(html, /cornhill-dynamic-report-page-/);
 });
 
+test('report-card print typography stays readable while preserving compact tables', () => {
+  assert.match(css, /font-size:\\s*8\\.5pt\\s*!important/);
+  assert.match(css, /report-school-head h1\\s*\\{[^}]*font-size:\\s*15pt\\s*!important/s);
+  assert.match(css, /report-school-head h2\\s*\\{[^}]*font-size:\\s*9pt\\s*!important/s);
+  assert.match(css, /report-identity\\s*\\{[^}]*font-size:\\s*8pt\\s*!important/s);
+  assert.match(css, /report-marks th,\\s*body\\.print-official-report #reportCardPreview \\.report-marks td\\s*\\{[^}]*font-size:\\s*7pt\\s*!important/s);
+  assert.match(css, /report-comments\\s*\\{[^}]*font-size:\\s*7\\.5pt\\s*!important/s);
+  assert.match(css, /report-footer\\s*\\{[^}]*font-size:\\s*7pt\\s*!important/s);
+});
+
 test('individual and batch print actions use the same measured page layout', () => {
   assert.match(html, /printCornhillReportCards\(preview,'print-official-report','\.cornhill-report-card'\)/);
   assert.match(html, /printCornhillReportCards\(\$\('reportBatchPrint'\),'print-report-batch','\.batch-report-card'\)/);
