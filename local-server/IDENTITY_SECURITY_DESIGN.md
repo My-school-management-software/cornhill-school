@@ -30,8 +30,8 @@ Status: isolated database schema, server-side authorization helpers, Argon2id ad
 - The permission catalog includes specific learner, academics, finance, staff, guardian and system capabilities.
 - No role permissions are granted by default. A school-approved permission matrix is required before accounts can perform protected operations.
 - Role names alone never authorise a workflow.
-- Staff class-specific access requires a separate active class assignment.
-- Parent/guardian routes are a separate API surface and may return only approved information for the learner(s) mapped to that guardian.
+- Staff class-specific access requires a separate active class assignment verified against the database. Explicit role permission grants are loaded separately from role names.
+- Parent/guardian routes are a separate API surface. The PostgreSQL repository checks the active guardian account and exact approved guardian-to-learner mapping for each learner-specific request. A learner code alone is never sufficient.
 - High-risk actions (finance posting/reversal, marks publication, staff access changes, guardian approvals and payroll) require server-side permission checks and audit events.
 
 ## Audit and privacy
