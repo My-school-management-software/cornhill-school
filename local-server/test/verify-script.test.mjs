@@ -15,7 +15,7 @@ test("PostgreSQL integration verifier checks all eleven identity and authorizati
 
 test("PostgreSQL integration verifier checks seeded roles, permission catalog and empty grants", () => {
   assert.match(source, /count\s*!==\s*17/);
-  assert.match(source, /count\\s*!==\\s*19/);
+  assert.match(source, /count\s*!==\s*19/);
   assert.match(source, /roleGrants\.rows\[0\]\?\.count\s*!==\s*0/);
   assert.match(source, /a\.grantee\s*=\s*0/);
   assert.match(source, /PUBLIC unexpectedly has access/);
