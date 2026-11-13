@@ -25,7 +25,7 @@ test('Store Managers get the Inventory workspace without inheriting Bursar or te
   assert.match(dashboard, /storeManager&&key==='inventory'/);
   assert.match(dashboard, /const inventory=isCornhillStoreManager\(\)&&name==='inventory'/);
   assert.match(dashboard, /profile\?\.role==='Admin'\|\|isCornhillStoreManager\(\)/);
-  assert.match(dashboard, /Director &amp; Store Manager/);
+  assert.match(dashboard, /Director & Store Manager/);
 });
 
 test('Bursar collection screen remains Bursar-only while Director retains finance overview', () => {
@@ -91,7 +91,7 @@ test('payroll preparation, independent approval and return have separate state t
   const approve = section(draft, 'create or replace function public.approve_school_payroll', '$function$;');
   const returned = section(draft, 'create or replace function public.return_school_payroll', '$function$;');
   assert.match(submit, /public\.is_school_bursar_operator\(\)/);
-  assert.match(submit, /status in \('Draft','Returned'\)/);
+  assert.match(submit, /status not in \\('Draft','Returned'\\)/);
   assert.match(submit, /status = 'Submitted'/);
   assert.match(approve, /public\.is_school_admin\(\)/);
   assert.match(approve, /v_period\.created_by = auth\.uid\(\)/);
@@ -131,5 +131,6 @@ test('Director approval snapshots net pay; Bursar payment RPC can only record an
 });
 
 test('the existing payroll triggers are retained for salary expenses, advance recovery and staff notices', () => {
-  assert.match(draft, /Existing payroll triggers still create the salary expense, settle advance\s+recovery and notify the staff member/);
+  assert.doesNotMatch(draft, /drop trigger if exists (school_payroll_item_notification|trg_apply_attendance_deductions_to_payroll|trg_create_payroll_expense_on_payment|trg_settle_staff_advance_recovery)/i);
+  assert.doesNotMatch(draft, /drop function if exists public\\.(create_payroll_expense_on_payment|settle_staff_advance_recovery|notify_school_payroll_item_event|apply_attendance_deductions_to_payroll)/i);
 });
