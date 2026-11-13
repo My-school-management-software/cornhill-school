@@ -128,6 +128,8 @@ async function signInGuardian(){
   try{
     const data=await parentApi('verify',payload);
     parentSessionToken=data.session_token;
+    window.CornhillUsageAnalytics?.trackParentSession?.(parentSessionToken,'parent_login_success');
+    window.CornhillUsageAnalytics?.trackParentSession?.(parentSessionToken,'page_view');
     renderLearner(data.learner);
     el('loginCard').classList.add('hidden');
     el('parentMessages').classList.remove('hidden');
@@ -135,6 +137,7 @@ async function signInGuardian(){
     await Promise.all([loadParentPhoto(),loadParentDirectory(),loadParentMessages()]);
   }catch(e){
     parentSessionToken=null;
+    window.CornhillUsageAnalytics?.track?.('parent_login_failure','parent_portal');
     message('loginMessage',e.message||'Guardian verification failed. Check the learner code and registered phone number, or contact the school office.','error');
     if(/setting changed|Guardian PIN is now required/i.test(e.message||''))await loadGuardianAuthSettings();
   }finally{
