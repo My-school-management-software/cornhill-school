@@ -10,6 +10,8 @@ const repositories = createPostgresAuthRepositories(pool);
 const staffId = randomUUID();
 const guardianId = randomUUID();
 const classId = randomUUID();
+const learnerId = randomUUID();
+const otherLearnerId = randomUUID();
 const correlationId = randomUUID();
 const suffix = randomBytes(8).toString("hex");
 const username = "ci_" + suffix;
@@ -53,6 +55,53 @@ try {
   assert.equal(guardian.id, guardianId);
   assert.equal(guardian.accountStatus, "active");
   assert.equal(guardian.pinHash, fakeArgon2idHash);
+
+  // A new staff role has no privileges until an explicit grant exists.
+  assert.deepEqual(
+    await repositories.permissionRepository.getGrantedPermissionsForStaff({ staffAccountId: staffId }),
+    []
+  );
+  await pool.query(`
+    INSERT INTO cornhill_auth.staff_role_permissions
+      (role_code, permission_code, granted_by_staff_id)
+    VALUES ('teacher', 'academics.marks_enter', $1)
+  `, [staffId]);
+  assert.deepEqual(
+    await repositories.permissionRepository.getGrantedPermissionsForStaff({ staffAccountId: staffId }),
+    ["academics.marks_enter"]
+  );
+
+  assert.equal(await repositories.classAccessRepository.hasActiveClassAssignment({
+    staffAccountId: staffId, classId
+  }), true);
+  await pool.query(`
+    UPDATE cornhill_auth.staff_class_assignments
+    SET is_active = false, ended_at = now()
+    WHERE staff_account_id = $1 AND class_id = $2
+  `, [staffId, classId]);
+  assert.equal(await repositories.classAccessRepository.hasActiveClassAssignment({
+    staffAccountId: staffId, classId
+  }), false);
+
+  await pool.query(`
+    INSERT INTO cornhill_auth.guardian_learner_access
+      (guardian_account_id, learner_id, access_status, approved_by_staff_id, approved_at)
+    VALUES ($1, $2, 'approved', $3, now())
+  `, [guardianId, learnerId, staffId]);
+  assert.equal(await repositories.guardianAccessRepository.hasApprovedLearnerAccess({
+    guardianAccountId: guardianId, learnerId
+  }), true);
+  assert.equal(await repositories.guardianAccessRepository.hasApprovedLearnerAccess({
+    guardianAccountId: guardianId, learnerId: otherLearnerId
+  }), false);
+  await pool.query(`
+    UPDATE cornhill_auth.guardian_learner_access
+    SET access_status = 'revoked', revoked_at = now()
+    WHERE guardian_account_id = $1 AND learner_id = $2
+  `, [guardianId, learnerId]);
+  assert.equal(await repositories.guardianAccessRepository.hasApprovedLearnerAccess({
+    guardianAccountId: guardianId, learnerId
+  }), false);
 
   const concurrencyIdentifier = fingerprints[0];
   const concurrencySource = fingerprints[1];
@@ -103,8 +152,18 @@ try {
   });
   assert.equal(blockedDifferentAccount.allowed, false);
 
-  const sessionTokenHash = fingerprints[2];
-  const csrfTokenHash = fingerprints[3];
+  const sessionAttempt = await repositories.loginAttemptStore.beginAttempt({
+    principalType: "staff",
+    identifierFingerprint: fingerprints[2],
+    sourceFingerprint: null,
+    attemptedAt: new Date(),
+    windowMs: 15 * 60 * 1000,
+    maxFailedAttempts: 5
+  });
+  assert.equal(sessionAttempt.allowed, true);
+
+  const sessionTokenHash = fingerprints[3];
+  const csrfTokenHash = fingerprints[2];
   await repositories.sessionRepository.createAuthenticatedSession({
     principalType: "staff",
     accountId: staffId,
@@ -112,8 +171,15 @@ try {
     csrfTokenHash,
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    correlationId
+    correlationId,
+    loginAttemptId: sessionAttempt.attemptId
   });
+
+  const completedAttempt = await pool.query(
+    "SELECT succeeded FROM cornhill_auth.login_attempts WHERE id = $1::bigint",
+    [sessionAttempt.attemptId]
+  );
+  assert.equal(completedAttempt.rows[0]?.succeeded, true);
 
   const storedSession = await repositories.sessionRepository.findActiveSessionByTokenHash(sessionTokenHash);
   assert.equal(storedSession.staffAccountId, staffId);
@@ -134,12 +200,14 @@ try {
 } finally {
   // Delete only the unique disposable fixture rows created by this verifier.
   await pool.query("DELETE FROM cornhill_auth.auth_sessions WHERE staff_account_id = $1 OR guardian_account_id = $2", [staffId, guardianId]);
+  await pool.query("DELETE FROM cornhill_auth.guardian_learner_access WHERE guardian_account_id = $1", [guardianId]);
+  await pool.query("DELETE FROM cornhill_auth.staff_role_permissions WHERE role_code = 'teacher' AND permission_code = 'academics.marks_enter' AND granted_by_staff_id = $1", [staffId]);
   await pool.query("DELETE FROM cornhill_auth.staff_class_assignments WHERE staff_account_id = $1", [staffId]);
   await pool.query("DELETE FROM cornhill_auth.staff_role_assignments WHERE staff_account_id = $1", [staffId]);
   await pool.query("DELETE FROM cornhill_auth.security_audit_events WHERE correlation_id = $1", [correlationId]);
   await pool.query(
-    "DELETE FROM cornhill_auth.login_attempts WHERE identifier_fingerprint = $1 OR source_fingerprint = $2",
-    [fingerprints[0], fingerprints[1]]
+    "DELETE FROM cornhill_auth.login_attempts WHERE identifier_fingerprint = ANY($1::varchar[]) OR source_fingerprint = $2",
+    [[fingerprints[0], fingerprints[2]], fingerprints[1]]
   );
   await pool.query("DELETE FROM cornhill_auth.staff_accounts WHERE id = $1", [staffId]);
   await pool.query("DELETE FROM cornhill_auth.guardian_accounts WHERE id = $1", [guardianId]);
