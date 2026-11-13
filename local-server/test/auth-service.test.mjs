@@ -343,14 +343,36 @@ test("safe methods do not require a CSRF token", async () => {
   const principal = await service.authenticate({ sessionToken: SESSION.sessionToken, method: "GET" });
   assert.equal(principal.id, STAFF_ID);
 });
-test("logout revokes the stored token hash without requiring a raw token in storage", async () => {
-  const { service, calls } = fixture();
-  assert.equal(await service.logout({ sessionToken: SESSION.sessionToken }), true);
+test("logout requires a valid session and CSRF token before revoking", async () => {
+  const { service, state, calls } = fixture();
+  state.sessionRow = {
+    principalType: "staff", staffAccountId: STAFF_ID, guardianAccountId: null,
+    tokenHash: SESSION.sessionTokenHash, csrfTokenHash: SESSION.csrfTokenHash,
+    accountStatus: "active", expiresAt: new Date(NOW.getTime() + 60_000),
+    revokedAt: null
+  };
+  assert.equal(await service.logout({
+    sessionToken: SESSION.sessionToken, csrfToken: SESSION.csrfToken
+  }), true);
   assert.equal(calls.revoked[0].hash, SESSION.sessionTokenHash);
   assert.notEqual(calls.revoked[0].hash, SESSION.sessionToken);
 });
+test("logout refuses a missing or invalid CSRF token", async () => {
+  const { service, state, calls } = fixture();
+  state.sessionRow = {
+    principalType: "staff", staffAccountId: STAFF_ID, guardianAccountId: null,
+    tokenHash: SESSION.sessionTokenHash, csrfTokenHash: SESSION.csrfTokenHash,
+    accountStatus: "active", expiresAt: new Date(NOW.getTime() + 60_000),
+    revokedAt: null
+  };
+  assert.equal(await service.logout({ sessionToken: SESSION.sessionToken }), false);
+  assert.equal(await service.logout({
+    sessionToken: SESSION.sessionToken, csrfToken: "wrong"
+  }), false);
+  assert.equal(calls.revoked.length, 0);
+});
 test("logout rejects malformed tokens without repository access", async () => {
   const { service, calls } = fixture();
-  assert.equal(await service.logout({ sessionToken: "bad" }), false);
+  assert.equal(await service.logout({ sessionToken: "bad", csrfToken: SESSION.csrfToken }), false);
   assert.equal(calls.revoked.length, 0);
 });
