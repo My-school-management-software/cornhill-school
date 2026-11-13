@@ -145,8 +145,8 @@ CREATE TABLE cornhill_school.guardian_contacts (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT guardian_name_length CHECK (length(trim(guardian_name)) BETWEEN 2 AND 140),
-    CONSTRAINT guardian_phone_ug_format CHECK (phone_e164 IS NULL OR phone_e164 ~ '^\\+256[0-9]{9}$'),
-    CONSTRAINT guardian_whatsapp_ug_format CHECK (whatsapp_e164 IS NULL OR whatsapp_e164 ~ '^\\+256[0-9]{9}$'),
+    CONSTRAINT guardian_phone_ug_format CHECK (phone_e164 IS NULL OR phone_e164 ~ '^\+256[0-9]{9}$'),
+    CONSTRAINT guardian_whatsapp_ug_format CHECK (whatsapp_e164 IS NULL OR whatsapp_e164 ~ '^\+256[0-9]{9}$'),
     CONSTRAINT guardian_email_length CHECK (email IS NULL OR length(email) <= 254)
 );
 
