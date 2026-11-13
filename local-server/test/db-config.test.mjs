@@ -54,3 +54,21 @@ test("database config is immutable and limits pool size", () => {
   assert.equal(config.max, 5);
   assert.equal(config.connectionTimeoutMillis, 5000);
 });
+
+test("database config accepts localhost as a loopback alias", () => {
+  assert.equal(readLocalDatabaseConfig({ ...valid, CORNHILL_DB_HOST: "localhost" }).host, "localhost");
+});
+
+test("database config accepts the permitted port boundaries", () => {
+  assert.equal(readLocalDatabaseConfig({ ...valid, CORNHILL_DB_PORT: "1024" }).port, 1024);
+  assert.equal(readLocalDatabaseConfig({ ...valid, CORNHILL_DB_PORT: "65535" }).port, 65535);
+});
+
+test("database config rejects usernames longer than the database identifier limit", () => {
+  assert.throws(() => readLocalDatabaseConfig({ ...valid, CORNHILL_DB_ADMIN_USER: "u".repeat(64) }), /username/);
+});
+
+test("database password minimum is measured in UTF-8 bytes", () => {
+  assert.throws(() => readLocalDatabaseConfig({ ...valid, CORNHILL_DB_ADMIN_PASSWORD: "é".repeat(11) }), /24 bytes/);
+  assert.equal(readLocalDatabaseConfig({ ...valid, CORNHILL_DB_ADMIN_PASSWORD: "é".repeat(12) }).password, "é".repeat(12));
+});
