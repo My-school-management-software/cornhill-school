@@ -137,7 +137,10 @@ try {
   await pool.query("DELETE FROM cornhill_auth.staff_class_assignments WHERE staff_account_id = $1", [staffId]);
   await pool.query("DELETE FROM cornhill_auth.staff_role_assignments WHERE staff_account_id = $1", [staffId]);
   await pool.query("DELETE FROM cornhill_auth.security_audit_events WHERE correlation_id = $1", [correlationId]);
-  await pool.query("DELETE FROM cornhill_auth.login_attempts WHERE identifier_fingerprint = $1", [fingerprints[0]]);
+  await pool.query(
+    "DELETE FROM cornhill_auth.login_attempts WHERE identifier_fingerprint = $1 OR source_fingerprint = $2",
+    [fingerprints[0], fingerprints[1]]
+  );
   await pool.query("DELETE FROM cornhill_auth.staff_accounts WHERE id = $1", [staffId]);
   await pool.query("DELETE FROM cornhill_auth.guardian_accounts WHERE id = $1", [guardianId]);
   await pool.end();
