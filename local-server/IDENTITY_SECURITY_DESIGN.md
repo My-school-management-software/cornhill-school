@@ -48,12 +48,12 @@ Status: isolated database schema, server-side authorization helpers, Argon2id ad
 - Migration files 001–004 are for a new local PostgreSQL database only. None has been run against Supabase or any production database.
 - Legacy Supabase Auth user UUIDs can be recorded for controlled mapping, but the actual user export/import is a separate approved migration stage.
 - Learner and class foreign keys are intentionally deferred until local learner/class schemas and UUID mappings have been validated.
-- An HTTPS-only authentication route handler has been implemented but is not wired to the HTTP scaffold. A real trusted local HTTPS listener and certificate lifecycle must be completed first. The current server remains loopback-only and health-only. The runtime DB role remains NOLOGIN and no runtime password is stored in source control.
+- An HTTPS-only authentication handler, TLS server factory and explicit launcher have been implemented. The launcher is configured for loopback only, checks certificate SAN/validity and refuses private key files inside the repository. It is not enabled by the health-only app. The runtime DB roles remain NOLOGIN, and no runtime password or private TLS key is stored in source control.
 
 ## Next implementation gates
 
 1. Run migrations 001–004 against disposable PostgreSQL 17 and confirm the schema, auth repository and least-privilege role verifiers pass.
 2. Add a private, persistent HMAC fingerprint secret and dedicated runtime DB password to local configuration only after the security review; the role must remain NOLOGIN until then.
-3. Connect the authentication runtime factory and HTTPS-only route handler to a loopback-only HTTPS listener with a trusted certificate.
+3. Provision and verify a locally trusted certificate outside the repository, then run the explicit HTTPS launcher on loopback only.
 4. Complete and test administrator bootstrap and the school-approved role-permission matrix.
 5. Run browser/API integration tests and a security review before any LAN exposure.
