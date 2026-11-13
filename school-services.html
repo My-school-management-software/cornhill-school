@@ -462,7 +462,9 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
         <div class="stat"><small>Public visitors</small><strong id="usagePublicVisitors">—</strong></div>
         <div class="stat"><small>Guardian accounts</small><strong id="usageGuardianAccounts">—</strong></div>
         <div class="stat"><small>Staff accounts</small><strong id="usageStaffAccounts">—</strong></div>
-        <div class="stat"><small>Admission enquiries received</small><strong id="usageAdmissionAccepted">—</strong></div>
+        <div class="stat"><small>Admission form starts</small><strong id="usageAdmissionStarts">—</strong></div>
+        <div class="stat"><small>Submission attempts</small><strong id="usageAdmissionAttempts">—</strong></div>
+        <div class="stat"><small>Enquiries received</small><strong id="usageAdmissionAccepted">—</strong></div>
       </div>
       <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px">
         <div><h4>Most-used workspaces</h4><div class="table-wrap"><table><thead><tr><th>Workspace</th><th>Visits</th><th>Public visitors</th><th>Guardian accounts</th><th>Staff accounts</th></tr></thead><tbody id="usageWorkspaceRows"><tr><td colspan="5">No report loaded.</td></tr></tbody></table></div></div>
@@ -1203,7 +1205,9 @@ if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWo
       byId('usagePublicVisitors').textContent=number(summary.public_visitors);
       byId('usageGuardianAccounts').textContent=number(summary.guardian_accounts);
       byId('usageStaffAccounts').textContent=number(summary.staff_accounts);
-      byId('usageAdmissionAccepted').textContent=number(summary.admission_form_submissions);
+      byId('usageAdmissionStarts').textContent=number(summary.admission_form_starts);
+      byId('usageAdmissionAttempts').textContent=number(summary.admission_form_attempts);
+      byId('usageAdmissionAccepted').textContent=number(summary.admission_form_accepted);
       byId('usageWorkspaceRows').innerHTML=(report.by_workspace||[]).map(x=>'<tr><td>'+escapeHtml(String(x.workspace||'').replace(/_/g,' '))+'</td><td>'+number(x.views)+'</td><td>'+number(x.unique_visitors)+'</td><td>'+number(x.guardian_accounts)+'</td><td>'+number(x.staff_accounts)+'</td></tr>').join('')||'<tr><td colspan="5">No visits recorded in this date range.</td></tr>';
       byId('usageDeviceRows').innerHTML=(report.by_device||[]).map(x=>'<tr><td>'+escapeHtml(x.device)+'</td><td>'+number(x.events)+'</td></tr>').join('')||'<tr><td colspan="2">No device totals recorded.</td></tr>';
       byId('usageDailyRows').innerHTML=(report.daily_trend||[]).map(x=>'<tr><td>'+escapeHtml(x.date)+'</td><td>'+number(x.events)+'</td><td>'+number(x.public_visitors)+'</td><td>'+number(x.guardian_accounts)+'</td><td>'+number(x.staff_accounts)+'</td></tr>').join('')||'<tr><td colspan="5">No daily usage recorded.</td></tr>';
