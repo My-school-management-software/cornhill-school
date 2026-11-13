@@ -39,6 +39,6 @@ The current Node test suite covers:
 
 ## Important permission-design gate
 
-The role matrix in the current primitive module is a conservative initial draft only. Before it is wired into routes, the school must review exact responsibilities, delegated approvals, class assignments and segregation of duties. The production API must combine role permission with resource scope and account status. A role name alone must never grant access to every learner or class.
+The role matrix in the current primitive module is a conservative initial draft only. It uses an explicit finite permission list (no wildcard grants); any new permission must be added deliberately. Before it is wired into routes, the school must review exact responsibilities, delegated approvals, class assignments and segregation of duties. The production API must combine role permission with resource scope and account status. A role name alone must never grant access to every learner or class.
 
 The local API must not accept role codes or guardian learner IDs as authority from the browser. It must resolve them from trusted database records on every request.
