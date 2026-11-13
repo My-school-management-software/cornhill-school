@@ -7,7 +7,7 @@ This folder contains the isolated local-server foundation for the move away from
 - A Node.js health-only HTTP server and local status page.
 - A separate loopback-only HTTPS server and explicit `npm run start:auth` launcher; it is not started automatically.
 - Automated tests for health routes, prototype warnings, unavailable routes and rejected write methods.
-- Four additive local PostgreSQL migrations: identity/session tables, authorisation catalog and class scope, authentication rate-limit indexes, and a NOLOGIN least-privilege auth API database role.
+- Five additive local PostgreSQL migrations: identity/session tables, authorisation catalog and class scope, authentication rate-limit indexes, a NOLOGIN least-privilege auth API database role, and isolated learner/admissions records with permanent pupil codes and LIN.
 - A permission catalog with no default role grants.
 - Staff-to-class assignment records, guardian learner-scope checks and deny-by-default authorization helpers.
 - An Argon2id adapter pinned to `@node-rs/argon2@2.2.2`.
