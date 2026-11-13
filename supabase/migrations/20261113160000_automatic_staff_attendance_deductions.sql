@@ -19,6 +19,7 @@ declare
   v_enabled boolean := false;
   v_scheduled_count integer := 0;
   v_clocked_count integer := 0;
+  v_latest_cutoff timestamp without time zone;
   v_incident record;
   v_daily_rate bigint;
   v_already_approved bigint;
@@ -73,7 +74,22 @@ begin
         and s.weekdays @> array[extract(dow from v_today)::smallint])
     );
 
-  if v_scheduled_count>0 and v_clocked_count=0 then
+  select max(
+    v_today + case when extract(dow from v_today)=6
+      then coalesce(s.saturday_start_time,time '08:00')
+      else s.start_time end
+      + make_interval(mins=>s.grace_minutes)
+  )
+  into v_latest_cutoff
+  from public.staff_attendance_schedule_assignments a
+  join public.staff_work_schedules s on s.id=a.schedule_id and s.is_active
+  join public.user_profiles p on p.id=a.staff_user_id and p.employment_status='Active'
+  where (extract(dow from v_today)=6 and a.saturday_required)
+     or (extract(dow from v_today) between 1 and 5
+       and s.weekdays @> array[extract(dow from v_today)::smallint]);
+
+  if v_scheduled_count>0 and v_clocked_count=0
+     and v_latest_cutoff is not null and v_now_local>v_latest_cutoff then
     for v_leader in
       select p.id
       from public.user_profiles p
