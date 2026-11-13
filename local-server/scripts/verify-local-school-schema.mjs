@@ -7,6 +7,19 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+async function expectPgError(client, savepoint, statement, values, expectedCode) {
+  await client.query("SAVEPOINT " + savepoint);
+  let actualError;
+  try {
+    await client.query(statement, values);
+  } catch (error) {
+    actualError = error;
+  }
+  await client.query("ROLLBACK TO SAVEPOINT " + savepoint);
+  await client.query("RELEASE SAVEPOINT " + savepoint);
+  return actualError?.code === expectedCode;
+}
+
 try {
   const tables = await pool.query(
     "SELECT table_name FROM information_schema.tables WHERE table_schema = 'cornhill_school' AND table_type = 'BASE TABLE' ORDER BY table_name"
@@ -54,51 +67,41 @@ try {
     assert(first.rows[0].pupil_code !== second.rows[0].pupil_code, "Generated pupil codes must be unique.");
     assert(/^CH-[0-9]{4}-[0-9]{6}$/.test(first.rows[0].pupil_code), "Generated pupil code must use the expected school format.");
 
-    let immutableRejected = false;
-    try {
-      await client.query("UPDATE cornhill_school.learners SET pupil_code = 'CH-9999-999999' WHERE id = $1", [first.rows[0].id]);
-    } catch (error) {
-      immutableRejected = error.code === "23514";
-    }
+    const immutableRejected = await expectPgError(
+      client, "pupil_code_immutable_test",
+      "UPDATE cornhill_school.learners SET pupil_code = 'CH-9999-999999' WHERE id = $1",
+      [first.rows[0].id], "23514"
+    );
     assert(immutableRejected, "Permanent pupil code must reject updates.");
 
     await client.query("UPDATE cornhill_school.learners SET lin = 'UG-CI-LIN-001' WHERE id = $1", [first.rows[0].id]);
-    let duplicateLinRejected = false;
-    try {
-      await client.query("UPDATE cornhill_school.learners SET lin = 'UG-CI-LIN-001' WHERE id = $1", [second.rows[0].id]);
-    } catch (error) {
-      duplicateLinRejected = error.code === "23505";
-    }
+    const duplicateLinRejected = await expectPgError(
+      client, "duplicate_lin_test",
+      "UPDATE cornhill_school.learners SET lin = 'UG-CI-LIN-001' WHERE id = $1",
+      [second.rows[0].id], "23505"
+    );
     assert(duplicateLinRejected, "LIN must be unique when supplied.");
 
     const guardian = await client.query(
       "INSERT INTO cornhill_school.guardian_contacts (learner_id, guardian_name, phone_e164, is_primary) VALUES ($1, 'CI Guardian', '+256700000001', true) RETURNING id",
       [first.rows[0].id]
     );
-    let duplicatePrimaryRejected = false;
-    try {
-      await client.query(
-        "INSERT INTO cornhill_school.guardian_contacts (learner_id, guardian_name, phone_e164, is_primary) VALUES ($1, 'Second Guardian', '+256700000002', true)",
-        [first.rows[0].id]
-      );
-    } catch (error) {
-      duplicatePrimaryRejected = error.code === "23505";
-    }
+    const duplicatePrimaryRejected = await expectPgError(
+      client, "duplicate_primary_guardian_test",
+      "INSERT INTO cornhill_school.guardian_contacts (learner_id, guardian_name, phone_e164, is_primary) VALUES ($1, 'Second Guardian', '+256700000002', true)",
+      [first.rows[0].id], "23505"
+    );
     assert(duplicatePrimaryRejected, "Only one active primary guardian is allowed per learner.");
 
     await client.query(
       "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id) VALUES ($1, CURRENT_DATE, (SELECT id FROM cornhill_school.classes WHERE class_code = 'P1'))",
       [first.rows[0].id]
     );
-    let duplicateActivePeriodRejected = false;
-    try {
-      await client.query(
-        "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id) VALUES ($1, CURRENT_DATE, (SELECT id FROM cornhill_school.classes WHERE class_code = 'P2'))",
-        [first.rows[0].id]
-      );
-    } catch (error) {
-      duplicateActivePeriodRejected = error.code === "23505";
-    }
+    const duplicateActivePeriodRejected = await expectPgError(
+      client, "duplicate_active_enrolment_test",
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id) VALUES ($1, CURRENT_DATE, (SELECT id FROM cornhill_school.classes WHERE class_code = 'P2'))",
+      [first.rows[0].id], "23505"
+    );
     assert(duplicateActivePeriodRejected, "A learner cannot have two active enrolment periods.");
 
     await client.query("ROLLBACK");
