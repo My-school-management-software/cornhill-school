@@ -317,6 +317,9 @@ grant execute on function public.post_school_payment_complete(uuid, bigint, text
 drop policy if exists "Finance operators manage inventory categories" on public.inventory_categories;
 drop policy if exists "Finance operators manage inventory items" on public.inventory_items;
 drop policy if exists "Finance operators manage inventory movements" on public.inventory_movements;
+drop policy if exists "Inventory admin categories" on public.inventory_categories;
+drop policy if exists "Inventory admin items" on public.inventory_items;
+drop policy if exists "Inventory admin movements" on public.inventory_movements;
 
 create policy "Inventory managers manage categories"
 on public.inventory_categories for all to authenticated
@@ -452,10 +455,10 @@ using (public.is_school_finance_operator());
 -- Only Draft/Returned periods can be edited directly. Submission, approval,
 -- return and payment-state transitions are reserved to the RPCs below.
 drop policy if exists "School administrators insert payroll_periods" on public.payroll_periods;
-create policy "Finance operators create draft payroll periods"
+create policy "Bursars create draft payroll periods"
 on public.payroll_periods for insert to authenticated
 with check (
-  (public.is_school_admin() or public.is_school_bursar_operator())
+  public.is_school_bursar_operator()
   and created_by = (select auth.uid())
   and status = 'Draft'
 );
@@ -465,17 +468,13 @@ create policy "Finance operators update draft payroll periods"
 on public.payroll_periods for update to authenticated
 using (
   status in ('Draft','Returned')
-  and (
-    public.is_school_admin()
-    or (public.is_school_bursar_operator() and created_by = (select auth.uid()))
-  )
+  and public.is_school_bursar_operator()
+  and created_by = (select auth.uid())
 )
 with check (
   status in ('Draft','Returned')
-  and (
-    public.is_school_admin()
-    or (public.is_school_bursar_operator() and created_by = (select auth.uid()))
-  )
+  and public.is_school_bursar_operator()
+  and created_by = (select auth.uid())
 );
 
 drop policy if exists "School administrators delete payroll_periods" on public.payroll_periods;
