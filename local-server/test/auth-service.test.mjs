@@ -49,7 +49,7 @@ function fixture(overrides = {}) {
         calls.attempts.push(input);
         return state.allowed ? { allowed: true, attemptId: "attempt-1" } : { allowed: false };
       },
-      async completeAttempt(input) { calls.completed = input; }
+      async completeAttempt(input) { calls.completed = input; return true; }
     },
     sessionRepository: {
       async createAuthenticatedSession(input) { calls.sessions.push(input); },
