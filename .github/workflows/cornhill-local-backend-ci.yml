@@ -59,13 +59,13 @@ jobs:
           CORNHILL_DB_ADMIN_PASSWORD=ci-only-not-a-school-secret-2026
           EOF
 
-      - name: Apply isolated identity migration
+      - name: Apply all isolated local migrations
         env:
           CORNHILL_ALLOW_LOCAL_MIGRATIONS: "true"
           CORNHILL_DB_TARGET: local-development
         run: npm run db:migrate
 
-      - name: Verify migration is safely repeatable
+      - name: Verify all migrations are safely repeatable
         env:
           CORNHILL_ALLOW_LOCAL_MIGRATIONS: "true"
           CORNHILL_DB_TARGET: local-development
