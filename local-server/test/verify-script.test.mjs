@@ -14,7 +14,7 @@ test("PostgreSQL integration verifier checks all eight identity tables", () => {
 
 test("PostgreSQL integration verifier checks seeded roles and PUBLIC isolation", () => {
   assert.match(source, /count\s*!==\s*17/);
-  assert.match(source, /a\.grantee = 0/);
+  assert.match(source, /a\.grantee\s*=\s*0/);
   assert.match(source, /PUBLIC unexpectedly has access/);
 });
 
