@@ -101,9 +101,9 @@ test('Director panel stays hidden unless the Director access check succeeds', ()
   assert.match(attendanceUi, /if \(director\.error\) throw director\.error/);
 });
 
-test('attendance staff selectors load independently of the slower legacy workspace loader', () => {
+test('attendance staff mapping selectors have explicit unavailable states and an active-staff query', () => {
   assert.match(attendanceUi, /async function loadCoreAttendanceStaffOptions\(\)[\s\S]*?staffUserSelect[\s\S]*?scheduleStaffSelect[\s\S]*?from\('user_profiles'\)/);
-  assert.match(attendanceUi, /const staffLoad = loadCoreAttendanceStaffOptions\(\);[\s\S]*?const extrasLoad = hydrateAttendanceExtras\(\);[\s\S]*?Promise\.allSettled\(\[coreLoad, staffLoad, extrasLoad\]\)/);
+  assert.match(attendanceUi, /Sign in as an active administrator/);
 });
 
 test('Director session dropdown has a timeout and a real empty-state message', () => {
@@ -112,8 +112,22 @@ test('Director session dropdown has a timeout and a real empty-state message', (
   assert.match(attendanceUi, /Approved special sessions failed to load:/);
 });
 
-test('Director panel loaders start independently so one slow query cannot block the staff selectors', () => {
-  assert.match(attendanceUi, /const jobs = \[[\s\S]*?\['Director staff dropdowns', loadDirectorKioskOptions\][\s\S]*?\['Approved session dropdown', loadDirectorSpecialSessions\][\s\S]*?Promise\.allSettled\(jobs\.map/);
+test('Director dropdown coordinator checks access then loads mapping, kiosk and approved-session selectors together', () => {
+  assert.match(attendanceUi, /async function ensureAttendanceDropdowns\(\)[\s\S]*?db\.rpc\('is_school_director'\)[\s\S]*?Promise\.allSettled\(\[[\s\S]*?loadCoreAttendanceStaffOptions[\s\S]*?loadDirectorKioskOptions[\s\S]*?loadDirectorSpecialSessions/);
+});
+
+test('opening the Attendance tab explicitly triggers the Director dropdown coordinator', () => {
+  assert.match(attendanceUi, /const originalTab = tab;[\s\S]*?tab = function \(name\)[\s\S]*?if \(name === 'attendance'\)[\s\S]*?ensureAttendanceDropdowns\(\)/);
+});
+
+test('Director dropdown coordinator reports a final load state instead of leaving loading placeholders', () => {
+  assert.match(attendanceUi, /id="attendanceLoadStatus"/);
+  assert.match(attendanceUi, /Some attendance lists failed to load/);
+  assert.match(attendanceUi, /Attendance lists checked:/);
+});
+
+test('special-session staff selection remains disabled until the selected session assignments load', () => {
+  assert.match(attendanceUi, /async function loadDirectorSessionStaffOptions\(\)[\s\S]*?select\.disabled = true;[\s\S]*?from\('staff_prep_assignments'\)[\s\S]*?select\.disabled = !rows\.length/);
 });
 
 test('attendance script parses as JavaScript', () => {
