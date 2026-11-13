@@ -56,6 +56,12 @@ test("runtime requires private DB and fingerprint configuration", async () => {
     createLocalAuthRuntime({ env: { ...ENV, CORNHILL_AUTH_FINGERPRINT_SECRET: "short" } }),
     /at least 32 bytes/
   );
+  await assert.rejects(
+    createLocalAuthRuntime({
+      env: { ...ENV, CORNHILL_AUTH_FINGERPRINT_SECRET: "REPLACE_WITH_A_LONG_RANDOM_SECRET" }
+    }),
+    /at least 32 bytes/
+  );
 });
 test("runtime refuses an HTTP origin", async () => {
   const fixture = poolFixture();
