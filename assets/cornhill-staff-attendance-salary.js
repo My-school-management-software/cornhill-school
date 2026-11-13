@@ -184,35 +184,85 @@
   async function loadMySalarySummary() {
     const box = byId('myAttendanceSalarySummary');
     if (!box || !currentUserId || !db || demoMode) return;
-    const [salaryResult, incidentResult] = await Promise.all([
+    const [salaryResult, incidentResult, eventResult] = await Promise.all([
       db.from('staff_salary_agreements')
         .select('salary_basis,base_salary_ugx,daily_rate_ugx,effective_from,effective_to,is_active')
         .eq('staff_user_id', currentUserId).eq('is_active', true)
         .order('effective_from', {ascending:false}).limit(5),
       db.from('staff_attendance_incidents')
-        .select('attendance_date,status,approved_deduction_ugx,review_deadline_at')
+        .select('attendance_date,incident_type,status,approved_deduction_ugx,review_deadline_at,director_decision')
         .eq('staff_user_id', currentUserId)
-        .order('attendance_date', {ascending:false}).limit(120)
+        .order('attendance_date', {ascending:false}).limit(120),
+      db.from('staff_attendance_events')
+        .select('event_type,occurred_at,source,device_model')
+        .eq('staff_user_id', currentUserId)
+        .order('occurred_at', {ascending:false}).limit(160)
     ]);
     if (salaryResult.error) {
-      box.innerHTML = '<strong>My salary and attendance deductions</strong><p class="muted">Your salary details are not available to this account yet. Ask the Director to verify your staff salary agreement.</p>';
+      box.innerHTML = '<strong>My attendance history</strong><p class="muted">Your attendance details are not available to this account yet. Ask the Director to check your staff account link.</p>';
       return;
     }
     const active = (salaryResult.data || []).find((x) => x.effective_from <= today() && (!x.effective_to || x.effective_to >= today()));
     const rate = active ? dailyRate(active, today()) : null;
     const incidents = incidentResult.error ? [] : (incidentResult.data || []);
+    const events = eventResult.error ? [] : (eventResult.data || []);
     const pending = incidents.filter((x) => x.status === 'pending').length;
     const deductions = incidents.filter((x) => x.status === 'approved' || x.status === 'deducted')
       .reduce((total, x) => total + Number(x.approved_deduction_ugx || 0), 0);
-    box.innerHTML = '<strong>My salary and attendance deductions</strong>' +
+    const dayKey = (value) => new Intl.DateTimeFormat('en-CA', {
+      timeZone:'Africa/Kampala',year:'numeric',month:'2-digit',day:'2-digit'
+    }).format(new Date(value));
+    const timeLabel = (value) => new Intl.DateTimeFormat('en-GB', {
+      timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'
+    }).format(new Date(value));
+    const grouped = new Map();
+    events.forEach((event) => {
+      const day = dayKey(event.occurred_at);
+      if (!grouped.has(day)) grouped.set(day, []);
+      grouped.get(day).push(event);
+    });
+    const eventLabel = {clock_in:'Clocked in',break_start:'Break started',break_end:'Break ended',clock_out:'Clocked out'};
+    const historyRows = [...grouped.keys()].sort((a,b) => b.localeCompare(a)).map((day) => {
+      const dayEvents = (grouped.get(day) || []).slice().sort((a,b) => new Date(a.occurred_at)-new Date(b.occurred_at));
+      const times = (type) => dayEvents.filter((x) => x.event_type === type).map((x) => timeLabel(x.occurred_at)).join(', ') || '—';
+      const issues = incidents.filter((x) => x.attendance_date === day);
+      const state = issues.length
+        ? issues.map((x) => (x.incident_type || 'attendance issue').replace(/_/g,' ') + ' · ' + (x.director_decision || x.status)).join('; ')
+        : (dayEvents.some((x) => x.event_type === 'clock_out') ? 'Completed' : 'In progress');
+      return '<tr><td>' + html(day) + '</td><td>' + html(times('clock_in')) + '</td><td>' +
+        html(times('break_start')) + '</td><td>' + html(times('break_end')) + '</td><td>' +
+        html(times('clock_out')) + '</td><td>' + html(state) + '</td></tr>';
+    });
+    const clockInDays = new Set(events.filter((x) => x.event_type === 'clock_in').map((x) => dayKey(x.occurred_at)));
+    const missedDays = new Set(incidents.filter((x) =>
+      x.incident_type === 'missed_clock_in' && !clockInDays.has(x.attendance_date)
+    ).map((x) => x.attendance_date)).size;
+    const incidentRows = incidents.slice(0,40).map((x) =>
+      '<tr><td>' + html(x.attendance_date) + '</td><td>' + html((x.incident_type || '').replace(/_/g,' ')) +
+      '</td><td>' + html(x.director_decision || x.status) + '</td><td>' +
+      html(x.approved_deduction_ugx ? ugx(x.approved_deduction_ugx) : '—') + '</td></tr>'
+    );
+    box.innerHTML = '<strong>My attendance history — view only</strong>' +
+      '<p class="muted">This account cannot clock in, clock out or change attendance. All attendance events are recorded from the Director-controlled central kiosk or an approved office device.</p>' +
       (active
         ? '<p style="margin:7px 0">' + html(active.salary_basis) + ' agreed salary: <strong>' + ugx(active.base_salary_ugx) + '</strong></p>' +
           '<p style="margin:4px 0">Daily attendance rate: <strong>' + (rate ? ugx(rate) : 'Not configured — see the bursar/Director') + '</strong></p>' +
           '<p style="margin:4px 0">Effective period: ' + html(active.effective_from) + ' to ' + html(active.effective_to || 'ongoing') + '</p>'
         : '<p class="muted">No current salary agreement is linked to your account yet.</p>') +
-      '<p style="margin:4px 0">Pending attendance reviews: <strong>' + pending + '</strong></p>' +
-      '<p style="margin:4px 0">Director-approved attendance deductions recorded: <strong>' + ugx(deductions) + '</strong></p>' +
-      '<small class="muted">Sunday is a paid rest day and is not an absence-deduction day. Public holidays remain included in the calendar-day salary calculation.</small>';
+      '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0">' +
+        '<div class="tile"><small>Missed days awaiting review</small><strong>' + missedDays + '</strong></div>' +
+        '<div class="tile"><small>Pending attendance reviews</small><strong>' + pending + '</strong></div>' +
+        '<div class="tile"><small>Director-approved deductions</small><strong>' + ugx(deductions) + '</strong></div>' +
+      '</div>' +
+      '<h4 style="margin:12px 0 6px">Daily attendance record</h4>' +
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Clock-in</th><th>Break start</th><th>Break end</th><th>Clock-out</th><th>Status</th></tr></thead><tbody>' +
+      (historyRows.join('') || '<tr><td colspan="6">No attendance events have been recorded for this account yet.</td></tr>') +
+      '</tbody></table></div>' +
+      '<h4 style="margin:14px 0 6px">Attendance incidents and review decisions</h4>' +
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Incident</th><th>Decision / status</th><th>Approved deduction</th></tr></thead><tbody>' +
+      (incidentRows.join('') || '<tr><td colspan="4">No attendance incidents recorded.</td></tr>') +
+      '</tbody></table></div>' +
+      '<small class="muted">Sunday is a paid rest day. Public holidays remain included in calendar-day salary calculations. Attendance history is read-only for staff accounts.</small>';
   }
 
   function installDirectorAttendancePanel() {
