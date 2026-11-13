@@ -20,7 +20,7 @@ test('attendance terminal is a separately installable PWA', () => {
 });
 
 test('attendance app has its own offline shell cache', () => {
-  assert.match(app, /register\('\.\/sw\.js'/);
+  assert.match(js, /register\('\.\/sw\.js'/);
   assert.match(serviceWorker, /cornhill-attendance-terminal-v1/);
   assert.match(serviceWorker, /\/attendance-terminal\//);
 });
@@ -56,10 +56,12 @@ test('offline state explicitly prevents attendance writes', () => {
   assert.match(app, /server confirmation before they count as recorded/);
 });
 
-test('QR scanning and NFC capability checks are feature-detected', () => {
+test('QR scanning and NFC capability checks are feature-detected and accessible actions', () => {
   assert.match(js, /BarcodeDetector/);
   assert.match(js, /NDEFReader/);
   assert.match(js, /isSecureContext/);
+  assert.match(app, /<button id="qrCapability"/);
+  assert.match(app, /<button id="nfcCapability"/);
 });
 
 test('phone biometrics are described as device authentication, not group identification', () => {
