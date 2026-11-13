@@ -75,9 +75,10 @@ test("staff roles use explicit permissions and unknown roles deny access", () =>
   assert.equal(hasStaffPermission(["teacher"], "admin:delete"), false);
 });
 
-test("director permission is broad but only for a recognised role", () => {
+test("director has an explicit finite permission set; unknown permissions are denied", () => {
   assert.equal(hasStaffPermission(["director"], "finance:approve"), true);
   assert.equal(hasStaffPermission(["director"], "system:configure"), true);
+  assert.equal(hasStaffPermission(["director"], "future:unreviewed_permission"), false);
   assert.equal(hasStaffPermission(["not_director"], "system:configure"), false);
 });
 
