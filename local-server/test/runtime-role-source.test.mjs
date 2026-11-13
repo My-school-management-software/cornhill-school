@@ -30,6 +30,7 @@ test("role verifier checks that sensitive management permissions are absent", ()
   assert.match(verifier, /permission_grant_insert/);
   assert.match(verifier, /guardian_link_update/);
   assert.match(verifier, /audit_read/);
+  assert.match(verifier, /has_column_privilege\('cornhill_auth_api', 'cornhill_auth\.security_audit_events', 'event_code', 'INSERT'\)/);
 });
 test("runtime config uses only the dedicated API login and loopback host", async () => {
   const config = await readFile(new URL("../src/db/runtime-config.mjs", import.meta.url), "utf8");
