@@ -94,6 +94,8 @@ GRANT INSERT (
 
 GRANT USAGE, SELECT ON SEQUENCE cornhill_auth.login_attempts_id_seq
     TO cornhill_auth_runtime;
+GRANT USAGE, SELECT ON SEQUENCE cornhill_auth.security_audit_events_id_seq
+    TO cornhill_auth_runtime;
 
 -- Explicitly deny all mutation of the role/permission catalog and guardian
 -- approval links. These remain controlled by a separate trusted admin flow.
