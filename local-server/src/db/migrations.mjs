@@ -28,12 +28,31 @@ export function migrationChecksum(sql) {
   return createHash("sha256").update(sql, "utf8").digest("hex");
 }
 
+function stripLeadingSqlComments(sql) {
+  let remaining = sql.trimStart();
+  while (true) {
+    if (remaining.startsWith("--")) {
+      const newlineIndex = remaining.search(/\r?\n/);
+      if (newlineIndex === -1) return "";
+      remaining = remaining.slice(newlineIndex).trimStart();
+      continue;
+    }
+    if (remaining.startsWith("/*")) {
+      const endIndex = remaining.indexOf("*/", 2);
+      if (endIndex === -1) return remaining;
+      remaining = remaining.slice(endIndex + 2).trimStart();
+      continue;
+    }
+    return remaining;
+  }
+}
+
 export function prepareTransactionalMigration(sql) {
   if (typeof sql !== "string" || sql.trim().length === 0) {
     throw new TypeError("Migration SQL must be a non-empty string.");
   }
 
-  const normalized = sql.replace(/^\uFEFF/, "").trim();
+  const normalized = stripLeadingSqlComments(sql.replace(/^\uFEFF/, "").trim());
   if (!/^BEGIN;[\s\S]*COMMIT;$/i.test(normalized)) {
     throw new Error("Migration must contain one outer BEGIN/COMMIT transaction.");
   }
