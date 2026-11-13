@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile, readdir } from "node:fs/promises";
+import { resolve } from "node:path";
 import {
   assertMigrationLedgerRow,
   migrationChecksum,
@@ -35,6 +37,32 @@ test("migration runner removes only the required outer transaction wrappers", ()
   assert.match(body, /^CREATE TABLE example/);
   assert.doesNotMatch(body, /^BEGIN;/);
   assert.doesNotMatch(body, /COMMIT;$/);
+});
+test("migration runner accepts leading line and block comments", () => {
+  const sql = "-- local migration header\n/* second header */\nBEGIN;\nSELECT 1;\nCOMMIT;";
+  assert.equal(prepareTransactionalMigration(sql), "SELECT 1;");
+});
+test("migration runner accepts UTF-8 BOM and CRLF comment headers", () => {
+  const sql = "\uFEFF-- migration header\r\n-- second line\r\nBEGIN;\r\nSELECT 1;\r\nCOMMIT;";
+  assert.equal(prepareTransactionalMigration(sql), "SELECT 1;");
+});
+test("migration runner rejects unterminated leading block comments", () => {
+  assert.throws(() => prepareTransactionalMigration("/* missing close\nBEGIN; SELECT 1; COMMIT;"), /BEGIN\/COMMIT/);
+});
+test("all four committed SQL migrations have a valid outer transaction", async () => {
+  const dir = new URL("../migrations/", import.meta.url);
+  const entries = await readdir(dir);
+  const files = sortMigrationFiles(entries);
+  assert.deepEqual(files, [
+    "001_local_identity_foundation.sql",
+    "002_local_authorization_foundation.sql",
+    "003_local_auth_rate_limit_indexes.sql",
+    "004_local_auth_runtime_role.sql"
+  ]);
+  for (const filename of files) {
+    const source = await readFile(new URL(filename, dir), "utf8");
+    assert.doesNotThrow(() => prepareTransactionalMigration(source), filename);
+  }
 });
 test("migration runner rejects empty or malformed migration files", () => {
   assert.throws(() => prepareTransactionalMigration(""), /non-empty/);
