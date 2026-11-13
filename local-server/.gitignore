@@ -12,3 +12,11 @@ backups/
 # Runtime logs and temporary files
 *.log
 .tmp/
+
+# TLS key material and private certificate bundles
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
