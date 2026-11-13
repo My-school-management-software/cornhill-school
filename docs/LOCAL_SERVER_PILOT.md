@@ -4,7 +4,7 @@
 
 Run a reversible pilot of a school-local CORNHILL installation before considering any move away from the existing Vercel + managed Supabase deployment.
 
-The pilot is **not** production and must use synthetic/test records only. The existing production Supabase project `yemhortbudwbcrzsoozk` and current website must remain untouched. The separate `cornhill-restore-rehearsal` project is an empty isolated cloud test project; it is not a local server and must not be described as a completed restore.
+The pilot is **not** production and must use synthetic/test records only. The existing production Supabase project and current website must remain untouched. The separate `cornhill-restore-rehearsal` project is an empty isolated cloud test project; it is not a local server and must not be described as a completed restore.
 
 ## Target architecture
 
