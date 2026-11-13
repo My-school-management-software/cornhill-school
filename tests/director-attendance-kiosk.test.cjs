@@ -6,6 +6,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const attendanceUi = fs.readFileSync(path.join(root, 'assets', 'cornhill-staff-attendance-salary.js'), 'utf8');
 const attendanceSql = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261113135418_director_only_attendance_kiosk_controls.sql'), 'utf8');
+const hardeningSql = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261113142000_attendance_kiosk_sequence_and_active_staff_hardening.sql'), 'utf8');
 
 test('legacy staff self-clock special-session RPC is revoked', () => {
   assert.match(attendanceSql, /revoke all on function public\.staff_record_scheduled_session_event\(uuid,text\) from public,anon,authenticated/i);
@@ -99,4 +100,64 @@ test('Director panel stays hidden for an Admin account that is not the school Di
 
 test('attendance script parses as JavaScript', () => {
   assert.doesNotThrow(() => new Function(attendanceUi));
+});
+
+test('follow-up migration rejects missing staff and null/unknown event values', () => {
+  assert.match(hardeningSql, /p_staff_user_id is null/);
+  assert.match(hardeningSql, /p_event_type is null or p_event_type not in/);
+});
+
+test('follow-up migration refuses attendance for inactive staff accounts', () => {
+  assert.match(hardeningSql, /where p\.id = p_staff_user_id and p\.employment_status = 'Active'[\s\S]*?if not found then raise exception 'The selected staff account is not active.'/i);
+});
+
+test('normal attendance cannot be reopened after clock-out on the same school day', () => {
+  assert.match(hardeningSql, /elsif v_last_event = 'clock_out' then\s+raise exception 'Attendance is already closed for this staff member today.'/i);
+});
+
+test('special-session recording validates active staff as well as assignment', () => {
+  assert.match(hardeningSql, /director_record_staff_session_event[\s\S]*?where p\.id = p_staff_user_id and p\.employment_status = 'Active'[\s\S]*?The selected staff account is not active/i);
+});
+
+test('special-session form offers all three school session types', () => {
+  for (const type of ['evening_prep','morning_winter','saturday_study']) {
+    assert.ok(attendanceUi.includes('value="' + type + '"'), 'missing session type ' + type);
+  }
+});
+
+test('Saturday study is fixed to 8 AM to 1 PM in the Director form', () => {
+  assert.match(attendanceUi, /sessionType === 'saturday_study'[\s\S]*?start !== '08:00' \|\| end !== '13:00'/);
+  assert.match(attendanceUi, /Saturday study sessions must run from 8:00 AM to 1:00 PM/);
+});
+
+test('Director can assign multiple teachers to a special session', () => {
+  assert.match(attendanceUi, /id="prepStaffUser" multiple/);
+  assert.match(attendanceUi, /selectedOptions[\s\S]*?staffIds/);
+  assert.match(attendanceUi, /const assignmentRows = staffIds\.map/);
+});
+
+test('special sessions start as drafts and require Director approval before kiosk use', () => {
+  assert.match(attendanceUi, /approval_status:'draft',is_published:false/);
+  assert.match(attendanceUi, /rpc\('director_approve_staff_session'/);
+  assert.match(attendanceUi, /Approve and publish/);
+});
+
+test('special-session kiosk offers only staff assigned to the selected session', () => {
+  assert.match(attendanceUi, /from\('staff_prep_assignments'\)[\s\S]*?eq\('prep_session_id',sessionId\)/);
+  assert.match(attendanceUi, /loadDirectorSessionStaffOptions/);
+});
+
+test('special-session attendance is inserted for every assigned teacher only after approval', () => {
+  assert.match(hardeningSql, /insert into public\.staff_scheduled_session_attendance[\s\S]*?select p_session_id,a\.staff_user_id[\s\S]*?from public\.staff_prep_assignments a/);
+});
+
+test('both Director kiosk RPCs are guarded against non-Director callers', () => {
+  assert.match(hardeningSql, /revoke all on function public\.director_record_staff_attendance_event\(uuid,text\) from public,anon/);
+  assert.match(hardeningSql, /revoke all on function public\.director_record_staff_session_event\(uuid,uuid,text\) from public,anon/);
+  assert.equal((hardeningSql.match(/if not public\.is_school_director\(\) then/g) || []).length, 2);
+});
+
+test('the hardened normal and special-session SQL functions are included in the follow-up migration', () => {
+  assert.match(hardeningSql, /create or replace function public\.director_record_staff_attendance_event/);
+  assert.match(hardeningSql, /create or replace function public\.director_record_staff_session_event/);
 });
