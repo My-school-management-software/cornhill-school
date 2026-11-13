@@ -184,7 +184,7 @@
   async function loadMySalarySummary() {
     const box = byId('myAttendanceSalarySummary');
     if (!box || !currentUserId || !db || demoMode) return;
-    const [salaryResult, incidentResult, eventResult] = await Promise.all([
+    const [salaryResult, incidentResult, eventResult, sessionResult] = await Promise.all([
       db.from('staff_salary_agreements')
         .select('salary_basis,base_salary_ugx,daily_rate_ugx,effective_from,effective_to,is_active')
         .eq('staff_user_id', currentUserId).eq('is_active', true)
@@ -196,7 +196,11 @@
       db.from('staff_attendance_events')
         .select('event_type,occurred_at,source,device_model')
         .eq('staff_user_id', currentUserId)
-        .order('occurred_at', {ascending:false}).limit(160)
+        .order('occurred_at', {ascending:false}).limit(160),
+      db.from('staff_scheduled_session_attendance')
+        .select('clock_in_at,clock_out_at,clock_in_source,clock_out_source,staff_prep_sessions(prep_date,title,class_name,session_type)')
+        .eq('staff_user_id', currentUserId)
+        .order('created_at', {ascending:false}).limit(100)
     ]);
     if (salaryResult.error) {
       box.innerHTML = '<strong>My attendance history</strong><p class="muted">Your attendance details are not available to this account yet. Ask the Director to check your staff account link.</p>';
@@ -258,6 +262,15 @@
       '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Clock-in</th><th>Break start</th><th>Break end</th><th>Clock-out</th><th>Status</th></tr></thead><tbody>' +
       (historyRows.join('') || '<tr><td colspan="6">No attendance events have been recorded for this account yet.</td></tr>') +
       '</tbody></table></div>' +
+      '<h4 style="margin:14px 0 6px">Special prep, morning winter and Saturday sessions</h4>' +
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Session</th><th>Class</th><th>Clock-in</th><th>Clock-out</th></tr></thead><tbody>' +
+      (specialSessions.map((x) => '<tr><td>' + html(x.staff_prep_sessions?.prep_date || '—') +
+        '</td><td>' + html((x.staff_prep_sessions?.session_type || 'special session').replace(/_/g,' ')) +
+        ' · ' + html(x.staff_prep_sessions?.title || '') + '</td><td>' + html(x.staff_prep_sessions?.class_name || '—') +
+        '</td><td>' + html(x.clock_in_at ? timeLabel(x.clock_in_at) : '—') +
+        '</td><td>' + html(x.clock_out_at ? timeLabel(x.clock_out_at) : '—') + '</td></tr>').join('') ||
+        '<tr><td colspan="5">No special-session attendance recorded.</td></tr>') +
+      '</tbody></table></div>' +
       '<h4 style="margin:14px 0 6px">Attendance incidents and review decisions</h4>' +
       '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Incident</th><th>Decision / status</th><th>Approved deduction</th></tr></thead><tbody>' +
       (incidentRows.join('') || '<tr><td colspan="4">No attendance incidents recorded.</td></tr>') +
@@ -291,6 +304,25 @@
     panel.style.cssText = 'padding:16px;margin:14px 0;border:1px solid #d7e5dc';
     panel.innerHTML =
       '<div class="row" style="justify-content:space-between;align-items:center"><div><h3 style="margin:0">Director attendance controls</h3><p class="muted" style="margin:4px 0">Two-hour review · Saturday P.3–P.7 · public holiday calendar · prep planning</p></div><span class="badge">Director approval only</span></div>' +
+      '<div class="card" style="padding:14px;margin:12px 0;border:1px solid #cbded0">' +
+        '<h4 style="margin-top:0">Central office attendance kiosk</h4>' +
+        '<p class="muted">Only the Director account can record clock-in, break-start, break-end and clock-out. Staff accounts and personal phones are history-only.</p>' +
+        '<form id="directorAttendanceKioskForm" class="grid">' +
+          '<div><label for="directorKioskStaff">Staff member *</label><select id="directorKioskStaff" required><option value="">Loading staff…</option></select></div>' +
+          '<div><label for="directorKioskEvent">Attendance event *</label><select id="directorKioskEvent" required>' +
+            '<option value="clock_in">Clock-in</option><option value="break_start">Break start</option>' +
+            '<option value="break_end">Break end</option><option value="clock_out">Clock-out</option></select></div>' +
+          '<div class="full"><button type="submit" class="primary" id="recordDirectorKioskEvent">Record at central kiosk</button><span id="directorKioskStatus" class="muted" role="status"></span></div>' +
+        '</form>' +
+        '<hr style="border:0;border-top:1px solid #e5ece6;margin:14px 0">' +
+        '<h4>Special-session kiosk</h4><p class="muted">Use this for Director-approved evening prep, morning winter and Saturday study sessions. It is separate from normal attendance.</p>' +
+        '<form id="directorSessionKioskForm" class="grid">' +
+          '<div><label for="directorSessionChoice">Approved session *</label><select id="directorSessionChoice" required><option value="">Loading sessions…</option></select></div>' +
+          '<div><label for="directorSessionStaff">Assigned staff member *</label><select id="directorSessionStaff" required><option value="">Choose staff</option></select></div>' +
+          '<div><label for="directorSessionEvent">Event *</label><select id="directorSessionEvent"><option value="clock_in">Clock-in</option><option value="clock_out">Clock-out</option></select></div>' +
+          '<div class="full"><button type="submit" id="recordDirectorSessionEvent">Record special-session attendance</button><span id="directorSessionKioskStatus" class="muted" role="status"></span></div>' +
+        '</form>' +
+      '</div>' +
       '<form id="attendancePolicyForm" class="grid" style="margin-top:10px">' +
         '<div><label>Saturday start</label><input type="time" id="attendanceSaturdayStart" value="08:00" required></div>' +
         '<div><label>Saturday end</label><input type="time" id="attendanceSaturdayEnd" value="15:00" required></div>' +
@@ -327,6 +359,46 @@
       '<div class="table-wrap"><table><thead><tr><th>Staff</th><th>Date</th><th>Issue</th><th>Headteacher / DOS statement</th><th>Decision deadline</th><th>Decision</th></tr></thead><tbody id="governanceIncidentRows"><tr><td colspan="6">Loading attendance reviews…</td></tr></tbody></table></div>';
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(panel, anchor.nextSibling);
     else admin.appendChild(panel);
+  }
+
+  async function loadDirectorKioskOptions() {
+    const result = await db.from('user_profiles')
+      .select('id,full_name,job_title,role')
+      .eq('employment_status','Active')
+      .in('role',['Admin','Teacher','Staff'])
+      .order('full_name');
+    if (result.error) {
+      safeMessage('attendanceMsg','Active staff list could not be loaded for the Director kiosk: ' + result.error.message,true);
+      return;
+    }
+    const options = '<option value="">Choose active staff member</option>' +
+      (result.data || []).map((x) => '<option value="' + x.id + '">' +
+        html(x.full_name || x.job_title || 'Staff') + ' · ' + html(x.role || 'Staff') + '</option>').join('');
+    ['directorKioskStaff','directorSessionStaff','prepStaffUser'].forEach((id) => {
+      const select = byId(id);
+      if (select) select.innerHTML = options;
+    });
+  }
+
+  async function loadDirectorSpecialSessions() {
+    const select = byId('directorSessionChoice');
+    if (!select) return;
+    const result = await db.from('staff_prep_sessions')
+      .select('id,prep_date,title,class_name,session_type,start_time,end_time')
+      .eq('approval_status','approved')
+      .eq('is_published',true)
+      .order('prep_date',{ascending:false})
+      .limit(100);
+    if (result.error) {
+      select.innerHTML = '<option value="">Special sessions could not load</option>';
+      safeMessage('attendanceMsg','Approved special sessions could not be loaded: ' + result.error.message,true);
+      return;
+    }
+    select.innerHTML = '<option value="">Choose an approved session</option>' +
+      (result.data || []).map((x) => '<option value="' + x.id + '">' +
+        html(x.prep_date) + ' · ' + html(x.class_name) + ' · ' + html(x.title) +
+        ' (' + html((x.session_type || '').replace(/_/g,' ')) + ')</option>').join('') ||
+      '<option value="">No approved special sessions</option>';
   }
 
   async function loadDirectorSettings() {
@@ -521,11 +593,8 @@
         await loadCalendarExceptions();
         await loadPrepSessions();
         await loadGovernanceIncidents();
-        const staff = await db.from('user_profiles').select('id,full_name').eq('employment_status','Active').order('full_name');
-        if (!staff.error) {
-          byId('prepStaffUser').innerHTML = '<option value="">Choose teacher</option>' +
-            (staff.data || []).map((x) => '<option value="' + x.id + '">' + html(x.full_name || 'Staff') + '</option>').join('');
-        }
+        await loadDirectorKioskOptions();
+        await loadDirectorSpecialSessions();
       }
       await loadMySalarySummary();
       return;
@@ -535,6 +604,53 @@
   }
 
   function installDirectorEventHandlers() {
+    byId('directorAttendanceKioskForm')?.addEventListener('submit',async (event) => {
+      event.preventDefault();
+      if (!isAdmin()) return;
+      const staffId = byId('directorKioskStaff').value;
+      const eventType = byId('directorKioskEvent').value;
+      if (!staffId || !['clock_in','break_start','break_end','clock_out'].includes(eventType)) {
+        safeMessage('directorKioskStatus','Choose a staff member and a valid attendance event.',true);
+        return;
+      }
+      const button = byId('recordDirectorKioskEvent');
+      button.disabled = true;
+      const result = await db.rpc('director_record_staff_attendance_event',{
+        p_staff_user_id:staffId,p_event_type:eventType
+      });
+      button.disabled = false;
+      if (result.error) {
+        safeMessage('directorKioskStatus','Attendance was not recorded: ' + result.error.message,true);
+        return;
+      }
+      safeMessage('directorKioskStatus','Recorded ' + eventType.replace(/_/g,' ') + ' for the selected staff member at ' +
+        new Intl.DateTimeFormat('en-UG',{timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'}).format(new Date(result.data.occurred_at)) +
+        '. Recorded by the Director account.');
+    });
+
+    byId('directorSessionKioskForm')?.addEventListener('submit',async (event) => {
+      event.preventDefault();
+      if (!isAdmin()) return;
+      const sessionId = byId('directorSessionChoice').value;
+      const staffId = byId('directorSessionStaff').value;
+      const eventType = byId('directorSessionEvent').value;
+      if (!sessionId || !staffId || !['clock_in','clock_out'].includes(eventType)) {
+        safeMessage('directorSessionKioskStatus','Choose an approved session, assigned staff member and event.',true);
+        return;
+      }
+      const button = byId('recordDirectorSessionEvent');
+      button.disabled = true;
+      const result = await db.rpc('director_record_staff_session_event',{
+        p_session_id:sessionId,p_staff_user_id:staffId,p_event_type:eventType
+      });
+      button.disabled = false;
+      if (result.error) {
+        safeMessage('directorSessionKioskStatus','Special-session attendance was not recorded: ' + result.error.message,true);
+        return;
+      }
+      safeMessage('directorSessionKioskStatus','Special-session ' + eventType.replace(/_/g,' ') + ' recorded by the Director account.');
+    });
+
     byId('attendancePolicyForm')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!isAdmin()) return;
