@@ -9,7 +9,13 @@ export const SESSION_COOKIE_NAME = "__Host-cornhill_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 
 const STAFF_ROLE_PERMISSIONS = Object.freeze({
-  director: ["*"],
+  director: [
+    "learners:read", "learners:write", "academics:read", "academics:write",
+    "staff:read", "staff:write", "attendance:read", "attendance:write",
+    "finance:read", "finance:write", "finance:approve", "reports:read",
+    "reports:publish", "guardians:approve", "inventory:read", "inventory:write",
+    "system:configure", "audit:read"
+  ],
   headteacher: [
     "learners:read", "learners:write", "academics:read", "academics:write",
     "staff:read", "attendance:read", "attendance:write", "finance:read",
