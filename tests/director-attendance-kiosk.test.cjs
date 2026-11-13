@@ -195,3 +195,24 @@ test('the hardened normal and special-session SQL functions are included in the 
   assert.match(hardeningSql, /create or replace function public\.director_record_staff_attendance_event/);
   assert.match(hardeningSql, /create or replace function public\.director_record_staff_session_event/);
 });
+
+test('Director session staff list reads saved clock-in and clock-out state from the database', () => {
+  assert.match(attendanceUi, /from\\('staff_scheduled_session_attendance'\\)[\\s\\S]*?select\\('staff_user_id,clock_in_at,clock_out_at'\\)[\\s\\S]*?eq\\('session_id',sessionId\\)/);
+});
+
+test('Director session staff options distinguish pending, clocked-in and clocked-out records', () => {
+  assert.match(attendanceUi, /Not yet clocked in/);
+  assert.match(attendanceUi, /Clocked in at/);
+  assert.match(attendanceUi, /Clocked out at/);
+  assert.match(attendanceUi, /Attendance record missing/);
+});
+
+test('refreshing saved session attendance preserves the selected staff member', () => {
+  assert.match(attendanceUi, /const previouslySelectedStaff = select\\.value/);
+  assert.match(attendanceUi, /select\\.value = previouslySelectedStaff/);
+  assert.match(attendanceUi, /await loadDirectorSessionStaffOptions\\(\\);[\\s\\S]*?saved status has been refreshed in the staff list/);
+});
+
+test('special-session attendance times are displayed in Uganda local time', () => {
+  assert.match(attendanceUi, /timeZone:'Africa\\/Kampala',hour:'2-digit',minute:'2-digit'/);
+});
