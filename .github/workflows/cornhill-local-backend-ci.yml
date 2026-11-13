@@ -1,0 +1,75 @@
+name: CORNHILL local backend checks
+
+on:
+  push:
+    branches:
+      - feat/local-first-self-hosted-migration-20261113
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  local-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: cornhill_local
+          POSTGRES_USER: cornhill_local_admin
+          POSTGRES_PASSWORD: ci-only-not-a-school-secret-2026
+          TZ: Africa/Kampala
+          PGTZ: Africa/Kampala
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U cornhill_local_admin -d cornhill_local"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: local-server
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install local backend dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run Node test suite
+        run: npm test
+
+      - name: Create temporary CI database configuration
+        run: |
+          cat > .env <<'EOF'
+          CORNHILL_DB_HOST=127.0.0.1
+          CORNHILL_DB_PORT=54329
+          CORNHILL_DB_NAME=cornhill_local
+          CORNHILL_DB_ADMIN_USER=cornhill_local_admin
+          CORNHILL_DB_ADMIN_PASSWORD=ci-only-not-a-school-secret-2026
+          EOF
+
+      - name: Apply isolated identity migration
+        env:
+          CORNHILL_ALLOW_LOCAL_MIGRATIONS: "true"
+          CORNHILL_DB_TARGET: local-development
+        run: npm run db:migrate
+
+      - name: Verify migration is safely repeatable
+        env:
+          CORNHILL_ALLOW_LOCAL_MIGRATIONS: "true"
+          CORNHILL_DB_TARGET: local-development
+        run: npm run db:migrate
+
+      - name: Verify PostgreSQL tables, roles and schema permissions
+        run: node scripts/verify-local-schema.mjs
