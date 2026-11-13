@@ -26,7 +26,7 @@ test('guardian PIN policy is loaded before the sign-in button is enabled', () =>
 });
 
 test('Parent Portal fails closed when the school sign-in setting cannot be verified', () => {
-  assert.match(parentUi, /guardianPinRequired=null[\s\S]*?button\.disabled=false/);
+  assert.match(parentUi, /guardianPinRequired=null;[\s\S]*?guardianPinEntry[\s\S]*?message\('loginMessage'/);
   assert.match(parentApi, /if \(settingError \|\| typeof pinRequired !== "boolean"\)[\s\S]*?503/);
 });
 
