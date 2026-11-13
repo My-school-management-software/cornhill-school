@@ -25,6 +25,7 @@ Branch: `feat/local-first-self-hosted-migration-20261113`
 - The rate-limit repository uses PostgreSQL advisory transaction locks and records attempts as failures until successful verification completes.
 - The successful session repository creates the session, updates last-login metadata and writes the success audit event in one database transaction.
 - No production staff/guardian accounts or school records have been imported.
+- The auth API role has no login enabled and no password provisioned. The API is not allowed to use the administrator account.
 - Do not expose a LAN port until the HTTPS endpoint, administrator bootstrap, role permission matrix and full integration tests are accepted.
 - The existing school application still uses its hosted services. This work does not disconnect Vercel or Supabase.
 
