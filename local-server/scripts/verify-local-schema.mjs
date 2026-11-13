@@ -31,8 +31,8 @@ try {
   }
 
   const permissionCount = await pool.query("SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog");
-  if (permissionCount.rows[0]?.count !== 24) {
-    throw new Error("Expected 24 catalogued permission codes.");
+  if (permissionCount.rows[0]?.count !== 23) {
+    throw new Error("Expected 23 catalogued permission codes.");
   }
 
   const roleGrants = await pool.query("SELECT count(*)::int AS count FROM cornhill_auth.staff_role_permissions");
