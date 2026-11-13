@@ -1,0 +1,29 @@
+name: Director attendance kiosk tests
+
+on:
+  push:
+    paths:
+      - 'assets/cornhill-staff-attendance-salary.js'
+      - 'supabase/migrations/*director_only_attendance_kiosk_controls.sql'
+      - 'tests/director-attendance-kiosk.test.cjs'
+      - '.github/workflows/director-attendance-kiosk-tests.yml'
+  pull_request:
+    paths:
+      - 'assets/cornhill-staff-attendance-salary.js'
+      - 'supabase/migrations/*director_only_attendance_kiosk_controls.sql'
+      - 'tests/director-attendance-kiosk.test.cjs'
+      - '.github/workflows/director-attendance-kiosk-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  director-attendance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Director kiosk and staff history regression tests
+        run: node --test tests/director-attendance-kiosk.test.cjs
