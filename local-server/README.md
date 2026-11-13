@@ -12,6 +12,7 @@ This folder contains the isolated local-server foundation for the move away from
 - An Argon2id adapter pinned to `@node-rs/argon2@2.2.2`.
 - Staff/guardian authentication service contracts, opaque session and CSRF tokens, and secure cookie helpers.
 - PostgreSQL account, session, audit and transaction-locked login-attempt repositories.
+- PostgreSQL permission, staff class-scope and guardian approved-learner-scope repositories.
 - A disposable PostgreSQL integration verifier for concurrent login throttling and session create/revoke.
 - Loopback-only database connection configuration and an ordered checksum-tracked migration runner.
 - GitHub Actions checks for Ubuntu/PostgreSQL integration and Windows unit tests.
