@@ -7,6 +7,7 @@ const root = path.join(__dirname, '..');
 const attendanceUi = fs.readFileSync(path.join(root, 'assets', 'cornhill-staff-attendance-salary.js'), 'utf8');
 const attendanceSql = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261113135418_director_only_attendance_kiosk_controls.sql'), 'utf8');
 const hardeningSql = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261113142000_attendance_kiosk_sequence_and_active_staff_hardening.sql'), 'utf8');
+const governanceSql = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261113045138_staff_attendance_salary_governance.sql'), 'utf8');
 
 test('legacy staff self-clock special-session RPC is revoked', () => {
   assert.match(attendanceSql, /revoke all on function public\.staff_record_scheduled_session_event\(uuid,text\) from public,anon,authenticated/i);
@@ -148,7 +149,7 @@ test('special-session kiosk offers only staff assigned to the selected session',
 });
 
 test('special-session attendance is inserted for every assigned teacher only after approval', () => {
-  assert.match(hardeningSql, /insert into public\.staff_scheduled_session_attendance[\s\S]*?select p_session_id,a\.staff_user_id[\s\S]*?from public\.staff_prep_assignments a/);
+  assert.match(governanceSql, /insert into public\.staff_scheduled_session_attendance[\s\S]*?select p_session_id,a\.staff_user_id[\s\S]*?from public\.staff_prep_assignments a/);
 });
 
 test('both Director kiosk RPCs are guarded against non-Director callers', () => {
