@@ -48,7 +48,7 @@ try {
       has_table_privilege('cornhill_auth_api', 'cornhill_auth.staff_role_permissions', 'INSERT') AS permission_grant_insert,
       has_table_privilege('cornhill_auth_api', 'cornhill_auth.guardian_learner_access', 'UPDATE') AS guardian_link_update,
       has_column_privilege('cornhill_auth_api', 'cornhill_auth.login_attempts', 'succeeded', 'UPDATE') AS attempt_complete,
-      has_table_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events', 'INSERT') AS audit_insert,
+      has_column_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events', 'event_code', 'INSERT') AS audit_insert,
       has_table_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events', 'SELECT') AS audit_read
   `);
 
