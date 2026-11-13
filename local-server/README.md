@@ -9,6 +9,8 @@ This folder contains the first isolated local-server component for the move away
 - A read-only health endpoint at /api/v1/health.
 - Automated tests for the health endpoint, prototype warning, unavailable routes and rejected write methods.
 - A draft PostgreSQL identity foundation under migrations/001_local_identity_foundation.sql.
+- Loopback-only PostgreSQL connection configuration and a guarded, checksum-tracked migration runner.
+- A disposable PostgreSQL schema verifier and a GitHub Actions integration workflow.
 - Identity/session security design notes.
 
 ## Run the health-only scaffold
