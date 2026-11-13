@@ -6,9 +6,13 @@
   "description": "Loopback-only CORNHILL local backend scaffold",
   "scripts": {
     "start": "node src/server.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "db:migrate": "node --env-file=.env scripts/migrate.mjs"
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
   }
 }
