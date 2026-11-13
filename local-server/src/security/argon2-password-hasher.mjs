@@ -32,9 +32,13 @@ export async function createArgon2PasswordHasher() {
         options.version === Version.V0x13 &&
         options.memoryCost >= POLICY.memoryCost &&
         options.timeCost >= POLICY.timeCost &&
-        options.parallelism >= POLICY.parallelism &&
+        options.parallelism === POLICY.parallelism &&
+        options.memoryCost <= 65_536 &&
+        options.timeCost <= 5 &&
         options.outputLen >= POLICY.outputLen &&
-        options.saltLen >= 16;
+        options.outputLen <= 64 &&
+        options.saltLen >= 16 &&
+        options.saltLen <= 64;
     } catch {
       return false;
     }
