@@ -6481,8 +6481,8 @@ async function setupAttendance(){
  $('scheduleStaffSelect').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.full_name||x.id)+' ('+esc(x.role)+')</option>').join('');
  const byId=Object.fromEntries((staff.data||[]).map(x=>[x.id,x.full_name||x.id]));
  const [schedules,assignments]=await Promise.all([
-  db.from('staff_work_schedules').select('id,name,start_time,end_time,grace_minutes,break_minutes,weekdays,is_active').order('name'),
-  db.from('staff_attendance_schedule_assignments').select('staff_user_id,schedule_id').order('assigned_at',{ascending:false})
+  db.from('staff_work_schedules').select('id,name,start_time,end_time,saturday_start_time,saturday_end_time,grace_minutes,break_minutes,weekdays,is_active').order('name'),
+  db.from('staff_attendance_schedule_assignments').select('staff_user_id,schedule_id,saturday_required').order('assigned_at',{ascending:false})
  ]);
  if(!attendanceIsCurrent())return;
  if(schedules.error||assignments.error){message('attendanceMsg','Attendance mappings loaded, but work schedules could not be read: '+(schedules.error||assignments.error).message,true);return}
@@ -6490,7 +6490,7 @@ async function setupAttendance(){
  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
  $('workScheduleSelect').innerHTML='<option value="">Choose work schedule</option>'+(schedules.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+' · '+esc(String(x.start_time).slice(0,5))+'–'+esc(String(x.end_time).slice(0,5))+'</option>').join('');
  $('workScheduleRows').innerHTML=(schedules.data||[]).map(x=>'<tr><td>'+esc(x.name)+(x.is_active?'':' (inactive)')+'</td><td>'+esc(String(x.start_time).slice(0,5))+'–'+esc(String(x.end_time).slice(0,5))+'</td><td>'+x.grace_minutes+' min</td><td>'+x.break_minutes+' min</td><td>'+esc((x.weekdays||[]).map(d=>days[d]).join(', '))+'</td></tr>').join('')||'<tr><td colspan="5">No work schedules created yet.</td></tr>';
- $('scheduleAssignmentRows').innerHTML=(assignments.data||[]).map(x=>{const z=scheduleById[x.schedule_id];return '<tr><td>'+esc(byId[x.staff_user_id]||'Unknown staff')+'</td><td>'+esc(z?.name||'Unavailable')+'</td><td>'+(z?esc(String(z.start_time).slice(0,5)+'–'+String(z.end_time).slice(0,5)):'—')+'</td></tr>'}).join('')||'<tr><td colspan="3">No staff schedules assigned yet.</td></tr>';
+ $('scheduleAssignmentRows').innerHTML=(assignments.data||[]).map(x=>{const z=scheduleById[x.schedule_id];return '<tr><td>'+esc(byId[x.staff_user_id]||'Unknown staff')+'</td><td>'+esc(z?.name||'Unavailable')+(x.saturday_required?' · Saturday required':'')+'</td><td>'+(z?esc(String(z.start_time).slice(0,5)+'–'+String(z.end_time).slice(0,5))+(x.saturday_required?' · Sat '+String(z.saturday_start_time||'08:00').slice(0,5)+'–'+String(z.saturday_end_time||'15:00').slice(0,5):''):'—')+'</td></tr>'}).join('')||'<tr><td colspan="3">No staff schedules assigned yet.</td></tr>';
  $('deviceMapList').innerHTML=(maps.data||[]).map(x=>'<div style="padding:7px;border-bottom:1px solid #eee">Device '+esc(x.device_serial)+' · ID '+esc(x.device_user_id)+' → '+esc(byId[x.staff_user_id]||'Unknown staff')+'</div>').join('')||'No machine IDs mapped yet.';
  const reviewPanel=$('attendanceReview');reviewPanel.classList.remove('hidden');
  const requests=await db.from('staff_attendance_adjustments').select('id,staff_user_id,attendance_date,adjustment_type,proposed_time,reason,status,created_at').order('created_at',{ascending:false}).limit(100);
@@ -6511,7 +6511,7 @@ async function setupAttendance(){
  const fmt=v=>v?new Date(v).toLocaleTimeString('en-UG',{timeZone:tz,hour:'2-digit',minute:'2-digit'}):'—';
  const minutes=t=>{const [h,m]=String(t).slice(0,5).split(':').map(Number);return h*60+m};
  const nowParts=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now).split(':').map(Number),nowMinute=nowParts[0]*60+nowParts[1];
- const assigned=(assignments.data||[]).map(x=>({staffId:x.staff_user_id,schedule:scheduleById[x.schedule_id]})).filter(x=>x.schedule&&x.schedule.is_active&&x.schedule.weekdays.includes(weekday));
+ const assigned=(assignments.data||[]).map(x=>({staffId:x.staff_user_id,saturdayRequired:x.saturday_required===true,schedule:scheduleById[x.schedule_id]})).filter(x=>x.schedule&&x.schedule.is_active&&(weekday===6?x.saturdayRequired:x.schedule.weekdays.includes(weekday))).map(x=>weekday===6?({...x,schedule:{...x.schedule,start_time:x.schedule.saturday_start_time||'08:00',end_time:x.schedule.saturday_end_time||'15:00'}}):x);
  const todayRows=assigned.map(x=>{
   const ev=todayByStaff[x.staffId]||{ins:[],outs:[],count:0},first=ev.ins[0],last=ev.outs[ev.outs.length-1],deadline=minutes(x.schedule.start_time)+x.schedule.grace_minutes;
   const status=first?(last?'Present · clocked out': 'Present · on duty'):(nowMinute>deadline?'Absent · verify':'Not yet due');
@@ -9046,4 +9046,4 @@ setupAppCentre();
 })();
 </script><script src="/assets/main-school-workspace-bridge.js"></script>
 <script src="/assets/cornhill-learner-details-sheet.js"></script>
-<script src="/assets/cornhill-navigation.js" defer></script><script src="/assets/cornhill-document-template-studio.js" defer></script></body></html>
+<script src="/assets/cornhill-navigation.js" defer></script><script src="/assets/cornhill-document-template-studio.js" defer></script><script src="/assets/cornhill-staff-attendance-salary.js"></script></body></html>
