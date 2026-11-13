@@ -1,17 +1,17 @@
-import { readFile } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
+import { readFile, readdir } from "node:fs/promises";
+import { resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readLocalDatabaseConfig } from "../src/db/config.mjs";
 import {
   assertMigrationLedgerRow,
   migrationChecksum,
   MIGRATION_LOCK_ID,
-  prepareTransactionalMigration
+  prepareTransactionalMigration,
+  sortMigrationFiles
 } from "../src/db/migrations.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const MIGRATION_NAME = "001_local_identity_foundation";
-const MIGRATION_PATH = resolve(ROOT, "migrations/001_local_identity_foundation.sql");
+const MIGRATIONS_DIR = resolve(ROOT, "migrations");
 
 async function run() {
   if (process.env.CORNHILL_ALLOW_LOCAL_MIGRATIONS !== "true" ||
@@ -41,34 +41,48 @@ async function run() {
       )
     `);
 
-    const source = await readFile(MIGRATION_PATH, "utf8");
-    const checksum = migrationChecksum(source);
-    const prior = await client.query(
-      "SELECT migration_name, checksum FROM cornhill_meta.schema_migrations WHERE migration_name = $1",
-      [MIGRATION_NAME]
-    );
-
-    if (prior.rowCount > 0) {
-      assertMigrationLedgerRow(prior.rows[0], checksum, MIGRATION_NAME);
-      console.log("CORNHILL local identity migration is already applied; no changes made.");
-      return;
+    const migrationFiles = sortMigrationFiles(await readdir(MIGRATIONS_DIR));
+    if (migrationFiles.length === 0) {
+      throw new Error("No valid local SQL migrations were found.");
     }
 
-    const sql = prepareTransactionalMigration(source);
-    await client.query("BEGIN");
-    try {
-      await client.query(sql);
-      await client.query(
-        "INSERT INTO cornhill_meta.schema_migrations (migration_name, checksum) VALUES ($1, $2)",
-        [MIGRATION_NAME, checksum]
+    let appliedCount = 0;
+    for (const fileName of migrationFiles) {
+      const migrationName = basename(fileName, ".sql");
+      const source = await readFile(resolve(MIGRATIONS_DIR, fileName), "utf8");
+      const checksum = migrationChecksum(source);
+      const prior = await client.query(
+        "SELECT migration_name, checksum FROM cornhill_meta.schema_migrations WHERE migration_name = $1",
+        [migrationName]
       );
-      await client.query("COMMIT");
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
+
+      if (prior.rowCount > 0) {
+        assertMigrationLedgerRow(prior.rows[0], checksum, migrationName);
+        console.log("Already applied; checksum verified:", migrationName);
+        continue;
+      }
+
+      const sql = prepareTransactionalMigration(source);
+      await client.query("BEGIN");
+      try {
+        await client.query(sql);
+        await client.query(
+          "INSERT INTO cornhill_meta.schema_migrations (migration_name, checksum) VALUES ($1, $2)",
+          [migrationName, checksum]
+        );
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      }
+
+      appliedCount += 1;
+      console.log("Applied local migration:", migrationName);
     }
 
-    console.log("CORNHILL local identity migration applied successfully.");
+    console.log(appliedCount === 0
+      ? "CORNHILL local database is already up to date."
+      : `CORNHILL local database updated; ${appliedCount} migration(s) applied.`);
   } finally {
     try {
       await client.query("SELECT pg_advisory_unlock($1::bigint)", [MIGRATION_LOCK_ID]);
