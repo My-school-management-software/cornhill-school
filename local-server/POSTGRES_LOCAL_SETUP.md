@@ -29,7 +29,7 @@ The PostgreSQL container publishes port 54329 only on 127.0.0.1. It is not direc
 
 The configured timezone is Africa/Kampala. Store timestamps consistently as timestamptz and convert them for display in the school application.
 
-## Apply the local identity migration
+## Apply all local migrations
 
 From this folder, after starting the database:
 
@@ -42,19 +42,21 @@ Remove-Item Env:CORNHILL_ALLOW_LOCAL_MIGRATIONS
 Remove-Item Env:CORNHILL_DB_TARGET
 ```
 
-The runner refuses to start unless both explicit local-development flags are set. It validates the loopback database host, the exact `cornhill_local` database name, and the database password configuration. It uses a PostgreSQL advisory lock and records the SHA-256 checksum of the migration. If the already-applied migration file changes, it stops rather than silently reapplying it.
+The runner discovers all numbered SQL migration files, applies them in numeric order, and records a SHA-256 checksum for each one. It refuses to start unless both explicit local-development flags are set. It validates the loopback database host, exact `cornhill_local` database name, and database password configuration. It uses a PostgreSQL advisory lock. If an already-applied migration file changes, it stops rather than silently reapplying it. Running the command again verifies checksums and leaves an up-to-date database unchanged.
 
-This migration creates identity tables only; it does not create staff or guardian logins, import records, or enable the application API. The database connection currently uses the development administrator account from `.env`; before any school data is introduced, create a separate least-privilege runtime database role and use it for the application.
+Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments. It deliberately creates no role-to-permission grants and no application database grants. It does not create staff or guardian logins, import records, or enable the application API.
+
+The database connection currently uses the development administrator account from `.env`. Before any school data is introduced, a separate least-privilege runtime account must be designed and tested. The current migrations do not create one.
 
 ## Verify the installed schema
 
-After the migration succeeds, run:
+After both migrations succeed, run:
 
 ```powershell
 npm run db:verify
 ```
 
-This checks the expected eight identity tables, 17 seeded staff roles, schema isolation from PUBLIC, and database constraints.
+This checks the expected eleven identity/authorization tables, 17 seeded staff roles, 14 permission codes, zero role grants, schema isolation from PUBLIC, and database constraints.
 
 ## Stop and preserve data
 
@@ -70,9 +72,9 @@ Do not run `docker compose down -v`: the `-v` option deletes the named database 
 
 - This container is for development and migration rehearsal only.
 - It has no connection to the local Node server yet.
-- The initial identity SQL migration has not yet been applied.
-- No API database role or restricted grants have been created yet.
+- The SQL migrations have not yet been applied or verified against a running PostgreSQL instance.
+- No API database role or restricted grants have been created.
 - It is not configured for LAN access, remote access, backups or production operation.
 - Do not import real learner, guardian, staff or finance records.
 
-The next gate is to start this isolated database, apply the identity migration to it, and verify the constraints and permissions. Only after that should the API connect using a separate least-privilege database account.
+The next gate is to start this isolated database, apply both migrations, and verify the constraints and permissions. Only after that should the API connect using a separate least-privilege database account.
