@@ -1,0 +1,14 @@
+# Local environment secrets
+.env
+.env.*
+!.env.example
+
+# Local PostgreSQL exports and backups
+*.sql
+*.dump
+*.backup
+backups/
+
+# Runtime logs and temporary files
+*.log
+.tmp/
