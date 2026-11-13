@@ -124,8 +124,9 @@ test("successful staff login creates a hashed session and returns a minimal prin
   assert.equal(calls.sessions.length, 1);
   assert.equal(calls.sessions[0].tokenHash, SESSION.sessionTokenHash);
   assert.equal(calls.sessions[0].csrfTokenHash, SESSION.csrfTokenHash);
+  assert.equal(calls.sessions[0].loginAttemptId, "attempt-1");
   assert.notEqual(calls.sessions[0].tokenHash, SESSION.sessionToken);
-  assert.equal(calls.completed.succeeded, true);
+  assert.equal(calls.completed, undefined);
 });
 test("successful guardian login is represented as a guardian principal", async () => {
   const { service } = fixture();
