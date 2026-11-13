@@ -9,6 +9,7 @@ on:
       - "assets/*.js"
       - "vercel.json"
       - "tests/*.test.cjs"
+      - "supabase/migration-drafts/**"
       - ".github/workflows/system-consolidation-contract-tests.yml"
   pull_request:
     branches:
@@ -33,3 +34,4 @@ jobs:
           tests/finance-receipt-integrity.test.cjs
           tests/bursar-account-enrollment.test.cjs
           tests/staff-access-login-contract.test.cjs
+          tests/role-boundary-payroll-workflow.test.cjs
