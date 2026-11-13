@@ -27,7 +27,7 @@ Status: isolated database schema, server-side authorization helpers, Argon2id ad
 
 - Browser code does not receive database credentials and never connects directly to PostgreSQL.
 - The local API must use the dedicated `cornhill_auth_api` role, inheriting the NOLOGIN `cornhill_auth_runtime` privilege group. It has column-level privileges only and cannot change role grants or guardian links. No table-wide generic CRUD endpoint is permitted.
-- Both roles remain NOLOGIN until a private password-provisioning step is approved. The app must never connect using the database administrator account.
+- Both roles remain NOLOGIN until a private password-provisioning step is approved. The role has only the sequence usage required for generated login-attempt and audit event IDs. The app must never connect using the database administrator account.
 - The permission catalog includes specific learner, academics, finance, staff, guardian and system capabilities.
 - No role permissions are granted by default. A school-approved permission matrix is required before accounts can perform protected operations.
 - Role names alone never authorise a workflow.
