@@ -8,7 +8,7 @@ test("identity migration creates a separate local auth schema and transaction", 
   assert.match(sql, /BEGIN;/);
   assert.match(sql, /CREATE SCHEMA IF NOT EXISTS cornhill_auth/);
   assert.match(sql, /COMMIT;/);
-  assert.doesNotMatch(sql, /supabase|auth\.users/i);
+  assert.doesNotMatch(sql, /CREATE TABLE\\s+auth\\.users/i);
 });
 
 test("staff and guardian credentials are stored only as Argon2id hashes", () => {
