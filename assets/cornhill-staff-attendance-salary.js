@@ -283,14 +283,8 @@
     if (!admin || byId('attendanceGovernancePanel')) return;
     const deductionToggle = byId('attendanceDeductionToggle');
     if (deductionToggle) {
-      deductionToggle.checked = false;
-      deductionToggle.disabled = true;
-      deductionToggle.title = 'Automatic salary deductions are disabled. A Director decision is required.';
-      const parent = deductionToggle.closest('.card');
-      if (parent) {
-        const state = byId('attendanceDeductionState');
-        if (state) state.textContent = 'OFF — automatic deductions are disabled. A Headteacher/DOS statement and Director decision are required after the two-hour review window.';
-      }
+      deductionToggle.disabled = false;
+      deductionToggle.title = 'Director-controlled automatic deductions: eligible missed clock-ins are recorded after the two-hour review window.';
     }
     const oldIncidents = byId('attendanceIncidentRows');
     if (oldIncidents) {
