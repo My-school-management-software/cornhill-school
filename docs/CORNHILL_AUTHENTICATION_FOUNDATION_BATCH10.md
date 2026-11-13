@@ -9,11 +9,12 @@ Branch: `feat/local-first-self-hosted-migration-20261113`
 - Argon2id adapter pinned to `@node-rs/argon2@2.2.2`, with a policy of 19,456 KiB memory, two passes, one lane and a 32-byte output.
 - An atomic login-attempt store implemented with PostgreSQL transactions and advisory locks across account and source fingerprints.
 - PostgreSQL account, session, audit and login-attempt repositories.
-- Session creation, account last-login update and successful-authentication audit insertion in one transaction.
+- PostgreSQL repositories for active staff class assignments, explicit role permissions and approved guardian-to-learner access.
+- Session creation, login-attempt success marking, account last-login update and successful-authentication audit insertion in one transaction.
 - Session authentication, account-status and expiry checks, CSRF checks for unsafe methods, and session revocation on logout.
 - Secure host-only session cookie builders with Secure, HttpOnly, Path=/ and SameSite=Strict.
 - Migration 003 adds indexes supporting identifier/source failed-attempt checks.
-- Disposable PostgreSQL integration verifier exercises staff/guardian lookups, concurrent rate limiting, session creation/revocation and audit writing.
+- Disposable PostgreSQL integration verifier exercises staff/guardian lookups, concurrent rate limiting, session creation/revocation and audit writing, plus role grant, class scope and guardian learner-link isolation.
 - CI includes a PostgreSQL integration job on Ubuntu and an additional Windows unit-test job.
 
 ## Security boundaries
