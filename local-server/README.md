@@ -5,6 +5,7 @@ This folder contains the isolated local-server foundation for the move away from
 ## What is included
 
 - A Node.js health-only HTTP server and local status page.
+- A separate loopback-only HTTPS server and explicit `npm run start:auth` launcher; it is not started automatically.
 - Automated tests for health routes, prototype warnings, unavailable routes and rejected write methods.
 - Four additive local PostgreSQL migrations: identity/session tables, authorisation catalog and class scope, authentication rate-limit indexes, and a NOLOGIN least-privilege auth API database role.
 - A permission catalog with no default role grants.
@@ -19,7 +20,7 @@ This folder contains the isolated local-server foundation for the move away from
 - Loopback-only database connection configuration and an ordered checksum-tracked migration runner.
 - GitHub Actions checks for Ubuntu/PostgreSQL integration and Windows unit tests.
 
-Authentication HTTP routes are defined in `src/security/auth-http-handler.mjs`, but are not wired to the health-only server. They reject requests unless HTTPS is confirmed and an exact configured HTTPS origin/Host is used.
+Authentication routes are defined in `src/security/auth-http-handler.mjs` and are served only by the separate TLS server in `src/https-server.mjs`. The launcher refuses non-loopback bindings and checks the external certificate hostname/validity and private-key file permissions. The existing health-only HTTP server remains unchanged. The HTTPS launcher is not ready for live sign-in until all four PostgreSQL migrations, role/password provisioning, certificate trust and full integration tests are complete.
 
 ## Run the health-only scaffold
 
@@ -33,7 +34,7 @@ From this folder:
 4. Open http://127.0.0.1:4173 in the same computer.
 5. Press Ctrl+C to stop the server.
 
-The HTTP application intentionally remains health-only; the authentication modules are not yet wired into request routes.
+The HTTP application intentionally remains health-only. Do not run `npm run start:auth` yet: the runtime DB login is deliberately disabled and the certificate/private runtime configuration has not been provisioned. When those gates pass, the separate command will serve HTTPS on loopback only.
 
 ## Database migration status
 
