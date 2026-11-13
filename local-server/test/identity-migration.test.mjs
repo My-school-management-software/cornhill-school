@@ -27,7 +27,7 @@ test("guardian access is separate and requires explicit approval metadata", () =
 test("staff and guardian sessions cannot be mixed", () => {
   assert.match(sql, /principal_type = 'staff' AND staff_account_id IS NOT NULL AND guardian_account_id IS NULL/);
   assert.match(sql, /principal_type = 'guardian' AND guardian_account_id IS NOT NULL AND staff_account_id IS NULL/);
-  assert.match(sql, /token_hash char\(64\) NOT NULL UNIQUE/);
+  assert.match(sql, /token_hash varchar\(64\) NOT NULL UNIQUE/);
 });
 
 test("sessions, login attempts and audit events have expiry or traceability controls", () => {
