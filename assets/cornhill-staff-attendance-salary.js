@@ -323,6 +323,7 @@
         '<div><label>Review window</label><input type="number" value="120" disabled><small class="muted">Minutes · fixed two-hour protection</small></div>' +
         '<div><label>Prep deduction (UGX)</label><input type="number" min="0" step="1" id="attendancePrepDeduction" value="0"></div>' +
         '<div class="full"><label><input type="checkbox" id="attendancePrepEnabled"> Enable prep attendance/deduction policy when prep sessions are introduced</label></div>' +
+        '<div class="full card" style="padding:12px;border:1px solid #d7e5dc"><label><input type="checkbox" id="attendanceAutoDeductionEnabled"> Enable automatic missed-clock-in deductions</label><p class="muted">After the two-hour review window, the system records a pending payroll deduction only when the staff member has no clock-in at all and no Headteacher/DOS explanation was submitted. A school-wide no-clock-in day is always held for leadership review. Eligible amounts are recorded immediately and included in the next payroll run. This setting is OFF until the Director enables it.</p></div>' +
         '<div class="full"><button type="submit" class="primary">Save Director attendance settings</button><span id="attendancePolicyStatus" class="muted" role="status"></span></div>' +
       '</form>' +
       '<hr style="border:0;border-top:1px solid #e5ece6;margin:16px 0">' +
@@ -429,7 +430,7 @@
 
   async function loadDirectorSettings() {
     const result = await db.from('staff_attendance_policy_settings')
-      .select('review_window_minutes,saturday_start_time,saturday_end_time,prep_enabled,prep_deduction_ugx')
+      .select('review_window_minutes,saturday_start_time,saturday_end_time,prep_enabled,prep_deduction_ugx,automatic_deductions_enabled')
       .eq('id', true).single();
     if (result.error) {
       safeMessage('attendanceMsg', 'Director attendance settings could not be loaded: ' + result.error.message, true);
@@ -439,6 +440,7 @@
     byId('attendanceSaturdayEnd').value = String(result.data.saturday_end_time || '15:00').slice(0,5);
     byId('attendancePrepEnabled').checked = result.data.prep_enabled === true;
     byId('attendancePrepDeduction').value = Number(result.data.prep_deduction_ugx || 0);
+    byId('attendanceAutoDeductionEnabled').checked = result.data.automatic_deductions_enabled === true;
     const msg = byId('attendancePolicyStatus');
     if (msg) msg.textContent = 'Two-hour review window is active.';
   }
@@ -704,6 +706,7 @@
         review_window_minutes:120,
         prep_enabled:byId('attendancePrepEnabled').checked,
         prep_deduction_ugx:Number(byId('attendancePrepDeduction').value || 0),
+        automatic_deductions_enabled:byId('attendanceAutoDeductionEnabled').checked,
         updated_by:currentUserId,
         updated_at:new Date().toISOString()
       }).eq('id',true);
