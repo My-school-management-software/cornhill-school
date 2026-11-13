@@ -80,6 +80,9 @@ jobs:
       - name: Verify least-privilege authentication database role
         run: npm run db:verify-runtime
 
+      - name: Verify local learner and admissions schema
+        run: npm run db:verify-school
+
   windows-unit:
     runs-on: windows-latest
     defaults:
