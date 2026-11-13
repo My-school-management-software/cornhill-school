@@ -71,10 +71,10 @@ Do not run `docker compose down -v`: the `-v` option deletes the named database 
 ## Current limits
 
 - This container is for development and migration rehearsal only.
-- It has no connection to the local Node server yet.
+- The HTTPS authentication server factory and launcher exist but are not started; the health-only Node server remains separate.
 - The SQL migrations have not yet been applied or verified against a running PostgreSQL instance.
 - The authentication API database roles exist but remain NOLOGIN; no runtime password has been provisioned.
-- It is not configured for LAN access, remote access, backups or production operation.
+- It is not configured for LAN access, remote access, backups or production operation. The HTTPS launcher is loopback-only.
 - Do not import real learner, guardian, staff or finance records.
 
 The next gate is to start this isolated database, apply all four migrations, and verify the constraints, permissions, repository behavior and restricted runtime role. Only after that should an administrator securely provision the runtime login, and only when HTTPS and the API integration are ready.
