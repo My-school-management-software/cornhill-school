@@ -39,8 +39,8 @@ test('services sign-in uses the matching professional layout and preserves role 
 });
 
 test('PWA cache version is advanced and online asset refresh is network-first', () => {
-  assert.ok(worker.includes("cornhill-shell-v99"));
-  assert.ok(worker.includes("cornhill-static-v99"));
+  assert.ok(worker.includes("cornhill-shell-v100"));
+  assert.ok(worker.includes("cornhill-static-v100"));
   assert.ok(worker.includes("new Request(request, { cache: 'no-store' })"));
   assert.ok(worker.includes('const cached = await cache.match(request);'));
   assert.ok(worker.includes('installed PWA receives current files immediately'));
@@ -50,4 +50,23 @@ test('service worker continues to keep authentication and database traffic netwo
   assert.ok(worker.includes('Do not cache Supabase, authentication, uploads, payments or any unknown API.'));
   assert.ok(worker.includes("if (request.method !== 'GET') return;"));
   assert.ok(worker.includes("if (!STATIC_HOSTS.has(url.hostname) || !STATIC_CDN.some(asset => url.href.startsWith(asset))) return;"));
+});
+
+test('sign-in restores the welcome panel and official school badge over the earlier hide rule', () => {
+  const styleStart = dashboard.indexOf('<style id="cornhill-professional-signin-v2">');
+  assert.notEqual(styleStart, -1, 'Professional sign-in style block must exist');
+  const styleEnd = dashboard.indexOf('</style>', styleStart);
+  const signInStyles = dashboard.slice(styleStart, styleEnd);
+  const ruleStart = signInStyles.indexOf('#login.login-design-surface:before{');
+  assert.notEqual(ruleStart, -1, 'The left welcome panel must be defined');
+  const ruleEnd = signInStyles.indexOf('}', ruleStart);
+  const welcomePanel = signInStyles.slice(ruleStart, ruleEnd);
+  assert.ok(welcomePanel.includes('content:"CORNHILL'), 'The welcome panel text must render');
+  assert.ok(welcomePanel.includes('!important'), 'The welcome panel must override the earlier content:none rule');
+  assert.ok(welcomePanel.includes("url('/assets/cornhill-school-badge.png')"),
+    'The welcome panel must use the official CORNHILL badge');
+  assert.ok(signInStyles.includes('#login.login-design-surface>*{position:relative;z-index:1;width:62%!important;max-width:none!important;margin-left:35%!important}'),
+    'Desktop sign-in content must retain its reserved right-hand column');
+  assert.ok(signInStyles.includes('#login.login-design-surface>*{width:100%!important;margin-left:0!important}'),
+    'Small-screen sign-in content must return to full width');
 });

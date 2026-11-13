@@ -1,0 +1,29 @@
+name: Parent Portal guardian isolation tests
+
+on:
+  push:
+    paths:
+      - 'parents.html'
+      - 'supabase/functions/parent-portal-api/**'
+      - 'tests/parent-portal-guardian-isolation.test.cjs'
+      - '.github/workflows/parent-portal-guardian-isolation-tests.yml'
+  pull_request:
+    paths:
+      - 'parents.html'
+      - 'supabase/functions/parent-portal-api/**'
+      - 'tests/parent-portal-guardian-isolation.test.cjs'
+      - '.github/workflows/parent-portal-guardian-isolation-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  parent-portal-isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Parent Portal guardian isolation regressions
+        run: node --test tests/parent-portal-guardian-isolation.test.cjs

@@ -37,6 +37,19 @@
 <div class="row" style="margin-top:12px"><button id="sendParentMessage" type="button">Send message</button><button id="clearVoice" class="secondary hidden" type="button">Remove voice note</button></div>
 <div id="messageStatus" class="notice hidden" role="status"></div>
 <div class="section"><h2>My messages</h2><div id="parentMessageHistory"><div class="empty">Your messages will appear here.</div></div></div>
+<div class="section" id="parentResourceLinks">
+<h2>Helpful school links</h2>
+<p class="muted">These are public CORNHILL resources. You can share the official school website or admission enquiry page with families who may be interested in joining the school. Sharing these links does not share your child's private records.</p>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+ <a class="tile" href="https://school-website-cornhill-school.vercel.app/apps/school-website/" target="_blank" rel="noopener noreferrer"><strong>Official CORNHILL school website</strong><span class="muted">School information and public updates</span></a>
+ <a class="tile" href="https://admissions-cornhill-school.vercel.app/apps/admissions/" target="_blank" rel="noopener noreferrer"><strong>New learner admission enquiry</strong><span class="muted">Public admission enquiry form for families</span></a>
+</div>
+<div class="row" style="margin-top:10px;flex-wrap:wrap">
+ <button class="secondary" type="button" data-share-resource="school">Share school website</button>
+ <button class="secondary" type="button" data-share-resource="admissions">Share admission link</button>
+</div>
+<div class="notice hidden" id="parentResourceStatus" role="status" aria-live="polite"></div>
+</div>
 </section><section class="card hidden" id="parentSchoolContacts">
 <h2>School Contacts</h2>
 <p class="muted">Contact the school office or the relevant staff member. Only school-approved contact numbers are displayed here. You can also send a private message through this portal.</p>
@@ -115,6 +128,8 @@ async function signInGuardian(){
   try{
     const data=await parentApi('verify',payload);
     parentSessionToken=data.session_token;
+    window.CornhillUsageAnalytics?.trackParentSession?.(parentSessionToken,'parent_login_success');
+    window.CornhillUsageAnalytics?.trackParentSession?.(parentSessionToken,'page_view');
     renderLearner(data.learner);
     el('loginCard').classList.add('hidden');
     el('parentMessages').classList.remove('hidden');
@@ -122,6 +137,7 @@ async function signInGuardian(){
     await Promise.all([loadParentPhoto(),loadParentDirectory(),loadParentMessages()]);
   }catch(e){
     parentSessionToken=null;
+    window.CornhillUsageAnalytics?.track?.('parent_login_failure','parent_portal');
     message('loginMessage',e.message||'Guardian verification failed. Check the learner code and registered phone number, or contact the school office.','error');
     if(/setting changed|Guardian PIN is now required/i.test(e.message||''))await loadGuardianAuthSettings();
   }finally{
@@ -167,6 +183,36 @@ function clearVoiceNote(){voiceBlob=null;voiceDurationSeconds=0;el('voicePreview
 async function startVoiceRecording(){if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){message('messageStatus','Voice recording is not supported by this browser. You can still send a typed message.','error');return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const candidates=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];const mime=candidates.find(t=>MediaRecorder.isTypeSupported(t));if(!mime){stream.getTracks().forEach(t=>t.stop());message('messageStatus','This browser does not provide a supported voice-note format. Please type your message.','error');return}voiceChunks=[];voiceRecorder=new MediaRecorder(stream,{mimeType:mime});voiceStartedAt=Date.now();voiceRecorder.ondataavailable=e=>{if(e.data?.size)voiceChunks.push(e.data)};voiceRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());voiceDurationSeconds=Math.max(1,Math.round((Date.now()-voiceStartedAt)/1000));voiceBlob=new Blob(voiceChunks,{type:voiceRecorder.mimeType.split(';')[0]});if(voiceBlob.size>4194304){clearVoiceNote();message('messageStatus','That recording exceeded 4 MB. Please record a shorter voice note.','error');return}el('voicePreview').src=URL.createObjectURL(voiceBlob);el('voicePreview').classList.remove('hidden');el('clearVoice').classList.remove('hidden');el('voiceStatus').textContent='Voice note ready · '+Math.round(voiceBlob.size/1024)+' KB'};voiceRecorder.start();el('startVoice').classList.add('hidden');el('stopVoice').classList.remove('hidden');el('voiceStatus').textContent='Recording… maximum 3 minutes';voiceTimer=setTimeout(()=>stopVoiceRecording(),180000)}catch(e){message('messageStatus','Microphone permission was not granted. You can still send a typed message.','error')}}
 function stopVoiceRecording(){if(voiceTimer)clearTimeout(voiceTimer);voiceTimer=null;if(voiceRecorder&&voiceRecorder.state!=='inactive')voiceRecorder.stop();el('startVoice').classList.remove('hidden');el('stopVoice').classList.add('hidden')}
 
+async function shareParentResource(kind){
+  const resources={
+    school:{title:'CORNHILL Nursery and Primary School',text:'Visit the official CORNHILL Nursery and Primary School website.',url:'https://school-website-cornhill-school.vercel.app/apps/school-website/'},
+    admissions:{title:'CORNHILL learner admissions',text:'Submit a public admission enquiry to CORNHILL Nursery and Primary School.',url:'https://admissions-cornhill-school.vercel.app/apps/admissions/'}
+  };
+  const resource=resources[kind];
+  if(!resource)return;
+  const url=resource.url;
+  const status=el('parentResourceStatus');
+  try{
+    if(navigator.share){
+      await navigator.share({title:resource.title,text:resource.text,url});
+      status.textContent='Share sheet opened for the public CORNHILL link.';
+      status.className='notice success';
+    }else if(navigator.clipboard&&navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+      status.textContent='Public link copied. You can paste it into a message.';
+      status.className='notice success';
+    }else{
+      status.textContent='Sharing is not available in this browser. Open the public link above and copy it from the address bar.';
+      status.className='notice';
+    }
+  }catch(error){
+    if(error&&error.name==='AbortError')return;
+    status.textContent='The link could not be shared automatically. Open the public link above and copy it from the address bar.';
+    status.className='notice error';
+  }
+  status.classList.remove('hidden');
+}
+document.querySelectorAll('[data-share-resource]').forEach(button=>button.addEventListener('click',()=>shareParentResource(button.dataset.shareResource)));
 el('signInGuardian').addEventListener('click',signInGuardian);
 el('sendParentMessage').addEventListener('click',sendParentMessage);
 el('startVoice').addEventListener('click',startVoiceRecording);

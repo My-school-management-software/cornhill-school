@@ -449,6 +449,29 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
     <div class="module-head"><div><span class="kicker">ADMINISTRATOR ONLY</span><h2>System Health & Recovery Centre</h2><p class="muted">Basic live connectivity checks and recovery readiness guidance. A green connection check does not prove a backup can be restored.</p></div><button type="button" class="primary" id="runHealthCheck">Run system checks</button></div>
     <div class="stats"><div class="stat"><small>Authentication</small><strong id="healthAuth">Not checked</strong></div><div class="stat"><small>Database API</small><strong id="healthDatabase">Not checked</strong></div><div class="stat"><small>App Centre access</small><strong id="healthApps">Not checked</strong></div></div>
     <div id="healthDetails" class="notice">Run checks to test the current staff session and read-only access.</div>
+    <div class="card hidden" id="schoolUsageAnalyticsCard">
+      <div class="module-head"><div><h3>School website and app usage</h3><p class="muted">Director-only, first-party opt-in statistics. Counts public website visits, verified guardian sign-ins, staff workspace use, device categories and admission enquiry outcomes. Does not display personal names, phone numbers, pupil records, messages, marks or full URLs.</p></div><button type="button" id="refreshUsageAnalytics" class="primary">Refresh usage report</button></div>
+      <p class="muted">Only devices/accounts that allow usage statistics are included. Data is pseudonymised and automatically deleted after 90 days; counts do not represent every visitor.</p>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        <div><label for="usageStartDate">From (Uganda date)</label><input type="date" id="usageStartDate"></div>
+        <div><label for="usageEndDate">To (Uganda date)</label><input type="date" id="usageEndDate"></div>
+      </div>
+      <p id="usageAnalyticsStatus" class="muted" role="status">Select a date range and refresh the report.</p>
+      <div class="stats" id="usageAnalyticsSummary">
+        <div class="stat"><small>Events</small><strong id="usageTotalEvents">—</strong></div>
+        <div class="stat"><small>Public visitors</small><strong id="usagePublicVisitors">—</strong></div>
+        <div class="stat"><small>Guardian accounts</small><strong id="usageGuardianAccounts">—</strong></div>
+        <div class="stat"><small>Staff accounts</small><strong id="usageStaffAccounts">—</strong></div>
+        <div class="stat"><small>Admission form starts</small><strong id="usageAdmissionStarts">—</strong></div>
+        <div class="stat"><small>Submission attempts</small><strong id="usageAdmissionAttempts">—</strong></div>
+        <div class="stat"><small>Enquiries received</small><strong id="usageAdmissionAccepted">—</strong></div>
+      </div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:16px">
+        <div><h4>Most-used workspaces</h4><div class="table-wrap"><table><thead><tr><th>Workspace</th><th>Visits</th><th>Public visitors</th><th>Guardian accounts</th><th>Staff accounts</th></tr></thead><tbody id="usageWorkspaceRows"><tr><td colspan="5">No report loaded.</td></tr></tbody></table></div></div>
+        <div><h4>Device categories</h4><div class="table-wrap"><table><thead><tr><th>Device</th><th>Events</th></tr></thead><tbody id="usageDeviceRows"><tr><td colspan="2">No report loaded.</td></tr></tbody></table></div></div>
+      </div>
+      <h4>Daily usage trend</h4><div class="table-wrap"><table><thead><tr><th>Date</th><th>Events</th><th>Public visitors</th><th>Guardian accounts</th><th>Staff accounts</th></tr></thead><tbody id="usageDailyRows"><tr><td colspan="5">No report loaded.</td></tr></tbody></table></div>
+    </div>
     <div class="card" id="backupActivityCard">
       <div class="module-head"><div><h3>Encrypted backup activity</h3><p class="muted">Administrator-only backup schedule, recent runs and validation summaries. This view never exposes Drive tokens, scheduler secrets or private backup credentials.</p></div><button type="button" id="refreshBackupActivity">Refresh backup activity</button></div>
       <div class="stats">
@@ -1154,5 +1177,56 @@ document.getElementById('installServicesApp')?.addEventListener('click',async()=
 window.addEventListener('appinstalled',()=>document.getElementById('installServicesApp')?.classList.add('hidden'));
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
 </script>
-<script src="/assets/cornhill-navigation.js" defer></script></body>
+<script src="/assets/cornhill-navigation.js" defer></script><script>
+(function(){
+  const panel=document.getElementById('schoolUsageAnalyticsCard');
+  if(!panel)return;
+  const byId=id=>document.getElementById(id);
+  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const number=value=>Number(value||0).toLocaleString('en-UG');
+  function kampalaDate(offset){
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Kampala',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).split('-').map(Number);
+    const d=new Date(parts[0],parts[1]-1,parts[2]);d.setDate(d.getDate()+(offset||0));
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function setStatus(message,error){
+    byId('usageAnalyticsStatus').textContent=message;
+    byId('usageAnalyticsStatus').className=error?'notice error':'muted';
+  }
+  async function refreshUsageReport(){
+    const start=byId('usageStartDate').value,end=byId('usageEndDate').value;
+    if(!start||!end||end<start){setStatus('Choose a valid start and end date.',true);return}
+    const button=byId('refreshUsageAnalytics');button.disabled=true;setStatus('Loading anonymised usage totals…');
+    try{
+      const api=window.CornhillUsageAnalytics;
+      if(!api||typeof api.getReport!=='function')throw new Error('Usage analytics service is not available on this page.');
+      const report=await api.getReport(start,end),summary=report.summary||{};
+      byId('usageTotalEvents').textContent=number(summary.events);
+      byId('usagePublicVisitors').textContent=number(summary.public_visitors);
+      byId('usageGuardianAccounts').textContent=number(summary.guardian_accounts);
+      byId('usageStaffAccounts').textContent=number(summary.staff_accounts);
+      byId('usageAdmissionStarts').textContent=number(summary.admission_form_starts);
+      byId('usageAdmissionAttempts').textContent=number(summary.admission_form_attempts);
+      byId('usageAdmissionAccepted').textContent=number(summary.admission_form_accepted);
+      byId('usageWorkspaceRows').innerHTML=(report.by_workspace||[]).map(x=>'<tr><td>'+escapeHtml(String(x.workspace||'').replace(/_/g,' '))+'</td><td>'+number(x.views)+'</td><td>'+number(x.unique_visitors)+'</td><td>'+number(x.guardian_accounts)+'</td><td>'+number(x.staff_accounts)+'</td></tr>').join('')||'<tr><td colspan="5">No visits recorded in this date range.</td></tr>';
+      byId('usageDeviceRows').innerHTML=(report.by_device||[]).map(x=>'<tr><td>'+escapeHtml(x.device)+'</td><td>'+number(x.events)+'</td></tr>').join('')||'<tr><td colspan="2">No device totals recorded.</td></tr>';
+      byId('usageDailyRows').innerHTML=(report.daily_trend||[]).map(x=>'<tr><td>'+escapeHtml(x.date)+'</td><td>'+number(x.events)+'</td><td>'+number(x.public_visitors)+'</td><td>'+number(x.guardian_accounts)+'</td><td>'+number(x.staff_accounts)+'</td></tr>').join('')||'<tr><td colspan="5">No daily usage recorded.</td></tr>';
+      setStatus('Report loaded for '+start+' to '+end+' (Africa/Kampala). Only opted-in, pseudonymised usage events are counted.');
+    }catch(error){setStatus(error.message||'Usage report could not be loaded.',true)}
+    finally{button.disabled=false}
+  }
+  async function initialise(){
+    try{
+      const result=await db.rpc('is_school_director');
+      if(result.error||result.data!==true){panel.classList.add('hidden');return}
+      panel.classList.remove('hidden');
+      byId('usageStartDate').value=kampalaDate(-29);
+      byId('usageEndDate').value=kampalaDate(0);
+      byId('refreshUsageAnalytics').addEventListener('click',refreshUsageReport);
+    }catch(_){panel.classList.add('hidden')}
+  }
+  initialise();
+})();
+</script>
+</body>
 </html>

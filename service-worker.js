@@ -61,6 +61,10 @@ async function enhanceHtml(response, includeRecordsTools) {
   if (!html.includes(offlineScript)) {
     html = html.replace(/<\/head>/i, '<script src="' + offlineScript + '"></script></head>');
   }
+  const usageAnalyticsScript = '/assets/cornhill-usage-analytics.js';
+  if (!html.includes(usageAnalyticsScript)) {
+    html = html.replace(/<\/head>/i, '<script src="' + usageAnalyticsScript + '" defer></script></head>');
+  }
   const recordsScript = '/assets/cornhill-document-pdf-ocr.js';
   if (includeRecordsTools && !html.includes(recordsScript)) {
     html = html.replace(/<\/body>/i, '<script src="' + recordsScript + '"></script></body>');

@@ -18,6 +18,48 @@
     }
   };
 
+  function attendanceRequest(task, label, timeoutMs = 15000) {
+    let timeoutId;
+    return Promise.race([
+      Promise.resolve().then(task),
+      new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(
+          new Error(label + ' did not respond within ' + Math.round(timeoutMs / 1000) + ' seconds.')
+        ), timeoutMs);
+      })
+    ]).finally(() => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    });
+  }
+
+  async function loadCoreAttendanceStaffOptions() {
+    if (!db || !isAdmin()) return;
+    const selects = ['staffUserSelect','scheduleStaffSelect'].map(byId).filter(Boolean);
+    if (!selects.length) return;
+    selects.forEach((select) => { select.innerHTML = '<option value="">Loading active staff…</option>'; });
+    try {
+      const result = await attendanceRequest(() => db.from('user_profiles')
+        .select('id,full_name,role')
+        .eq('employment_status','Active')
+        .in('role',['Admin','Teacher','Staff'])
+        .order('full_name'), 'Attendance staff list');
+      if (result.error) throw result.error;
+      const rows = result.data || [];
+      const options = '<option value="">Choose staff member</option>' +
+        rows.map((x) => '<option value="' + x.id + '">' +
+          html(x.full_name || x.id) + ' (' + html(x.role || 'Staff') + ')</option>').join('');
+      selects.forEach((select) => { select.innerHTML = rows.length ? options :
+        '<option value="">No active staff accounts found</option>'; });
+      if (!rows.length) safeMessage('attendanceMsg','No active staff accounts were returned by the database.',true);
+    } catch (error) {
+      const detail = error && error.message ? error.message : String(error || 'Unknown error');
+      selects.forEach((select) => {
+        select.innerHTML = '<option value="">Staff list unavailable — refresh attendance</option>';
+      });
+      safeMessage('attendanceMsg','Attendance staff dropdowns could not load: ' + detail,true);
+    }
+  }
+
   function dailyRate(agreement, dateValue) {
     if (!agreement) return null;
     if (agreement.daily_rate_ugx != null && Number(agreement.daily_rate_ugx) > 0) return Number(agreement.daily_rate_ugx);
@@ -184,35 +226,98 @@
   async function loadMySalarySummary() {
     const box = byId('myAttendanceSalarySummary');
     if (!box || !currentUserId || !db || demoMode) return;
-    const [salaryResult, incidentResult] = await Promise.all([
+    const [salaryResult, incidentResult, eventResult, sessionResult] = await Promise.all([
       db.from('staff_salary_agreements')
         .select('salary_basis,base_salary_ugx,daily_rate_ugx,effective_from,effective_to,is_active')
         .eq('staff_user_id', currentUserId).eq('is_active', true)
         .order('effective_from', {ascending:false}).limit(5),
       db.from('staff_attendance_incidents')
-        .select('attendance_date,status,approved_deduction_ugx,review_deadline_at')
+        .select('attendance_date,incident_type,status,approved_deduction_ugx,review_deadline_at,director_decision')
         .eq('staff_user_id', currentUserId)
-        .order('attendance_date', {ascending:false}).limit(120)
+        .order('attendance_date', {ascending:false}).limit(120),
+      db.from('staff_attendance_events')
+        .select('event_type,occurred_at,source,device_model')
+        .eq('staff_user_id', currentUserId)
+        .order('occurred_at', {ascending:false}).limit(160),
+      db.from('staff_scheduled_session_attendance')
+        .select('clock_in_at,clock_out_at,clock_in_source,clock_out_source,staff_prep_sessions(prep_date,title,class_name,session_type)')
+        .eq('staff_user_id', currentUserId)
+        .order('created_at', {ascending:false}).limit(100)
     ]);
     if (salaryResult.error) {
-      box.innerHTML = '<strong>My salary and attendance deductions</strong><p class="muted">Your salary details are not available to this account yet. Ask the Director to verify your staff salary agreement.</p>';
+      box.innerHTML = '<strong>My attendance history</strong><p class="muted">Your attendance details are not available to this account yet. Ask the Director to check your staff account link.</p>';
       return;
     }
     const active = (salaryResult.data || []).find((x) => x.effective_from <= today() && (!x.effective_to || x.effective_to >= today()));
     const rate = active ? dailyRate(active, today()) : null;
     const incidents = incidentResult.error ? [] : (incidentResult.data || []);
+    const events = eventResult.error ? [] : (eventResult.data || []);
     const pending = incidents.filter((x) => x.status === 'pending').length;
     const deductions = incidents.filter((x) => x.status === 'approved' || x.status === 'deducted')
       .reduce((total, x) => total + Number(x.approved_deduction_ugx || 0), 0);
-    box.innerHTML = '<strong>My salary and attendance deductions</strong>' +
+    const dayKey = (value) => new Intl.DateTimeFormat('en-CA', {
+      timeZone:'Africa/Kampala',year:'numeric',month:'2-digit',day:'2-digit'
+    }).format(new Date(value));
+    const timeLabel = (value) => new Intl.DateTimeFormat('en-GB', {
+      timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'
+    }).format(new Date(value));
+    const grouped = new Map();
+    events.forEach((event) => {
+      const day = dayKey(event.occurred_at);
+      if (!grouped.has(day)) grouped.set(day, []);
+      grouped.get(day).push(event);
+    });
+    const eventLabel = {clock_in:'Clocked in',break_start:'Break started',break_end:'Break ended',clock_out:'Clocked out'};
+    const historyRows = [...grouped.keys()].sort((a,b) => b.localeCompare(a)).map((day) => {
+      const dayEvents = (grouped.get(day) || []).slice().sort((a,b) => new Date(a.occurred_at)-new Date(b.occurred_at));
+      const times = (type) => dayEvents.filter((x) => x.event_type === type).map((x) => timeLabel(x.occurred_at)).join(', ') || '—';
+      const issues = incidents.filter((x) => x.attendance_date === day);
+      const state = issues.length
+        ? issues.map((x) => (x.incident_type || 'attendance issue').replace(/_/g,' ') + ' · ' + (x.director_decision || x.status)).join('; ')
+        : (dayEvents.some((x) => x.event_type === 'clock_out') ? 'Completed' : 'In progress');
+      return '<tr><td>' + html(day) + '</td><td>' + html(times('clock_in')) + '</td><td>' +
+        html(times('break_start')) + '</td><td>' + html(times('break_end')) + '</td><td>' +
+        html(times('clock_out')) + '</td><td>' + html(state) + '</td></tr>';
+    });
+    const clockInDays = new Set(events.filter((x) => x.event_type === 'clock_in').map((x) => dayKey(x.occurred_at)));
+    const missedDays = new Set(incidents.filter((x) =>
+      x.incident_type === 'missed_clock_in' && !clockInDays.has(x.attendance_date)
+    ).map((x) => x.attendance_date)).size;
+    const incidentRows = incidents.slice(0,40).map((x) =>
+      '<tr><td>' + html(x.attendance_date) + '</td><td>' + html((x.incident_type || '').replace(/_/g,' ')) +
+      '</td><td>' + html(x.director_decision || x.status) + '</td><td>' +
+      html(x.approved_deduction_ugx ? ugx(x.approved_deduction_ugx) : '—') + '</td></tr>'
+    );
+    box.innerHTML = '<strong>My attendance history — view only</strong>' +
+      '<p class="muted">This account cannot clock in, clock out or change attendance. All attendance events are recorded from the Director-controlled central kiosk or an approved office device.</p>' +
       (active
         ? '<p style="margin:7px 0">' + html(active.salary_basis) + ' agreed salary: <strong>' + ugx(active.base_salary_ugx) + '</strong></p>' +
           '<p style="margin:4px 0">Daily attendance rate: <strong>' + (rate ? ugx(rate) : 'Not configured — see the bursar/Director') + '</strong></p>' +
           '<p style="margin:4px 0">Effective period: ' + html(active.effective_from) + ' to ' + html(active.effective_to || 'ongoing') + '</p>'
         : '<p class="muted">No current salary agreement is linked to your account yet.</p>') +
-      '<p style="margin:4px 0">Pending attendance reviews: <strong>' + pending + '</strong></p>' +
-      '<p style="margin:4px 0">Director-approved attendance deductions recorded: <strong>' + ugx(deductions) + '</strong></p>' +
-      '<small class="muted">Sunday is a paid rest day and is not an absence-deduction day. Public holidays remain included in the calendar-day salary calculation.</small>';
+      '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0">' +
+        '<div class="tile"><small>Missed days awaiting review</small><strong>' + missedDays + '</strong></div>' +
+        '<div class="tile"><small>Pending attendance reviews</small><strong>' + pending + '</strong></div>' +
+        '<div class="tile"><small>Director-approved deductions</small><strong>' + ugx(deductions) + '</strong></div>' +
+      '</div>' +
+      '<h4 style="margin:12px 0 6px">Daily attendance record</h4>' +
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Clock-in</th><th>Break start</th><th>Break end</th><th>Clock-out</th><th>Status</th></tr></thead><tbody>' +
+      (historyRows.join('') || '<tr><td colspan="6">No attendance events have been recorded for this account yet.</td></tr>') +
+      '</tbody></table></div>' +
+      '<h4 style="margin:14px 0 6px">Special prep, morning winter and Saturday sessions</h4>' +
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Session</th><th>Class</th><th>Clock-in</th><th>Clock-out</th></tr></thead><tbody>' +
+      (specialSessions.map((x) => '<tr><td>' + html(x.staff_prep_sessions?.prep_date || '—') +
+        '</td><td>' + html((x.staff_prep_sessions?.session_type || 'special session').replace(/_/g,' ')) +
+        ' · ' + html(x.staff_prep_sessions?.title || '') + '</td><td>' + html(x.staff_prep_sessions?.class_name || '—') +
+        '</td><td>' + html(x.clock_in_at ? timeLabel(x.clock_in_at) : '—') +
+        '</td><td>' + html(x.clock_out_at ? timeLabel(x.clock_out_at) : '—') + '</td></tr>').join('') ||
+        '<tr><td colspan="5">No special-session attendance recorded.</td></tr>') +
+      '</tbody></table></div>' +
+      '<h4 style="margin:14px 0 6px">Attendance incidents and review decisions</h4>' +
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Incident</th><th>Decision / status</th><th>Approved deduction</th></tr></thead><tbody>' +
+      (incidentRows.join('') || '<tr><td colspan="4">No attendance incidents recorded.</td></tr>') +
+      '</tbody></table></div>' +
+      '<small class="muted">Sunday is a paid rest day. Public holidays remain included in calendar-day salary calculations. Attendance history is read-only for staff accounts.</small>';
   }
 
   function installDirectorAttendancePanel() {
@@ -241,9 +346,28 @@
     panel.style.cssText = 'padding:16px;margin:14px 0;border:1px solid #d7e5dc';
     panel.innerHTML =
       '<div class="row" style="justify-content:space-between;align-items:center"><div><h3 style="margin:0">Director attendance controls</h3><p class="muted" style="margin:4px 0">Two-hour review · Saturday P.3–P.7 · public holiday calendar · prep planning</p></div><span class="badge">Director approval only</span></div>' +
+      '<div class="card" style="padding:14px;margin:12px 0;border:1px solid #cbded0">' +
+        '<h4 style="margin-top:0">Central office attendance kiosk</h4>' +
+        '<p class="muted">Only the Director account can record clock-in, break-start, break-end and clock-out. Staff accounts and personal phones are history-only.</p>' +
+        '<form id="directorAttendanceKioskForm" class="grid">' +
+          '<div><label for="directorKioskStaff">Staff member *</label><select id="directorKioskStaff" required><option value="">Loading staff…</option></select></div>' +
+          '<div><label for="directorKioskEvent">Attendance event *</label><select id="directorKioskEvent" required>' +
+            '<option value="clock_in">Clock-in</option><option value="break_start">Break start</option>' +
+            '<option value="break_end">Break end</option><option value="clock_out">Clock-out</option></select></div>' +
+          '<div class="full"><button type="submit" class="primary" id="recordDirectorKioskEvent">Record at central kiosk</button><span id="directorKioskStatus" class="muted" role="status"></span></div>' +
+        '</form>' +
+        '<hr style="border:0;border-top:1px solid #e5ece6;margin:14px 0">' +
+        '<h4>Special-session kiosk</h4><p class="muted">Use this for Director-approved evening prep, morning winter and Saturday study sessions. It is separate from normal attendance.</p>' +
+        '<form id="directorSessionKioskForm" class="grid">' +
+          '<div><label for="directorSessionChoice">Approved session *</label><select id="directorSessionChoice" required><option value="">Loading sessions…</option></select></div>' +
+          '<div><label for="directorSessionStaff">Assigned staff member *</label><select id="directorSessionStaff" required><option value="">Choose staff</option></select></div>' +
+          '<div><label for="directorSessionEvent">Event *</label><select id="directorSessionEvent"><option value="clock_in">Clock-in</option><option value="clock_out">Clock-out</option></select></div>' +
+          '<div class="full"><button type="submit" id="recordDirectorSessionEvent">Record special-session attendance</button><span id="directorSessionKioskStatus" class="muted" role="status"></span></div>' +
+        '</form>' +
+      '</div>' +
       '<form id="attendancePolicyForm" class="grid" style="margin-top:10px">' +
         '<div><label>Saturday start</label><input type="time" id="attendanceSaturdayStart" value="08:00" required></div>' +
-        '<div><label>Saturday end</label><input type="time" id="attendanceSaturdayEnd" value="15:00" required></div>' +
+        '<div><label>Saturday end</label><input type="time" id="attendanceSaturdayEnd" value="13:00" required></div>' +
         '<div><label>Review window</label><input type="number" value="120" disabled><small class="muted">Minutes · fixed two-hour protection</small></div>' +
         '<div><label>Prep deduction (UGX)</label><input type="number" min="0" step="1" id="attendancePrepDeduction" value="0"></div>' +
         '<div class="full"><label><input type="checkbox" id="attendancePrepEnabled"> Enable prep attendance/deduction policy when prep sessions are introduced</label></div>' +
@@ -264,10 +388,12 @@
       '<form id="staffPrepSessionForm" class="grid">' +
         '<div><label>Prep date *</label><input type="date" id="prepDate" required></div>' +
         '<div><label>Session title *</label><input id="prepTitle" maxlength="120" required placeholder="e.g. P.7 revision prep"></div>' +
+        '<div><label>Session type *</label><select id="prepSessionType" required><option value="evening_prep">Evening prep</option><option value="morning_winter">Morning winter</option><option value="saturday_study">Saturday study (8:00 AM–1:00 PM)</option></select></div>' +
         '<div><label>Class *</label><input id="prepClass" maxlength="60" required placeholder="P.7"></div>' +
-        '<div><label>Teacher assigned *</label><select id="prepStaffUser" required><option value="">Choose teacher</option></select></div>' +
+        '<div><label>Teachers assigned *</label><select id="prepStaffUser" multiple size="4" required></select><small class="muted">Select one or more assigned teachers.</small></div>' +
         '<div><label>Start time *</label><input type="time" id="prepStart" value="16:00" required></div>' +
         '<div><label>End time *</label><input type="time" id="prepEnd" value="18:00" required></div>' +
+        '<div><label>Special-session deduction (UGX)</label><input type="number" id="prepSessionDeduction" value="0" min="0" step="1"></div>' +
         '<div class="full"><label>Notes</label><input id="prepNotes" maxlength="500" placeholder="Optional Director instructions"></div>' +
         '<div class="full"><button type="submit" class="primary">Create prep session and assign teacher</button></div>' +
       '</form><div id="staffPrepSessionRows" class="muted">No prep sessions loaded.</div>' +
@@ -277,6 +403,123 @@
       '<div class="table-wrap"><table><thead><tr><th>Staff</th><th>Date</th><th>Issue</th><th>Headteacher / DOS statement</th><th>Decision deadline</th><th>Decision</th></tr></thead><tbody id="governanceIncidentRows"><tr><td colspan="6">Loading attendance reviews…</td></tr></tbody></table></div>';
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(panel, anchor.nextSibling);
     else admin.appendChild(panel);
+  }
+
+  async function loadDirectorKioskOptions() {
+    const kioskSelect = byId('directorKioskStaff');
+    const prepSelect = byId('prepStaffUser');
+    const selects = [kioskSelect, prepSelect].filter(Boolean);
+    selects.forEach((select) => {
+      select.innerHTML = '<option value="">Loading active staff…</option>';
+      select.disabled = true;
+    });
+
+    let timeoutId;
+    try {
+      if (!db) throw new Error('The school database connection is not ready. Refresh the attendance page.');
+      const request = db.from('user_profiles')
+        .select('id,full_name,job_title,role')
+        .eq('employment_status','Active')
+        .in('role',['Admin','Teacher','Staff'])
+        .order('full_name');
+      const timeout = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(
+          'The staff-list request took too long. Check the connection and refresh the attendance page.'
+        )), 15000);
+      });
+      const result = await Promise.race([request, timeout]);
+      if (result.error) throw result.error;
+
+      const rows = result.data || [];
+      if (!rows.length) {
+        selects.forEach((select) => {
+          select.innerHTML = '<option value="">No active staff accounts were returned</option>';
+          select.disabled = false;
+        });
+      } else {
+        const options = '<option value="">Choose active staff member</option>' +
+          rows.map((x) => '<option value="' + x.id + '">' +
+            html(x.full_name || x.job_title || 'Staff') + ' · ' + html(x.role || 'Staff') + '</option>').join('');
+        if (kioskSelect) kioskSelect.innerHTML = options;
+        if (prepSelect) prepSelect.innerHTML = rows.map((x) =>
+          '<option value="' + x.id + '">' + html(x.full_name || x.job_title || 'Staff') +
+          ' · ' + html(x.role || 'Staff') + '</option>'
+        ).join('');
+        selects.forEach((select) => { select.disabled = false; });
+      }
+
+      const sessionStaff = byId('directorSessionStaff');
+      if (sessionStaff) sessionStaff.innerHTML = '<option value="">Choose an approved session first</option>';
+      if (rows.length) safeMessage('attendanceMsg','Active staff list loaded: ' + rows.length + ' staff accounts.');
+    } catch (error) {
+      const detail = error && error.message ? error.message : String(error || 'Unknown error');
+      selects.forEach((select) => {
+        select.innerHTML = '<option value="">Staff list unavailable — refresh attendance</option>';
+        select.disabled = false;
+      });
+      safeMessage('attendanceMsg','Director kiosk staff list failed to load: ' + detail,true);
+      const status = byId('directorKioskStatus');
+      if (status) {
+        status.textContent = 'Staff list could not be loaded. ' + detail;
+        status.classList.remove('hidden');
+      }
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
+  }
+
+  async function loadDirectorSpecialSessions() {
+    const select = byId('directorSessionChoice');
+    if (!select) return;
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading approved sessions…</option>';
+    try {
+      const result = await attendanceRequest(() => db.from('staff_prep_sessions')
+        .select('id,prep_date,title,class_name,session_type,start_time,end_time')
+        .eq('approval_status','approved')
+        .eq('is_published',true)
+        .order('prep_date',{ascending:false})
+        .limit(100), 'Approved special sessions');
+      if (result.error) throw result.error;
+      const rows = result.data || [];
+      select.innerHTML = rows.length
+        ? '<option value="">Choose an approved session</option>' +
+          rows.map((x) => '<option value="' + x.id + '">' +
+            html(x.prep_date) + ' · ' + html(x.class_name) + ' · ' + html(x.title) +
+            ' (' + html((x.session_type || '').replace(/_/g,' ')) + ')</option>').join('')
+        : '<option value="">No approved special sessions yet</option>';
+      const sessionStaff = byId('directorSessionStaff');
+      if (sessionStaff && !rows.length) sessionStaff.innerHTML = '<option value="">No approved session to select</option>';
+    } catch (error) {
+      const detail = error && error.message ? error.message : String(error || 'Unknown error');
+      select.innerHTML = '<option value="">Approved sessions unavailable — refresh attendance</option>';
+      safeMessage('attendanceMsg','Approved special sessions failed to load: ' + detail,true);
+    } finally {
+      select.disabled = false;
+    }
+  }
+
+  async function loadDirectorSessionStaffOptions() {
+    const sessionId = byId('directorSessionChoice')?.value;
+    const select = byId('directorSessionStaff');
+    if (!select) return;
+    if (!sessionId) {
+      select.innerHTML = '<option value="">Choose an approved session first</option>';
+      return;
+    }
+    const result = await db.from('staff_prep_assignments')
+      .select('staff_user_id,user_profiles(full_name)')
+      .eq('prep_session_id',sessionId)
+      .order('assigned_at',{ascending:true});
+    if (result.error) {
+      select.innerHTML = '<option value="">Assigned staff could not load</option>';
+      safeMessage('attendanceMsg','Assigned staff for this session could not load: ' + result.error.message,true);
+      return;
+    }
+    select.innerHTML = '<option value="">Choose assigned staff</option>' +
+      (result.data || []).map((x) => '<option value="' + x.staff_user_id + '">' +
+        html(x.user_profiles?.full_name || 'Assigned staff member') + '</option>').join('');
+    if (!(result.data || []).length) select.innerHTML = '<option value="">No staff assigned</option>';
   }
 
   async function loadDirectorSettings() {
@@ -313,8 +556,11 @@
     const host = byId('staffPrepSessionRows');
     if (!host) return;
     const [sessions, assignments] = await Promise.all([
-      db.from('staff_prep_sessions').select('id,prep_date,title,start_time,end_time,class_name,notes,is_published').order('prep_date',{ascending:false}).limit(80),
-      db.from('staff_prep_assignments').select('prep_session_id,staff_user_id,user_profiles(full_name)').limit(200)
+      db.from('staff_prep_sessions')
+        .select('id,prep_date,title,start_time,end_time,class_name,notes,is_published,session_type,approval_status,deduction_amount_ugx')
+        .order('prep_date',{ascending:false}).limit(80),
+      db.from('staff_prep_assignments')
+        .select('prep_session_id,staff_user_id,user_profiles(full_name)').limit(300)
     ]);
     if (sessions.error || assignments.error) {
       host.textContent = 'Prep sessions could not load: ' + ((sessions.error || assignments.error).message || 'Database request failed');
@@ -325,12 +571,19 @@
       assigned[x.prep_session_id] = assigned[x.prep_session_id] || [];
       assigned[x.prep_session_id].push(x.user_profiles?.full_name || 'Staff member');
     });
-    host.innerHTML = (sessions.data || []).map((x) =>
-      '<div style="padding:8px;border-bottom:1px solid #eee"><strong>' + html(x.prep_date) + ' · ' + html(x.class_name) + '</strong> — ' +
-      html(x.title) + ' · ' + html(String(x.start_time).slice(0,5)) + '–' + html(String(x.end_time).slice(0,5)) +
-      '<br><small>Assigned: ' + html((assigned[x.id] || []).join(', ') || 'No teacher assigned') + '</small>' +
-      (x.notes ? '<br><small>' + html(x.notes) + '</small>' : '') + '</div>'
-    ).join('') || 'No prep sessions have been created.';
+    host.innerHTML = (sessions.data || []).map((x) => {
+      const approved = x.approval_status === 'approved' && x.is_published === true;
+      const approveButton = !approved && x.approval_status !== 'cancelled'
+        ? '<button type="button" data-approve-special-session="' + x.id + '">Approve and publish</button>'
+        : '<span class="badge">' + (approved ? 'Approved / published' : html(x.approval_status || 'draft')) + '</span>';
+      return '<div style="padding:8px;border-bottom:1px solid #eee"><strong>' + html(x.prep_date) + ' · ' +
+        html(x.class_name) + '</strong> — ' + html((x.session_type || 'evening_prep').replace(/_/g,' ')) +
+        ' · ' + html(x.title) + ' · ' + html(String(x.start_time).slice(0,5)) + '–' + html(String(x.end_time).slice(0,5)) +
+        '<br><small>Assigned: ' + html((assigned[x.id] || []).join(', ') || 'No teacher assigned') + '</small>' +
+        '<br><small>Special-session deduction proposal: ' + ugx(x.deduction_amount_ugx || 0) + '</small>' +
+        (x.notes ? '<br><small>' + html(x.notes) + '</small>' : '') +
+        '<div style="margin-top:6px">' + approveButton + '</div></div>';
+    }).join('') || 'No special sessions have been created.';
   }
 
   async function loadGovernanceIncidents() {
@@ -462,29 +715,115 @@
     if (!currentUserId || !db || demoMode) return;
     installAttendancePanels();
     if (isAdmin()) {
-      const director = await db.rpc('is_school_director');
-      const isDirector = !director.error && director.data === true;
+      let isDirector = false;
+      try {
+        const director = await attendanceRequest(() => db.rpc('is_school_director'), 'Director access check', 12000);
+        if (director.error) throw director.error;
+        isDirector = director.data === true;
+      } catch (error) {
+        const detail = error && error.message ? error.message : String(error || 'Unknown error');
+        const panel = byId('attendanceGovernancePanel');
+        if (panel) panel.classList.add('hidden');
+        safeMessage('attendanceMsg','Director attendance access could not be verified: ' + detail,true);
+        return;
+      }
       const panel = byId('attendanceGovernancePanel');
       if (panel) panel.classList.toggle('hidden', !isDirector);
       if (isDirector) {
-        await loadDirectorSettings();
-        await loadCalendarExceptions();
-        await loadPrepSessions();
-        await loadGovernanceIncidents();
-        const staff = await db.from('user_profiles').select('id,full_name').eq('employment_status','Active').order('full_name');
-        if (!staff.error) {
-          byId('prepStaffUser').innerHTML = '<option value="">Choose teacher</option>' +
-            (staff.data || []).map((x) => '<option value="' + x.id + '">' + html(x.full_name || 'Staff') + '</option>').join('');
-        }
+        const jobs = [
+          ['Director attendance settings', loadDirectorSettings],
+          ['Attendance calendar', loadCalendarExceptions],
+          ['Prep sessions', loadPrepSessions],
+          ['Attendance reviews', loadGovernanceIncidents],
+          ['Director staff dropdowns', loadDirectorKioskOptions],
+          ['Approved session dropdown', loadDirectorSpecialSessions]
+        ];
+        await Promise.allSettled(jobs.map(async ([label, load]) => {
+          try {
+            await attendanceRequest(load, label);
+          } catch (error) {
+            const detail = error && error.message ? error.message : String(error || 'Unknown error');
+            if (label === 'Approved session dropdown') {
+              const select = byId('directorSessionChoice');
+              if (select) select.innerHTML = '<option value="">Sessions unavailable — refresh attendance</option>';
+            }
+            if (label === 'Prep sessions') {
+              const host = byId('staffPrepSessionRows');
+              if (host) host.textContent = 'Prep sessions could not finish loading: ' + detail;
+            }
+            if (label === 'Attendance reviews') {
+              const host = byId('governanceIncidentRows');
+              if (host) host.innerHTML = '<tr><td colspan="6">Attendance reviews could not finish loading: ' + html(detail) + '</td></tr>';
+            }
+            safeMessage('attendanceMsg',label + ' failed: ' + detail,true);
+          }
+        }));
       }
-      await loadMySalarySummary();
+      try {
+        await attendanceRequest(loadMySalarySummary, 'My salary summary');
+      } catch (error) {
+        safeMessage('attendanceMsg','Salary summary could not finish loading: ' + (error?.message || String(error)),true);
+      }
       return;
     }
-    await loadMySalarySummary();
-    await loadLeadershipStatementPanel();
+    try {
+      await attendanceRequest(loadMySalarySummary, 'My salary summary');
+      await attendanceRequest(loadLeadershipStatementPanel, 'Leadership attendance panel');
+    } catch (error) {
+      safeMessage('attendanceMsg','Attendance extras could not finish loading: ' + (error?.message || String(error)),true);
+    }
   }
 
   function installDirectorEventHandlers() {
+    byId('directorSessionChoice')?.addEventListener('change',loadDirectorSessionStaffOptions);
+
+    byId('directorAttendanceKioskForm')?.addEventListener('submit',async (event) => {
+      event.preventDefault();
+      if (!isAdmin()) return;
+      const staffId = byId('directorKioskStaff').value;
+      const eventType = byId('directorKioskEvent').value;
+      if (!staffId || !['clock_in','break_start','break_end','clock_out'].includes(eventType)) {
+        safeMessage('directorKioskStatus','Choose a staff member and a valid attendance event.',true);
+        return;
+      }
+      const button = byId('recordDirectorKioskEvent');
+      button.disabled = true;
+      const result = await db.rpc('director_record_staff_attendance_event',{
+        p_staff_user_id:staffId,p_event_type:eventType
+      });
+      button.disabled = false;
+      if (result.error) {
+        safeMessage('directorKioskStatus','Attendance was not recorded: ' + result.error.message,true);
+        return;
+      }
+      safeMessage('directorKioskStatus','Recorded ' + eventType.replace(/_/g,' ') + ' for the selected staff member at ' +
+        new Intl.DateTimeFormat('en-UG',{timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'}).format(new Date(result.data.occurred_at)) +
+        '. Recorded by the Director account.');
+    });
+
+    byId('directorSessionKioskForm')?.addEventListener('submit',async (event) => {
+      event.preventDefault();
+      if (!isAdmin()) return;
+      const sessionId = byId('directorSessionChoice').value;
+      const staffId = byId('directorSessionStaff').value;
+      const eventType = byId('directorSessionEvent').value;
+      if (!sessionId || !staffId || !['clock_in','clock_out'].includes(eventType)) {
+        safeMessage('directorSessionKioskStatus','Choose an approved session, assigned staff member and event.',true);
+        return;
+      }
+      const button = byId('recordDirectorSessionEvent');
+      button.disabled = true;
+      const result = await db.rpc('director_record_staff_session_event',{
+        p_session_id:sessionId,p_staff_user_id:staffId,p_event_type:eventType
+      });
+      button.disabled = false;
+      if (result.error) {
+        safeMessage('directorSessionKioskStatus','Special-session attendance was not recorded: ' + result.error.message,true);
+        return;
+      }
+      safeMessage('directorSessionKioskStatus','Special-session ' + eventType.replace(/_/g,' ') + ' recorded by the Director account.');
+    });
+
     byId('attendancePolicyForm')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!isAdmin()) return;
@@ -532,32 +871,80 @@
       const prepDate = byId('prepDate').value;
       const title = byId('prepTitle').value.trim();
       const className = byId('prepClass').value.trim();
-      const staffId = byId('prepStaffUser').value;
+      const sessionType = byId('prepSessionType').value;
+      const staffIds = Array.from(byId('prepStaffUser').selectedOptions || [])
+        .map((option) => option.value).filter(Boolean);
       const start = byId('prepStart').value;
       const end = byId('prepEnd').value;
-      if (!prepDate || !title || !className || !staffId || !start || !end || end <= start) {
-        safeMessage('attendanceMsg','Complete the prep date, class, teacher and valid start/end times.',true);
+      const deduction = Number(byId('prepSessionDeduction').value || 0);
+      if (!prepDate || !title || !className || !staffIds.length || !sessionType ||
+          !start || !end || end <= start || !Number.isSafeInteger(deduction) || deduction < 0) {
+        safeMessage('attendanceMsg','Complete the date, session type, class, one or more teachers, valid times and non-negative whole-UGX deduction.',true);
+        return;
+      }
+      if (sessionType === 'saturday_study' && (start !== '08:00' || end !== '13:00')) {
+        safeMessage('attendanceMsg','Saturday study sessions must run from 8:00 AM to 1:00 PM.',true);
         return;
       }
       const session = await db.from('staff_prep_sessions').insert({
         prep_date:prepDate,title,start_time:start,end_time:end,class_name:className,
-        notes:byId('prepNotes').value.trim() || null,is_published:true,created_by:currentUserId
+        session_type:sessionType,deduction_amount_ugx:deduction,
+        approval_status:'draft',is_published:false,
+        notes:byId('prepNotes').value.trim() || null,created_by:currentUserId
       }).select('id').single();
       if (session.error) {
-        safeMessage('attendanceMsg','Prep session was not saved: ' + session.error.message,true);
+        safeMessage('attendanceMsg','Special session was not saved: ' + session.error.message,true);
         return;
       }
-      const assignment = await db.from('staff_prep_assignments').insert({
+      const assignmentRows = staffIds.map((staffId) => ({
         prep_session_id:session.data.id,staff_user_id:staffId,assigned_by:currentUserId
-      });
+      }));
+      const assignment = await db.from('staff_prep_assignments').insert(assignmentRows);
       if (assignment.error) {
-        safeMessage('attendanceMsg','Prep session was saved, but teacher assignment failed: ' + assignment.error.message,true);
+        await db.from('staff_prep_sessions').delete().eq('id',session.data.id);
+        safeMessage('attendanceMsg','The teacher assignments could not be saved. The incomplete session was removed: ' + assignment.error.message,true);
         await loadPrepSessions();
         return;
       }
+      const approval = await db.rpc('director_approve_staff_session',{p_session_id:session.data.id});
+      if (approval.error) {
+        safeMessage('attendanceMsg','Session and assignments were saved as a draft, but approval failed: ' + approval.error.message + '. Use Approve and publish in the session list after resolving the issue.',true);
+      } else {
+        safeMessage('attendanceMsg','Session approved and published. ' + Number(approval.data?.assigned_staff_count || staffIds.length) + ' staff member(s) are now available at the Director kiosk.');
+      }
       byId('staffPrepSessionForm').reset();
-      await loadPrepSessions();
-      safeMessage('attendanceMsg','Prep session created and assigned. Prep penalties remain separate from normal daily attendance.');
+      byId('prepStart').value='16:00';
+      byId('prepEnd').value='18:00';
+      byId('prepSessionDeduction').value='0';
+      await Promise.all([loadPrepSessions(),loadDirectorSpecialSessions()]);
+    });
+    byId('prepSessionType')?.addEventListener('change',() => {
+      const type = byId('prepSessionType').value;
+      if (type === 'saturday_study') {
+        byId('prepStart').value='08:00';
+        byId('prepEnd').value='13:00';
+      } else if (type === 'morning_winter') {
+        byId('prepStart').value='06:00';
+        byId('prepEnd').value='07:00';
+      } else {
+        byId('prepStart').value='16:00';
+        byId('prepEnd').value='18:00';
+      }
+    });
+    byId('staffPrepSessionRows')?.addEventListener('click',async (event) => {
+      const button = event.target.closest('[data-approve-special-session]');
+      if (!button || !isAdmin()) return;
+      const sessionId = button.dataset.approveSpecialSession;
+      if (!sessionId || !confirm('Approve and publish this special attendance session for the assigned staff?')) return;
+      button.disabled = true;
+      const result = await db.rpc('director_approve_staff_session',{p_session_id:sessionId});
+      if (result.error) {
+        button.disabled = false;
+        safeMessage('attendanceMsg','Special session could not be approved: ' + result.error.message,true);
+        return;
+      }
+      await Promise.all([loadPrepSessions(),loadDirectorSpecialSessions()]);
+      safeMessage('attendanceMsg','Special session approved and published. Assigned staff can now be recorded at the Director kiosk.');
     });
 
     byId('governanceIncidentRows')?.addEventListener('click',async (event) => {
@@ -605,10 +992,19 @@
   if (typeof setupAttendance === 'function') {
     const originalSetupAttendance = setupAttendance;
     setupAttendance = async function () {
-      await originalSetupAttendance();
-      const changed = await patchNewSaturdaySchedule();
-      if (changed) await originalSetupAttendance();
-      await hydrateAttendanceExtras();
+      const coreLoad = (async () => {
+        try {
+          await attendanceRequest(originalSetupAttendance, 'Main attendance workspace', 25000);
+          const changed = await attendanceRequest(patchNewSaturdaySchedule, 'Saturday schedule check', 15000);
+          if (changed) await attendanceRequest(originalSetupAttendance, 'Attendance refresh after schedule save', 25000);
+        } catch (error) {
+          safeMessage('attendanceMsg','The main attendance workspace did not finish loading: ' +
+            (error?.message || String(error || 'Unknown error')),true);
+        }
+      })();
+      const staffLoad = loadCoreAttendanceStaffOptions();
+      const extrasLoad = hydrateAttendanceExtras();
+      await Promise.allSettled([coreLoad, staffLoad, extrasLoad]);
     };
   }
 
