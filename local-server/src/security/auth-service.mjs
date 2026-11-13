@@ -249,11 +249,12 @@ export function createAuthService({
     if (!account || account.accountStatus !== "active" || verified !== true ||
         !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(account.id ?? "")) {
       try {
-        await loginAttemptStore.completeAttempt({
+        const attemptCompleted = await loginAttemptStore.completeAttempt({
           attemptId: attempt.attemptId,
           succeeded: false,
           attemptedAt: new Date(nowMs)
         });
+        if (attemptCompleted !== true) throw new Error("Login attempt could not be finalised.");
         await audit({
           principalType,
           eventCode: "authentication.login_denied",
@@ -290,11 +291,12 @@ export function createAuthService({
         correlationId: makeCorrelationId()
       });
 
-      await loginAttemptStore.completeAttempt({
+      const attemptCompleted = await loginAttemptStore.completeAttempt({
         attemptId: attempt.attemptId,
         succeeded: true,
         attemptedAt: new Date(nowMs)
       });
+      if (attemptCompleted !== true) throw new Error("Successful login attempt could not be finalised.");
     } catch {
       if (secrets?.sessionTokenHash) {
         try {
