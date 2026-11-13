@@ -49,7 +49,8 @@ try {
       has_table_privilege('cornhill_auth_api', 'cornhill_auth.guardian_learner_access', 'UPDATE') AS guardian_link_update,
       has_column_privilege('cornhill_auth_api', 'cornhill_auth.login_attempts', 'succeeded', 'UPDATE') AS attempt_complete,
       has_column_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events', 'event_code', 'INSERT') AS audit_insert,
-      has_table_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events', 'SELECT') AS audit_read
+      has_table_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events', 'SELECT') AS audit_read,
+      has_sequence_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events_id_seq', 'USAGE') AS audit_sequence_usage
   `);
 
   const result = checks.rows[0];
@@ -68,6 +69,7 @@ try {
   assert.equal(result.attempt_complete, true);
   assert.equal(result.audit_insert, true);
   assert.equal(result.audit_read, false);
+  assert.equal(result.audit_sequence_usage, true);
 
   console.log("Authentication database role verified: NOLOGIN, non-privileged, scoped column grants and no permission/guardian-link administration.");
 } finally {
