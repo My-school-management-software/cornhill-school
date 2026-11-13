@@ -978,7 +978,13 @@
         safeMessage('directorSessionKioskStatus','Special-session attendance was not recorded: ' + result.error.message,true);
         return;
       }
-      await loadDirectorSessionStaffOptions();
+      try {
+        await loadDirectorSessionStaffOptions();
+      } catch (refreshError) {
+        safeMessage('directorSessionKioskStatus','Attendance was recorded, but the saved status could not be refreshed: ' +
+          (refreshError?.message || String(refreshError)),true);
+        return;
+      }
       safeMessage('directorSessionKioskStatus','Special-session ' + eventType.replace(/_/g,' ') +
         ' recorded by the Director account. The saved status has been refreshed in the staff list.');
     });
