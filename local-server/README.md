@@ -6,14 +6,15 @@ This folder contains the isolated local-server foundation for the move away from
 
 - A Node.js health-only HTTP server and local status page.
 - Automated tests for health routes, prototype warnings, unavailable routes and rejected write methods.
-- Three additive local PostgreSQL migrations: identity/session tables, authorisation catalog and class scope, and authentication rate-limit indexes.
+- Four additive local PostgreSQL migrations: identity/session tables, authorisation catalog and class scope, authentication rate-limit indexes, and a NOLOGIN least-privilege auth API database role.
 - A permission catalog with no default role grants.
 - Staff-to-class assignment records, guardian learner-scope checks and deny-by-default authorization helpers.
 - An Argon2id adapter pinned to `@node-rs/argon2@2.2.2`.
 - Staff/guardian authentication service contracts, opaque session and CSRF tokens, and secure cookie helpers.
 - PostgreSQL account, session, audit and transaction-locked login-attempt repositories.
 - PostgreSQL permission, staff class-scope and guardian approved-learner-scope repositories.
-- A disposable PostgreSQL integration verifier for concurrent login throttling and session create/revoke.
+- A disposable PostgreSQL integration verifier for concurrent login throttling, role grants, class/guardian scope and session create/revoke.
+- A database-role verifier that checks exact column-level privileges and ensures the runtime role remains NOLOGIN.
 - Loopback-only database connection configuration and an ordered checksum-tracked migration runner.
 - GitHub Actions checks for Ubuntu/PostgreSQL integration and Windows unit tests.
 
