@@ -10,7 +10,8 @@ This folder contains the isolated local-server foundation for the move away from
 - A permission catalog with no default role grants.
 - Staff-to-class assignment records, guardian learner-scope checks and deny-by-default authorization helpers.
 - An Argon2id adapter pinned to `@node-rs/argon2@2.2.2`.
-- Staff/guardian authentication service contracts, opaque session and CSRF tokens, secure session/CSRF cookie helpers, and an HTTPS-only authentication HTTP route handler.
+- Staff/guardian authentication service, Argon2id adapter, session/CSRF tokens, secure cookie helpers, and an HTTPS-only authentication HTTP route handler.
+- A local authentication runtime factory that verifies it connects as `cornhill_auth_api`, never the database administrator.
 - PostgreSQL account, session, audit and transaction-locked login-attempt repositories.
 - PostgreSQL permission, staff class-scope and guardian approved-learner-scope repositories.
 - A disposable PostgreSQL integration verifier for concurrent login throttling, role grants, class/guardian scope and session create/revoke.
@@ -40,13 +41,13 @@ The SQL under migrations/ is for a brand-new local PostgreSQL database only. It 
 
 These files are not for the live Supabase project. Do not run them against production.
 
-Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments, with role permissions intentionally empty. Migration 003 adds indexes for account- and source-based failed-login throttling. No production role grants or runtime database account are created yet.
+Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments, with role permissions intentionally empty. Migration 003 adds indexes for account- and source-based failed-login throttling. Migration 004 creates a separate authentication runtime group and API role with column-level privileges only. Both roles remain NOLOGIN with no password set.
 
 See [POSTGRES_LOCAL_SETUP.md](POSTGRES_LOCAL_SETUP.md) for the isolated PostgreSQL 17 development service and safe migration procedure.
 
 ## Important safety boundary
 
-This is not yet the replacement school management system. It has no production login routes, learner/staff data or school workflows. The home page warns users not to enter real school information.
+This is not yet the replacement school management system. It has no enabled production login routes, learner/staff data or school workflows. The route handler and runtime factory are foundations only and are not wired to the health-only server. The home page warns users not to enter real school information.
 
 The server intentionally binds to loopback only. Do not change it to 0.0.0.0 or expose it to the school LAN. LAN operation must wait for wired authentication, role enforcement, HTTPS, backup/restore and the security acceptance tests.
 
