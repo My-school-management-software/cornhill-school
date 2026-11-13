@@ -26,4 +26,4 @@ jobs:
         with:
           node-version: 22
       - name: Run Director kiosk and staff history regression tests
-        run: node --test tests/director-attendance-kiosk.test.cjs
+        run: node --test tests/director-attendance-kiosk.test.cjs tests/usage-analytics-privacy.test.cjs
