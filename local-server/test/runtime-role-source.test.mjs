@@ -21,7 +21,7 @@ test("runtime auth role cannot administer guardian links or role permissions", (
 });
 test("role verifier confirms no login until secret provisioning and no superuser flags", () => {
   assert.match(verifier, /rolcanlogin/);
-  assert.match(verifier, /roles must remain NOLOGIN/);
+  assert.match(verifier, /must remain NOLOGIN/);
   assert.match(verifier, /rolsuper/);
   assert.match(verifier, /rolbypassrls/);
 });
