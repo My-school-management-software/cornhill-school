@@ -287,6 +287,25 @@ test("session authentication denies mixed staff and guardian principal IDs", asy
   };
   await assert.rejects(service.authenticate({ sessionToken: SESSION.sessionToken }), AuthenticationError);
 });
+test("session authentication denies explicitly revoked sessions", async () => {
+  const { service, state } = fixture();
+  state.sessionRow = {
+    principalType: "staff", staffAccountId: STAFF_ID, guardianAccountId: null,
+    tokenHash: SESSION.sessionTokenHash, csrfTokenHash: SESSION.csrfTokenHash,
+    accountStatus: "active", expiresAt: new Date(NOW.getTime() + 60_000),
+    revokedAt: NOW
+  };
+  await assert.rejects(service.authenticate({ sessionToken: SESSION.sessionToken }), AuthenticationError);
+});
+test("session authentication denies malformed expiry timestamps", async () => {
+  const { service, state } = fixture();
+  state.sessionRow = {
+    principalType: "staff", staffAccountId: STAFF_ID, guardianAccountId: null,
+    tokenHash: SESSION.sessionTokenHash, csrfTokenHash: SESSION.csrfTokenHash,
+    accountStatus: "active", expiresAt: "not-a-date", revokedAt: null
+  };
+  await assert.rejects(service.authenticate({ sessionToken: SESSION.sessionToken }), AuthenticationError);
+});
 test("unsafe requests require a valid CSRF token", async () => {
   const { service, state } = fixture();
   state.sessionRow = {
