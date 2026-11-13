@@ -46,17 +46,17 @@ The runner discovers all numbered SQL migration files, applies them in numeric o
 
 Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments. Migration 003 adds the failed-login rate-limit indexes. The migrations deliberately create no role-to-permission grants and no application database grants. They do not create staff or guardian logins, import records, or enable the application API.
 
-The database connection currently uses the development administrator account from `.env`. Before any school data is introduced, a separate least-privilege runtime account must be designed and tested. The current migrations do not create one.
+The migration runner and test verifiers use the development administrator account from `.env`. The separate `cornhill_auth_api` role is created with NOLOGIN, no password, no superuser attributes and explicit column-level privileges. Do not enable LOGIN or set a runtime password until the API wiring, private credential storage and full integration tests have passed. The local API must use `CORNHILL_DB_RUNTIME_USER` and `CORNHILL_DB_RUNTIME_PASSWORD`, never the administrator account.
 
 ## Verify the installed schema
 
-After all three migrations succeed, run:
+After all four migrations succeed, run:
 
 ```powershell
 npm run db:verify
 ```
 
-This checks the eleven identity/authorization tables, 17 seeded staff roles, 14 permission codes, zero role grants, both rate-limit indexes, schema isolation from PUBLIC and database constraints. Then run `npm run db:verify-auth` to exercise the PostgreSQL authentication repositories, including concurrent throttling, default-deny permissions, class assignment revocation, guardian learner-link approval/revocation and atomic session creation/revocation.
+This checks the eleven identity/authorization tables, 17 seeded staff roles, 14 permission codes, zero role grants, both rate-limit indexes, schema isolation from PUBLIC and database constraints. Then run `npm run db:verify-auth` to exercise PostgreSQL authentication repositories, including concurrent throttling, default-deny permissions, class assignment revocation, guardian learner-link approval/revocation and atomic session creation/revocation. Finally run `npm run db:verify-runtime` to confirm the auth API role remains NOLOGIN, non-privileged and limited to the intended columns.
 
 ## Stop and preserve data
 
@@ -77,4 +77,4 @@ Do not run `docker compose down -v`: the `-v` option deletes the named database 
 - It is not configured for LAN access, remote access, backups or production operation.
 - Do not import real learner, guardian, staff or finance records.
 
-The next gate is to start this isolated database, apply all three migrations, and verify the constraints, permissions and authentication repository behavior. Only after that should the API connect using a separate least-privilege database account.
+The next gate is to start this isolated database, apply all four migrations, and verify the constraints, permissions, repository behavior and restricted runtime role. Only after that should the API connect using a separate least-privilege database account.
