@@ -38,3 +38,8 @@ This is not yet the school management system. It has no database connection, aut
 The server intentionally binds to loopback only. Do not change it to 0.0.0.0 or expose it to the school LAN. LAN operation must wait for local authentication, role enforcement, HTTPS and the security/backup acceptance tests.
 
 The existing live CORNHILL PWA remains unchanged and continues to use its existing hosted services. This scaffold does not switch, migrate or copy any production data.
+
+
+## PostgreSQL development database
+
+See [POSTGRES_LOCAL_SETUP.md](POSTGRES_LOCAL_SETUP.md) for the loopback-only PostgreSQL 17 development service. It is optional and is not connected to the health-only server yet.
