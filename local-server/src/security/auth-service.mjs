@@ -155,6 +155,9 @@ export function createAuthService({
   if (typeof passwordHasher.isArgon2idHash !== "function") {
     throw new TypeError("Password hasher must identify Argon2id encoded hashes.");
   }
+  if (!passwordHasher.isArgon2idHash(dummyArgon2idHash)) {
+    throw new TypeError("Dummy credential hash does not meet the Argon2id policy.");
+  }
   if (!Number.isInteger(staffSessionTtlMs) || staffSessionTtlMs < 60_000 ||
       !Number.isInteger(guardianSessionTtlMs) || guardianSessionTtlMs < 60_000 ||
       !Number.isInteger(maxFailedAttempts) || maxFailedAttempts < 1 ||
