@@ -76,3 +76,13 @@ test("HTTPS server rejects TLS key/certificate paths inside the repository", asy
     /outside the source repository/
   );
 });
+
+test("HTTPS server source bounds request and header timeouts", async () => {
+  const source = await (await import("node:fs/promises")).readFile(
+    new URL("../src/https-server.mjs", import.meta.url), "utf8"
+  );
+  assert.match(source, /server\.requestTimeout\s*=\s*15_000/);
+  assert.match(source, /server\.headersTimeout\s*=\s*10_000/);
+  assert.match(source, /server\.keepAliveTimeout\s*=\s*5_000/);
+  assert.match(source, /server\.maxHeadersCount\s*=\s*50/);
+});
