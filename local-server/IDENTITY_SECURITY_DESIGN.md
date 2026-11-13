@@ -17,7 +17,7 @@ Status: isolated database schema, server-side authorization helpers, Argon2id ad
 - The Argon2id adapter uses the pinned `@node-rs/argon2` package and an OWASP baseline policy of 19,456 KiB memory, two passes and one lane.
 - Staff passwords and guardian PINs are stored only as Argon2id encoded hashes.
 - Session bearer and CSRF tokens are independent 256-bit opaque values; only SHA-256 hashes are stored.
-- The session cookie is host-only, Secure, HttpOnly, Path=/ and SameSite=Strict. The Secure flag is not disabled for local development.
+- The session cookie is host-only, Secure, HttpOnly, Path=/ and SameSite=Strict. A separate host-only Secure/SameSite=Strict CSRF cookie is readable by same-origin frontend code and copied into the custom request header. The Secure flag is not disabled for local development.
 - State-changing requests, including logout, require the CSRF token.
 - The API must enforce account status, expiry and revocation on every authenticated request.
 - PostgreSQL sign-in throttling serializes attempts with transaction-scoped advisory locks on both account and source fingerprints. New attempts are recorded as failures until credential verification succeeds.
@@ -48,7 +48,7 @@ Status: isolated database schema, server-side authorization helpers, Argon2id ad
 - Migration files 001–003 are for a new local PostgreSQL database only. None has been run against Supabase or any production database.
 - Legacy Supabase Auth user UUIDs can be recorded for controlled mapping, but the actual user export/import is a separate approved migration stage.
 - Learner and class foreign keys are intentionally deferred until local learner/class schemas and UUID mappings have been validated.
-- The local HTTP scaffold still has no login routes or school records. It remains loopback-only. The runtime DB role remains NOLOGIN and no runtime password is stored in source control.
+- An HTTPS-only authentication route handler has been implemented but is not wired to the HTTP scaffold. A real trusted local HTTPS listener and certificate lifecycle must be completed first. The current server remains loopback-only and health-only. The runtime DB role remains NOLOGIN and no runtime password is stored in source control.
 
 ## Next implementation gates
 
