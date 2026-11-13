@@ -55,3 +55,9 @@ test("runtime config refuses absent runtime credentials", () => {
     ...base, CORNHILL_DB_RUNTIME_USER: "", CORNHILL_DB_RUNTIME_PASSWORD: ""
   }), /dedicated cornhill_auth_api/);
 });
+
+test("runtime config refuses published placeholder password", () => {
+  assert.throws(() => readLocalRuntimeDatabaseConfig({
+    ...base, CORNHILL_DB_RUNTIME_PASSWORD: "REPLACE_WITH_A_LONG_RANDOM_RUNTIME_PASSWORD"
+  }), /32 UTF-8 bytes/);
+});
