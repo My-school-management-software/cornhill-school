@@ -57,3 +57,22 @@ test("TLS files must use absolute paths outside the source repository", async ()
     /outside the source repository/
   );
 });
+
+test("HTTPS server rejects TLS key/certificate paths inside the repository", async () => {
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  await assert.rejects(
+    createCornhillHttpsServer({
+      ...validBase,
+      keyPath: join(process.cwd(), "nested", "repo", "secret.key")
+    }),
+    /outside the source repository/
+  );
+  await assert.rejects(
+    createCornhillHttpsServer({
+      ...validBase,
+      certPath: join(process.cwd(), "nested", "repo", "certificate.crt")
+    }),
+    /outside the source repository/
+  );
+});
