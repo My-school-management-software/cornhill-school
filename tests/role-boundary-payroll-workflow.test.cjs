@@ -91,7 +91,7 @@ test('payroll preparation, independent approval and return have separate state t
   const approve = section(draft, 'create or replace function public.approve_school_payroll', '$function$;');
   const returned = section(draft, 'create or replace function public.return_school_payroll', '$function$;');
   assert.match(submit, /public\.is_school_bursar_operator\(\)/);
-  assert.match(submit, /status not in \\('Draft','Returned'\\)/);
+  assert.match(submit, /status not in \('Draft','Returned'\)/);
   assert.match(submit, /status = 'Submitted'/);
   assert.match(approve, /public\.is_school_admin\(\)/);
   assert.match(approve, /v_period\.created_by = auth\.uid\(\)/);
