@@ -33,9 +33,14 @@
   }
 
   async function loadCoreAttendanceStaffOptions() {
-    if (!db || !isAdmin()) return;
     const selects = ['staffUserSelect','scheduleStaffSelect'].map(byId).filter(Boolean);
     if (!selects.length) return;
+    if (!db || !currentUserId || demoMode || !isAdmin()) {
+      selects.forEach((select) => {
+        select.innerHTML = '<option value="">Sign in as an active administrator</option>';
+      });
+      return;
+    }
     selects.forEach((select) => { select.innerHTML = '<option value="">Loading active staff…</option>'; });
     try {
       const result = await attendanceRequest(() => db.from('user_profiles')
@@ -499,27 +504,152 @@
     }
   }
 
+  // A single entry-point loader keeps the Director selectors independent of the
+  // legacy attendance workspace and gives every initial placeholder a final state.
+  let attendanceDropdownLoadPromise = null;
+  let attendanceDropdownContextKey = '';
+
+  function setDirectorDropdownPlaceholder(messageText) {
+    [
+      'directorKioskStaff',
+      'prepStaffUser',
+      'directorSessionChoice',
+      'directorSessionStaff'
+    ].forEach((id) => {
+      const select = byId(id);
+      if (select) {
+        select.innerHTML = '<option value="">' + html(messageText) + '</option>';
+        select.disabled = true;
+      }
+    });
+  }
+
+  async function ensureAttendanceDropdowns() {
+    const userId = currentUserId;
+    const generation = window.cornhillSessionGeneration || 0;
+    const contextKey = String(userId || '') + ':' + generation;
+    const status = byId('attendanceLoadStatus');
+    const panel = byId('attendanceGovernancePanel');
+    const isCurrent = () => userId === currentUserId &&
+      generation === (window.cornhillSessionGeneration || 0);
+
+    if (!userId) {
+      setDirectorDropdownPlaceholder('Sign in to load attendance');
+      if (status) status.textContent = 'Sign in with the authorised Director account to load staff and approved sessions.';
+      return false;
+    }
+    if (!db) {
+      setDirectorDropdownPlaceholder('Database connection unavailable');
+      if (status) status.textContent = 'The school database connection is unavailable. Refresh after reconnecting.';
+      return false;
+    }
+    if (demoMode) {
+      setDirectorDropdownPlaceholder('Unavailable in demo mode');
+      if (status) status.textContent = 'Attendance controls are disabled in demo mode.';
+      return false;
+    }
+    if (!isAdmin()) return false;
+
+    if (attendanceDropdownLoadPromise && attendanceDropdownContextKey === contextKey) {
+      return attendanceDropdownLoadPromise;
+    }
+
+    attendanceDropdownContextKey = contextKey;
+    const loadPromise = (async () => {
+      if (status) status.textContent = 'Verifying Director access, then loading staff and approved sessions…';
+      try {
+        const director = await attendanceRequest(
+          () => db.rpc('is_school_director'),
+          'Director attendance access check',
+          12000
+        );
+        if (!isCurrent()) return false;
+        if (director.error) throw director.error;
+        if (director.data !== true) {
+          if (panel) panel.classList.add('hidden');
+          setDirectorDropdownPlaceholder('Director access required');
+          if (status) status.textContent = 'This account is not registered as the active Director. The Director controls remain locked.';
+          return false;
+        }
+
+        if (panel) panel.classList.remove('hidden');
+        const results = await Promise.allSettled([
+          attendanceRequest(loadCoreAttendanceStaffOptions, 'Staff mapping dropdowns'),
+          attendanceRequest(loadDirectorKioskOptions, 'Director kiosk staff dropdowns'),
+          attendanceRequest(loadDirectorSpecialSessions, 'Approved session dropdown')
+        ]);
+        if (!isCurrent()) return false;
+
+        const staffSelectors = [
+          byId('staffUserSelect'), byId('scheduleStaffSelect'),
+          byId('directorKioskStaff'), byId('prepStaffUser')
+        ].filter(Boolean);
+        const sessionSelect = byId('directorSessionChoice');
+        const staffCount = byId('directorKioskStaff')
+          ? Array.from(byId('directorKioskStaff').options).filter((option) => !!option.value).length : 0;
+        const sessionCount = sessionSelect
+          ? Array.from(sessionSelect.options).filter((option) => !!option.value).length : 0;
+        const hasFailure = results.some((result) => result.status === 'rejected') ||
+          staffSelectors.some((select) =>
+            /unavailable|failed|could not load|no active staff accounts/i.test(select.options?.[0]?.textContent || '')
+          ) ||
+          (sessionSelect && /unavailable|failed|could not load/i.test(sessionSelect.options?.[0]?.textContent || ''));
+
+        if (status) {
+          status.textContent = hasFailure
+            ? 'Some attendance lists failed to load. Check the error message below and refresh this tab.'
+            : 'Attendance lists checked: ' + staffCount + ' active staff account(s) and ' +
+              sessionCount + ' approved special session(s).';
+        }
+        return !hasFailure;
+      } catch (error) {
+        if (!isCurrent()) return false;
+        if (panel) panel.classList.add('hidden');
+        const detail = error && error.message ? error.message : String(error || 'Unknown error');
+        setDirectorDropdownPlaceholder('Could not verify Director access');
+        if (status) status.textContent = 'Director access check failed: ' + detail;
+        safeMessage('attendanceMsg', 'Director attendance controls could not load: ' + detail, true);
+        return false;
+      }
+    })();
+
+    attendanceDropdownLoadPromise = loadPromise;
+    try {
+      return await loadPromise;
+    } finally {
+      if (attendanceDropdownContextKey === contextKey && attendanceDropdownLoadPromise === loadPromise) {
+        attendanceDropdownLoadPromise = null;
+      }
+    }
+  }
+
   async function loadDirectorSessionStaffOptions() {
     const sessionId = byId('directorSessionChoice')?.value;
     const select = byId('directorSessionStaff');
     if (!select) return;
     if (!sessionId) {
       select.innerHTML = '<option value="">Choose an approved session first</option>';
+      select.disabled = true;
       return;
     }
-    const result = await db.from('staff_prep_assignments')
+    select.disabled = true;
+    const result = await attendanceRequest(() => db.from('staff_prep_assignments')
       .select('staff_user_id,user_profiles(full_name)')
       .eq('prep_session_id',sessionId)
-      .order('assigned_at',{ascending:true});
+      .order('assigned_at',{ascending:true}), 'Assigned session staff');
     if (result.error) {
       select.innerHTML = '<option value="">Assigned staff could not load</option>';
+      select.disabled = false;
       safeMessage('attendanceMsg','Assigned staff for this session could not load: ' + result.error.message,true);
       return;
     }
-    select.innerHTML = '<option value="">Choose assigned staff</option>' +
-      (result.data || []).map((x) => '<option value="' + x.staff_user_id + '">' +
-        html(x.user_profiles?.full_name || 'Assigned staff member') + '</option>').join('');
-    if (!(result.data || []).length) select.innerHTML = '<option value="">No staff assigned</option>';
+    const rows = result.data || [];
+    select.innerHTML = rows.length
+      ? '<option value="">Choose assigned staff</option>' +
+        rows.map((x) => '<option value="' + x.staff_user_id + '">' +
+          html(x.user_profiles?.full_name || 'Assigned staff member') + '</option>').join('')
+      : '<option value="">No staff assigned</option>';
+    select.disabled = !rows.length;
   }
 
   async function loadDirectorSettings() {
@@ -990,9 +1120,24 @@
             (error?.message || String(error || 'Unknown error')),true);
         }
       })();
-      const staffLoad = loadCoreAttendanceStaffOptions();
+      const dropdownLoad = ensureAttendanceDropdowns();
       const extrasLoad = hydrateAttendanceExtras();
-      await Promise.allSettled([coreLoad, staffLoad, extrasLoad]);
+      await Promise.allSettled([coreLoad, dropdownLoad, extrasLoad]);
+    };
+  }
+
+  // Run the same loader when the Attendance navigation item is opened.
+  // The setup wrapper and tab hook share one in-flight check per signed-in session.
+  if (typeof tab === 'function') {
+    const originalTab = tab;
+    tab = function (name) {
+      const result = originalTab(name);
+      if (name === 'attendance') {
+        ensureAttendanceDropdowns().catch((error) => {
+          safeMessage('attendanceMsg', 'Attendance dropdown check failed: ' + (error?.message || String(error)), true);
+        });
+      }
+      return result;
     };
   }
 
