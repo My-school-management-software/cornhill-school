@@ -19,7 +19,7 @@ export function readLocalRuntimeDatabaseConfig(env = process.env) {
   if (user !== "cornhill_auth_api") {
     throw new Error("Runtime database user must be the dedicated cornhill_auth_api role.");
   }
-  if (Buffer.byteLength(password, "utf8") < 32) {
+  if (Buffer.byteLength(password, "utf8") < 32 || password.startsWith("REPLACE_WITH_")) {
     throw new Error("Runtime database password must contain at least 32 UTF-8 bytes.");
   }
 
