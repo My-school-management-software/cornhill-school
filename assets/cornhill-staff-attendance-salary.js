@@ -18,6 +18,48 @@
     }
   };
 
+  function attendanceRequest(task, label, timeoutMs = 15000) {
+    let timeoutId;
+    return Promise.race([
+      Promise.resolve().then(task),
+      new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(
+          new Error(label + ' did not respond within ' + Math.round(timeoutMs / 1000) + ' seconds.')
+        ), timeoutMs);
+      })
+    ]).finally(() => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    });
+  }
+
+  async function loadCoreAttendanceStaffOptions() {
+    if (!db || !isAdmin()) return;
+    const selects = ['staffUserSelect','scheduleStaffSelect'].map(byId).filter(Boolean);
+    if (!selects.length) return;
+    selects.forEach((select) => { select.innerHTML = '<option value="">Loading active staff…</option>'; });
+    try {
+      const result = await attendanceRequest(() => db.from('user_profiles')
+        .select('id,full_name,role')
+        .eq('employment_status','Active')
+        .in('role',['Admin','Teacher','Staff'])
+        .order('full_name'), 'Attendance staff list');
+      if (result.error) throw result.error;
+      const rows = result.data || [];
+      const options = '<option value="">Choose staff member</option>' +
+        rows.map((x) => '<option value="' + x.id + '">' +
+          html(x.full_name || x.id) + ' (' + html(x.role || 'Staff') + ')</option>').join('');
+      selects.forEach((select) => { select.innerHTML = rows.length ? options :
+        '<option value="">No active staff accounts found</option>'; });
+      if (!rows.length) safeMessage('attendanceMsg','No active staff accounts were returned by the database.',true);
+    } catch (error) {
+      const detail = error && error.message ? error.message : String(error || 'Unknown error');
+      selects.forEach((select) => {
+        select.innerHTML = '<option value="">Staff list unavailable — refresh attendance</option>';
+      });
+      safeMessage('attendanceMsg','Attendance staff dropdowns could not load: ' + detail,true);
+    }
+  }
+
   function dailyRate(agreement, dateValue) {
     if (!agreement) return null;
     if (agreement.daily_rate_ugx != null && Number(agreement.daily_rate_ugx) > 0) return Number(agreement.daily_rate_ugx);
@@ -429,22 +471,32 @@
   async function loadDirectorSpecialSessions() {
     const select = byId('directorSessionChoice');
     if (!select) return;
-    const result = await db.from('staff_prep_sessions')
-      .select('id,prep_date,title,class_name,session_type,start_time,end_time')
-      .eq('approval_status','approved')
-      .eq('is_published',true)
-      .order('prep_date',{ascending:false})
-      .limit(100);
-    if (result.error) {
-      select.innerHTML = '<option value="">Special sessions could not load</option>';
-      safeMessage('attendanceMsg','Approved special sessions could not be loaded: ' + result.error.message,true);
-      return;
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading approved sessions…</option>';
+    try {
+      const result = await attendanceRequest(() => db.from('staff_prep_sessions')
+        .select('id,prep_date,title,class_name,session_type,start_time,end_time')
+        .eq('approval_status','approved')
+        .eq('is_published',true)
+        .order('prep_date',{ascending:false})
+        .limit(100), 'Approved special sessions');
+      if (result.error) throw result.error;
+      const rows = result.data || [];
+      select.innerHTML = rows.length
+        ? '<option value="">Choose an approved session</option>' +
+          rows.map((x) => '<option value="' + x.id + '">' +
+            html(x.prep_date) + ' · ' + html(x.class_name) + ' · ' + html(x.title) +
+            ' (' + html((x.session_type || '').replace(/_/g,' ')) + ')</option>').join('')
+        : '<option value="">No approved special sessions yet</option>';
+      const sessionStaff = byId('directorSessionStaff');
+      if (sessionStaff && !rows.length) sessionStaff.innerHTML = '<option value="">No approved session to select</option>';
+    } catch (error) {
+      const detail = error && error.message ? error.message : String(error || 'Unknown error');
+      select.innerHTML = '<option value="">Approved sessions unavailable — refresh attendance</option>';
+      safeMessage('attendanceMsg','Approved special sessions failed to load: ' + detail,true);
+    } finally {
+      select.disabled = false;
     }
-    select.innerHTML = '<option value="">Choose an approved session</option>' +
-      (result.data || []).map((x) => '<option value="' + x.id + '">' +
-        html(x.prep_date) + ' · ' + html(x.class_name) + ' · ' + html(x.title) +
-        ' (' + html((x.session_type || '').replace(/_/g,' ')) + ')</option>').join('') ||
-      '<option value="">No approved special sessions</option>';
   }
 
   async function loadDirectorSessionStaffOptions() {
@@ -663,23 +715,63 @@
     if (!currentUserId || !db || demoMode) return;
     installAttendancePanels();
     if (isAdmin()) {
-      const director = await db.rpc('is_school_director');
-      const isDirector = !director.error && director.data === true;
+      let isDirector = false;
+      try {
+        const director = await attendanceRequest(() => db.rpc('is_school_director'), 'Director access check', 12000);
+        if (director.error) throw director.error;
+        isDirector = director.data === true;
+      } catch (error) {
+        const detail = error && error.message ? error.message : String(error || 'Unknown error');
+        const panel = byId('attendanceGovernancePanel');
+        if (panel) panel.classList.add('hidden');
+        safeMessage('attendanceMsg','Director attendance access could not be verified: ' + detail,true);
+        return;
+      }
       const panel = byId('attendanceGovernancePanel');
       if (panel) panel.classList.toggle('hidden', !isDirector);
       if (isDirector) {
-        await loadDirectorSettings();
-        await loadCalendarExceptions();
-        await loadPrepSessions();
-        await loadGovernanceIncidents();
-        await loadDirectorKioskOptions();
-        await loadDirectorSpecialSessions();
+        const jobs = [
+          ['Director attendance settings', loadDirectorSettings],
+          ['Attendance calendar', loadCalendarExceptions],
+          ['Prep sessions', loadPrepSessions],
+          ['Attendance reviews', loadGovernanceIncidents],
+          ['Director staff dropdowns', loadDirectorKioskOptions],
+          ['Approved session dropdown', loadDirectorSpecialSessions]
+        ];
+        await Promise.allSettled(jobs.map(async ([label, load]) => {
+          try {
+            await attendanceRequest(load, label);
+          } catch (error) {
+            const detail = error && error.message ? error.message : String(error || 'Unknown error');
+            if (label === 'Approved session dropdown') {
+              const select = byId('directorSessionChoice');
+              if (select) select.innerHTML = '<option value="">Sessions unavailable — refresh attendance</option>';
+            }
+            if (label === 'Prep sessions') {
+              const host = byId('staffPrepSessionRows');
+              if (host) host.textContent = 'Prep sessions could not finish loading: ' + detail;
+            }
+            if (label === 'Attendance reviews') {
+              const host = byId('governanceIncidentRows');
+              if (host) host.innerHTML = '<tr><td colspan="6">Attendance reviews could not finish loading: ' + html(detail) + '</td></tr>';
+            }
+            safeMessage('attendanceMsg',label + ' failed: ' + detail,true);
+          }
+        }));
       }
-      await loadMySalarySummary();
+      try {
+        await attendanceRequest(loadMySalarySummary, 'My salary summary');
+      } catch (error) {
+        safeMessage('attendanceMsg','Salary summary could not finish loading: ' + (error?.message || String(error)),true);
+      }
       return;
     }
-    await loadMySalarySummary();
-    await loadLeadershipStatementPanel();
+    try {
+      await attendanceRequest(loadMySalarySummary, 'My salary summary');
+      await attendanceRequest(loadLeadershipStatementPanel, 'Leadership attendance panel');
+    } catch (error) {
+      safeMessage('attendanceMsg','Attendance extras could not finish loading: ' + (error?.message || String(error)),true);
+    }
   }
 
   function installDirectorEventHandlers() {
@@ -900,10 +992,19 @@
   if (typeof setupAttendance === 'function') {
     const originalSetupAttendance = setupAttendance;
     setupAttendance = async function () {
-      await originalSetupAttendance();
-      const changed = await patchNewSaturdaySchedule();
-      if (changed) await originalSetupAttendance();
-      await hydrateAttendanceExtras();
+      const coreLoad = (async () => {
+        try {
+          await attendanceRequest(originalSetupAttendance, 'Main attendance workspace', 25000);
+          const changed = await attendanceRequest(patchNewSaturdaySchedule, 'Saturday schedule check', 15000);
+          if (changed) await attendanceRequest(originalSetupAttendance, 'Attendance refresh after schedule save', 25000);
+        } catch (error) {
+          safeMessage('attendanceMsg','The main attendance workspace did not finish loading: ' +
+            (error?.message || String(error || 'Unknown error')),true);
+        }
+      })();
+      const staffLoad = loadCoreAttendanceStaffOptions();
+      const extrasLoad = hydrateAttendanceExtras();
+      await Promise.allSettled([coreLoad, staffLoad, extrasLoad]);
     };
   }
 
