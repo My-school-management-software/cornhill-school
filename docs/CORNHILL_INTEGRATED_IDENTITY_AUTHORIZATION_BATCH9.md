@@ -16,8 +16,9 @@ This development cycle combines work that had been listed as separate stages: lo
 - Guardian learner access checks that re-check an approved guardian-to-learner mapping for each learner-specific request.
 - Strict separation between staff and guardian principal/session identities.
 - 256-bit opaque session and CSRF token generation; only SHA-256 hashes are intended for database storage.
-- Migration runner now discovers and applies all numbered SQL migrations in order, validates each checksum and safely skips verified migrations on repeat runs.
-- Schema verifier now checks eleven tables, 17 roles, 14 permission codes, zero role grants and no PUBLIC schema access.
+- Migration runner discovers and applies all numbered SQL migrations in order, validates each checksum and safely skips verified migrations on repeat runs.
+- Schema verifier checks eleven tables, 17 roles, 14 permission codes, zero role grants and no PUBLIC schema access.
+- PostgreSQL setup guide documents the two-migration process and current limits.
 
 ## Important security decisions
 
@@ -31,9 +32,9 @@ This development cycle combines work that had been listed as separate stages: lo
 
 ## Verification status
 
-The authorization and token test modules contain 34 targeted cases. They were executed in an isolated Node.js 22 test harness: 34 passed, 0 failed, 0 skipped. The migration-filename/checksum tests were expanded in source; the full repository test suite and live PostgreSQL integration workflow have not yet been confirmed in this environment.
+The three targeted test modules contain 43 cases. They were executed in an isolated Node.js 22 harness: 43 passed, 0 failed, 0 skipped. This batch includes authorization, guardian cross-learner denial, staff/guardian separation, session expiry/revocation, token hashing, migration ordering, checksum handling and destructive-SQL rejection tests.
 
-These tests do not prove that PostgreSQL executed migration 002, that a real database repository enforces the checks, or that HTTP cookies/CSRF protections are integrated.
+The tests do not prove that PostgreSQL executed migrations 001 and 002, that a real database repository enforces the checks, or that HTTP cookies/CSRF protections are integrated. The full repository suite and GitHub Actions PostgreSQL integration workflow have not yet been confirmed for this updated branch.
 
 The migrations remain for a new isolated local database only. They have not been run against Supabase or any production database. The active school PWA remains unchanged.
 
