@@ -16,7 +16,7 @@ Branch: `feat/local-first-self-hosted-migration-20261113`
 ## Not enabled
 
 - The route handler is not wired into the current health-only HTTP scaffold.
-- There is no local HTTPS listener or trusted certificate lifecycle yet.
+- A separate local HTTPS server factory and explicit launcher have since been added. It binds only to loopback and validates the certificate hostname, validity and private-key file location/permissions.
 - Migration 004 creates the least-privilege runtime database roles, but both roles remain NOLOGIN and no password is set.
 - No live staff/guardian account creation, school data import or sign-in has been enabled.
 - LAN access and Android access remain disabled.
