@@ -104,17 +104,19 @@
   }
   async function send(eventType, workspace, token) {
     if (!consent()) return false;
-    const headers = { 'Content-Type': 'application/json', 'apikey': PUBLISHABLE_KEY };
-    if (token) headers.Authorization = 'Bearer ' + token;
-    const body = {
-      action: 'track',
-      event_type: eventType,
-      workspace: workspace || currentPathWorkspace(),
-      device_class: deviceClass(),
-      visitor_id: storageId(localStorage, VISITOR_KEY, true),
-      session_id: storageId(sessionStorage, SESSION_KEY, false)
-    };
     try {
+      const localStore = window.localStorage;
+      const sessionStore = window.sessionStorage;
+      const headers = { 'Content-Type': 'application/json', 'apikey': PUBLISHABLE_KEY };
+      if (token) headers.Authorization = 'Bearer ' + token;
+      const body = {
+        action: 'track',
+        event_type: eventType,
+        workspace: workspace || currentPathWorkspace(),
+        device_class: deviceClass(),
+        visitor_id: storageId(localStore, VISITOR_KEY, true),
+        session_id: storageId(sessionStore, SESSION_KEY, false)
+      };
       const response = await fetch(API, { method: 'POST', headers, body: JSON.stringify(body), keepalive: true });
       return response.ok;
     } catch (_) { return false; }
@@ -129,7 +131,7 @@
     banner.setAttribute('aria-label', 'Optional usage statistics');
     banner.style.cssText = 'position:fixed;z-index:99999;left:12px;right:12px;bottom:12px;max-width:760px;margin:0 auto;background:#fff;border:1px solid #cbded0;border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.18);padding:14px;color:#173f29;font:14px/1.45 system-ui,sans-serif';
     banner.innerHTML = '<strong>Help improve CORNHILL online services</strong>' +
-      '<p style="margin:6px 0 10px">Optional usage statistics count pages and workspaces visited and broad device type. The school does not collect learner identity, marks, messages, phone numbers, IP addresses or the text entered in forms for these statistics. Consenting statistics are kept for up to 90 days. You may choose not to participate.</p>' +
+      '<p style="margin:6px 0 10px">Optional statistics count pages, workspaces and broad device type. For unique counts, a random browser/session ID and a pseudonymised identifier for a signed-in guardian or staff account may be used. Reports show totals, not identities. We do not collect learner IDs, pupil records, marks, messages, names, phone numbers, addresses, IP addresses, raw browser identifiers or the text entered in forms for these statistics. Consenting usage records are kept for up to 90 days. You may choose not to participate.</p>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
       '<button type="button" data-usage-consent="allow" style="border:0;border-radius:8px;background:#14532d;color:#fff;padding:9px 13px;font-weight:700">Allow basic statistics</button>' +
       '<button type="button" data-usage-consent="deny" style="border:1px solid #9eb7a5;border-radius:8px;background:#fff;color:#214a30;padding:9px 13px">Not now</button>' +
