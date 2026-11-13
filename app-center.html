@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123d2b">
+  <title>CORNHILL App Center</title>
+  <style>
+    :root{color-scheme:light;--green:#123d2b;--mint:#e9f2eb;--line:#dce6de;--ink:#1a2d22;--muted:#5d6d61}
+    *{box-sizing:border-box}body{margin:0;background:#f4f7f4;color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+    header{background:var(--green);color:white;padding:22px 18px}header .inner,main{max-width:980px;margin:auto}
+    h1{font-size:clamp(1.5rem,4vw,2rem);margin:0 0 5px}header p{margin:0;color:#e4eee7}
+    main{padding:22px 16px 40px}.eyebrow{font-size:.76rem;letter-spacing:.12em;font-weight:700;color:#55715d}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,275px),1fr));gap:16px;margin-top:14px}
+    .card{background:white;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 20px #163d2410}
+    .icon{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;background:var(--mint);font-size:1.7rem}
+    h2{font-size:1.15rem;margin:14px 0 5px}.muted{color:var(--muted);font-size:.93rem}
+    .button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:10px;background:var(--green);color:white;text-decoration:none;font-weight:700;margin-top:12px}
+    .outline{background:white;color:var(--green);border:1px solid var(--green);margin-left:7px}
+    .notice{border-left:4px solid #8c9d8e;background:#edf2ed;padding:12px 14px;border-radius:8px;margin:16px 0}
+    footer{padding:20px 16px;text-align:center;color:var(--muted);font-size:.84rem}
+  </style>
+</head>
+<body>
+  <header><div class="inner"><div class="eyebrow" style="color:#c9ded0">CORNHILL NURSERY AND PRIMARY SCHOOL</div><h1>App Center</h1><p>Install authorised school tools on a phone, tablet or computer.</p></div></header>
+  <main>
+    <div class="notice">Apps in this centre connect to the CORNHILL Main System only after an authorised setup. An installable app shell does not grant access to staff records or attendance.</div>
+    <div class="eyebrow">SCHOOL OPERATIONS</div>
+    <div class="grid">
+      <article class="card">
+        <div class="icon" aria-hidden="true">⏱</div>
+        <h2>CORNHILL Attendance Terminal</h2>
+        <p class="muted">A separate installable attendance app for a designated Android phone, tablet or office device. It is designed to receive the method selected by the Director and send verified attendance events to the Main System.</p>
+        <p class="muted"><strong>Methods planned:</strong> QR staff badge, NFC card/tag, supported phone biometrics, fingerprint/face attendance machines and approved vendor adapters.</p>
+        <p class="muted">Current build: installable interface shell. Device pairing and live event submission are not enabled until the secure Main System connection is completed and tested.</p>
+        <a class="button" href="attendance-terminal/">Open / Install app</a>
+        <a class="button outline" href="docs/ATTENDANCE_TERMINAL_APP.md">Setup notes</a>
+      </article>
+    </div>
+    <p class="muted" style="margin-top:22px"><a href="index.html">Return to CORNHILL Main System</a> · <a href="school-services.html">School Services</a></p>
+  </main>
+  <footer>CORNHILL NURSERY AND PRIMARY SCHOOL · Uganda</footer>
+</body>
+</html>
