@@ -4690,29 +4690,29 @@ async function printCornhillReportCards(container, bodyClass, selector) {
  measureStyle.id='cornhill-report-card-measure-style';
  measureStyle.textContent=`
  .cornhill-report-measure-host{position:absolute!important;left:-30000px!important;top:0!important;width:202mm!important;display:block!important;visibility:hidden!important;pointer-events:none!important;z-index:-1!important;background:#fff!important}
- .cornhill-report-measure-host .cornhill-report-card{box-sizing:border-box!important;width:202mm!important;max-width:none!important;min-width:0!important;margin:0!important;padding:4mm!important;border:1.4pt solid #245b48!important;border-radius:2mm!important;color:#111!important;background:#fff!important;font:8.5pt/1.18 Arial,sans-serif!important}
+ .cornhill-report-measure-host .cornhill-report-card{box-sizing:border-box!important;width:202mm!important;max-width:none!important;min-width:0!important;margin:0!important;padding:4mm!important;border:1.4pt solid #245b48!important;border-radius:2mm!important;color:#111!important;background:#fff!important;font:10pt/1.22 Arial,sans-serif!important}
  .cornhill-report-measure-host .report-school-head{gap:7px!important;padding-bottom:5px!important;border-bottom-width:2px!important}
  .cornhill-report-measure-host .report-school-head>img{width:64px!important;height:64px!important;flex:0 0 64px!important}
  .cornhill-report-measure-host .report-school-head .report-stamp img{width:48px!important;height:48px!important;object-fit:contain!important}
- .cornhill-report-measure-host .report-school-head h1{font-size:15pt!important;line-height:1.08!important}
- .cornhill-report-measure-host .report-school-head h2{margin:3px 0 0!important;padding:4px!important;font-size:9pt!important}
- .cornhill-report-measure-host .report-school-head p,.cornhill-report-measure-host .report-school-head em{margin:2px 0!important;font-size:8pt!important}
- .cornhill-report-measure-host .report-identity{margin:5px 0!important;font-size:8pt!important;line-height:1.2!important}
+ .cornhill-report-measure-host .report-school-head h1{font-size:17pt!important;line-height:1.1!important}
+ .cornhill-report-measure-host .report-school-head h2{margin:3px 0 0!important;padding:4px!important;font-size:10pt!important}
+ .cornhill-report-measure-host .report-school-head p,.cornhill-report-measure-host .report-school-head em{margin:2px 0!important;font-size:9pt!important}
+ .cornhill-report-measure-host .report-identity{margin:5px 0!important;font-size:9pt!important;line-height:1.2!important}
  .cornhill-report-measure-host .report-identity p{margin:2px 0!important}
  .cornhill-report-measure-host .table-wrap{overflow:visible!important;width:100%!important;max-width:100%!important}
- .cornhill-report-measure-host .report-marks{width:100%!important;min-width:0!important;table-layout:auto!important;font-size:7pt!important;line-height:1.1!important;border-collapse:collapse!important}
- .cornhill-report-measure-host .report-marks th,.cornhill-report-measure-host .report-marks td{padding:2px 3px!important;line-height:1.12!important;overflow-wrap:anywhere!important}
- .cornhill-report-measure-host .report-mark{font-size:8pt!important}
- .cornhill-report-measure-host .report-summary{gap:5px!important;padding:5px!important;margin-top:5px!important;font-size:7.5pt!important;line-height:1.15!important}
- .cornhill-report-measure-host .report-grading{margin-top:5px!important;font-size:7pt!important}
+ .cornhill-report-measure-host .report-marks{width:100%!important;min-width:0!important;table-layout:auto!important;font-size:8.5pt!important;line-height:1.15!important;border-collapse:collapse!important}
+ .cornhill-report-measure-host .report-marks th,.cornhill-report-measure-host .report-marks td{padding:3px 4px!important;line-height:1.18!important;overflow-wrap:anywhere!important}
+ .cornhill-report-measure-host .report-mark{font-size:9pt!important}
+ .cornhill-report-measure-host .report-summary{gap:5px!important;padding:5px!important;margin-top:5px!important;font-size:9pt!important;line-height:1.22!important}
+ .cornhill-report-measure-host .report-grading{margin-top:5px!important;font-size:8pt!important}
  .cornhill-report-measure-host .report-colors{gap:4px!important;margin-top:3px!important}
- .cornhill-report-measure-host .report-colors span{padding:3px!important;font-size:7pt!important}
- .cornhill-report-measure-host .report-comments{margin-top:5px!important;line-height:1.15!important;font-size:7.5pt!important}
+ .cornhill-report-measure-host .report-colors span{padding:3px!important;font-size:8pt!important}
+ .cornhill-report-measure-host .report-comments{margin-top:5px!important;line-height:1.15!important;font-size:9pt!important}
  .cornhill-report-measure-host .report-comments p{margin:3px 0 0!important;line-height:1.15!important}
  .cornhill-report-measure-host .report-comment-value{min-height:0!important;margin:1px 0 3px!important;line-height:1.15!important}
  .cornhill-report-measure-host .report-teacher-signline,.cornhill-report-measure-host .report-headteacher-signoff{margin-top:3px!important;line-height:1.1!important}
  .cornhill-report-measure-host .report-headteacher-signoff .report-stamp img{max-width:48px!important;max-height:48px!important;object-fit:contain!important}
- .cornhill-report-measure-host .report-footer{margin-top:5px!important;padding:5px!important;font-size:7pt!important;line-height:1.15!important}
+ .cornhill-report-measure-host .report-footer{margin-top:5px!important;padding:5px!important;font-size:8.5pt!important;line-height:1.155!important}
  .cornhill-report-measure-host .report-footer small{margin-top:4px!important}
  .cornhill-report-measure-host .report-preview-toolbar,.cornhill-report-measure-host button{display:none!important}
  .cornhill-report-measure-host .cornhill-report-card *{max-width:100%}
@@ -4742,7 +4742,7 @@ async function printCornhillReportCards(container, bodyClass, selector) {
   body.print-report-batch #reportBatchPrint .cornhill-report-card{
    box-sizing:border-box!important;width:202mm!important;max-width:none!important;min-width:0!important;margin:0!important;padding:4mm!important;
    border:1.4pt solid #245b48!important;border-radius:2mm!important;color:#111!important;background:#fff!important;
-   font:8.5pt/1.18 Arial,sans-serif!important;break-inside:avoid-page!important;page-break-inside:avoid!important;
+   font:10pt/1.22 Arial,sans-serif!important;break-inside:avoid-page!important;page-break-inside:avoid!important;
   }
   body.print-official-report #reportCardPreview .report-school-head,
   body.print-report-batch #reportBatchPrint .report-school-head{gap:7px!important;padding-bottom:5px!important;border-bottom-width:2px!important;break-inside:avoid!important}
@@ -4751,29 +4751,29 @@ async function printCornhillReportCards(container, bodyClass, selector) {
   body.print-official-report #reportCardPreview .report-school-head .report-stamp img,
   body.print-report-batch #reportBatchPrint .report-school-head .report-stamp img{width:48px!important;height:48px!important;object-fit:contain!important}
   body.print-official-report #reportCardPreview .report-school-head h1,
-  body.print-report-batch #reportBatchPrint .report-school-head h1{font-size:15pt!important;line-height:1.08!important}
+  body.print-report-batch #reportBatchPrint .report-school-head h1{font-size:17pt!important;line-height:1.1!important}
   body.print-official-report #reportCardPreview .report-school-head h2,
-  body.print-report-batch #reportBatchPrint .report-school-head h2{margin:3px 0 0!important;padding:4px!important;font-size:9pt!important}
+  body.print-report-batch #reportBatchPrint .report-school-head h2{margin:3px 0 0!important;padding:4px!important;font-size:10pt!important}
   body.print-official-report #reportCardPreview .report-school-head p,
   body.print-official-report #reportCardPreview .report-school-head em,
   body.print-report-batch #reportBatchPrint .report-school-head p,
-  body.print-report-batch #reportBatchPrint .report-school-head em{margin:2px 0!important;font-size:8pt!important}
+  body.print-report-batch #reportBatchPrint .report-school-head em{margin:2px 0!important;font-size:9pt!important}
   body.print-official-report #reportCardPreview .report-identity,
-  body.print-report-batch #reportBatchPrint .report-identity{margin:5px 0!important;font-size:8pt!important;line-height:1.2!important}
+  body.print-report-batch #reportBatchPrint .report-identity{margin:5px 0!important;font-size:9pt!important;line-height:1.2!important}
   body.print-official-report #reportCardPreview .report-identity p,
   body.print-report-batch #reportBatchPrint .report-identity p{margin:2px 0!important}
   body.print-official-report #reportCardPreview .table-wrap,
   body.print-report-batch #reportBatchPrint .table-wrap{overflow:visible!important;width:100%!important;max-width:100%!important}
   body.print-official-report #reportCardPreview .report-marks,
-  body.print-report-batch #reportBatchPrint .report-marks{width:100%!important;min-width:0!important;table-layout:auto!important;font-size:7pt!important;line-height:1.1!important;border-collapse:collapse!important}
+  body.print-report-batch #reportBatchPrint .report-marks{width:100%!important;min-width:0!important;table-layout:auto!important;font-size:8.5pt!important;line-height:1.15!important;border-collapse:collapse!important}
   body.print-official-report #reportCardPreview .report-marks th,
   body.print-official-report #reportCardPreview .report-marks td,
   body.print-report-batch #reportBatchPrint .report-marks th,
-  body.print-report-batch #reportBatchPrint .report-marks td{padding:2px 3px!important;line-height:1.12!important;overflow-wrap:anywhere!important}
+  body.print-report-batch #reportBatchPrint .report-marks td{padding:3px 4px!important;line-height:1.18!important;overflow-wrap:anywhere!important}
   body.print-official-report #reportCardPreview .report-summary,
-  body.print-report-batch #reportBatchPrint .report-summary{gap:5px!important;padding:5px!important;margin-top:5px!important;font-size:7.5pt!important;line-height:1.15!important}
+  body.print-report-batch #reportBatchPrint .report-summary{gap:5px!important;padding:5px!important;margin-top:5px!important;font-size:9pt!important;line-height:1.22!important}
   body.print-official-report #reportCardPreview .report-comments,
-  body.print-report-batch #reportBatchPrint .report-comments{margin-top:5px!important;line-height:1.15!important;font-size:7.5pt!important;break-inside:avoid!important;page-break-inside:avoid!important}
+  body.print-report-batch #reportBatchPrint .report-comments{margin-top:5px!important;line-height:1.15!important;font-size:9pt!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.print-official-report #reportCardPreview .report-comments p,
   body.print-report-batch #reportBatchPrint .report-comments p{margin:3px 0 0!important;line-height:1.15!important}
   body.print-official-report #reportCardPreview .report-comment-value,
@@ -4785,7 +4785,7 @@ async function printCornhillReportCards(container, bodyClass, selector) {
   body.print-official-report #reportCardPreview .report-headteacher-signoff .report-stamp img,
   body.print-report-batch #reportBatchPrint .report-headteacher-signoff .report-stamp img{max-width:48px!important;max-height:48px!important;object-fit:contain!important}
   body.print-official-report #reportCardPreview .report-footer,
-  body.print-report-batch #reportBatchPrint .report-footer{margin-top:5px!important;padding:5px!important;font-size:7pt!important;line-height:1.15!important;break-inside:avoid!important;page-break-inside:avoid!important}
+  body.print-report-batch #reportBatchPrint .report-footer{margin-top:5px!important;padding:5px!important;font-size:8.5pt!important;line-height:1.155!important;break-inside:avoid!important;page-break-inside:avoid!important}
   body.print-official-report #reportCardPreview .report-footer small,
   body.print-report-batch #reportBatchPrint .report-footer small{margin-top:4px!important}
   body.print-official-report #reportCardPreview button,
