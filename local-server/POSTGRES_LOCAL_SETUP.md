@@ -44,7 +44,7 @@ Remove-Item Env:CORNHILL_DB_TARGET
 
 The runner discovers all numbered SQL migration files, applies them in numeric order, and records a SHA-256 checksum for each one. It refuses to start unless both explicit local-development flags are set. It validates the loopback database host, exact `cornhill_local` database name, and database password configuration. It uses a PostgreSQL advisory lock. If an already-applied migration file changes, it stops rather than silently reapplying it. Running the command again verifies checksums and leaves an up-to-date database unchanged.
 
-Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments. Migration 003 adds the failed-login rate-limit indexes. The migrations deliberately create no role-to-permission grants and no application database grants. They do not create staff or guardian logins, import records, or enable the application API.
+Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments. Migration 003 adds failed-login rate-limit indexes. Migration 004 creates the separate `cornhill_auth_runtime` NOLOGIN group and the `cornhill_auth_api` NOLOGIN role, with limited column-level database grants. It does not assign application permissions to staff roles, create any staff/guardian accounts, import records, or enable sign-in.
 
 The migration runner and test verifiers use the development administrator account from `.env`. The separate `cornhill_auth_api` role is created with NOLOGIN, no password, no superuser attributes and explicit column-level privileges. Sequence usage is granted only for generated authentication attempt and audit-event IDs. Do not enable LOGIN or set a runtime password until the API wiring, private credential storage and full integration tests have passed. The local API must use `CORNHILL_DB_RUNTIME_USER` and `CORNHILL_DB_RUNTIME_PASSWORD`, never the administrator account. Do not enable sign-in until HTTPS is configured and the HTTP authentication routes have been integrated and tested.
 
@@ -73,8 +73,8 @@ Do not run `docker compose down -v`: the `-v` option deletes the named database 
 - This container is for development and migration rehearsal only.
 - It has no connection to the local Node server yet.
 - The SQL migrations have not yet been applied or verified against a running PostgreSQL instance.
-- No API database role or restricted grants have been created.
+- The authentication API database roles exist but remain NOLOGIN; no runtime password has been provisioned.
 - It is not configured for LAN access, remote access, backups or production operation.
 - Do not import real learner, guardian, staff or finance records.
 
-The next gate is to start this isolated database, apply all four migrations, and verify the constraints, permissions, repository behavior and restricted runtime role. Only after that should the API connect using a separate least-privilege database account.
+The next gate is to start this isolated database, apply all four migrations, and verify the constraints, permissions, repository behavior and restricted runtime role. Only after that should an administrator securely provision the runtime login, and only when HTTPS and the API integration are ready.
