@@ -58,7 +58,7 @@ test('each report receives a content-measured custom-height page', () => {
   assert.match(html, /getBoundingClientRect\(\)\.height/);
   assert.match(html, /px\*25\.4\/96/);
   assert.match(html, /pageRules\.push\('@page '\+pageName\+'\{size:210mm '\+pageHeight\+'mm;margin:4mm;\}'\)/);
-  assert.match(html, /page:\+pageName\+'!important;zoom:/);
+  assert.match(html, /page:'\+pageName\+'!important;zoom:/);
 });
 
 test('the printed report card has a visible frame and sensible inner spacing', () => {
