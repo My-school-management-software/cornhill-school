@@ -14,13 +14,14 @@ Branch: `feat/local-first-self-hosted-migration-20261113`
 - Session authentication, account-status and expiry checks, CSRF checks for unsafe methods, and session revocation on logout.
 - Secure host-only session cookie builders with Secure, HttpOnly, Path=/ and SameSite=Strict.
 - Migration 003 adds indexes supporting identifier/source failed-attempt checks.
+- Migration 004 adds separate NOLOGIN auth runtime roles with explicit column-level privileges; no runtime password is provisioned.
 - Disposable PostgreSQL integration verifier exercises staff/guardian lookups, concurrent rate limiting, session creation/revocation and audit writing, plus role grant, class scope and guardian learner-link isolation.
 - CI includes a PostgreSQL integration job on Ubuntu and an additional Windows unit-test job.
 
 ## Security boundaries
 
 - These are backend service modules and repository contracts, not browser-side authentication.
-- The production authentication service is not yet wired into the local HTTP server.
+- The production authentication service and runtime factory are implemented as separate modules but are not yet wired into the local HTTPS server.
 - The Argon2id package is pinned exactly in package.json. A generated npm lockfile still needs to be added after a real dependency install on a network-enabled build runner.
 - The rate-limit repository uses PostgreSQL advisory transaction locks and records attempts as failures until successful verification completes.
 - The successful session repository creates the session, updates last-login metadata and writes the success audit event in one database transaction.
@@ -35,4 +36,4 @@ The selected package has an MIT licence, a Rust-based Node binding, no node-gyp/
 
 ## Verification plan
 
-The committed tests cover the service contracts, cookie rules and the real Argon2id adapter. The GitHub Actions workflow is configured to run unit tests on Ubuntu and Windows, and PostgreSQL integration tests on Ubuntu. These checks must pass before real accounts are enabled. The local development environment has not yet connected a disposable PostgreSQL server, so repository integration remains pending until CI confirms it.
+The committed tests cover the service contracts, cookie rules, Argon2id adapter, runtime configuration and HTTP handler. The GitHub Actions workflow is configured to run unit tests on Ubuntu and Windows, and PostgreSQL integration tests on Ubuntu. These checks must pass before real accounts are enabled. The local development environment has not yet connected a disposable PostgreSQL server, so repository integration remains pending until CI confirms it.
