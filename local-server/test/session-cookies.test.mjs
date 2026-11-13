@@ -1,9 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  CSRF_COOKIE_NAME,
   SESSION_COOKIE_NAME,
+  buildCsrfCookie,
+  buildExpiredCsrfCookie,
   buildExpiredSessionCookie,
   buildSessionCookie,
+  readCsrfTokenFromCookieHeader,
   readSessionTokenFromCookieHeader,
   sessionTokenHashFromCookieHeader
 } from "../src/security/session-cookies.mjs";
@@ -57,4 +61,28 @@ test("token hash helper returns only the hash", () => {
   const hash = sessionTokenHashFromCookieHeader(header);
   assert.match(hash, /^[a-f0-9]{64}$/);
   assert.notEqual(hash, secrets.sessionToken);
+});
+test("CSRF cookie is readable but remains Secure and SameSite Strict", () => {
+  const cookie = buildCsrfCookie(secrets.csrfToken, 1800);
+  assert.ok(cookie.startsWith(CSRF_COOKIE_NAME + "="));
+  assert.match(cookie, /Path=\//);
+  assert.match(cookie, /Secure/);
+  assert.match(cookie, /SameSite=Strict/);
+  assert.doesNotMatch(cookie, /HttpOnly|Domain=/i);
+});
+test("CSRF cookie token can be read after page reload", () => {
+  const header = CSRF_COOKIE_NAME + "=" + secrets.csrfToken;
+  assert.equal(readCsrfTokenFromCookieHeader(header), secrets.csrfToken);
+});
+test("CSRF parser rejects duplicate values and malformed cookies", () => {
+  assert.equal(readCsrfTokenFromCookieHeader(
+    CSRF_COOKIE_NAME + "=" + secrets.csrfToken + "; " + CSRF_COOKIE_NAME + "=" + secrets.csrfToken
+  ), null);
+  assert.equal(readCsrfTokenFromCookieHeader(CSRF_COOKIE_NAME + "=bad"), null);
+});
+test("CSRF cookie clear helper expires the cookie", () => {
+  const cookie = buildExpiredCsrfCookie();
+  assert.match(cookie, /Max-Age=0/);
+  assert.match(cookie, /Secure/);
+  assert.match(cookie, /SameSite=Strict/);
 });
