@@ -2,6 +2,28 @@ import { createHash } from "node:crypto";
 
 export const MIGRATION_LOCK_ID = "70211420261113";
 
+const MIGRATION_FILE_PATTERN = /^\d{3,}_[a-z0-9]+(?:_[a-z0-9]+)*\.sql$/;
+
+export function sortMigrationFiles(entries) {
+  if (!Array.isArray(entries)) {
+    throw new TypeError("Migration directory entries must be an array.");
+  }
+  const sqlFiles = entries.filter(entry => typeof entry === "string" && entry.endsWith(".sql"));
+  if (sqlFiles.some(fileName => !MIGRATION_FILE_PATTERN.test(fileName))) {
+    throw new Error("Every SQL migration must use a numeric-prefix snake_case filename.");
+  }
+
+  const versions = new Set();
+  for (const fileName of sqlFiles) {
+    const version = fileName.split("_", 1)[0];
+    if (versions.has(version)) {
+      throw new Error("Migration version prefixes must be unique.");
+    }
+    versions.add(version);
+  }
+  return [...sqlFiles].sort((a, b) => a.localeCompare(b));
+}
+
 export function migrationChecksum(sql) {
   return createHash("sha256").update(sql, "utf8").digest("hex");
 }
