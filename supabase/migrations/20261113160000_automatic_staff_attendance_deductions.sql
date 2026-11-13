@@ -16,6 +16,7 @@ set search_path = ''
 as $function$
 declare
   v_today date := (now() at time zone 'Africa/Kampala')::date;
+  v_now_local timestamp without time zone := now() at time zone 'Africa/Kampala';
   v_enabled boolean := false;
   v_scheduled_count integer := 0;
   v_clocked_count integer := 0;
@@ -129,6 +130,15 @@ begin
       and i.review_deadline_at is not null
       and i.review_deadline_at<=now()
       and nullif(btrim(i.headteacher_statement),'') is null
+      -- A late arrival is not a no-show. Only deduct when the staff member has
+      -- no clock-in event at all for this school-local attendance date.
+      and not exists (
+        select 1 from public.staff_attendance_events e
+        where e.staff_user_id=i.staff_user_id
+          and e.event_type='clock_in'
+          and e.occurred_at >= (i.attendance_date::timestamp at time zone 'Africa/Kampala')
+          and e.occurred_at < ((i.attendance_date+1)::timestamp at time zone 'Africa/Kampala')
+      )
     for update
   loop
     select coalesce(a.daily_rate_ugx,case
