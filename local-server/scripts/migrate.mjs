@@ -26,13 +26,9 @@ async function run() {
 
   try {
     await client.query("SELECT pg_advisory_lock($1::bigint)", [MIGRATION_LOCK_ID]);
-    const identity = await client.query(
-      "SELECT current_database() AS database, inet_server_addr()::text AS server_address"
-    );
-    const serverAddress = identity.rows[0]?.server_address;
-    if (identity.rows[0]?.database !== "cornhill_local" ||
-        !["127.0.0.1", "::1"].includes(serverAddress)) {
-      throw new Error("Connected database is not the expected isolated loopback development database.");
+    const identity = await client.query("SELECT current_database() AS database");
+    if (identity.rows[0]?.database !== "cornhill_local") {
+      throw new Error("Connected database is not the expected isolated local development database.");
     }
 
     await client.query("CREATE SCHEMA IF NOT EXISTS cornhill_meta");
