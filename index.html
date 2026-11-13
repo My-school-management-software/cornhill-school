@@ -1177,6 +1177,107 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  #classLoginDirectory .login-class-tile:hover{transform:none}
 }
 </style>
+
+<style id="cornhill-report-card-print-fit">
+/* One learner = one complete A4 report-card page. Scoped to official report-card printing only. */
+@page cornhillReportCard { size: A4 portrait; margin: 7mm; }
+@media print {
+  body.print-official-report #reportCardPreview { page: cornhillReportCard; }
+  body.print-official-report #reportCardPreview .cornhill-report-card {
+    page: cornhillReportCard !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    color: #111 !important;
+    background: #fff !important;
+    font-size: 8.5pt !important;
+    line-height: 1.18 !important;
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+  body.print-official-report #reportCardPreview .report-school-head {
+    gap: 7px !important;
+    padding-bottom: 5px !important;
+    border-bottom-width: 2px !important;
+    break-inside: avoid !important;
+  }
+  body.print-official-report #reportCardPreview .report-school-head > img {
+    width: 64px !important; height: 64px !important; flex: 0 0 64px !important;
+  }
+  body.print-official-report #reportCardPreview .report-school-head .report-stamp img {
+    width: 48px !important; height: 48px !important; object-fit: contain !important;
+  }
+  body.print-official-report #reportCardPreview .report-school-head h1 {
+    font-size: 15pt !important; line-height: 1.08 !important;
+  }
+  body.print-official-report #reportCardPreview .report-school-head h2 {
+    margin: 3px 0 0 !important; padding: 4px !important; font-size: 9pt !important;
+  }
+  body.print-official-report #reportCardPreview .report-school-head p,
+  body.print-official-report #reportCardPreview .report-school-head em {
+    margin: 2px 0 !important; font-size: 8pt !important;
+  }
+  body.print-official-report #reportCardPreview .report-identity {
+    margin: 5px 0 !important; font-size: 8pt !important; line-height: 1.2 !important;
+  }
+  body.print-official-report #reportCardPreview .report-identity p {
+    margin: 2px 0 !important;
+  }
+  body.print-official-report #reportCardPreview .table-wrap {
+    overflow: visible !important; width: 100% !important; max-width: 100% !important;
+  }
+  body.print-official-report #reportCardPreview .report-marks {
+    width: 100% !important; min-width: 0 !important; table-layout: auto !important;
+    font-size: 7pt !important; line-height: 1.1 !important; border-collapse: collapse !important;
+  }
+  body.print-official-report #reportCardPreview .report-marks th,
+  body.print-official-report #reportCardPreview .report-marks td {
+    padding: 2px 3px !important; line-height: 1.12 !important;
+    overflow-wrap: anywhere !important;
+  }
+  body.print-official-report #reportCardPreview .report-mark { font-size: 8pt !important; }
+  body.print-official-report #reportCardPreview .report-summary {
+    gap: 5px !important; padding: 5px !important; margin-top: 5px !important;
+    font-size: 7.5pt !important; line-height: 1.15 !important;
+  }
+  body.print-official-report #reportCardPreview .report-grading { margin-top: 5px !important; font-size: 7pt !important; }
+  body.print-official-report #reportCardPreview .report-colors { gap: 4px !important; margin-top: 3px !important; }
+  body.print-official-report #reportCardPreview .report-colors span { padding: 3px !important; font-size: 7pt !important; }
+  body.print-official-report #reportCardPreview .report-comments {
+    margin-top: 5px !important; line-height: 1.15 !important; font-size: 7.5pt !important;
+    break-inside: avoid !important; page-break-inside: avoid !important;
+  }
+  body.print-official-report #reportCardPreview .report-comments p {
+    margin: 3px 0 0 !important; line-height: 1.15 !important;
+  }
+  body.print-official-report #reportCardPreview .report-comment-value {
+    min-height: 0 !important; margin: 1px 0 3px !important; line-height: 1.15 !important;
+  }
+  body.print-official-report #reportCardPreview .report-teacher-signline,
+  body.print-official-report #reportCardPreview .report-headteacher-signoff {
+    margin-top: 3px !important; line-height: 1.1 !important;
+    break-inside: avoid !important; page-break-inside: avoid !important;
+  }
+  body.print-official-report #reportCardPreview .report-headteacher-signoff .report-stamp img {
+    max-width: 48px !important; max-height: 48px !important; object-fit: contain !important;
+  }
+  body.print-official-report #reportCardPreview .report-footer {
+    margin-top: 5px !important; padding: 5px !important; font-size: 7pt !important;
+    line-height: 1.15 !important; break-inside: avoid !important; page-break-inside: avoid !important;
+  }
+  body.print-official-report #reportCardPreview .report-footer small { margin-top: 4px !important; }
+  body.print-official-report #reportCardPreview .report-preview-toolbar,
+  body.print-official-report #reportCardPreview button { display: none !important; }
+  body.print-official-report #reportCardPreview .cornhill-report-card * {
+    max-width: 100%;
+  }
+}
+</style>
+
 </head>
 <body>
 <header class="top"><div><div class="brand" style="display:flex;align-items:center;gap:12px"><img src="/assets/cornhill-school-badge.png" alt="Cornhill Nursery and Primary School crest" style="width:48px;height:48px;object-fit:contain;background:#fff;border-radius:50%;padding:2px;flex:0 0 auto"><span>CORNHILL NURSERY AND PRIMARY SCHOOL</span></div><div class="sub">School Management System · Uganda</div>
