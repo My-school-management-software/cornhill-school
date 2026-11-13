@@ -14,14 +14,14 @@ test("PostgreSQL integration verifier checks all eleven identity and authorizati
 });
 
 test("PostgreSQL integration verifier checks seeded roles, permission catalog and empty grants", () => {
-  assert.match(source, /count\s*!==\s*17/);
-  assert.match(source, /count\s*!==\s*19/);
-  assert.match(source, /roleGrants\.rows\[0\]\?\.count\s*!==\s*0/);
-  assert.match(source, /a\.grantee\s*=\s*0/);
-  assert.match(source, /PUBLIC unexpectedly has access/);
+  assert.ok(source.includes("roles.rows[0]?.count !== 17"));
+  assert.ok(source.includes("permissionCount.rows[0]?.count !== 19"));
+  assert.ok(source.includes("roleGrants.rows[0]?.count !== 0"));
+  assert.ok(source.includes("a.grantee = 0"));
+  assert.ok(source.includes("PUBLIC unexpectedly has access"));
 });
 
 test("PostgreSQL integration verifier checks database constraints", () => {
-  assert.match(source, /table_constraints/);
-  assert.match(source, /count\s*<\s*35/);
+  assert.ok(source.includes("table_constraints"));
+  assert.ok(source.includes("constraints.rows[0]?.count < 35"));
 });
