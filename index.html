@@ -1545,14 +1545,14 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
  <div id="expenseMsg" class="notice hidden"></div>
  <h4>Expense totals by category</h4><div class="table-wrap"><table><thead><tr><th>Category</th><th>Total posted (UGX)</th></tr></thead><tbody id="expenseCategoryTotals"><tr><td colspan="2">Choose a date range.</td></tr></tbody></table></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Expense no.</th><th>Category</th><th>Description</th><th>Payee</th><th>Method</th><th>Payment / invoice reference</th><th>Amount (UGX)</th><th>Status</th><th>Action</th></tr></thead><tbody id="expenseRows"><tr><td colspan="9">Loading expense records…</td></tr></tbody></table></div><div id="expensePrint" class="receipt-print statement-print"></div>
  <h3 style="margin-top:30px">14. Staff Salary Agreements & Payroll</h3>
- <p class="muted">Set each staff member's agreed salary and whether it is monthly, termly or yearly. Create a payroll period, review the generated staff amounts, enter allowances or deductions, then mark each payment as paid. Once marked paid, that salary automatically becomes an expense.</p>
+ <p class="muted">The Director manages salary agreements and advances. The Main or Deputy Bursar prepares and submits each payroll for independent Director approval. After approval, the Bursar records actual salary disbursements; approved salary amounts cannot be changed during payment recording.</p>
  <form id="salaryAgreementForm"><div><label>Staff member *</label><select name="staff_user_id" id="salaryStaff" required></select></div><div><label>Salary frequency *</label><select name="salary_basis"><option>Monthly</option><option>Termly</option><option>Yearly</option></select></div><div><label>Agreed salary (UGX) *</label><input type="number" name="base_salary_ugx" min="0" step="1" required></div><div><label>Effective from *</label><input type="date" name="effective_from" required></div><div><label>Effective to (optional)</label><input type="date" name="effective_to"></div><div><label>Daily pay reference (UGX)</label><input type="number" name="daily_rate_ugx" min="0" step="1" placeholder="Agreed daily amount (optional)"></div><div class="full"><label>Agreement notes</label><input name="notes" placeholder="Optional salary agreement notes"></div><div class="full"><button class="primary">Save salary agreement</button></div></form><h4>Staff salary advances</h4><p class="muted">Record money paid before payday. Outstanding balances can be recovered in instalments through payroll.</p><form id="salaryAdvanceForm"><div><label>Staff member *</label><select name="staff_user_id" id="advanceStaff" required></select></div><div><label>Advance amount (UGX) *</label><input name="amount_ugx" type="number" min="1" step="1" required></div><div><label>Date *</label><input name="advance_date" type="date" id="advanceDate" required></div><div class="full"><label>Reason / note</label><input name="reason" maxlength="500" placeholder="Optional reason"></div><div class="full"><button class="primary">Record staff advance</button></div></form><div id="advanceMsg" class="notice hidden"></div><div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Date</th><th>Advance</th><th>Outstanding</th><th>Status</th></tr></thead><tbody id="salaryAdvanceRows"><tr><td colspan="5">No advances recorded.</td></tr></tbody></table></div>
  <h4>Current salary agreements</h4><div class="table-wrap"><table><thead><tr><th>Staff</th><th>Job title</th><th>Frequency</th><th>Salary (UGX)</th><th>Effective dates</th><th>Status</th></tr></thead><tbody id="salaryAgreementRows"></tbody></table></div>
  <h4 style="margin-top:22px">Create payroll period</h4>
- <form id="payrollPeriodForm"><div><label>Period name *</label><input name="period_name" required placeholder="e.g. November 2026"></div><div><label>Salary frequency *</label><select name="period_type"><option>Monthly</option><option>Termly</option><option>Yearly</option></select></div><div><label>Period starts *</label><input type="date" name="period_start" required></div><div><label>Period ends *</label><input type="date" name="period_end" required></div><div class="full"><label>Payroll notes</label><input name="notes" placeholder="Optional notes"></div><div class="full"><button class="primary">Create payroll and prepare staff amounts</button></div></form>
+ <form id="payrollPeriodForm"><div><label>Period name *</label><input name="period_name" required placeholder="e.g. November 2026"></div><div><label>Salary frequency *</label><select name="period_type"><option>Monthly</option><option>Termly</option><option>Yearly</option></select></div><div><label>Period starts *</label><input type="date" name="period_start" required></div><div><label>Period ends *</label><input type="date" name="period_end" required></div><div class="full"><label>Payroll notes</label><input name="notes" placeholder="Optional notes"></div><div class="full"><button class="primary">Prepare draft payroll</button></div></form>
  <div id="payrollMsg" class="notice hidden"></div>
  <div class="grid"><div class="stat"><small>Staff on this payroll</small><div id="payrollStaffCount" class="num">0</div></div><div class="stat"><small>Payroll net total (UGX)</small><div id="payrollNetTotal" class="num">0</div></div><div class="stat"><small>Paid so far (UGX)</small><div id="payrollPaidTotal" class="num">0</div></div></div>
- <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><div style="flex:1;min-width:220px"><label>Select payroll period</label><select id="payrollPeriodSelect"></select></div><button type="button" id="loadPayrollItems">Open payroll</button><button type="button" id="approvePayroll">Approve payroll</button></div>
+ <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><div style="flex:1;min-width:220px"><label>Select payroll period</label><select id="payrollPeriodSelect"></select></div><button type="button" id="loadPayrollItems">Open payroll</button><button type="button" id="submitPayroll" class="primary">Submit for Director approval</button><button type="button" id="approvePayroll" class="primary">Approve payroll</button><button type="button" id="returnPayroll">Return to Bursar</button></div>
  <div class="table-wrap"><table><thead><tr><th>Staff member</th><th>Salary basis</th><th>Basic (UGX)</th><th>Allowance</th><th>Other / attendance deduction</th><th>Advance recovery</th><th>Net pay (UGX)</th><th>Method</th><th>Reference</th><th>Status / action</th></tr></thead><tbody id="payrollItemRows"><tr><td colspan="9">Create or open a payroll period.</td></tr></tbody></table></div>
  <h3 style="margin-top:30px">15. Financial year and term expenditure overview</h3>
  <p class="muted">Use the expense date filters above to review monthly, termly or annual expenditure. Payroll records preserve the staff salary frequency and the salary amount agreed for each effective period.</p>
@@ -3017,10 +3017,14 @@ function applyRoleNavigation(){
  document.querySelectorAll('#dashboardClassBoardsPanel').forEach(node=>node.classList.toggle('hidden',role!=='Admin'));
  const teacherIntro=$('teacherPortalSummary');if(teacherIntro)teacherIntro.classList.toggle('hidden',role!=='Teacher');
  const income=$('dashboardIncomeForecastPanel');if(income)income.classList.toggle('hidden',role!=='Admin');
- const adminFinanceControls=['feeItemForm','feeScheduleForm','learnerChargeForm','applyLearnerFeeSchedule','existingBursaryAwardForm','receiptReverseControls','salaryAgreementForm','salaryAdvanceForm','payrollPeriodForm','loadPayrollItems','approvePayroll'];
- adminFinanceControls.forEach(id=>$(id)?.classList.toggle('hidden',role!=='Admin'));
- const payrollReadOnly=['salaryAdvanceRows','salaryAgreementRows','payrollMsg','payrollStaffCount','payrollNetTotal','payrollPaidTotal','payrollPeriodSelect','payrollItemRows'];
- payrollReadOnly.forEach(id=>$(id)?.classList.toggle('hidden',role!=='Admin'));
+ const directorFinanceControls=['feeItemForm','feeScheduleForm','learnerChargeForm','applyLearnerFeeSchedule','existingBursaryAwardForm','receiptReverseControls','salaryAgreementForm','salaryAdvanceForm'];
+ directorFinanceControls.forEach(id=>$(id)?.classList.toggle('hidden',role!=='Admin'));
+ const bursarPayroll=isCornhillBursar(),directorPayroll=role==='Admin';
+ ['payrollPeriodForm','submitPayroll'].forEach(id=>$(id)?.classList.toggle('hidden',!bursarPayroll));
+ ['loadPayrollItems'].forEach(id=>$(id)?.classList.toggle('hidden',!(bursarPayroll||directorPayroll)));
+ ['approvePayroll','returnPayroll'].forEach(id=>$(id)?.classList.toggle('hidden',!directorPayroll));
+ const payrollReadOnly=['payrollMsg','payrollStaffCount','payrollNetTotal','payrollPaidTotal','payrollPeriodSelect','payrollItemRows'];
+ payrollReadOnly.forEach(id=>$(id)?.classList.toggle('hidden',!(bursarPayroll||directorPayroll)));
  if(role!=='Admin'){
   $('reverseReceiptButton')?.classList.add('hidden');
   $('parentSmsRows')?.closest('.table-wrap')?.classList.add('hidden');
@@ -3315,21 +3319,49 @@ async function loadExpensePayroll(){
  window.cornhillExpenseRows=expenseRows;window.cornhillExpenseRowsLoaded=true;
  $('expenseCategory').innerHTML=(cats.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');
  renderExpenseRows();
- // Payroll, salary agreements and staff salary advances are administrator-only.
- if(profile?.role!=='Admin')return;
- const [staff,agreements,periods]=await Promise.all([
-  db.from('user_profiles').select('id,full_name,job_title,employment_status').order('full_name'),
-  db.from('staff_salary_agreements').select('id,staff_user_id,salary_basis,base_salary_ugx,daily_rate_ugx,effective_from,effective_to,is_active,user_profiles(full_name,job_title)').order('effective_from',{ascending:false}),
-  db.from('payroll_periods').select('id,period_name,period_type,period_start,period_end,status').order('period_start',{ascending:false})
- ]);
- const bad=[staff,agreements,periods].find(x=>x.error);if(bad){message('payrollMsg','Payroll data could not load: '+bad.error.message,true);return}
- $('salaryStaff').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).filter(x=>x.employment_status==='Active').map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed staff')+' · '+esc(x.job_title||'Staff')+'</option>').join('');
- $('advanceStaff').innerHTML=$('salaryStaff').innerHTML;$('advanceDate').value=kampalaToday();
- const advances=await db.from('staff_salary_advances').select('id,staff_user_id,advance_date,amount_ugx,outstanding_ugx,status,user_profiles(full_name)').order('advance_date',{ascending:false});
- if(advances.error){message('advanceMsg','Could not load staff advances: '+advances.error.message,true);return}
- $('salaryAdvanceRows').innerHTML=(advances.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff')+'</td><td>'+esc(x.advance_date)+'</td><td>'+money(x.amount_ugx)+'</td><td><strong>'+money(x.outstanding_ugx)+'</strong></td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="5">No advances recorded.</td></tr>';
- $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'<br><small>Daily pay: '+(x.daily_rate_ugx===null?'Not set':money(x.daily_rate_ugx))+'</small></td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+(x.is_active?'Active':'Inactive')+(x.is_active?' <button type="button" data-close-salary="'+x.id+'">Close agreement</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
- const previouslySelectedPayroll=$('payrollPeriodSelect').value;$('payrollPeriodSelect').innerHTML='<option value="">Choose payroll period</option>'+(periods.data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.period_name)+' · '+esc(x.period_type)+' · '+esc(x.status)+'</option>').join('');if((periods.data||[]).some(x=>x.id===previouslySelectedPayroll))$('payrollPeriodSelect').value=previouslySelectedPayroll;
+
+ // Salary agreements and advances remain Director-managed. The Bursar gets
+ // only the limited staff/salary fields returned by a dedicated database RPC.
+ const director=profile?.role==='Admin',bursar=isCornhillBursar();
+ if(!director&&!bursar)return;
+ let agreementRows=[],periodRows=[];
+ if(director){
+  const [staff,agreements,periods]=await Promise.all([
+   db.from('user_profiles').select('id,full_name,job_title,employment_status').order('full_name'),
+   db.from('staff_salary_agreements').select('id,staff_user_id,salary_basis,base_salary_ugx,daily_rate_ugx,effective_from,effective_to,is_active,user_profiles(full_name,job_title,employment_status)').order('effective_from',{ascending:false}),
+   db.from('payroll_periods').select('id,period_name,period_type,period_start,period_end,status,created_by').order('period_start',{ascending:false})
+  ]);
+  const bad=[staff,agreements,periods].find(x=>x.error);
+  if(bad){message('payrollMsg','Payroll data could not load: '+bad.error.message,true);return}
+  agreementRows=(agreements.data||[]).map(a=>({
+   id:a.id,staff_user_id:a.staff_user_id,full_name:a.user_profiles?.full_name||'Staff member',
+   job_title:a.user_profiles?.job_title||null,employment_status:a.user_profiles?.employment_status||'Inactive',
+   salary_basis:a.salary_basis,base_salary_ugx:Number(a.base_salary_ugx||0),
+   daily_rate_ugx:a.daily_rate_ugx,effective_from:a.effective_from,effective_to:a.effective_to
+  }));
+  periodRows=periods.data||[];
+  $('salaryStaff').innerHTML='<option value="">Choose staff member</option>'+(staff.data||[]).filter(x=>x.employment_status==='Active').map(x=>'<option value="'+x.id+'">'+esc(x.full_name||'Unnamed staff')+' · '+esc(x.job_title||'Staff')+'</option>').join('');
+  $('advanceStaff').innerHTML=$('salaryStaff').innerHTML;$('advanceDate').value=kampalaToday();
+  const advances=await db.from('staff_salary_advances').select('id,staff_user_id,advance_date,amount_ugx,outstanding_ugx,status,user_profiles(full_name)').order('advance_date',{ascending:false});
+  if(advances.error){message('advanceMsg','Could not load staff advances: '+advances.error.message,true);return}
+  $('salaryAdvanceRows').innerHTML=(advances.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff')+'</td><td>'+esc(x.advance_date)+'</td><td>'+money(x.amount_ugx)+'</td><td><strong>'+money(x.outstanding_ugx)+'</strong></td><td>'+esc(x.status)+'</td></tr>').join('')||'<tr><td colspan="5">No advances recorded.</td></tr>';
+  $('salaryAgreementRows').innerHTML=(agreements.data||[]).map(x=>'<tr><td>'+esc(x.user_profiles?.full_name||'Staff record')+'</td><td>'+esc(x.user_profiles?.job_title||'—')+'</td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'<br><small>Daily pay: '+(x.daily_rate_ugx===null?'Not set':money(x.daily_rate_ugx))+'</small></td><td>'+esc(x.effective_from)+' – '+esc(x.effective_to||'Ongoing')+'</td><td>'+(x.is_active?'Active':'Inactive')+(x.is_active?' <button type="button" data-close-salary="'+x.id+'">Close agreement</button>':'')+'</td></tr>').join('')||'<tr><td colspan="6">No salary agreements entered yet.</td></tr>';
+ }else{
+  const [staffResult,periods]=await Promise.all([
+   db.rpc('finance_list_payroll_staff'),
+   db.from('payroll_periods').select('id,period_name,period_type,period_start,period_end,status,created_by').order('period_start',{ascending:false})
+  ]);
+  if(staffResult.error||periods.error){
+   message('payrollMsg','The Bursar payroll preparation directory could not load: '+(staffResult.error||periods.error).message,true);
+   return;
+  }
+  agreementRows=staffResult.data||[];
+  periodRows=periods.data||[];
+ }
+ window.cornhillPayrollAgreements=agreementRows;
+ const previouslySelectedPayroll=$('payrollPeriodSelect').value;
+ $('payrollPeriodSelect').innerHTML='<option value="">Choose payroll period</option>'+periodRows.map(x=>'<option value="'+x.id+'">'+esc(x.period_name)+' · '+esc(x.period_type)+' · '+esc(x.status)+'</option>').join('');
+ if(periodRows.some(x=>x.id===previouslySelectedPayroll))$('payrollPeriodSelect').value=previouslySelectedPayroll;
  renderExpenseRows();
 }
 function renderExpenseRows(){
@@ -3389,63 +3421,157 @@ $('salaryAgreementForm').addEventListener('submit',async e=>{
  e.target.reset();await loadExpensePayroll();message('payrollMsg','Salary agreement saved. It will be used when preparing matching payroll periods.');
 });
 $('payrollPeriodForm').addEventListener('submit',async e=>{
- e.preventDefault();if(demoMode||profile?.role!=='Admin')return;const f=new FormData(e.target),start=f.get('period_start'),end=f.get('period_end'),type=f.get('period_type');
- if(end<start){message('payrollMsg','The payroll end date must be on or after the start date.',true);return}
- const {data:period,error}=await db.from('payroll_periods').insert({period_name:String(f.get('period_name')).trim(),period_type:type,period_start:start,period_end:end,notes:String(f.get('notes')||'').trim()||null,created_by:currentUserId}).select('id').single();
- if(error){message('payrollMsg','Payroll period could not be created: '+error.message,true);return}
- const {data:agreements,error:agreementError}=await db.from('staff_salary_agreements').select('id,staff_user_id,salary_basis,base_salary_ugx,effective_from,effective_to,user_profiles(full_name,job_title,employment_status)').eq('is_active',true).lte('effective_from',end);
- if(agreementError){message('payrollMsg','Payroll period was created, but salary agreements could not be loaded: '+agreementError.message,true);return}
- const eligible=(agreements||[]).filter(a=>a.salary_basis===type&&(!a.effective_to||a.effective_to>=start)&&a.user_profiles?.employment_status==='Active');
- if(!eligible.length){message('payrollMsg','Payroll period created. No active '+type.toLowerCase()+' salary agreements cover these dates yet. Add agreements and create a new payroll period.',true);await loadExpensePayroll();return}
- const items=eligible.map(a=>({payroll_period_id:period.id,staff_user_id:a.staff_user_id,salary_agreement_id:a.id,staff_name_snapshot:a.user_profiles.full_name||'Staff member',job_title_snapshot:a.user_profiles.job_title||null,salary_basis:a.salary_basis,base_salary_ugx:Number(a.base_salary_ugx)}));
+ e.preventDefault();if(demoMode||!isCornhillBursar())return;
+ const f=new FormData(e.target),start=f.get('period_start'),end=f.get('period_end'),type=f.get('period_type');
+ if(!start||!end||end<start){message('payrollMsg','The payroll end date must be on or after the start date.',true);return}
+ const agreements=window.cornhillPayrollAgreements||[];
+ const eligible=agreements.filter(a=>a.salary_basis===type&&(!a.effective_to||a.effective_to>=start)&&a.effective_from<=end&&a.employment_status==='Active');
+ if(!eligible.length){message('payrollMsg','No active approved salary agreements cover this payroll period. Ask the Director to check the salary agreements.',true);return}
+ const {data:period,error}=await db.from('payroll_periods').insert({
+  period_name:String(f.get('period_name')).trim(),period_type:type,period_start:start,period_end:end,
+  notes:String(f.get('notes')||'').trim()||null,created_by:currentUserId
+ }).select('id').single();
+ if(error){message('payrollMsg','Payroll draft could not be created: '+error.message,true);return}
+ const items=eligible.map(a=>({
+  payroll_period_id:period.id,staff_user_id:a.staff_user_id,salary_agreement_id:a.id,
+  staff_name_snapshot:a.full_name||'Staff member',job_title_snapshot:a.job_title||null,
+  salary_basis:a.salary_basis,base_salary_ugx:Number(a.base_salary_ugx)
+ }));
  const {error:itemError}=await db.from('payroll_items').insert(items);
- if(itemError){message('payrollMsg','Payroll period created, but payroll rows could not be prepared: '+itemError.message,true);await loadExpensePayroll();return}
- e.target.reset();await loadExpensePayroll();$('payrollPeriodSelect').value=period.id;await loadPayrollItems();message('payrollMsg',eligible.length+' staff payroll entries prepared. Review allowances and deductions before approving or paying.');
+ if(itemError){message('payrollMsg','Payroll draft was created, but its staff lines could not be prepared: '+itemError.message,true);await loadExpensePayroll();return}
+ e.target.reset();await loadExpensePayroll();$('payrollPeriodSelect').value=period.id;
+ await loadPayrollItems();
+ message('payrollMsg',eligible.length+' staff entries prepared in Draft. Review allowances, attendance deductions and advance recovery, then submit to the Director.');
 });
 async function loadPayrollItems(){
- const id=$('payrollPeriodSelect').value;if(!id){message('payrollMsg','Choose a payroll period first.',true);return}
+ const id=$('payrollPeriodSelect').value;
+ if(!id){message('payrollMsg','Choose a payroll period first.',true);return}
  const {data:period,error:periodError}=await db.from('payroll_periods').select('*').eq('id',id).single();
  const {data:items,error}=await db.from('payroll_items').select('*').eq('payroll_period_id',id).order('staff_name_snapshot');
  if(periodError||error){message('payrollMsg','Could not load payroll: '+(periodError||error).message,true);return}
- window.cornhillCurrentPayroll=items||[];window.cornhillPayrollPeriodStatus=period.status;
+ window.cornhillCurrentPayroll=items||[];
+ window.cornhillCurrentPayrollPeriod=period;
+ window.cornhillPayrollPeriodStatus=period.status;
  $('payrollStaffCount').textContent=String(items.length);
  $('payrollNetTotal').textContent=money(items.reduce((n,x)=>n+Number(x.net_pay_ugx||0),0));
- $('payrollPaidTotal').textContent=money(items.filter(x=>x.status==='Paid').reduce((n,x)=>n+Number(x.net_pay_ugx||0),0));
- const adv=await db.from('staff_salary_advances').select('staff_user_id,outstanding_ugx').eq('status','Approved').gt('outstanding_ugx',0);if(adv.error){message('payrollMsg','Could not load outstanding advances: '+adv.error.message,true);return}const advByStaff={};(adv.data||[]).forEach(a=>advByStaff[a.staff_user_id]=(advByStaff[a.staff_user_id]||0)+Number(a.outstanding_ugx||0));$('payrollItemRows').innerHTML=items.map(x=>'<tr><td>'+esc(x.staff_name_snapshot)+'<br><small>'+esc(x.job_title_snapshot||'')+'</small></td><td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'</td><td><input type="number" min="0" step="1" class="payrollAllowance" data-id="'+x.id+'" value="'+Number(x.allowances_ugx||0)+'" '+(x.status==='Paid'?'disabled':'')+'></td><td><input type="number" min="0" step="1" class="payrollDeduction" data-id="'+x.id+'" value="'+Number(x.deductions_ugx||0)+'" '+(x.status==='Paid'?'disabled':'')+'></td><td><input type="number" min="0" max="'+(advByStaff[x.staff_user_id]||0)+'" step="1" class="payrollAdvanceRecovery" data-id="'+x.id+'" value="'+Number(x.advance_recovery_ugx||0)+'" '+(x.status==='Paid'?'disabled':'')+'><small>Outstanding: '+money(advByStaff[x.staff_user_id]||0)+'</small></td><td>'+money(x.net_pay_ugx)+'</td><td><select class="payrollMethod" data-id="'+x.id+'" '+(x.status==='Paid'?'disabled':'')+'><option '+(x.payment_method==='Cash'?'selected':'')+'>Cash</option><option '+(x.payment_method==='Bank transfer'?'selected':'')+'>Bank transfer</option><option '+(x.payment_method==='Mobile Money'?'selected':'')+'>Mobile Money</option><option '+(x.payment_method==='Cheque'?'selected':'')+'>Cheque</option><option '+(x.payment_method==='Other'?'selected':'')+'>Other</option></select></td><td><input class="payrollReference" data-id="'+x.id+'" value="'+esc(x.payment_reference||'')+'" placeholder="Reference" '+(x.status==='Paid'?'disabled':'')+'></td><td>'+esc(x.status)+(x.status==='Paid'?' · '+esc(x.paid_at?new Date(x.paid_at).toLocaleDateString():'Paid'):((period.status==='Approved'||period.status==='Part-paid')?'<br><button type="button" data-payroll-pay="'+x.id+'">Mark paid</button>':'<br>Approve payroll first'))+'</td></tr>').join('')||'<tr><td colspan="9">No payroll lines prepared.</td></tr>';
- $('approvePayroll').disabled=period.status!=='Draft';
+ $('payrollPaidTotal').textContent=money(items.filter(x=>x.status==='Paid').reduce((n,x)=>n+Number(x.approved_net_pay_ugx??x.net_pay_ugx??0),0));
+ const adv=await db.from('staff_salary_advances').select('staff_user_id,outstanding_ugx').eq('status','Approved').gt('outstanding_ugx',0);
+ if(adv.error){message('payrollMsg','Could not load outstanding advances: '+adv.error.message,true);return}
+ const advByStaff={};(adv.data||[]).forEach(a=>advByStaff[a.staff_user_id]=(advByStaff[a.staff_user_id]||0)+Number(a.outstanding_ugx||0));
+ const draftEditable=isCornhillBursar()&&['Draft','Returned'].includes(period.status)&&period.created_by===currentUserId;
+ const canDisburse=isCornhillBursar()&&['Approved','Part-paid'].includes(period.status);
+ const canApprove=profile?.role==='Admin'&&period.status==='Submitted';
+ const canSubmit=draftEditable;
+ $('submitPayroll').hidden=!canSubmit;
+ $('approvePayroll').hidden=!canApprove;
+ $('returnPayroll').hidden=!canApprove;
+ $('payrollItemRows').innerHTML=items.map(x=>{
+  const amountDisabled=!draftEditable||x.status!=='Pending';
+  const paymentDisabled=!canDisburse||x.status!=='Pending'||x.approved_net_pay_ugx==null;
+  const approved=Number(x.approved_net_pay_ugx||0);
+  const statusText=x.status==='Paid'?'Paid · '+esc(x.paid_at?new Date(x.paid_at).toLocaleDateString():'Recorded'):
+    canDisburse&&x.approved_net_pay_ugx!=null?'<button type="button" data-payroll-pay="'+x.id+'">Record payment</button>':
+    period.status==='Submitted'?'Awaiting Director review':
+    period.status==='Returned'?'Returned · edit and resubmit':
+    period.status==='Approved'?'Approved · awaiting Bursar payment':
+    period.status==='Part-paid'?'Approved · awaiting Bursar payment':
+    'Draft';
+  return '<tr><td>'+esc(x.staff_name_snapshot)+'<br><small>'+esc(x.job_title_snapshot||'')+'</small></td>'+
+   '<td>'+esc(x.salary_basis)+'</td><td>'+money(x.base_salary_ugx)+'</td>'+
+   '<td><input type="number" min="0" step="1" class="payrollAllowance" data-id="'+x.id+'" value="'+Number(x.allowances_ugx||0)+'" '+(amountDisabled?'disabled':'')+'></td>'+
+   '<td><input type="number" min="0" step="1" class="payrollDeduction" data-id="'+x.id+'" value="'+Number(x.deductions_ugx||0)+'" '+(amountDisabled?'disabled':'')+'></td>'+
+   '<td><input type="number" min="0" max="'+(advByStaff[x.staff_user_id]||0)+'" step="1" class="payrollAdvanceRecovery" data-id="'+x.id+'" value="'+Number(x.advance_recovery_ugx||0)+'" '+(amountDisabled?'disabled':'')+'><small>Outstanding: '+money(advByStaff[x.staff_user_id]||0)+'</small></td>'+
+   '<td>'+money(x.net_pay_ugx)+(x.approved_net_pay_ugx!=null?'<br><small>Approved: '+money(approved)+'</small>':'')+'</td>'+
+   '<td><select class="payrollMethod" data-id="'+x.id+'" '+(paymentDisabled?'disabled':'')+'><option '+(x.payment_method==='Cash'?'selected':'')+'>Cash</option><option '+(x.payment_method==='Bank transfer'?'selected':'')+'>Bank transfer</option><option '+(x.payment_method==='Mobile Money'?'selected':'')+'>Mobile Money</option><option '+(x.payment_method==='Cheque'?'selected':'')+'>Cheque</option><option '+(x.payment_method==='Other'?'selected':'')+'>Other</option></select></td>'+
+   '<td><input class="payrollReference" data-id="'+x.id+'" value="'+esc(x.payment_reference||'')+'" placeholder="Payment reference" '+(paymentDisabled?'disabled':'')+'></td>'+
+   '<td>'+statusText+'</td></tr>';
+ }).join('')||'<tr><td colspan="10">No payroll lines prepared.</td></tr>';
 }
 $('loadPayrollItems').addEventListener('click',loadPayrollItems);
+$('submitPayroll').addEventListener('click',async()=>{
+ if(!isCornhillBursar())return;
+ const id=$('payrollPeriodSelect').value,period=window.cornhillCurrentPayrollPeriod;
+ if(!id||!period||!['Draft','Returned'].includes(period.status)||period.created_by!==currentUserId){
+  message('payrollMsg','Open a Draft or Returned payroll prepared by your Bursar account before submitting.',true);return;
+ }
+ const rows=window.cornhillCurrentPayroll||[];
+ if(!rows.length){message('payrollMsg','A payroll with no staff entries cannot be submitted.',true);return}
+ const updates=[];
+ for(const item of rows){
+  const allowanceInput=$('payrollItemRows').querySelector('.payrollAllowance[data-id="'+item.id+'"]');
+  const deductionInput=$('payrollItemRows').querySelector('.payrollDeduction[data-id="'+item.id+'"]');
+  const recoveryInput=$('payrollItemRows').querySelector('.payrollAdvanceRecovery[data-id="'+item.id+'"]');
+  if(!allowanceInput||!deductionInput||!recoveryInput){message('payrollMsg','One or more payroll lines are incomplete. Reopen the draft.',true);return}
+  const allowance=Number(allowanceInput.value||0),deduction=Number(deductionInput.value||0),recovery=Number(recoveryInput.value||0),maximum=Number(recoveryInput.max||0);
+  if(![allowance,deduction,recovery].every(v=>Number.isSafeInteger(v)&&v>=0)||recovery>maximum||deduction+recovery>Number(item.base_salary_ugx)+allowance){
+   message('payrollMsg','Check every allowance, deduction and advance recovery. Amounts must be whole UGX and cannot exceed the gross salary or outstanding advance.',true);return;
+  }
+  updates.push({id:item.id,allowance,deduction,recovery});
+ }
+ const submit=$('submitPayroll');submit.disabled=true;submit.textContent='Submitting…';
+ try{
+  for(const item of updates){
+   const {data,error}=await db.from('payroll_items').update({
+    allowances_ugx:item.allowance,deductions_ugx:item.deduction,advance_recovery_ugx:item.recovery
+   }).eq('id',item.id).eq('status','Pending').select('id');
+   if(error)throw error;
+   if(!data||data.length!==1)throw new Error('A payroll line could not be saved. Reload the draft and check every row before submitting.');
+  }
+  const {data,error}=await db.rpc('submit_school_payroll',{p_period_id:id});
+  if(error)throw error;
+  await loadExpensePayroll();$('payrollPeriodSelect').value=id;await loadPayrollItems();
+  message('payrollMsg','Payroll submitted for the Director’s independent review. Draft amounts are now locked.');
+ }catch(error){
+  message('payrollMsg','Payroll was not submitted: '+(error.message||'Reload the draft and check its status.'),true);
+  await loadPayrollItems();
+ }finally{submit.disabled=false;submit.textContent='Submit for Director approval'}
+});
 $('approvePayroll').addEventListener('click',async()=>{
- const id=$('payrollPeriodSelect').value;if(!id)return;const {error}=await db.from('payroll_periods').update({status:'Approved'}).eq('id',id).eq('status','Draft');
- if(error){message('payrollMsg','Payroll approval failed: '+error.message,true);return}await loadExpensePayroll();await loadPayrollItems();message('payrollMsg','Payroll approved. Record each actual payment to create its salary expense automatically.');
+ if(profile?.role!=='Admin')return;
+ const id=$('payrollPeriodSelect').value;
+ if(!id||window.cornhillPayrollPeriodStatus!=='Submitted'){message('payrollMsg','Open a Submitted payroll before approving it.',true);return}
+ const {data,error}=await db.rpc('approve_school_payroll',{p_period_id:id});
+ if(error){message('payrollMsg','Payroll approval failed: '+error.message,true);return}
+ await loadExpensePayroll();$('payrollPeriodSelect').value=id;await loadPayrollItems();
+ message('payrollMsg','Payroll approved. Its staff amounts are locked; the Bursar can now record the actual disbursements.');
+});
+$('returnPayroll').addEventListener('click',async()=>{
+ if(profile?.role!=='Admin')return;
+ const id=$('payrollPeriodSelect').value;
+ if(!id||window.cornhillPayrollPeriodStatus!=='Submitted'){message('payrollMsg','Open a Submitted payroll before returning it.',true);return}
+ const reason=window.prompt('Enter the reason for returning this payroll to the Bursar (5–500 characters):');
+ if(reason===null)return;
+ if(reason.trim().length<5||reason.trim().length>500){message('payrollMsg','The return reason must contain 5 to 500 characters.',true);return}
+ const {error}=await db.rpc('return_school_payroll',{p_period_id:id,p_reason:reason.trim()});
+ if(error){message('payrollMsg','Payroll could not be returned: '+error.message,true);return}
+ await loadExpensePayroll();$('payrollPeriodSelect').value=id;await loadPayrollItems();
+ message('payrollMsg','Payroll returned to the Bursar. The reason has been recorded.');
 });
 $('payrollItemRows').addEventListener('click',async e=>{
- const btn=e.target.closest('[data-payroll-pay]');if(!btn||btn.disabled)return;
+ const btn=e.target.closest('[data-payroll-pay]');
+ if(!btn||btn.disabled||!isCornhillBursar())return;
  const id=btn.dataset.payrollPay,item=(window.cornhillCurrentPayroll||[]).find(x=>x.id===id);
- if(!item||item.status!=='Pending'){message('payrollMsg','This payroll line is no longer pending. Reload the payroll before continuing.',true);return}
- if(!['Approved','Part-paid'].includes(window.cornhillPayrollPeriodStatus)){message('payrollMsg','Approve the payroll period before recording salary payments.',true);return}
- const allowanceInput=$('payrollItemRows').querySelector('.payrollAllowance[data-id="'+id+'"]');
- const deductionInput=$('payrollItemRows').querySelector('.payrollDeduction[data-id="'+id+'"]');
- const recoveryInput=$('payrollItemRows').querySelector('.payrollAdvanceRecovery[data-id="'+id+'"]');
- const methodInput=$('payrollItemRows').querySelector('.payrollMethod[data-id="'+id+'"]');
- const referenceInput=$('payrollItemRows').querySelector('.payrollReference[data-id="'+id+'"]');
- if(!allowanceInput||!deductionInput||!recoveryInput||!methodInput||!referenceInput){message('payrollMsg','Payroll details are incomplete. Reload the payroll.',true);return}
- const allowance=Number(allowanceInput.value||0),deduction=Number(deductionInput.value||0),advanceRecovery=Number(recoveryInput.value||0),maxRecovery=Number(recoveryInput.max||0),method=methodInput.value,reference=referenceInput.value.trim();
- if(![allowance,deduction,advanceRecovery].every(x=>Number.isSafeInteger(x)&&x>=0)){message('payrollMsg','Allowances, deductions and advance recovery must be non-negative whole UGX amounts.',true);return}
- if(advanceRecovery>maxRecovery){message('payrollMsg','Advance recovery cannot exceed the outstanding advance shown for this staff member.',true);return}
- if(deduction+advanceRecovery>Number(item.base_salary_ugx)+allowance){message('payrollMsg','Deductions and advance recovery cannot exceed gross salary.',true);return}
- if(!['Cash','Bank transfer','Mobile Money','Cheque','Other'].includes(method)){message('payrollMsg','Choose a valid salary payment method.',true);return}
- const net=Number(item.base_salary_ugx)+allowance-deduction-advanceRecovery;
- if(!Number.isSafeInteger(net)||net<0){message('payrollMsg','The calculated net salary is invalid.',true);return}
- if(!confirm('Confirm that '+item.staff_name_snapshot+' has actually received UGX '+money(net)+'? This will create a salary expense and recover UGX '+money(advanceRecovery)+' from advances.'))return;
+ if(!item||item.status!=='Pending'){message('payrollMsg','This payroll line is no longer awaiting payment. Reload the payroll and check its status.',true);return}
+ const period=window.cornhillCurrentPayrollPeriod;
+ if(!period||!['Approved','Part-paid'].includes(period.status)){message('payrollMsg','The Director must approve the payroll before payment can be recorded.',true);return}
+ const approved=Number(item.approved_net_pay_ugx);
+ if(!Number.isSafeInteger(approved)||approved<0||Number(item.net_pay_ugx)!==approved){message('payrollMsg','Approved payroll totals are missing or changed. Stop and ask the Director to review the payroll.',true);return}
+ const method=$('payrollItemRows').querySelector('.payrollMethod[data-id="'+id+'"]')?.value;
+ const reference=$('payrollItemRows').querySelector('.payrollReference[data-id="'+id+'"]')?.value.trim()||null;
+ if(!['Cash','Bank transfer','Mobile Money','Cheque','Other'].includes(method)){message('payrollMsg','Choose a valid payment method.',true);return}
+ if(!window.confirm('Confirm that '+item.staff_name_snapshot+' has actually received UGX '+money(approved)+'? The system will create the salary expense and settle any approved advance recovery.'))return;
  btn.disabled=true;btn.textContent='Recording…';
  try{
-  const {data,error}=await db.from('payroll_items').update({allowances_ugx:allowance,deductions_ugx:deduction,advance_recovery_ugx:advanceRecovery,payment_method:method,payment_reference:reference||null,status:'Paid',paid_at:new Date().toISOString()}).eq('id',id).eq('status','Pending').select('id').maybeSingle();
+  const {data,error}=await db.rpc('record_school_payroll_item_payment',{
+   p_payroll_item_id:id,p_payment_method:method,p_payment_reference:reference
+  });
   if(error)throw error;
-  if(!data)throw new Error('This payroll line was changed by another user or is no longer pending. Reload and verify its status.');
-  await loadExpensePayroll();await loadPayrollItems();message('payrollMsg','Salary payment recorded. Verify the matching salary expense and advance balance in the refreshed registers.');
- }catch(error){message('payrollMsg','Salary payment could not be confirmed: '+(error.message||'Reload the payroll and check the payment status.'),true)}
- finally{btn.disabled=false;btn.textContent='Mark paid'}
+  if(!data?.success)throw new Error('The database did not confirm the salary payment.');
+  await loadExpensePayroll();$('payrollPeriodSelect').value=period.id;await loadPayrollItems();
+  message('payrollMsg','Salary disbursement recorded against the approved amount. The expense register and staff notification have been updated.');
+ }catch(error){
+  message('payrollMsg','Salary payment could not be confirmed: '+(error.message||'Reload the payroll and check the payment status.'),true);
+ }finally{btn.disabled=false;btn.textContent='Record payment'}
 });
 $('loadExpenseReport').addEventListener('click',renderExpenseRows);
 $('expenseFrom').addEventListener('change',renderExpenseRows);$('expenseTo').addEventListener('change',renderExpenseRows);
