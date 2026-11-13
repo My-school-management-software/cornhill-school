@@ -10,7 +10,8 @@
     "db:migrate": "node --env-file=.env scripts/migrate.mjs",
     "db:verify": "node --env-file=.env scripts/verify-local-schema.mjs",
     "db:verify-auth": "node --env-file=.env scripts/verify-auth-repositories.mjs",
-    "db:verify-runtime": "node --env-file=.env scripts/verify-local-runtime-role.mjs"
+    "db:verify-runtime": "node --env-file=.env scripts/verify-local-runtime-role.mjs",
+    "start:auth": "node --env-file=.env scripts/start-local-auth.mjs"
   },
   "engines": {
     "node": ">=22"
