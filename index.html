@@ -1950,7 +1950,7 @@ body[data-dashboard-layout="focus-workspace"] #dashboard .module-card{min-height
 <div class="panel" style="margin-top:18px"><h3>Private staff messages</h3><p class="muted">Send a private text message to an administrator, teacher or staff colleague. Only the sender and recipient can read the conversation.</p><div id="directMessageMsg" class="notice hidden"></div><div id="incomingMessageAlerts" class="notice hidden" style="background:#fff7ed;color:#92400e"></div><div class="staff-chat-heading"><div class="staff-chat-avatar" id="staffChatAvatar">C</div><div><strong>Staff messages</strong><div style="font-size:12px;opacity:.9">Private conversations · text · voice notes · video clips</div></div></div><div class="direct-message-grid"><div class="staff-chat-side"><label for="directMessageRecipient">Your colleagues</label><div id="directMessageContactList" class="direct-message-contact-list"><p class="muted">Loading colleagues…</p></div><select id="directMessageRecipient" class="visually-hidden-select" aria-label="Selected colleague"><option value="">Loading staff directory…</option></select><button type="button" id="refreshDirectMessages" style="width:100%">Refresh conversations</button><p class="muted" style="font-size:12px;margin-top:12px">Choose a colleague to open your private conversation. Only you and that colleague can read your messages.</p></div><div><div id="directMessageThread" class="direct-message-thread"><p class="muted">Choose a colleague to view your private conversation.</p></div><form id="directMessageForm"><label for="directMessageBody">Message</label><textarea id="directMessageBody" rows="2" maxlength="4000" placeholder="Write a message…"></textarea><div class="staff-media-toolbar"><button type="button" id="recordVoiceNote">🎙 Record voice note</button><button type="button" id="recordVideoMessage">▣ Record video message</button></div><div class="staff-attachment-picker"><label for="staffMessageAttachments">Attach images, videos, audio or music</label><input id="staffMessageAttachments" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/webm,audio/ogg,audio/wav"><small class="muted">Private staff attachments · up to 50 MB per file, subject to the project storage limit.</small></div><div class="staff-media-status" id="staffMediaStatus">Voice notes and short video messages can be sent in this chat.</div><div id="staffRecordingPanel" class="staff-recording-panel hidden" aria-live="polite"><div class="recording-top"><span class="staff-recording-dot"></span><span id="staffRecordingLabel">Recording</span></div><div class="staff-recording-timer" id="staffRecordingTimer">00:00</div><video id="staffRecordingPreview" class="staff-recording-preview hidden" autoplay muted playsinline></video><button type="button" id="staffRecordingStop" class="staff-recording-stop">Stop & send</button></div><button class="primary" type="submit">Send message</button></form></div></div></div><div class="panel" style="margin-top:18px"><h3>Voice & video calls</h3><p class="muted">Call the colleague selected above. Both people must be online and allow microphone/camera access.</p><div class="row" style="gap:10px;flex-wrap:wrap"><button type="button" id="startVoiceCall" class="primary">☎ Start voice call</button><button type="button" id="startVideoCall">▣ Start video call</button><span id="callStatus" class="badge">Not in a call</span></div><div id="incomingCallPanel" class="notice hidden" style="margin-top:12px"></div><div class="row" style="gap:8px;margin-top:10px"><button type="button" id="muteCall" class="hidden">Mute microphone</button><button type="button" id="cameraCall" class="hidden">Turn camera off</button><button type="button" id="flipCallCamera" class="hidden">Switch front / back</button><button type="button" id="endCall" class="hidden" style="background:#b91c1c;color:#fff">End call</button></div><div id="staffCallStage" aria-label="Full-screen video call" role="dialog" aria-modal="true"><div class="call-stage-top"><span id="callStageStatus" class="call-stage-status">Connecting…</span><span id="callStageTimer" class="call-stage-timer">00:00 / 10:00</span></div><video id="remoteCallVideo" autoplay playsinline></video><video id="localCallVideo" autoplay muted playsinline></video><audio id="remoteCallAudio" autoplay playsinline></audio><div class="call-stage-controls"><button type="button" id="stageMuteCall">Mute</button><button type="button" id="stageCameraCall">Camera off</button><button type="button" id="stageFlipCall">Flip camera</button><button type="button" id="stageEndCall">End call</button></div></div><p class="muted" id="callHelp">Calls use WebRTC and Supabase signalling. Some mobile networks/firewalls may require a TURN relay for reliable connections.</p></div>
 </section>
 <section id="inventory" class="panel hidden">
-<div class="row"><h2>Inventory & stores</h2><span class="badge">Administrator only</span></div>
+<div class="row"><h2>Inventory & stores</h2><span class="badge">Director & Store Manager</span></div>
 <p class="muted">Track school supplies, uniforms, books, food and equipment. Stock changes are recorded in an append-only ledger; the system blocks issues that exceed available stock.</p>
 <div id="inventoryMsg" class="notice hidden"></div>
 <div class="grid"><div class="stat"><small>Items in catalogue</small><div class="num" id="inventoryItemCount">—</div></div><div class="stat"><small>Items below reorder level</small><div class="num" id="inventoryLowCount">—</div></div><div class="stat"><small>Stock units on hand</small><div class="num" id="inventoryUnits">—</div></div></div>
@@ -2203,7 +2203,8 @@ function tab(name){
   const common=['dashboard','notifications','attendance','communication','appCentre'];
   const academic=(isCornhillDOS()||isCornhillHeadteacher())&&['students','classes','academics','helpAssistant'].includes(name);
   const finance=isCornhillFinanceOperator()&&name==='finance';
-  if(!common.includes(name)&&!academic&&!finance)return;
+  const inventory=isCornhillStoreManager()&&name==='inventory';
+  if(!common.includes(name)&&!academic&&!finance&&!inventory)return;
  }
  const app=$('app');
  app.dataset.activeWorkspace=name;
@@ -2987,24 +2988,25 @@ function isCornhillDOS(){return profile?.role==='Staff'&&['director of studies',
 function isCornhillHeadteacher(){return profile?.role==='Staff'&&['headteacher','head teacher'].includes(String(profile?.job_title||'').trim().toLowerCase());}
 function isCornhillFinanceOperator(){return profile?.role==='Admin'||(profile?.role==='Staff'&&['bursar','school bursar','main bursar','deputy bursar','deputy school bursar'].includes(String(profile?.job_title||'').trim().toLowerCase()));}
 function isCornhillBursar(){return profile?.role==='Staff'&&['bursar','school bursar','main bursar','deputy bursar','deputy school bursar'].includes(String(profile?.job_title||'').trim().toLowerCase());}
+function isCornhillStoreManager(){return profile?.role==='Staff'&&['store manager','stores manager','main store manager','store manager (main)','deputy store manager','storekeeper','store officer','inventory manager'].includes(String(profile?.job_title||'').trim().toLowerCase());}
 function isCornhillAcademicViewer(){return profile?.role==='Admin'||isCornhillDOS()||isCornhillHeadteacher();}
 function isCornhillAcademicManager(){return profile?.role==='Admin'||isCornhillDOS();}
 function applyRoleNavigation(){
- const role=profile?.role,dos=isCornhillDOS(),headteacher=isCornhillHeadteacher(),finance=isCornhillFinanceOperator(),bursar=isCornhillBursar();
+ const role=profile?.role,dos=isCornhillDOS(),headteacher=isCornhillHeadteacher(),finance=isCornhillFinanceOperator(),bursar=isCornhillBursar(),storeManager=isCornhillStoreManager();
  $('financeCollectionDesk')?.classList.toggle('hidden',!bursar);$('directorFinanceCollectionNotice')?.classList.toggle('hidden',role!=='Admin');
- $('financeTab')?.classList.toggle('hidden',!finance);$('bankingLink')?.classList.toggle('hidden',!finance);
+ $('financeTab')?.classList.toggle('hidden',!finance);$('bankingLink')?.classList.toggle('hidden',!finance);$('inventoryTab')?.classList.toggle('hidden',!(role==='Admin'||storeManager));
  $('setupStandardClasses').classList.toggle('hidden',role!=='Admin');
  document.querySelectorAll('.tabs [data-tab]').forEach(b=>{
   const key=b.dataset.tab;
   const allowed=role==='Admin'||(role==='Teacher'&&['dashboard','notifications','academics','attendance','communication','appCentre','helpAssistant'].includes(key))
    ||(role==='Staff'&&['dashboard','notifications','attendance','communication','appCentre'].includes(key))
    ||((dos||headteacher)&&['students','classes','academics','helpAssistant'].includes(key))
-   ||(finance&&key==='finance');
+   ||(finance&&key==='finance')||(storeManager&&key==='inventory');
   b.classList.toggle('hidden',!allowed);
  });
  document.querySelectorAll('[data-module]').forEach(b=>{
   const key=b.dataset.module,allowed=role==='Admin'||(role==='Teacher'&&['academics','attendance'].includes(key))
-   ||((dos||headteacher)&&['academics','students','classes'].includes(key))||(finance&&['finance','banking'].includes(key));
+   ||((dos||headteacher)&&['academics','students','classes'].includes(key))||(finance&&['finance','banking'].includes(key))||(storeManager&&key==='inventory');
   b.classList.toggle('hidden',!allowed);
  });
  $('teacherPortalSummary').classList.toggle('hidden',role!=='Teacher');$('staffPortalSummary')?.classList.toggle('hidden',role!=='Staff');
@@ -6645,7 +6647,7 @@ $('attendanceImportForm').addEventListener('submit',async e=>{
 });
 
 async function loadInventory(){
- if(demoMode||profile?.role!=='Admin'){message('inventoryMsg','Inventory management is available to administrators only.',true);return}
+ if(demoMode||!(profile?.role==='Admin'||isCornhillStoreManager())){message('inventoryMsg','Inventory management is available to the Director and authorised Store Managers only.',true);return}
  clearMessage('inventoryMsg');
  const [categories,items]=await Promise.all([
   db.from('inventory_categories').select('id,name').eq('is_active',true).order('name'),
@@ -6662,13 +6664,13 @@ async function loadInventory(){
  $('inventoryStockRows').innerHTML=rows.map(x=>'<tr><td>'+esc(x.item_code||'—')+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.category_name||'—')+'</td><td>'+esc(String(x.quantity_on_hand))+' '+esc(x.unit)+'</td><td>'+esc(String(x.reorder_level))+'</td><td>'+(Number(x.quantity_on_hand)<=Number(x.reorder_level)?'<span class="badge">Reorder</span>':'In stock')+'</td></tr>').join('')||'<tr><td colspan="6">No inventory items have been created.</td></tr>';
 }
 $('inventoryCategoryForm').addEventListener('submit',async e=>{
- e.preventDefault();if(profile?.role!=='Admin'||demoMode)return;const v=Object.fromEntries(new FormData(e.target).entries());const {error}=await db.from('inventory_categories').insert({name:String(v.name).trim(),description:String(v.description||'').trim()||null});if(error){message('inventoryMsg','Could not save category: '+error.message,true);return}e.target.reset();message('inventoryMsg','Inventory category saved.');await loadInventory();
+ e.preventDefault();if(demoMode||!(profile?.role==='Admin'||isCornhillStoreManager()))return;const v=Object.fromEntries(new FormData(e.target).entries());const {error}=await db.from('inventory_categories').insert({name:String(v.name).trim(),description:String(v.description||'').trim()||null});if(error){message('inventoryMsg','Could not save category: '+error.message,true);return}e.target.reset();message('inventoryMsg','Inventory category saved.');await loadInventory();
 });
 $('inventoryItemForm').addEventListener('submit',async e=>{
- e.preventDefault();if(profile?.role!=='Admin'||demoMode)return;const v=Object.fromEntries(new FormData(e.target).entries());const payload={name:String(v.name).trim(),item_code:String(v.item_code||'').trim()||null,category_id:v.category_id||null,unit:v.unit,reorder_level:Number(v.reorder_level||0),notes:String(v.notes||'').trim()||null};const {error}=await db.from('inventory_items').insert(payload);if(error){message('inventoryMsg','Could not add item: '+error.message,true);return}e.target.reset();message('inventoryMsg','Inventory item added. Record its opening stock using “Receive into store”.');await loadInventory();
+ e.preventDefault();if(demoMode||!(profile?.role==='Admin'||isCornhillStoreManager()))return;const v=Object.fromEntries(new FormData(e.target).entries());const payload={name:String(v.name).trim(),item_code:String(v.item_code||'').trim()||null,category_id:v.category_id||null,unit:v.unit,reorder_level:Number(v.reorder_level||0),notes:String(v.notes||'').trim()||null};const {error}=await db.from('inventory_items').insert(payload);if(error){message('inventoryMsg','Could not add item: '+error.message,true);return}e.target.reset();message('inventoryMsg','Inventory item added. Record its opening stock using “Receive into store”.');await loadInventory();
 });
 $('inventoryMovementForm').addEventListener('submit',async e=>{
- e.preventDefault();if(profile?.role!=='Admin'||demoMode)return;const v=Object.fromEntries(new FormData(e.target).entries());const payload={item_id:v.item_id,movement_type:v.movement_type,quantity:Number(v.quantity),reference:String(v.reference||'').trim()||null,notes:String(v.notes||'').trim()||null};const {error}=await db.from('inventory_movements').insert(payload);if(error){message('inventoryMsg','Stock movement was not posted: '+error.message,true);return}e.target.reset();message('inventoryMsg','Stock movement posted successfully.');await loadInventory();
+ e.preventDefault();if(demoMode||!(profile?.role==='Admin'||isCornhillStoreManager()))return;const v=Object.fromEntries(new FormData(e.target).entries());const payload={item_id:v.item_id,movement_type:v.movement_type,quantity:Number(v.quantity),reference:String(v.reference||'').trim()||null,notes:String(v.notes||'').trim()||null};const {error}=await db.from('inventory_movements').insert(payload);if(error){message('inventoryMsg','Stock movement was not posted: '+error.message,true);return}e.target.reset();message('inventoryMsg','Stock movement posted successfully.');await loadInventory();
 });
 $('inventoryRefresh').addEventListener('click',loadInventory);
 function recordsBucket(dateValue,mode,terms=[]){
