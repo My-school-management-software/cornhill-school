@@ -100,6 +100,21 @@ test('Director panel stays hidden for an Admin account that is not the school Di
   assert.match(attendanceUi, /const director = await db\.rpc\('is_school_director'\)[\s\S]*?panel\.classList\.toggle\('hidden', !isDirector\)/);
 });
 
+test('attendance staff selectors load independently of the slower legacy workspace loader', () => {
+  assert.match(attendanceUi, /async function loadCoreAttendanceStaffOptions\(\)[\s\S]*?staffUserSelect[\s\S]*?scheduleStaffSelect[\s\S]*?from\('user_profiles'\)/);
+  assert.match(attendanceUi, /const staffLoad = loadCoreAttendanceStaffOptions\(\);[\s\S]*?const extrasLoad = hydrateAttendanceExtras\(\);[\s\S]*?Promise\.allSettled\(\[coreLoad, staffLoad, extrasLoad\]\)/);
+});
+
+test('Director session dropdown has a timeout and a real empty-state message', () => {
+  assert.match(attendanceUi, /async function loadDirectorSpecialSessions\(\)[\s\S]*?attendanceRequest\(\(\) => db\.from\('staff_prep_sessions'\)/);
+  assert.match(attendanceUi, /No approved special sessions yet/);
+  assert.match(attendanceUi, /Approved special sessions failed to load:/);
+});
+
+test('Director panel loaders start independently so one slow query cannot block the staff selectors', () => {
+  assert.match(attendanceUi, /const jobs = \[[\s\S]*?\['Director staff dropdowns', loadDirectorKioskOptions\][\s\S]*?\['Approved session dropdown', loadDirectorSpecialSessions\][\s\S]*?Promise\.allSettled\(jobs\.map/);
+});
+
 test('attendance script parses as JavaScript', () => {
   assert.doesNotThrow(() => new Function(attendanceUi));
 });
