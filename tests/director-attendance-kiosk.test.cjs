@@ -96,8 +96,8 @@ test('special-session kiosk form invokes the Director-only special-session RPC',
   assert.match(attendanceUi, /rpc\('director_record_staff_session_event'[\s\S]*?p_session_id:sessionId,p_staff_user_id:staffId,p_event_type:eventType/);
 });
 
-test('Director panel stays hidden unless the Director access check succeeds', () => {
-  assert.match(attendanceUi, /const director = await attendanceRequest\(\(\) => db\.rpc\('is_school_director'\), 'Director access check', 12000\)[\s\S]*?panel\.classList\.toggle\('hidden', !isDirector\)/);
+test('Director panel stays hidden until the explicit Director predicate returns true', () => {
+  assert.match(attendanceUi, /async function ensureAttendanceDropdowns\(\)[\s\S]*?db\.rpc\('is_school_director'\)[\s\S]*?if \(director\.data !== true\)[\s\S]*?panel\.classList\.add\('hidden'\)[\s\S]*?panel\.classList\.remove\('hidden'\)/);
   assert.match(attendanceUi, /if \(director\.error\) throw director\.error/);
 });
 
