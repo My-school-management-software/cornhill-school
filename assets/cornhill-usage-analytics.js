@@ -219,11 +219,50 @@
   };
   window.CornhillUsageAnalytics = api;
 
+  function installStaffPageUseTracking() {
+    const workspace = currentPathWorkspace();
+    const recordSignedInUse = () => {
+      window.setTimeout(() => {
+        const token = getCurrentStaffToken();
+        if (token) send('page_view', workspace, token);
+      }, 1200);
+    };
+    document.querySelectorAll('#loginForm,#signInForm,form[data-cornhill-login],#loginPanel form')
+      .forEach(form => form.addEventListener('submit', recordSignedInUse, true));
+    document.addEventListener('click', event => {
+      const control = event.target.closest('[data-service],[data-tab],[data-workspace]');
+      if (!control) return;
+      const hint = String(control.dataset.service || control.dataset.tab || control.dataset.workspace || '').toLowerCase();
+      const map = [
+        ['admission','admissions'],['parent','parent_portal'],['academic','academics'],
+        ['mark','academics'],['finance','finance'],['attendance','attendance'],
+        ['hr','hr_payroll'],['payroll','hr_payroll'],['bank','banking'],
+        ['evidence','evidence'],['record','records'],['notification','notifications'],
+        ['learning','learning'],['library','library'],['transport','transport'],
+        ['welfare','welfare'],['system-health','system_health'],
+        ['notice','noticeboard'],['calendar','calendar'],['visitor','visitor_register'],
+        ['asset','asset_maintenance']
+      ];
+      const target = map.find(([key]) => hint.includes(key));
+      if (!target) return;
+      const token = getCurrentStaffToken();
+      if (token) send('page_view', target[1], token);
+    });
+  }
+
   function initialise() {
     injectConsentBanner();
     addPreferenceLink();
     installAdmissionsEvents();
-    if (consent()) send('page_view', currentPathWorkspace(), getCurrentStaffToken());
+    installStaffPageUseTracking();
+    if (consent()) {
+      const workspace = currentPathWorkspace();
+      const token = getCurrentStaffToken();
+      if (token) send('page_view', workspace, token);
+      else if (['school_website','admissions','parent_portal'].includes(workspace)) {
+        send('page_view', workspace, '');
+      }
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialise, { once: true });
   else initialise();
