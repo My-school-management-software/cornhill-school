@@ -633,6 +633,8 @@
       select.disabled = true;
       return;
     }
+
+    const previouslySelectedStaff = select.value;
     select.disabled = true;
     const result = await attendanceRequest(() => db.from('staff_prep_assignments')
       .select('staff_user_id,user_profiles(full_name)')
@@ -644,13 +646,44 @@
       safeMessage('attendanceMsg','Assigned staff for this session could not load: ' + result.error.message,true);
       return;
     }
+
     const rows = result.data || [];
+    let attendanceByStaff = {};
+    let attendanceReadWarning = '';
+    try {
+      const attendance = await attendanceRequest(() => db.from('staff_scheduled_session_attendance')
+        .select('staff_user_id,clock_in_at,clock_out_at')
+        .eq('session_id',sessionId), 'Saved special-session attendance');
+      if (attendance.error) throw attendance.error;
+      (attendance.data || []).forEach((entry) => { attendanceByStaff[entry.staff_user_id] = entry; });
+    } catch (error) {
+      attendanceReadWarning = error && error.message ? error.message : String(error || 'Unknown error');
+    }
+
+    const formatKampalaTime = (value) => new Intl.DateTimeFormat('en-UG',{
+      timeZone:'Africa/Kampala',hour:'2-digit',minute:'2-digit'
+    }).format(new Date(value));
     select.innerHTML = rows.length
       ? '<option value="">Choose assigned staff</option>' +
-        rows.map((x) => '<option value="' + x.staff_user_id + '">' +
-          html(x.user_profiles?.full_name || 'Assigned staff member') + '</option>').join('')
+        rows.map((x) => {
+          const saved = attendanceByStaff[x.staff_user_id];
+          let state = attendanceReadWarning ? 'Attendance status unavailable' : 'Not yet clocked in';
+          if (!attendanceReadWarning && !saved) state = 'Attendance record missing';
+          else if (!attendanceReadWarning && saved?.clock_out_at) state = 'Clocked out at ' + formatKampalaTime(saved.clock_out_at);
+          else if (!attendanceReadWarning && saved?.clock_in_at) state = 'Clocked in at ' + formatKampalaTime(saved.clock_in_at);
+          return '<option value="' + x.staff_user_id + '">' +
+            html(x.user_profiles?.full_name || 'Assigned staff member') + ' · ' + html(state) + '</option>';
+        }).join('')
       : '<option value="">No staff assigned</option>';
+    if (previouslySelectedStaff && rows.some((x) => x.staff_user_id === previouslySelectedStaff)) {
+      select.value = previouslySelectedStaff;
+    }
     select.disabled = !rows.length;
+
+    if (attendanceReadWarning) {
+      safeMessage('directorSessionKioskStatus',
+        'Assigned staff loaded, but saved attendance status could not be checked: ' + attendanceReadWarning,true);
+    }
   }
 
   async function loadDirectorSettings() {
@@ -945,7 +978,9 @@
         safeMessage('directorSessionKioskStatus','Special-session attendance was not recorded: ' + result.error.message,true);
         return;
       }
-      safeMessage('directorSessionKioskStatus','Special-session ' + eventType.replace(/_/g,' ') + ' recorded by the Director account.');
+      await loadDirectorSessionStaffOptions();
+      safeMessage('directorSessionKioskStatus','Special-session ' + eventType.replace(/_/g,' ') +
+        ' recorded by the Director account. The saved status has been refreshed in the staff list.');
     });
 
     byId('attendancePolicyForm')?.addEventListener('submit', async (event) => {
