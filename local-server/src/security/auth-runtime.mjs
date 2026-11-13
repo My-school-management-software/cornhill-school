@@ -11,7 +11,7 @@ export async function createLocalAuthRuntime({
 } = {}) {
   const config = readLocalRuntimeDatabaseConfig(env);
   const fingerprintSecret = env.CORNHILL_AUTH_FINGERPRINT_SECRET ?? "";
-  if (Buffer.byteLength(fingerprintSecret, "utf8") < 32) {
+  if (Buffer.byteLength(fingerprintSecret, "utf8") < 32 || fingerprintSecret.startsWith("REPLACE_WITH_")) {
     throw new TypeError("A private authentication fingerprint secret of at least 32 bytes is required.");
   }
   if (typeof passwordHasherFactory !== "function") {
