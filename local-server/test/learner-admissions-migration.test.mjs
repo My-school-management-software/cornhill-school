@@ -75,9 +75,9 @@ test("guardian contacts are separate, linked to a learner and support consent fl
 test("Ugandan guardian phone fields require E.164 +256 format", () => {
   assert.match(sql, /guardian_phone_ug_format/);
   assert.match(sql, /guardian_whatsapp_ug_format/);
-  assert.match(sql, /\^\\\\\+256\[0-9\]\{9\}\$/);
+  assert.ok(sql.includes(String.raw`phone_e164 ~ '^\+256[0-9]{9}$'`));
+  assert.ok(sql.includes(String.raw`whatsapp_e164 ~ '^\+256[0-9]{9}$'`));
 });
-
 test("only one active primary guardian can be linked to a learner", () => {
   assert.match(sql, /one_active_primary_guardian_per_learner/);
   assert.match(sql, /WHERE is_active = true AND is_primary = true/);
