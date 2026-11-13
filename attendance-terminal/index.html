@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#123d2b">
+  <meta name="description" content="Authorised CORNHILL staff attendance terminal">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <title>CORNHILL Attendance Terminal</title>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="../app-center.html" aria-label="CORNHILL App Center">
+      <span class="brand-mark">C</span>
+      <span><strong>CORNHILL</strong><small>Attendance Terminal</small></span>
+    </a>
+    <button id="installButton" class="button secondary" type="button" hidden>Install app</button>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">AUTHORised SCHOOL DEVICE</p>
+      <h1>Staff Attendance</h1>
+      <p class="intro">A separate attendance application connected to CORNHILL Main System.</p>
+      <div class="status-row">
+        <span id="connectionDot" class="dot"></span>
+        <strong id="connectionStatus">Checking connection…</strong>
+        <span class="separator">·</span>
+        <span id="pairingStatus">Not paired</span>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="pairingHeading">
+      <div class="panel-heading"><div><p class="eyebrow">DEVICE AUTHORISATION</p><h2 id="pairingHeading">Connect this device</h2></div><span class="pill warning">Not paired</span></div>
+      <p>Pairing is issued by the Director from the CORNHILL Main System. Until pairing is completed, this app cannot read the staff list or record clock-ins, clock-outs or payroll attendance events.</p>
+      <a class="button" href="../index.html#attendance">Open Main System attendance settings</a>
+    </section>
+    <section class="panel" aria-labelledby="methodsHeading">
+      <p class="eyebrow">DIRECTOR-CONTROLLED METHOD</p>
+      <h2 id="methodsHeading">Attendance verification options</h2>
+      <p class="muted">The active method will be loaded from the Director's policy after this device is securely paired. Staff cannot change it from this terminal.</p>
+      <div class="methods">
+        <article class="method"><span class="method-icon">▦</span><div><strong>QR staff badge</strong><p>Scan a school-issued QR badge on the shared device.</p><span id="qrCapability" class="capability">Checking camera scanner…</span></div></article>
+        <article class="method"><span class="method-icon">▣</span><div><strong>NFC card / tag</strong><p>Tap an authorised NFC card or tag on a compatible Android device or reader.</p><span id="nfcCapability" class="capability">Checking NFC support…</span></div></article>
+        <article class="method"><span class="method-icon">◎</span><div><strong>Phone face / fingerprint</strong><p>Uses the phone's secure platform authenticator for a staff member's own account; it is not a shared multi-person fingerprint scanner.</p><span id="biometricCapability" class="capability">Checking device authentication…</span></div></article>
+        <article class="method"><span class="method-icon">▤</span><div><strong>External attendance machine</strong><p>Fingerprint or face terminals connect through a verified vendor adapter, secured local bridge or approved attendance export.</p><span class="capability pending">Device model / protocol verification required</span></div></article>
+      </div>
+    </section>
+    <section class="panel">
+      <p class="eyebrow">ATTENDANCE ACTIONS</p>
+      <h2>Clocking controls</h2>
+      <p class="muted">Controls remain locked until the Director pairs this device and the Main System confirms the selected method.</p>
+      <div class="actions">
+        <button type="button" disabled>Clock in</button>
+        <button type="button" disabled>Break start</button>
+        <button type="button" disabled>Break end</button>
+        <button type="button" disabled>Clock out</button>
+      </div>
+      <div id="terminalMessage" class="notice" role="status" aria-live="polite">This installable shell is ready for setup. It has not recorded any attendance event.</div>
+    </section>
+    <section class="panel compact">
+      <h2>Device safety</h2>
+      <ul>
+        <li>Biometric templates stay on the phone or external machine. CORNHILL stores attendance event metadata, not raw fingerprints or face images.</li>
+        <li>Offline mode is for opening this app shell only. Attendance events must show server confirmation before they count as recorded.</li>
+        <li>Keep this device in the authorised school location. The Director can revoke its pairing from the Main System.</li>
+      </ul>
+    </section>
+  </main>
+  <footer><a href="../app-center.html">App Center</a> · <a href="../index.html">CORNHILL Main System</a><span> · Africa/Kampala (EAT)</span></footer>
+  <script src="./app.js" defer></script>
+</body>
+</html>
