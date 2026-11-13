@@ -38,6 +38,7 @@ try {
       has_schema_privilege('cornhill_auth_api', 'cornhill_auth', 'USAGE') AS schema_usage,
       has_schema_privilege('cornhill_auth_api', 'cornhill_auth', 'CREATE') AS schema_create,
       has_database_privilege('cornhill_auth_api', current_database(), 'CONNECT') AS db_connect,
+      has_database_privilege('cornhill_auth_api', current_database(), 'TEMP') AS db_temp,
       has_column_privilege('cornhill_auth_api', 'cornhill_auth.staff_accounts', 'password_hash', 'SELECT') AS staff_hash_read,
       has_column_privilege('cornhill_auth_api', 'cornhill_auth.staff_accounts', 'last_login_at', 'UPDATE') AS staff_last_login_update,
       has_column_privilege('cornhill_auth_api', 'cornhill_auth.staff_accounts', 'account_status', 'UPDATE') AS staff_status_update,
@@ -57,6 +58,7 @@ try {
   assert.equal(result.schema_usage, true);
   assert.equal(result.schema_create, false);
   assert.equal(result.db_connect, true);
+  assert.equal(result.db_temp, false);
   assert.equal(result.staff_hash_read, true);
   assert.equal(result.staff_last_login_update, true);
   assert.equal(result.staff_status_update, false);
