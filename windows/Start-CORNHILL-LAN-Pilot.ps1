@@ -18,7 +18,7 @@ $page = @'
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14532d">
-<title>CORNHILL · Local Network Pilot</title>
+<title>CORNHILL &middot; Local Network Pilot</title>
 <style>
 :root{color-scheme:light;--ink:#17251c;--muted:#647267;--line:#d9e2da;--green:#14532d;--soft:#edf5ef}
 *{box-sizing:border-box}
@@ -47,7 +47,7 @@ footer{margin-top:18px;color:var(--muted);font-size:12px}
 <div class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</div>
 <h1>Local network test</h1>
 <p class="muted">A temporary test page served directly by the Windows computer.</p>
-<div id="status" class="status"><span class="dot"></span><span id="statusText">Checking the local test server…</span></div>
+<div id="status" class="status"><span class="dot"></span><span id="statusText">Checking the local test server...</span></div>
 <div class="details">
 <div class="tile"><strong>Connection</strong><span id="connection">Checking…</span></div>
 <div class="tile"><strong>Test page</strong><span>Served from this PC</span></div>
@@ -60,7 +60,7 @@ footer{margin-top:18px;color:var(--muted);font-size:12px}
 <strong>What this does not prove</strong>
 <p>This is not the full CORNHILL application or database. It does not sign users in, save records, or connect to the live Supabase or Vercel services.</p>
 </div>
-<footer>Experimental local-network copy · Synthetic test only · No school records are used</footer>
+<footer>Experimental local-network copy &middot; Synthetic test only &middot; No school records are used</footer>
 </section>
 </main>
 <script>
@@ -168,7 +168,7 @@ try {
       }
 
       $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-      $crlf = [char]13 + [char]10
+      $crlf = [Environment]::NewLine
       $headers = "HTTP/1.1 $status" + $crlf +
         "Content-Type: $contentType" + $crlf +
         "Content-Length: $($bodyBytes.Length)" + $crlf +
