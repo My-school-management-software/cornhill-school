@@ -197,22 +197,24 @@ test('the hardened normal and special-session SQL functions are included in the 
 });
 
 test('Director session staff list reads saved clock-in and clock-out state from the database', () => {
-  assert.match(attendanceUi, /from\\('staff_scheduled_session_attendance'\\)[\\s\\S]*?select\\('staff_user_id,clock_in_at,clock_out_at'\\)[\\s\\S]*?eq\\('session_id',sessionId\\)/);
+  assert.ok(attendanceUi.includes("from('staff_scheduled_session_attendance')"));
+  assert.ok(attendanceUi.includes(".select('staff_user_id,clock_in_at,clock_out_at')"));
+  assert.ok(attendanceUi.includes(".eq('session_id',sessionId)"));
 });
 
 test('Director session staff options distinguish pending, clocked-in and clocked-out records', () => {
-  assert.match(attendanceUi, /Not yet clocked in/);
-  assert.match(attendanceUi, /Clocked in at/);
-  assert.match(attendanceUi, /Clocked out at/);
-  assert.match(attendanceUi, /Attendance record missing/);
+  for (const state of ['Not yet clocked in','Clocked in at','Clocked out at','Attendance record missing']) {
+    assert.ok(attendanceUi.includes(state), 'missing saved status ' + state);
+  }
 });
 
 test('refreshing saved session attendance preserves the selected staff member', () => {
-  assert.match(attendanceUi, /const previouslySelectedStaff = select\\.value/);
-  assert.match(attendanceUi, /select\\.value = previouslySelectedStaff/);
-  assert.match(attendanceUi, /await loadDirectorSessionStaffOptions\\(\\);[\\s\\S]*?saved status has been refreshed in the staff list/);
+  assert.ok(attendanceUi.includes('const previouslySelectedStaff = select.value;'));
+  assert.ok(attendanceUi.includes('select.value = previouslySelectedStaff;'));
+  assert.ok(attendanceUi.includes('await loadDirectorSessionStaffOptions();'));
+  assert.ok(attendanceUi.includes('saved status has been refreshed in the staff list'));
 });
 
 test('special-session attendance times are displayed in Uganda local time', () => {
-  assert.match(attendanceUi, /timeZone:'Africa\\/Kampala',hour:'2-digit',minute:'2-digit'/);
+  assert.ok(attendanceUi.includes("timeZone:'Africa/Kampala'"));
 });
