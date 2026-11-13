@@ -56,7 +56,7 @@ After all three migrations succeed, run:
 npm run db:verify
 ```
 
-This checks the eleven identity/authorization tables, 17 seeded staff roles, 14 permission codes, zero role grants, both rate-limit indexes, schema isolation from PUBLIC and database constraints. Then run `npm run db:verify-auth` to exercise the PostgreSQL authentication repositories, including concurrent throttling and session creation/revocation.
+This checks the eleven identity/authorization tables, 17 seeded staff roles, 14 permission codes, zero role grants, both rate-limit indexes, schema isolation from PUBLIC and database constraints. Then run `npm run db:verify-auth` to exercise the PostgreSQL authentication repositories, including concurrent throttling, default-deny permissions, class assignment revocation, guardian learner-link approval/revocation and atomic session creation/revocation.
 
 ## Stop and preserve data
 
