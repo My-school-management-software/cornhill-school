@@ -2,6 +2,10 @@
 
 Mobile-friendly school management system for CORNHILL NURSERY AND PRIMARY SCHOOL, Uganda. Currency: UGX.
 
+## School Usage Analytics
+
+The Director can open **System Health & Recovery Centre → School website and app usage** to review opt-in public visits, verified guardian access, staff workspace use, device categories, and admissions enquiry funnel totals. Events are pseudonymised, direct browser access to the analytics table is denied, and records are deleted after 90 days. Participation is optional, so reported totals are not a complete count of all visits. See [School Usage Analytics](docs/SCHOOL_USAGE_ANALYTICS.md).
+
 ## Current development scope
 
 The active development branch includes these application areas:
