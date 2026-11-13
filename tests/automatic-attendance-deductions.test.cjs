@@ -37,7 +37,7 @@ test('Headteacher or DOS statement prevents automatic deduction', () => {
 });
 
 test('a staff member who eventually clocked in is not treated as a no-show', () => {
-  assert.match(sql, /and not exists \([\s\S]*?e\.event_type='clock_in'[\s\S]*?e\.staff_user_id=i\.staff_user_id/i);
+  assert.match(sql, /and not exists \([\s\S]*?e\.staff_user_id=i\.staff_user_id[\s\S]*?e\.event_type='clock_in'/i);
 });
 
 test('school-local processor time is defined before the cutoff check', () => {
