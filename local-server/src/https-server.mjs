@@ -162,4 +162,12 @@ export async function createCornhillHttpsServer({
       }
     });
   });
+
+  // Bound unauthenticated request/header lifetimes before any route runs.
+  server.requestTimeout = 15_000;
+  server.headersTimeout = 10_000;
+  server.keepAliveTimeout = 5_000;
+  server.timeout = 30_000;
+  server.maxHeadersCount = 50;
+  return server;
 }
