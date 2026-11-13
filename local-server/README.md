@@ -12,7 +12,8 @@ This folder contains the isolated local-server foundation for the move away from
 - A permission catalog with no default role grants.
 - Staff-to-class assignment records, guardian learner-scope checks and deny-by-default authorization helpers.
 - Opaque session/CSRF token generation utilities.
-- Loopback-only PostgreSQL connection configuration, a guarded checksum-tracked migration runner, a schema verifier and a CI workflow.
+- Loopback-only PostgreSQL connection configuration and a migration runner that applies all numbered SQL files in order with per-file checksums.
+- A disposable PostgreSQL schema verifier and a GitHub Actions integration workflow.
 - Security design notes for account separation, authorisation, audit and migration gates.
 
 ## Run the health-only scaffold
@@ -35,9 +36,9 @@ The SQL under migrations/ is for a brand-new local PostgreSQL database only. It 
 
 These files are not for the live Supabase project. Do not run them against production.
 
-The second migration creates the permission catalog, staff role-permission mapping and staff-to-class assignments. It deliberately grants no database privileges and creates no role-to-permission grants. A school-approved permission matrix is required before protected workflows can be enabled.
+Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments. It deliberately creates no role-to-permission grants and no application database grants. A school-approved permission matrix is required before protected workflows can be enabled.
 
-See [POSTGRES_LOCAL_SETUP.md](POSTGRES_LOCAL_SETUP.md) for the isolated PostgreSQL 17 development service.
+See [POSTGRES_LOCAL_SETUP.md](POSTGRES_LOCAL_SETUP.md) for the isolated PostgreSQL 17 development service and safe migration procedure.
 
 ## Important safety boundary
 
