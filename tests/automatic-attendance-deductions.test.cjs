@@ -33,7 +33,15 @@ test('two-hour review deadline must have passed', () => {
 });
 
 test('Headteacher or DOS statement prevents automatic deduction', () => {
-  assert.match(sql, /nullif\\(btrim\\(i\\.headteacher_statement\\),'\\'\\) is null/i);
+  assert.match(sql, /nullif\(btrim\(i\.headteacher_statement\),''\) is null/i);
+});
+
+test('a staff member who eventually clocked in is not treated as a no-show', () => {
+  assert.match(sql, /and not exists \([\s\S]*?e\.event_type='clock_in'[\s\S]*?e\.staff_user_id=i\.staff_user_id/i);
+});
+
+test('school-local processor time is defined before the cutoff check', () => {
+  assert.match(sql, /v_now_local timestamp without time zone := now\(\) at time zone 'Africa\/Kampala'/i);
 });
 
 test('salary agreement must provide a valid daily rate', () => {
