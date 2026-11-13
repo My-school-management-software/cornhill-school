@@ -63,7 +63,7 @@ async function enhanceHtml(response, includeRecordsTools) {
   }
   const usageAnalyticsScript = '/assets/cornhill-usage-analytics.js';
   if (!html.includes(usageAnalyticsScript)) {
-    html = html.replace(/<\\/head>/i, '<script src="' + usageAnalyticsScript + '" defer></script></head>');
+    html = html.replace(/<\/head>/i, '<script src="' + usageAnalyticsScript + '" defer></script></head>');
   }
   const recordsScript = '/assets/cornhill-document-pdf-ocr.js';
   if (includeRecordsTools && !html.includes(recordsScript)) {
