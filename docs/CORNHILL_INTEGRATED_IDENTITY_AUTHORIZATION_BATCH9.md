@@ -4,7 +4,7 @@ Branch: `feat/local-first-self-hosted-migration-20261113`
 
 ## What was combined
 
-This development cycle combines work that had been listed as separate stages: local identity foundations, staff/guardian separation, permission design, teacher class scoping, and session token security.
+This development cycle combines work that had been listed as separate stages: local identity foundations, staff/guardian separation, permission design, teacher class scoping, session token security, and migration-runner integration.
 
 ### Implemented in source
 
@@ -16,7 +16,8 @@ This development cycle combines work that had been listed as separate stages: lo
 - Guardian learner access checks that re-check an approved guardian-to-learner mapping for each learner-specific request.
 - Strict separation between staff and guardian principal/session identities.
 - 256-bit opaque session and CSRF token generation; only SHA-256 hashes are intended for database storage.
-- Unit tests for authorization, cross-learner denial, staff/guardian separation, expiry, revocation, token handling and malformed inputs.
+- Migration runner now discovers and applies all numbered SQL migrations in order, validates each checksum and safely skips verified migrations on repeat runs.
+- Schema verifier now checks eleven tables, 17 roles, 14 permission codes, zero role grants and no PUBLIC schema access.
 
 ## Important security decisions
 
@@ -30,15 +31,17 @@ This development cycle combines work that had been listed as separate stages: lo
 
 ## Verification status
 
-The automated unit tests cover deterministic logic and source-level security rules. They do not prove that PostgreSQL executed migration 002, that a real database repository enforces the checks, or that HTTP cookies/CSRF protections are integrated.
+The authorization and token test modules contain 34 targeted cases. They were executed in an isolated Node.js 22 test harness: 34 passed, 0 failed, 0 skipped. The migration-filename/checksum tests were expanded in source; the full repository test suite and live PostgreSQL integration workflow have not yet been confirmed in this environment.
 
-The migration remains for a new isolated local database only. It has not been run against Supabase or any production database. The active school PWA remains unchanged.
+These tests do not prove that PostgreSQL executed migration 002, that a real database repository enforces the checks, or that HTTP cookies/CSRF protections are integrated.
+
+The migrations remain for a new isolated local database only. They have not been run against Supabase or any production database. The active school PWA remains unchanged.
 
 ## Still gated
 
 Before real accounts or school records are enabled:
 1. Run migrations 001 and 002 on disposable PostgreSQL 17 and verify all tables, constraints and the empty permission-grant state.
-2. Implement and test a real Argon2id password/PIN adapter, server-side login throttling, cookie handling and CSRF validation.
+2. Implement and test a vetted Argon2id password/PIN adapter, server-side login throttling, cookie handling and CSRF validation.
 3. Implement repository methods that check approved guardian links and staff class assignments directly in PostgreSQL.
 4. Agree a least-privilege permission matrix and runtime DB grants.
 5. Add full HTTP/API integration tests before LAN exposure.
