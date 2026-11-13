@@ -286,17 +286,11 @@ export function createAuthService({
         csrfTokenHash: secrets.csrfTokenHash,
         createdAt: new Date(nowMs),
         expiresAt,
-        // Repository contract: create session, update last_login_at and write
-        // the successful-authentication audit event in one DB transaction.
+        loginAttemptId: attempt.attemptId,
+        // Session, successful-attempt state, account last_login_at and audit
+        // event must be committed together by the PostgreSQL repository.
         correlationId: makeCorrelationId()
       });
-
-      const attemptCompleted = await loginAttemptStore.completeAttempt({
-        attemptId: attempt.attemptId,
-        succeeded: true,
-        attemptedAt: new Date(nowMs)
-      });
-      if (attemptCompleted !== true) throw new Error("Successful login attempt could not be finalised.");
     } catch {
       if (secrets?.sessionTokenHash) {
         try {
