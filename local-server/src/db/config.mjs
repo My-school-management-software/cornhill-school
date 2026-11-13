@@ -19,7 +19,7 @@ export function readLocalDatabaseConfig(env = process.env) {
   if (!/^[a-zA-Z_][a-zA-Z0-9_]{2,62}$/.test(user)) {
     throw new Error("A valid local database username is required.");
   }
-  if (Buffer.byteLength(password, "utf8") < 24) {
+  if (Buffer.byteLength(password, "utf8") < 24 || password.startsWith("REPLACE_WITH_")) {
     throw new Error("Local database password must contain at least 24 bytes.");
   }
 
