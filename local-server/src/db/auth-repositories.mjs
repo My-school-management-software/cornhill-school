@@ -170,9 +170,11 @@ export function createPostgresAuthRepositories(pool) {
       csrfTokenHash,
       createdAt,
       expiresAt,
-      correlationId
+      correlationId,
+      loginAttemptId
     }) {
       if (!["staff", "guardian"].includes(principalType)) throw new TypeError("Invalid principal type.");
+      if (!/^\d+$/.test(String(loginAttemptId))) throw new TypeError("Login attempt ID is invalid.");
       assertUuid(accountId, "Account ID");
       assertHash(tokenHash, "Session token hash");
       assertHash(csrfTokenHash, "CSRF token hash");
@@ -196,6 +198,18 @@ export function createPostgresAuthRepositories(pool) {
           `UPDATE cornhill_auth.${accountTable} SET last_login_at = $2, updated_at = $2 WHERE id = $1`,
           [accountId, createdAt]
         );
+
+        const attemptUpdate = await client.query(`
+          UPDATE cornhill_auth.login_attempts
+          SET succeeded = true
+          WHERE id = $1::bigint
+            AND principal_type = $2
+            AND succeeded = false
+          RETURNING id
+        `, [String(loginAttemptId), principalType]);
+        if (attemptUpdate.rowCount !== 1) {
+          throw new Error("The login attempt could not be finalised.");
+        }
 
         const inserted = await client.query(`
           INSERT INTO cornhill_auth.auth_sessions
@@ -266,6 +280,68 @@ export function createPostgresAuthRepositories(pool) {
     }
   });
 
+  const permissionRepository = Object.freeze({
+    async getGrantedPermissionsForStaff({ staffAccountId }) {
+      if (typeof staffAccountId !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(staffAccountId)) {
+        return [];
+      }
+      const result = await pool.query(`
+        SELECT DISTINCT rp.permission_code AS "permissionCode"
+        FROM cornhill_auth.staff_accounts a
+        JOIN cornhill_auth.staff_role_assignments ra ON ra.staff_account_id = a.id
+        JOIN cornhill_auth.staff_role_permissions rp ON rp.role_code = ra.role_code
+        WHERE a.id = $1 AND a.account_status = 'active'
+        ORDER BY rp.permission_code
+      `, [staffAccountId]);
+      return result.rows.map(row => row.permissionCode);
+    }
+  });
+
+  const classAccessRepository = Object.freeze({
+    async hasActiveClassAssignment({ staffAccountId, classId }) {
+      if (typeof staffAccountId !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(staffAccountId) ||
+          typeof classId !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(classId)) {
+        return false;
+      }
+      const result = await pool.query(`
+        SELECT 1
+        FROM cornhill_auth.staff_class_assignments ca
+        JOIN cornhill_auth.staff_accounts a ON a.id = ca.staff_account_id
+        WHERE ca.staff_account_id = $1
+          AND ca.class_id = $2
+          AND ca.is_active = true
+          AND a.account_status = 'active'
+        LIMIT 1
+      `, [staffAccountId, classId]);
+      return result.rowCount === 1;
+    }
+  });
+
+  const guardianAccessRepository = Object.freeze({
+    async hasApprovedLearnerAccess({ guardianAccountId, learnerId }) {
+      if (typeof guardianAccountId !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(guardianAccountId) ||
+          typeof learnerId !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(learnerId)) {
+        return false;
+      }
+      const result = await pool.query(`
+        SELECT 1
+        FROM cornhill_auth.guardian_learner_access gla
+        JOIN cornhill_auth.guardian_accounts ga ON ga.id = gla.guardian_account_id
+        WHERE gla.guardian_account_id = $1
+          AND gla.learner_id = $2
+          AND gla.access_status = 'approved'
+          AND ga.account_status = 'active'
+        LIMIT 1
+      `, [guardianAccountId, learnerId]);
+      return result.rowCount === 1;
+    }
+  });
+
   const auditRepository = Object.freeze({
     async recordAuthenticationEvent({
       principalType,
@@ -300,6 +376,9 @@ export function createPostgresAuthRepositories(pool) {
     accountRepository,
     loginAttemptStore,
     sessionRepository,
+    permissionRepository,
+    classAccessRepository,
+    guardianAccessRepository,
     auditRepository
   });
 }
