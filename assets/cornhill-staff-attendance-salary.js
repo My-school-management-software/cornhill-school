@@ -364,29 +364,66 @@
   }
 
   async function loadDirectorKioskOptions() {
-    const result = await db.from('user_profiles')
-      .select('id,full_name,job_title,role')
-      .eq('employment_status','Active')
-      .in('role',['Admin','Teacher','Staff'])
-      .order('full_name');
-    if (result.error) {
-      safeMessage('attendanceMsg','Active staff list could not be loaded for the Director kiosk: ' + result.error.message,true);
-      return;
-    }
-    const options = '<option value="">Choose active staff member</option>' +
-      (result.data || []).map((x) => '<option value="' + x.id + '">' +
-        html(x.full_name || x.job_title || 'Staff') + ' · ' + html(x.role || 'Staff') + '</option>').join('');
-    ['directorKioskStaff'].forEach((id) => {
-      const select = byId(id);
-      if (select) select.innerHTML = options;
-    });
+    const kioskSelect = byId('directorKioskStaff');
     const prepSelect = byId('prepStaffUser');
-    if (prepSelect) prepSelect.innerHTML = (result.data || []).map((x) =>
-      '<option value="' + x.id + '">' + html(x.full_name || x.job_title || 'Staff') +
-      ' · ' + html(x.role || 'Staff') + '</option>'
-    ).join('');
-    const sessionStaff = byId('directorSessionStaff');
-    if (sessionStaff) sessionStaff.innerHTML = '<option value="">Choose an approved session first</option>';
+    const selects = [kioskSelect, prepSelect].filter(Boolean);
+    selects.forEach((select) => {
+      select.innerHTML = '<option value="">Loading active staff…</option>';
+      select.disabled = true;
+    });
+
+    let timeoutId;
+    try {
+      if (!db) throw new Error('The school database connection is not ready. Refresh the attendance page.');
+      const request = db.from('user_profiles')
+        .select('id,full_name,job_title,role')
+        .eq('employment_status','Active')
+        .in('role',['Admin','Teacher','Staff'])
+        .order('full_name');
+      const timeout = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(
+          'The staff-list request took too long. Check the connection and refresh the attendance page.'
+        )), 15000);
+      });
+      const result = await Promise.race([request, timeout]);
+      if (result.error) throw result.error;
+
+      const rows = result.data || [];
+      if (!rows.length) {
+        selects.forEach((select) => {
+          select.innerHTML = '<option value="">No active staff accounts were returned</option>';
+          select.disabled = false;
+        });
+      } else {
+        const options = '<option value="">Choose active staff member</option>' +
+          rows.map((x) => '<option value="' + x.id + '">' +
+            html(x.full_name || x.job_title || 'Staff') + ' · ' + html(x.role || 'Staff') + '</option>').join('');
+        if (kioskSelect) kioskSelect.innerHTML = options;
+        if (prepSelect) prepSelect.innerHTML = rows.map((x) =>
+          '<option value="' + x.id + '">' + html(x.full_name || x.job_title || 'Staff') +
+          ' · ' + html(x.role || 'Staff') + '</option>'
+        ).join('');
+        selects.forEach((select) => { select.disabled = false; });
+      }
+
+      const sessionStaff = byId('directorSessionStaff');
+      if (sessionStaff) sessionStaff.innerHTML = '<option value="">Choose an approved session first</option>';
+      if (rows.length) safeMessage('attendanceMsg','Active staff list loaded: ' + rows.length + ' staff accounts.');
+    } catch (error) {
+      const detail = error && error.message ? error.message : String(error || 'Unknown error');
+      selects.forEach((select) => {
+        select.innerHTML = '<option value="">Staff list unavailable — refresh attendance</option>';
+        select.disabled = false;
+      });
+      safeMessage('attendanceMsg','Director kiosk staff list failed to load: ' + detail,true);
+      const status = byId('directorKioskStatus');
+      if (status) {
+        status.textContent = 'Staff list could not be loaded. ' + detail;
+        status.classList.remove('hidden');
+      }
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
   }
 
   async function loadDirectorSpecialSessions() {
