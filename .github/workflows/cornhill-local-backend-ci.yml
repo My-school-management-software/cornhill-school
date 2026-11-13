@@ -73,3 +73,26 @@ jobs:
 
       - name: Verify PostgreSQL tables, roles and schema permissions
         run: node --env-file=.env scripts/verify-local-schema.mjs
+
+      - name: Exercise PostgreSQL authentication repositories
+        run: npm run db:verify-auth
+
+  windows-unit:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: local-server
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install local backend dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run Node test suite on Windows
+        run: npm test
