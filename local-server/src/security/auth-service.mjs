@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import {
   LOCAL_AUTHORIZATION_CATALOG,
   sessionMatchesPrincipal
@@ -115,8 +115,7 @@ function asMilliseconds(value) {
 }
 
 function makeCorrelationId() {
-  return globalThis.crypto?.randomUUID?.() ??
-    "00000000-0000-4000-8000-000000000000";
+  return randomUUID();
 }
 
 export function createAuthService({
@@ -325,10 +324,15 @@ export function createAuthService({
       throw new AuthenticationServiceError();
     }
 
+    const sessionExpiryMs = session ? asMilliseconds(session.expiresAt) : NaN;
+    const currentTimeMs = asMilliseconds(clock());
     if (!session || !sessionMatchesPrincipal(session) ||
+        session.revokedAt != null ||
         session.accountStatus !== "active" ||
-        !verifyOpaqueToken(sessionToken, session.tokenHash) ||
-        asMilliseconds(session.expiresAt) <= asMilliseconds(clock())) {
+        !Number.isFinite(sessionExpiryMs) ||
+        !Number.isFinite(currentTimeMs) ||
+        sessionExpiryMs <= currentTimeMs ||
+        !verifyOpaqueToken(sessionToken, session.tokenHash)) {
       throw new AuthenticationError();
     }
 
