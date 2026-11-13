@@ -91,6 +91,18 @@ try {
     attemptedAt: new Date()
   }), true);
 
+  // Source-level throttling must also span different account identifiers
+  // that originate from the same fingerprinted source.
+  const blockedDifferentAccount = await repositories.loginAttemptStore.beginAttempt({
+    principalType: "staff",
+    identifierFingerprint: fingerprints[2],
+    sourceFingerprint: concurrencySource,
+    attemptedAt: new Date(),
+    windowMs: 15 * 60 * 1000,
+    maxFailedAttempts: 5
+  });
+  assert.equal(blockedDifferentAccount.allowed, false);
+
   const sessionTokenHash = fingerprints[2];
   const csrfTokenHash = fingerprints[3];
   await repositories.sessionRepository.createAuthenticatedSession({
