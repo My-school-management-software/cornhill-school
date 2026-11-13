@@ -114,8 +114,8 @@ test('guardian sign-in success and failure are tracked without exposing learner 
 
 test('parent account displays public school website and admissions links', () => {
   assert.match(parent, /id="parentResourceLinks"/);
-  assert.match(parent, /href="\/school\.html"/);
-  assert.match(parent, /href="\/admissions\.html"/);
+  assert.match(parent, /href="https:\/\/school-website-cornhill-school\.vercel\.app\/apps\/school-website\//);
+  assert.match(parent, /href="https:\/\/admissions-cornhill-school\.vercel\.app\/apps\/admissions\//);
 });
 
 test('parent can share public school and admission links', () => {
