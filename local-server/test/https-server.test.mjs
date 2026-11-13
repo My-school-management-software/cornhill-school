@@ -42,36 +42,26 @@ test("HTTPS server accepts only an exact HTTPS origin", async () => {
   }
 });
 test("TLS files must use absolute paths outside the source repository", async () => {
+  const insideKey = resolve(process.cwd(), "tls", "private.key");
+  const insideCert = resolve(process.cwd(), "tls", "certificate.crt");
   await assert.rejects(
     createCornhillHttpsServer({
       ...validBase,
-      keyPath: resolve("local-server", "tls", "private.key")
-    }),
-    /outside the source repository/
-  );
-  await assert.rejects(
-    createCornhillHttpsServer({
-      ...validBase,
-      certPath: resolve("local-server", "tls", "certificate.crt")
+      keyPath: insideKey,
+      certPath: insideCert
     }),
     /outside the source repository/
   );
 });
 
 test("HTTPS server rejects TLS key/certificate paths inside the repository", async () => {
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
+  const insideKey = resolve(process.cwd(), "nested", "repo", "secret.key");
+  const insideCert = resolve(process.cwd(), "nested", "repo", "certificate.crt");
   await assert.rejects(
     createCornhillHttpsServer({
       ...validBase,
-      keyPath: join(process.cwd(), "nested", "repo", "secret.key")
-    }),
-    /outside the source repository/
-  );
-  await assert.rejects(
-    createCornhillHttpsServer({
-      ...validBase,
-      certPath: join(process.cwd(), "nested", "repo", "certificate.crt")
+      keyPath: insideKey,
+      certPath: insideCert
     }),
     /outside the source repository/
   );
