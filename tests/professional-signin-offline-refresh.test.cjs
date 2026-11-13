@@ -57,10 +57,13 @@ test('sign-in restores the welcome panel and official school badge over the earl
   assert.notEqual(styleStart, -1, 'Professional sign-in style block must exist');
   const styleEnd = dashboard.indexOf('</style>', styleStart);
   const signInStyles = dashboard.slice(styleStart, styleEnd);
-  const welcomePanel = signInStyles.match(/#login\\.login-design-surface:before\\{([\\s\\S]*?)\\}/);
-  assert.ok(welcomePanel, 'The left welcome panel must be defined');
-  assert.match(welcomePanel[1], /content:"CORNHILL[\\s\\S]*?!important/);
-  assert.ok(welcomePanel[1].includes("url('/assets/cornhill-school-badge.png')"),
+  const ruleStart = signInStyles.indexOf('#login.login-design-surface:before{');
+  assert.notEqual(ruleStart, -1, 'The left welcome panel must be defined');
+  const ruleEnd = signInStyles.indexOf('}', ruleStart);
+  const welcomePanel = signInStyles.slice(ruleStart, ruleEnd);
+  assert.ok(welcomePanel.includes('content:"CORNHILL'), 'The welcome panel text must render');
+  assert.ok(welcomePanel.includes('!important'), 'The welcome panel must override the earlier content:none rule');
+  assert.ok(welcomePanel.includes("url('/assets/cornhill-school-badge.png')"),
     'The welcome panel must use the official CORNHILL badge');
   assert.ok(signInStyles.includes('#login.login-design-surface>*{position:relative;z-index:1;width:62%!important;max-width:none!important;margin-left:35%!important}'),
     'Desktop sign-in content must retain its reserved right-hand column');
