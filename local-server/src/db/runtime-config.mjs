@@ -10,8 +10,8 @@ export function readLocalRuntimeDatabaseConfig(env = process.env) {
   if (!LOOPBACK_HOSTS.has(host)) {
     throw new Error("Local runtime database host must be loopback-only.");
   }
-  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
-    throw new Error("Local runtime database port must be between 1024 and 65535.");
+  if (port !== 54329) {
+    throw new Error("Local runtime database must use the isolated Docker loopback port 54329.");
   }
   if (database !== "cornhill_local") {
     throw new Error("Runtime database name must be the isolated cornhill_local database.");
