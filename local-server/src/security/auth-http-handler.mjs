@@ -19,8 +19,8 @@ const SECURITY_HEADERS = Object.freeze({
   "Referrer-Policy": "no-referrer",
   "X-Frame-Options": "DENY",
   "Cross-Origin-Resource-Policy": "same-origin",
-  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none',
-  "Strict-Transport-Security": "max-age=86400""
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+  "Strict-Transport-Security": "max-age=86400"
 });
 
 class HttpInputError extends Error {
