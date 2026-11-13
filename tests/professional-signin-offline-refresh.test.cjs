@@ -39,8 +39,8 @@ test('services sign-in uses the matching professional layout and preserves role 
 });
 
 test('PWA cache version is advanced and online asset refresh is network-first', () => {
-  assert.ok(worker.includes("cornhill-shell-v99"));
-  assert.ok(worker.includes("cornhill-static-v99"));
+  assert.ok(worker.includes("cornhill-shell-v100"));
+  assert.ok(worker.includes("cornhill-static-v100"));
   assert.ok(worker.includes("new Request(request, { cache: 'no-store' })"));
   assert.ok(worker.includes('const cached = await cache.match(request);'));
   assert.ok(worker.includes('installed PWA receives current files immediately'));
