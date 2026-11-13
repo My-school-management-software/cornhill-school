@@ -386,6 +386,47 @@ before insert or update of base_salary_ugx, allowances_ugx, deductions_ugx, adva
 on public.payroll_items
 for each row execute function public.set_payroll_item_net_pay();
 
+-- Narrow payroll directory RPC: the Bursar receives only the identity and salary
+-- agreement fields required to prepare payroll, not private staff contact details.
+create or replace function public.finance_list_payroll_staff()
+returns table (
+  id uuid,
+  staff_user_id uuid,
+  full_name text,
+  job_title text,
+  employment_status text,
+  salary_basis text,
+  base_salary_ugx bigint,
+  daily_rate_ugx bigint,
+  effective_from date,
+  effective_to date
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $function$
+begin
+  if auth.uid() is null or not coalesce(public.is_school_finance_operator(), false) then
+    raise exception 'Only active school finance operators may view payroll preparation data'
+      using errcode = '42501';
+  end if;
+
+  return query
+  select a.id, a.staff_user_id, p.full_name, p.job_title, p.employment_status,
+         a.salary_basis, a.base_salary_ugx, a.daily_rate_ugx,
+         a.effective_from, a.effective_to
+  from public.staff_salary_agreements a
+  join public.user_profiles p on p.id = a.staff_user_id
+  where a.is_active = true
+    and p.employment_status = 'Active'
+  order by p.full_name, a.effective_from desc;
+end;
+$function$;
+
+revoke all on function public.finance_list_payroll_staff() from public, anon;
+grant execute on function public.finance_list_payroll_staff() to authenticated, service_role;
+
 -- Read permissions: finance staff need the payroll totals to prepare/review;
 -- staff retain the existing self-only payslip policies.
 drop policy if exists "Finance operators read payroll periods" on public.payroll_periods;
