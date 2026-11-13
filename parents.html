@@ -41,8 +41,8 @@
 <h2>Helpful school links</h2>
 <p class="muted">These are public CORNHILL resources. You can share the official school website or admission enquiry page with families who may be interested in joining the school. Sharing these links does not share your child's private records.</p>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
- <a class="tile" href="/school.html" target="_blank" rel="noopener noreferrer"><strong>Official CORNHILL school website</strong><span class="muted">School information and public updates</span></a>
- <a class="tile" href="/admissions.html" target="_blank" rel="noopener noreferrer"><strong>New learner admission enquiry</strong><span class="muted">Public admission enquiry form for families</span></a>
+ <a class="tile" href="https://school-website-cornhill-school.vercel.app/apps/school-website/" target="_blank" rel="noopener noreferrer"><strong>Official CORNHILL school website</strong><span class="muted">School information and public updates</span></a>
+ <a class="tile" href="https://admissions-cornhill-school.vercel.app/apps/admissions/" target="_blank" rel="noopener noreferrer"><strong>New learner admission enquiry</strong><span class="muted">Public admission enquiry form for families</span></a>
 </div>
 <div class="row" style="margin-top:10px;flex-wrap:wrap">
  <button class="secondary" type="button" data-share-resource="school">Share school website</button>
@@ -185,12 +185,12 @@ function stopVoiceRecording(){if(voiceTimer)clearTimeout(voiceTimer);voiceTimer=
 
 async function shareParentResource(kind){
   const resources={
-    school:{title:'CORNHILL Nursery and Primary School',text:'Visit the official CORNHILL Nursery and Primary School website.',path:'/school.html'},
-    admissions:{title:'CORNHILL learner admissions',text:'Submit a public admission enquiry to CORNHILL Nursery and Primary School.',path:'/admissions.html'}
+    school:{title:'CORNHILL Nursery and Primary School',text:'Visit the official CORNHILL Nursery and Primary School website.',url:'https://school-website-cornhill-school.vercel.app/apps/school-website/'},
+    admissions:{title:'CORNHILL learner admissions',text:'Submit a public admission enquiry to CORNHILL Nursery and Primary School.',url:'https://admissions-cornhill-school.vercel.app/apps/admissions/'}
   };
   const resource=resources[kind];
   if(!resource)return;
-  const url=new URL(resource.path,window.location.origin).href;
+  const url=resource.url;
   const status=el('parentResourceStatus');
   try{
     if(navigator.share){
