@@ -96,14 +96,14 @@ test('special-session kiosk form invokes the Director-only special-session RPC',
   assert.match(attendanceUi, /rpc\('director_record_staff_session_event'[\s\S]*?p_session_id:sessionId,p_staff_user_id:staffId,p_event_type:eventType/);
 });
 
-test('Director panel stays hidden unless the Director access check succeeds', () => {
-  assert.match(attendanceUi, /const director = await attendanceRequest\(\(\) => db\.rpc\('is_school_director'\), 'Director access check', 12000\)[\s\S]*?panel\.classList\.toggle\('hidden', !isDirector\)/);
+test('Director panel stays hidden until the explicit Director predicate returns true', () => {
+  assert.match(attendanceUi, /async function ensureAttendanceDropdowns\(\)[\s\S]*?db\.rpc\('is_school_director'\)[\s\S]*?if \(director\.data !== true\)[\s\S]*?panel\.classList\.add\('hidden'\)[\s\S]*?panel\.classList\.remove\('hidden'\)/);
   assert.match(attendanceUi, /if \(director\.error\) throw director\.error/);
 });
 
-test('attendance staff selectors load independently of the slower legacy workspace loader', () => {
+test('attendance staff mapping selectors have explicit unavailable states and an active-staff query', () => {
   assert.match(attendanceUi, /async function loadCoreAttendanceStaffOptions\(\)[\s\S]*?staffUserSelect[\s\S]*?scheduleStaffSelect[\s\S]*?from\('user_profiles'\)/);
-  assert.match(attendanceUi, /const staffLoad = loadCoreAttendanceStaffOptions\(\);[\s\S]*?const extrasLoad = hydrateAttendanceExtras\(\);[\s\S]*?Promise\.allSettled\(\[coreLoad, staffLoad, extrasLoad\]\)/);
+  assert.match(attendanceUi, /Sign in as an active administrator/);
 });
 
 test('Director session dropdown has a timeout and a real empty-state message', () => {
@@ -112,8 +112,22 @@ test('Director session dropdown has a timeout and a real empty-state message', (
   assert.match(attendanceUi, /Approved special sessions failed to load:/);
 });
 
-test('Director panel loaders start independently so one slow query cannot block the staff selectors', () => {
-  assert.match(attendanceUi, /const jobs = \[[\s\S]*?\['Director staff dropdowns', loadDirectorKioskOptions\][\s\S]*?\['Approved session dropdown', loadDirectorSpecialSessions\][\s\S]*?Promise\.allSettled\(jobs\.map/);
+test('Director dropdown coordinator checks access then loads mapping, kiosk and approved-session selectors together', () => {
+  assert.match(attendanceUi, /async function ensureAttendanceDropdowns\(\)[\s\S]*?db\.rpc\('is_school_director'\)[\s\S]*?Promise\.allSettled\(\[[\s\S]*?loadCoreAttendanceStaffOptions[\s\S]*?loadDirectorKioskOptions[\s\S]*?loadDirectorSpecialSessions/);
+});
+
+test('opening the Attendance tab explicitly triggers the Director dropdown coordinator', () => {
+  assert.match(attendanceUi, /const originalTab = tab;[\s\S]*?tab = function \(name\)[\s\S]*?if \(name === 'attendance'\)[\s\S]*?ensureAttendanceDropdowns\(\)/);
+});
+
+test('Director dropdown coordinator reports a final load state instead of leaving loading placeholders', () => {
+  assert.match(attendanceUi, /id="attendanceLoadStatus"/);
+  assert.match(attendanceUi, /Some attendance lists failed to load/);
+  assert.match(attendanceUi, /Attendance lists checked:/);
+});
+
+test('special-session staff selection remains disabled until the selected session assignments load', () => {
+  assert.match(attendanceUi, /async function loadDirectorSessionStaffOptions\(\)[\s\S]*?select\.disabled = true;[\s\S]*?from\('staff_prep_assignments'\)[\s\S]*?select\.disabled = !rows\.length/);
 });
 
 test('attendance script parses as JavaScript', () => {
@@ -180,4 +194,27 @@ test('both Director kiosk RPCs are guarded against non-Director callers', () => 
 test('the hardened normal and special-session SQL functions are included in the follow-up migration', () => {
   assert.match(hardeningSql, /create or replace function public\.director_record_staff_attendance_event/);
   assert.match(hardeningSql, /create or replace function public\.director_record_staff_session_event/);
+});
+
+test('Director session staff list reads saved clock-in and clock-out state from the database', () => {
+  assert.ok(attendanceUi.includes("from('staff_scheduled_session_attendance')"));
+  assert.ok(attendanceUi.includes(".select('staff_user_id,clock_in_at,clock_out_at')"));
+  assert.ok(attendanceUi.includes(".eq('session_id',sessionId)"));
+});
+
+test('Director session staff options distinguish pending, clocked-in and clocked-out records', () => {
+  for (const state of ['Not yet clocked in','Clocked in at','Clocked out at','Attendance record missing']) {
+    assert.ok(attendanceUi.includes(state), 'missing saved status ' + state);
+  }
+});
+
+test('refreshing saved session attendance preserves the selected staff member', () => {
+  assert.ok(attendanceUi.includes('const previouslySelectedStaff = select.value;'));
+  assert.ok(attendanceUi.includes('select.value = previouslySelectedStaff;'));
+  assert.ok(attendanceUi.includes('await loadDirectorSessionStaffOptions();'));
+  assert.ok(attendanceUi.includes('saved status has been refreshed in the staff list'));
+});
+
+test('special-session attendance times are displayed in Uganda local time', () => {
+  assert.ok(attendanceUi.includes("timeZone:'Africa/Kampala'"));
 });
