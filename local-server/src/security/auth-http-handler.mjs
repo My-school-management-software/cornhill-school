@@ -19,7 +19,8 @@ const SECURITY_HEADERS = Object.freeze({
   "Referrer-Policy": "no-referrer",
   "X-Frame-Options": "DENY",
   "Cross-Origin-Resource-Policy": "same-origin",
-  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none',
+  "Strict-Transport-Security": "max-age=86400""
 });
 
 class HttpInputError extends Error {
@@ -106,8 +107,7 @@ function mapAuthError(error) {
 
 export function createAuthHttpHandler({
   authService,
-  expectedOrigin,
-  isSecureRequest = request => request.socket?.encrypted === true
+  expectedOrigin
 } = {}) {
   if (!authService || typeof authService.loginStaff !== "function" ||
       typeof authService.loginGuardian !== "function" ||
@@ -116,17 +116,13 @@ export function createAuthHttpHandler({
     throw new TypeError("A complete local authentication service is required.");
   }
   const origin = validateExpectedOrigin(expectedOrigin);
-  if (typeof isSecureRequest !== "function") {
-    throw new TypeError("Secure transport predicate must be a function.");
-  }
-
   return async function handleAuthRequest(request, response) {
     const path = new URL(request.url ?? "/", origin).pathname;
     const method = String(request.method ?? "GET").toUpperCase();
 
     if (!path.startsWith("/api/v1/auth/")) return false;
 
-    if (!isSecureRequest(request)) {
+    if (request.socket?.encrypted !== true) {
       sendJson(response, 426, { error: "Secure HTTPS transport is required." }, {
         Upgrade: "TLS/1.2"
       });
