@@ -356,12 +356,26 @@ export function createAuthService({
     return safePrincipal(account, session.principalType);
   }
 
-  async function logout({ sessionToken } = {}) {
+  async function logout({ sessionToken, csrfToken } = {}) {
     if (typeof sessionToken !== "string" || !COOKIE_TOKEN_PATTERN.test(sessionToken)) return false;
     try {
+      const tokenHash = hashOpaqueToken(sessionToken);
+      const session = await sessionRepository.findActiveSessionByTokenHash(tokenHash);
+      const sessionExpiryMs = session ? asMilliseconds(session.expiresAt) : NaN;
+      const currentTimeMs = asMilliseconds(clock());
+
+      if (!session || !sessionMatchesPrincipal(session) ||
+          session.revokedAt != null || session.accountStatus !== "active" ||
+          !Number.isFinite(sessionExpiryMs) || !Number.isFinite(currentTimeMs) ||
+          sessionExpiryMs <= currentTimeMs ||
+          !verifyOpaqueToken(sessionToken, session.tokenHash) ||
+          !verifyOpaqueToken(csrfToken, session.csrfTokenHash)) {
+        return false;
+      }
+
       return await sessionRepository.revokeSessionByTokenHash(
-        hashOpaqueToken(sessionToken),
-        new Date(asMilliseconds(clock()))
+        tokenHash,
+        new Date(currentTimeMs)
       ) === true;
     } catch {
       throw new AuthenticationServiceError();
