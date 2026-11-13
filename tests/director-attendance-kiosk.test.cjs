@@ -96,8 +96,9 @@ test('special-session kiosk form invokes the Director-only special-session RPC',
   assert.match(attendanceUi, /rpc\('director_record_staff_session_event'[\s\S]*?p_session_id:sessionId,p_staff_user_id:staffId,p_event_type:eventType/);
 });
 
-test('Director panel stays hidden for an Admin account that is not the school Director', () => {
-  assert.match(attendanceUi, /const director = await db\.rpc\('is_school_director'\)[\s\S]*?panel\.classList\.toggle\('hidden', !isDirector\)/);
+test('Director panel stays hidden unless the Director access check succeeds', () => {
+  assert.match(attendanceUi, /const director = await attendanceRequest\(\(\) => db\.rpc\('is_school_director'\), 'Director access check', 12000\)[\s\S]*?panel\.classList\.toggle\('hidden', !isDirector\)/);
+  assert.match(attendanceUi, /if \(director\.error\) throw director\.error/);
 });
 
 test('attendance staff selectors load independently of the slower legacy workspace loader', () => {
