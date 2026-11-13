@@ -13,7 +13,7 @@ This batch adds the first local school-data domain after the isolated authentica
 - Guardian contacts with +256 phone validation, communication consent, active/primary status and one-active-primary-guardian constraint.
 - Enrolment periods with class history, re-admission linkage and one-active-period constraint.
 - Admission event audit and admission enquiry workflow.
-- Five additional permission catalogue entries; no permissions are assigned to staff roles.
+- Five admissions permission definitions were added; one reuses an existing permission code, so four new unique codes are created. No permissions are assigned to staff roles.
 - PostgreSQL integration verifier and source-level migration tests.
 - CI runs local school schema verification after the authentication/runtime-role checks.
 
