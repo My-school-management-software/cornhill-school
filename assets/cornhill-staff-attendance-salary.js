@@ -854,8 +854,13 @@
     }
     installAttendancePanels();
     if (isAdmin()) {
-      const isDirector = await ensureAttendanceDropdowns();
-      if (!isDirector) return;
+      // Load the Director kiosk selectors explicitly. The former ensureAttendanceDropdowns
+      // symbol was never defined, which aborted this entire hydration path before any
+      // Director dropdown could be populated.
+      await Promise.allSettled([
+        attendanceRequest(loadDirectorKioskOptions, 'Director staff dropdowns'),
+        attendanceRequest(loadDirectorSpecialSessions, 'Director approved-session dropdown')
+      ]);
       const jobs = [
         ['Director attendance settings', loadDirectorSettings],
         ['Attendance calendar', loadCalendarExceptions],
