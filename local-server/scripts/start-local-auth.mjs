@@ -25,7 +25,7 @@ async function start() {
     server.listen(port, host, resolve);
   });
 
-  console.log("CORNHILL local authentication API is listening on https://" + host + ":" + port);
+  console.log("CORNHILL local authentication API is listening at " + process.env.CORNHILL_LOCAL_ORIGIN);
   console.log("Loopback-only. No LAN clients are accepted by this listener.");
   console.log("Press Ctrl+C to stop.");
 }
