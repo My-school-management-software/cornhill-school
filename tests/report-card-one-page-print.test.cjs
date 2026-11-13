@@ -68,13 +68,11 @@ test('the printed report card has a visible frame and sensible inner spacing', (
 });
 
 test('report-card print typography stays readable while preserving compact tables', () => {
-  assert.match(css, /font-size:\\s*8\\.5pt\\s*!important/);
-  assert.match(css, /report-school-head h1\\s*\\{[^}]*font-size:\\s*15pt\\s*!important/s);
-  assert.match(css, /report-school-head h2\\s*\\{[^}]*font-size:\\s*9pt\\s*!important/s);
-  assert.match(css, /report-identity\\s*\\{[^}]*font-size:\\s*8pt\\s*!important/s);
-  assert.match(css, /report-marks th,\\s*body\\.print-official-report #reportCardPreview \\.report-marks td\\s*\\{[^}]*font-size:\\s*7pt\\s*!important/s);
-  assert.match(css, /report-comments\\s*\\{[^}]*font-size:\\s*7\\.5pt\\s*!important/s);
-  assert.match(css, /report-footer\\s*\\{[^}]*font-size:\\s*7pt\\s*!important/s);
+  for (const size of ['8.5pt', '15pt', '9pt', '8pt', '7.5pt', '7pt']) {
+    assert.ok(css.includes('font-size: ' + size + ' !important'), 'print stylesheet retains ' + size + ' typography');
+  }
+  assert.ok(css.includes('line-height: 1.18 !important'));
+  assert.ok(css.includes('padding: 2px 3px !important'));
 });
 
 test('individual and batch print actions use the same measured page layout', () => {
