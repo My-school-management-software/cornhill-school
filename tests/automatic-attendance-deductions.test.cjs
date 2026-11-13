@@ -6,6 +6,8 @@ const path = require('node:path');
 const migrationPath = path.join(__dirname, '..', 'supabase', 'migrations',
   '20261113160000_automatic_staff_attendance_deductions.sql');
 const sql = fs.readFileSync(migrationPath, 'utf8');
+const uiPath = path.join(__dirname, '..', 'assets', 'cornhill-staff-attendance-salary.js');
+const ui = fs.readFileSync(uiPath, 'utf8');
 
 test('automatic deductions default to disabled until Director enables them', () => {
   assert.match(sql, /automatic_deductions_enabled boolean not null default false/i);
@@ -96,4 +98,22 @@ test('automatic decision records that the rule was applied without a leadership 
 
 test('cron job creation is idempotent', () => {
   assert.match(sql, /if not exists \([\s\S]*?cron\.job[\s\S]*?finalize_staff_attendance_auto_deductions/i);
+});
+
+test('Director settings expose the automatic-deduction toggle', () => {
+  assert.match(ui, /attendanceAutoDeductionEnabled/);
+  assert.match(ui, /automatic_deductions_enabled:byId\('attendanceAutoDeductionEnabled'\)\.checked/);
+});
+
+test('Director settings load the saved automatic-deduction toggle', () => {
+  assert.match(ui, /automatic_deductions_enabled/);
+  assert.match(ui, /attendanceAutoDeductionEnabled'\)\.checked = result\.data\.automatic_deductions_enabled === true/);
+});
+
+test('staff are told deductions are for the next payroll run', () => {
+  assert.match(ui, /next payroll run/i);
+});
+
+test('school-wide no-clock-in safeguard is explained in the Director settings', () => {
+  assert.match(ui, /school-wide no-clock-in day is always held for leadership review/i);
 });
