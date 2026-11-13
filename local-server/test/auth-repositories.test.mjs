@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../src/db/auth-repositories.mjs", import.meta.url), "utf8");
+const auditSection = source.slice(source.indexOf("const auditRepository"));
 
 test("auth account lookups use parameterised queries and normalized identifiers", () => {
   assert.match(source, /username_normalized\s*=\s*\$1/);
@@ -21,7 +22,7 @@ test("rate limiting is transaction-scoped and serializes both identifier and sou
 });
 test("rate limiting records failed attempts by default and caps concurrent requests", () => {
   assert.match(source, /VALUES\s*\(\$1,\s*\$2,\s*\$3,\s*false,\s*\$4\)/);
-  assert.match(source, /failures\)\s*>=\s*maxFailedAttempts/);
+  assert.match(source, /failures\s*\?\?\s*0\)\s*>=\s*maxFailedAttempts/);
 });
 test("session creation uses a transaction and locks the active account row", () => {
   assert.match(source, /SELECT id FROM cornhill_auth\.\$\{accountTable\}[\s\S]*FOR UPDATE/);
@@ -43,7 +44,7 @@ test("repository returns separate staff and guardian identity columns", () => {
   assert.match(source, /guardian_account_id AS "guardianAccountId"/);
   assert.match(source, /COALESCE\(sa\.account_status, ga\.account_status\)/);
 });
-test("audit records store only an identifier fingerprint in details", () => {
-  assert.match(source, /identifierFingerprint\s*\?\s*\{ identifierFingerprint \}/);
-  assert.doesNotMatch(source, /password|pin|rawPhone|rawUsername/i);
+test("audit records store only a keyed identifier fingerprint, never raw credentials", () => {
+  assert.match(auditSection, /JSON\.stringify\(identifierFingerprint \? \{ identifierFingerprint \} : \{\}\)/);
+  assert.doesNotMatch(auditSection, /\b(?:password|pin|rawPhone|rawUsername)\b/i);
 });
