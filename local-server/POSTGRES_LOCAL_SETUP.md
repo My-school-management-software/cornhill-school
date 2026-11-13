@@ -29,6 +29,23 @@ The PostgreSQL container publishes port 54329 only on 127.0.0.1. It is not direc
 
 The configured timezone is Africa/Kampala. Store timestamps consistently as timestamptz and convert them for display in the school application.
 
+## Apply the local identity migration
+
+From this folder, after starting the database:
+
+```powershell
+npm install
+$env:CORNHILL_ALLOW_LOCAL_MIGRATIONS = "true"
+$env:CORNHILL_DB_TARGET = "local-development"
+npm run db:migrate
+Remove-Item Env:CORNHILL_ALLOW_LOCAL_MIGRATIONS
+Remove-Item Env:CORNHILL_DB_TARGET
+```
+
+The runner refuses to start unless both explicit local-development flags are set. It validates the loopback database host, the exact `cornhill_local` database name, and the database password configuration. It uses a PostgreSQL advisory lock and records the SHA-256 checksum of the migration. If the already-applied migration file changes, it stops rather than silently reapplying it.
+
+This migration creates identity tables only; it does not create staff or guardian logins, import records, or enable the application API. The database connection currently uses the development administrator account from `.env`; before any school data is introduced, create a separate least-privilege runtime database role and use it for the application.
+
 ## Stop and preserve data
 
 ```powershell
