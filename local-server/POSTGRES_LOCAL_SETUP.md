@@ -46,6 +46,16 @@ The runner refuses to start unless both explicit local-development flags are set
 
 This migration creates identity tables only; it does not create staff or guardian logins, import records, or enable the application API. The database connection currently uses the development administrator account from `.env`; before any school data is introduced, create a separate least-privilege runtime database role and use it for the application.
 
+## Verify the installed schema
+
+After the migration succeeds, run:
+
+```powershell
+npm run db:verify
+```
+
+This checks the expected eight identity tables, 17 seeded staff roles, schema isolation from PUBLIC, and database constraints.
+
 ## Stop and preserve data
 
 ```powershell
