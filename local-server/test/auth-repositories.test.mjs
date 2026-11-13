@@ -28,9 +28,19 @@ test("session creation uses a transaction and locks the active account row", () 
   assert.match(source, /SELECT id FROM cornhill_auth\.\$\{accountTable\}[\s\S]*FOR UPDATE/);
   assert.match(source, /createAuthenticatedSession/);
 });
-test("successful login creation inserts session and audit metadata", () => {
+test("successful login creation atomically finalises the attempt with session and audit", () => {
+  assert.match(source, /UPDATE cornhill_auth\.login_attempts[\s\S]*SET succeeded = true[\s\S]*principal_type = \$2[\s\S]*succeeded = false/);
   assert.match(source, /INSERT INTO cornhill_auth\.auth_sessions/);
   assert.match(source, /authentication\.login_succeeded/);
+});
+test("database authorization repositories enforce guardian, class and role scopes", () => {
+  assert.match(source, /hasApprovedLearnerAccess/);
+  assert.match(source, /gla\.access_status = 'approved'/);
+  assert.match(source, /ga\.account_status = 'active'/);
+  assert.match(source, /hasActiveClassAssignment/);
+  assert.match(source, /ca\.is_active = true/);
+  assert.match(source, /getGrantedPermissionsForStaff/);
+  assert.match(source, /staff_role_permissions/);
 });
 test("session lookup excludes revoked and expired sessions", () => {
   assert.match(source, /s\.revoked_at IS NULL/);
