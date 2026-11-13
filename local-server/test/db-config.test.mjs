@@ -72,3 +72,9 @@ test("database password minimum is measured in UTF-8 bytes", () => {
   assert.throws(() => readLocalDatabaseConfig({ ...valid, CORNHILL_DB_ADMIN_PASSWORD: "é".repeat(11) }), /24 bytes/);
   assert.equal(readLocalDatabaseConfig({ ...valid, CORNHILL_DB_ADMIN_PASSWORD: "é".repeat(12) }).password, "é".repeat(12));
 });
+
+test("database config refuses published placeholder password", () => {
+  assert.throws(() => readLocalDatabaseConfig({
+    ...valid, CORNHILL_DB_ADMIN_PASSWORD: "REPLACE_WITH_A_LONG_RANDOM_PASSWORD"
+  }), /24 bytes/);
+});
