@@ -121,9 +121,9 @@ CREATE TABLE cornhill_auth.auth_sessions (
         REFERENCES cornhill_auth.staff_accounts(id) ON DELETE RESTRICT,
     guardian_account_id uuid
         REFERENCES cornhill_auth.guardian_accounts(id) ON DELETE RESTRICT,
-    token_hash char(64) NOT NULL UNIQUE
+    token_hash varchar(64) NOT NULL UNIQUE
         CHECK (token_hash ~ '^[0-9a-f]{64}$'),
-    csrf_token_hash char(64)
+    csrf_token_hash varchar(64)
         CHECK (csrf_token_hash IS NULL OR csrf_token_hash ~ '^[0-9a-f]{64}$'),
     device_label text,
     created_at timestamptz NOT NULL DEFAULT now(),
@@ -149,11 +149,11 @@ CREATE INDEX auth_sessions_guardian_active_idx
 CREATE TABLE cornhill_auth.login_attempts (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     principal_type text NOT NULL CHECK (principal_type IN ('staff', 'guardian')),
-    identifier_fingerprint char(64) NOT NULL
+    identifier_fingerprint varchar(64) NOT NULL
         CHECK (identifier_fingerprint ~ '^[0-9a-f]{64}$'),
     succeeded boolean NOT NULL,
     attempted_at timestamptz NOT NULL DEFAULT now(),
-    source_fingerprint char(64)
+    source_fingerprint varchar(64)
         CHECK (source_fingerprint IS NULL OR source_fingerprint ~ '^[0-9a-f]{64}$')
 );
 
