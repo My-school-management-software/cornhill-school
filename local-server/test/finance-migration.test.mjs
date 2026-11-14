@@ -207,7 +207,7 @@ const expenseBankWorkflows=await readFile(new URL("../migrations/020_local_expen
 test("expense requests serialize daily limit checks and require active permission",()=>{
  assert.match(expenseBankWorkflows,/finance_actor_has_permission/);
  assert.match(expenseBankWorkflows,/FOR UPDATE/);
- assert.match(expenseBankWorkflows,/timezone\('Africa\\/Kampala',now\(\)\)/);
+ assert.match(expenseBankWorkflows,/timezone\('Africa\/Kampala',now\(\)\)/);
  assert.match(expenseBankWorkflows,/Daily expense limit would be exceeded/);
 });
 test("expense approval and posting enforce separation of duties and approved evidence",()=>{
