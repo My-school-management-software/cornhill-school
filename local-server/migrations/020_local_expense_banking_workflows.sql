@@ -609,7 +609,9 @@ REVOKE ALL ON FUNCTION cornhill_school.post_local_expense(uuid,uuid) FROM PUBLIC
 REVOKE ALL ON FUNCTION cornhill_school.create_local_bank_transaction(uuid,uuid,text,bigint,text,text) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL ON FUNCTION cornhill_school.review_local_bank_transaction(uuid,uuid,text,text) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL ON FUNCTION cornhill_school.verify_local_bank_transaction(uuid,uuid) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
-GRANT EXECUTE ON FUNCTION cornhill_school.create_local_expense_request(uuid,text,uuid,text,bigint),
+GRANT EXECUTE ON FUNCTION cornhill_school.set_local_expense_operator_limit(uuid,uuid,bigint),
+ cornhill_school.create_local_bank_account(uuid,text,text,text,bigint),
+ cornhill_school.create_local_expense_request(uuid,text,uuid,text,bigint),
  cornhill_school.review_local_expense_request(uuid,uuid,text,text),
  cornhill_school.post_local_expense(uuid,uuid),
  cornhill_school.create_local_bank_transaction(uuid,uuid,text,bigint,text,text),
