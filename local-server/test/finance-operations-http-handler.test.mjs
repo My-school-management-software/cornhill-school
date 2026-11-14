@@ -24,7 +24,7 @@ async function invoke(handler,{path,method="POST",headers=postHeaders,body={},en
 }
 function setup({permissions=allPermissions,authError,overrides={}}={}){
  const calls=[];
- const names=["listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence"];
+ const names=["listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseLimitStaff","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence"];
  const financeRepository=Object.fromEntries(names.map(name=>[name,async input=>{calls.push({name,input});return RECORD;}]));
  Object.assign(financeRepository,overrides);
  const authService={async authenticate(input){if(authError)throw authError;return {...principal,rolePermissions:{bursar:permissions}};}};
@@ -170,4 +170,25 @@ test("finance operations enforce the request body size limit before calling repo
  assert.equal(await handler(req,res),true);
  assert.equal(res.statusCode,413);
  assert.equal(calls.length,0);
+});
+
+
+test("expense limit staff lookup is permission-scoped and returns only active staff entries",async()=>{
+ const {handler,calls}=setup({permissions:["finance.expenses_manage"],overrides:{
+  listLocalExpenseLimitStaff:async input=>{calls.push({name:"listLocalExpenseLimitStaff",input});return [{staffId:STAFF,staffNumber:"ST-001",legalName:"Staff Member",jobTitle:"Bursar",dailyLimitUgx:100000,limitIsActive:true}];}
+ }});
+ const result=await invoke(handler,{path:"/api/v1/finance/expenses/limit-staff",method:"GET",headers:getHeaders});
+ assert.equal(result.statusCode,200);assert.equal(result.json().items[0].staffId,STAFF);
+ assert.equal(calls[0].input.actorStaffId,ACTOR);
+});
+test("expense limit staff lookup denies users without expense administration permission",async()=>{
+ const {handler,calls}=setup({permissions:["finance.expenses_request"]});
+ const result=await invoke(handler,{path:"/api/v1/finance/expenses/limit-staff",method:"GET",headers:getHeaders});
+ assert.equal(result.statusCode,403);assert.equal(calls.length,0);
+});
+test("expense limit endpoint rejects invalid staff IDs and non-positive amounts",async()=>{
+ const {handler,calls}=setup();
+ const badStaff=await invoke(handler,{path:"/api/v1/finance/expenses/limits",body:{staffId:"bad",dailyLimitUgx:1000}});
+ const badAmount=await invoke(handler,{path:"/api/v1/finance/expenses/limits",body:{staffId:STAFF,dailyLimitUgx:0}});
+ assert.deepEqual([badStaff.statusCode,badAmount.statusCode],[400,400]);assert.equal(calls.length,0);
 });
