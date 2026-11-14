@@ -323,6 +323,8 @@
     await Promise.all(tasks);
   }
 
+  let financeArchiveOffset=0;
+  const financeArchivePageSize=50;
   function renderFinanceArchive(items) {
     const container=byId("finance-archive-results");container.replaceChildren();
     if(!items.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="No matching historical finance records were found.";container.append(empty);return;}
@@ -357,15 +359,22 @@
       type:byId("finance-archive-type").value,
       status:byId("finance-archive-status").value,
       q:byId("finance-archive-search").value.trim(),
-      limit:"50"
+      limit:String(financeArchivePageSize),
+      offset:String(financeArchiveOffset)
     });
     try{
       const data=await request("/finance/record-archive?"+params.toString());
-      renderFinanceArchive(data.items||[]);
-      showMessage("finance-archive-message",(data.items||[]).length+" record(s) found. Showing up to 50.", "success");
+      const items=data.items||[];
+      renderFinanceArchive(items);
+      byId("finance-archive-previous").disabled=financeArchiveOffset===0;
+      byId("finance-archive-next").disabled=items.length<financeArchivePageSize;
+      byId("finance-archive-page").textContent="Page "+(Math.floor(financeArchiveOffset/financeArchivePageSize)+1);
+      showMessage("finance-archive-message",items.length+" record(s) on this page.", "success");
     }catch(error){showMessage("finance-archive-message",error.message,"error");}
   }
-  byId("finance-archive-form").addEventListener("submit",event=>{event.preventDefault();refreshFinanceArchive();});
+  byId("finance-archive-form").addEventListener("submit",event=>{event.preventDefault();financeArchiveOffset=0;refreshFinanceArchive();});
+  byId("finance-archive-previous").addEventListener("click",()=>{financeArchiveOffset=Math.max(0,financeArchiveOffset-financeArchivePageSize);refreshFinanceArchive();});
+  byId("finance-archive-next").addEventListener("click",()=>{financeArchiveOffset+=financeArchivePageSize;refreshFinanceArchive();});
 
   async function establishSession(principal) {
     if (!permissionGranted(principal)) {
