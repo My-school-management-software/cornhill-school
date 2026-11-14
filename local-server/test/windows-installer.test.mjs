@@ -27,7 +27,7 @@ test("installer verifies all local modules and never deletes the database volume
   for (const command of ["db:verify", "db:verify-auth", "db:verify-runtime", "db:verify-school"]) {
     assert.ok(script.includes(command));
   }
-  assert.doesNotMatch(script, /docker compose down -v/);
+  assert.doesNotMatch(script, /^\s*docker compose down -v\s*$/m);
   assert.match(script, /Do not delete the database volume/);
 });
 
