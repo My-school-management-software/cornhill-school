@@ -3,6 +3,10 @@ import { constants } from "node:fs";
 import { chmod, lstat, mkdir, open, realpath, rm } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 export const MAX_EVIDENCE_BYTES = 15 * 1024 * 1024;
@@ -47,7 +51,30 @@ function safeOriginalName(value) {
   return basename;
 }
 
-export async function createPrivateEvidenceStore({ rootPath, repositoryRoot = REPOSITORY_ROOT } = {}) {
+
+export async function secureWindowsEvidenceDirectory(rootPath, {
+  environment = process.env,
+  run = execFileAsync
+} = {}) {
+  const username = environment.USERNAME;
+  const domain = environment.USERDOMAIN;
+  if (typeof username !== "string" || !username.trim() ||
+      typeof domain !== "string" || !domain.trim()) {
+    throw new TypeError("Windows evidence storage requires a resolvable service-account identity.");
+  }
+  const identity = domain + "\\\\" + username;
+  try {
+    await run("icacls", [
+      rootPath, "/inheritance:r", "/grant:r",
+      identity + ":(OI)(CI)F", "SYSTEM:(OI)(CI)F"
+    ], { windowsHide: true, windowsVerbatimArguments: false, timeout: 15_000, maxBuffer: 16_384 });
+  } catch {
+    throw new TypeError("Windows private evidence storage ACLs could not be restricted to the service account and SYSTEM.");
+  }
+  return true;
+}
+
+export async function createPrivateEvidenceStore({ rootPath, repositoryRoot = REPOSITORY_ROOT, platform = process.platform, windowsEnvironment = process.env, windowsAclRunner = execFileAsync } = {}) {
   if (typeof rootPath !== "string" || !isAbsolute(rootPath)) {
     throw new TypeError("Private evidence storage must use an absolute path.");
   }
@@ -69,7 +96,9 @@ export async function createPrivateEvidenceStore({ rootPath, repositoryRoot = RE
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
     throw new TypeError("Private evidence storage root must be a real directory.");
   }
-  if (process.platform !== "win32") {
+  if (platform === "win32") {
+    await secureWindowsEvidenceDirectory(root, { environment: windowsEnvironment, run: windowsAclRunner });
+  } else {
     await chmod(root, 0o700);
     const securedStats = await lstat(root);
     if ((securedStats.mode & 0o077) !== 0) {
