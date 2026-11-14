@@ -53,3 +53,19 @@ test("finance workspace repositories load categories and active bank accounts th
  assert.match(calls[1].sql,/finance_list_bank_accounts/);
  assert.deepEqual(calls.map(call=>call.values[0]),[ACTOR,ACTOR]);
 });
+
+test("finance review queue repositories map database rows without exposing account numbers",async()=>{
+ const calls=[];
+ const pool={async query(sql,values){
+  calls.push({sql,values});
+  if(sql.includes("finance_list_expense_review_queue"))return {rows:[{id:RECORD,request_number:"EXP-2026-ABCD1234",category_name:"Food and kitchen",description:"Food supplies",amount_ugx:"25000",expense_date:"2026-11-14",status:"Pending",requested_by_staff_id:STAFF,evidence_request_id:null,review_note:null}]};
+  return {rows:[{id:RECORD,bank_account_id:CATEGORY,account_name:"School account",bank_name:"Example Bank",account_number_last4:"1234",transaction_type:"Deposit",amount_ugx:"50000",description:"School deposit",external_reference:null,transaction_date:"2026-11-14",status:"Approved",requested_by_staff_id:STAFF,evidence_request_id:EVIDENCE,review_note:null}]};
+ }};
+ const repo=createPostgresFinanceRepositories(pool);
+ const expenses=await repo.listLocalExpenseReviewQueue({actorStaffId:ACTOR});
+ const bank=await repo.listLocalBankReviewQueue({actorStaffId:ACTOR});
+ assert.equal(expenses[0].amountUgx,25000);assert.equal(expenses[0].categoryName,"Food and kitchen");
+ assert.equal(bank[0].amountUgx,50000);assert.equal(bank[0].last4,"1234");
+ assert.equal(Object.hasOwn(bank[0],"accountNumber"),false);
+ assert.equal(calls.length,2);assert.deepEqual(calls.map(call=>call.values[0]),[ACTOR,ACTOR]);
+});
