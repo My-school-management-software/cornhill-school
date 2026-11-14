@@ -131,3 +131,11 @@ test("finance review queue endpoints deny users without review or posting permis
  const bank=await invoke(handler,{path:"/api/v1/finance/bank-review-queue",method:"GET",headers:getHeaders});
  assert.equal(expenses.statusCode,403);assert.equal(bank.statusCode,403);
 });
+
+test("independent reviewers can attach matching evidence without also holding requester permissions",async()=>{
+ const {handler,calls}=setup({permissions:["finance.expenses_review","finance.banking_review"]});
+ const expense=await invoke(handler,{path:"/api/v1/finance/expenses/"+RECORD+"/evidence",body:{evidenceRequestId:EVIDENCE}});
+ const bank=await invoke(handler,{path:"/api/v1/finance/bank-transactions/"+RECORD+"/evidence",body:{evidenceRequestId:EVIDENCE}});
+ assert.equal(expense.statusCode,200);assert.equal(bank.statusCode,200);
+ assert.deepEqual(calls.map(call=>call.input.contextType),["expense_request","bank_transaction"]);
+});
