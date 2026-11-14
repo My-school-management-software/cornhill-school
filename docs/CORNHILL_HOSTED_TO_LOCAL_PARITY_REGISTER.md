@@ -45,6 +45,46 @@ The current discovery snapshot records:
 
 Counts are discovery facts, not proof that every object has been extracted. Re-run metadata inventory and reconcile changes immediately before data export and cutover.
 
+### Read-only metadata audit update (2026-11-14)
+
+A second metadata-only pass was run against the hosted project. No learner, guardian, staff, payment, message or other business rows were selected.
+
+| Metadata item | Verified result | Interpretation |
+|---|---:|---|
+| Public tables | 123 | RLS enabled on all 123 |
+| Tables with RLS policies | 97 | 26 RLS-enabled tables have no policies; grants and callers still need classification |
+| RLS policies | 253 | Policy definitions captured in aggregate; full per-policy translation remains pending |
+| Non-internal triggers | 76 across 43 tables | The earlier inventory recorded 119 triggers; this is a count-definition discrepancy to reconcile (likely internal-trigger inclusion). Do not replace the earlier figure until reconciled |
+| Public routines | 181 | 147 are SECURITY DEFINER; all 147 require body/owner/search_path/grant review |
+| Public views | 6 | Definitions and security_invoker behavior still need review |
+| Private storage buckets | 5 | Names confirmed; object-level and policy parity pending |
+
+**Edge Function inventory (11 active):**
+
+| Function | JWT verification | Source version |
+|---|---:|---:|
+| `staff-invite` | Yes | 14 |
+| `class-teacher-code` | Yes | 15 |
+| `google-drive-backup` | No | 31 |
+| `parent-portal-api` | No | 19 |
+| `staff-employment-status` | Yes | 2 |
+| `staff-access-code` | No | 3 |
+| `bursar-account-admin` | Yes | 5 |
+| `bursar-account-web` | No | 5 |
+| `staff-account-activation` | No | 7 |
+| `r2-storage-gateway` | Yes | 4 |
+| `usage-analytics` | No | 2 |
+
+JWT=false is not automatically a vulnerability: each such function must be checked for its own authentication, authorization, webhook or other trust boundary before local replacement.
+
+**Policy review flags for manual source-code review (not confirmed vulnerabilities):**
+- `class_login_directory` has a SELECT policy for `anon` and `authenticated` with an unrestricted `USING (true)`. Inspect its columns, grants, actual purpose and callers before designing the local equivalent; never expose class credentials or private learner/staff information through a public directory.
+- `school_admission_enquiries` permits anonymous INSERT only when submitted as a pending enquiry with review fields unset. Preserve this narrow intake behavior only if the corresponding public form is retained, with validation and abuse controls.
+- Several reference-data policies use `USING (true)` for authenticated users (for example academic years/terms, subjects and grade bands). Confirm that the tables contain only intended non-sensitive reference data.
+- The 26 policy-less RLS tables remain deny-by-default for ordinary roles unless grants or privileged server paths provide access. Inventory those grants and callers before porting behavior.
+
+This pass improves metadata coverage but does not mark any source table, policy, routine, trigger, Edge Function or storage bucket as locally reconciled. Existing source counts are retained where definitions differ until a precise reconciliation is completed.
+
 ## Detailed inventory registers
 
 ### A. Database tables — all 123
