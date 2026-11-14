@@ -102,9 +102,10 @@ BEGIN
 END
 $roles$;
 ALTER ROLE cornhill_auth_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-ALTER ROLE cornhill_auth_api LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '$runtimePassword';
+ALTER ROLE cornhill_auth_api LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '__RUNTIME_PASSWORD__';
 GRANT cornhill_auth_runtime TO cornhill_auth_api;
 '@
+    $authRoleSql = $authRoleSql.Replace("__RUNTIME_PASSWORD__", $runtimePassword)
     Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c",$authRoleSql) "Could not provision the restricted authentication roles."
 
     Write-Host "Provisioning separate restricted finance roles..."
