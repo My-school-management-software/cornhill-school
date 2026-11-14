@@ -115,7 +115,7 @@ try {
     assert(duplicateLinRejected, "LIN must be unique when supplied.");
 
     const guardian = await client.query(
-      "INSERT INTO cornhill_school.guardian_contacts (learner_id, guardian_name, phone_e164, is_primary) VALUES ($1, 'CI Guardian', '+256700000001', true) RETURNING id",
+      "INSERT INTO cornhill_school.guardian_contacts (learner_id, guardian_name, phone_e164, is_primary, sms_opt_in) VALUES ($1, 'CI Guardian', '+256700000001', true, true) RETURNING id",
       [first.rows[0].id]
     );
     const duplicatePrimaryRejected = await expectPgError(
@@ -135,6 +135,119 @@ try {
       [first.rows[0].id], "23505"
     );
     assert(duplicateActivePeriodRejected, "A learner cannot have two active enrolment periods.");
+
+    const staff = await client.query(
+      "INSERT INTO cornhill_auth.staff_accounts (username, username_normalized, password_hash, account_status) VALUES ('ci-finance', 'ci-finance', '$argon2id$ci-test', 'active') RETURNING id"
+    );
+    const yearPrevious = await client.query(
+      "INSERT INTO cornhill_school.academic_years (year_label, starts_on, ends_on, status) VALUES ('2025', '2025-01-01', '2025-12-31', 'Completed') RETURNING id"
+    );
+    const yearCurrent = await client.query(
+      "INSERT INTO cornhill_school.academic_years (year_label, starts_on, ends_on, status) VALUES ('2026', '2026-01-01', '2026-12-31', 'Active') RETURNING id"
+    );
+    const termPrevious = await client.query(
+      "INSERT INTO cornhill_school.academic_terms (academic_year_id, term_number, term_name, starts_on, ends_on, status) VALUES ($1, 1, 'Term 1', '2025-01-01', '2025-04-30', 'Completed') RETURNING id",
+      [yearPrevious.rows[0].id]
+    );
+    const termCurrent = await client.query(
+      "INSERT INTO cornhill_school.academic_terms (academic_year_id, term_number, term_name, starts_on, ends_on, status) VALUES ($1, 1, 'Term 1', '2026-01-01', '2026-04-30', 'Active') RETURNING id",
+      [yearCurrent.rows[0].id]
+    );
+    const tuition = await client.query("SELECT id FROM cornhill_school.fee_catalogue WHERE item_code = 'TUITION'");
+    const previousCharge = await client.query(
+      "INSERT INTO cornhill_school.fee_obligations (learner_id, academic_term_id, fee_item_id, amount_ugx) VALUES ($1, $2, $3, 50000) RETURNING id",
+      [first.rows[0].id, termPrevious.rows[0].id, tuition.rows[0].id]
+    );
+    const currentCharge = await client.query(
+      "INSERT INTO cornhill_school.fee_obligations (learner_id, academic_term_id, fee_item_id, amount_ugx) VALUES ($1, $2, $3, 100000) RETURNING id",
+      [first.rows[0].id, termCurrent.rows[0].id, tuition.rows[0].id]
+    );
+    const payment = await client.query(
+      "INSERT INTO cornhill_school.payment_records (learner_id, amount_ugx, payment_method, received_by_staff_id, idempotency_key) VALUES ($1, 75000, 'cash', $2, gen_random_uuid()) RETURNING id",
+      [first.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.payment_allocations (payment_id, fee_obligation_id, amount_ugx) VALUES ($1, $2, 50000), ($1, $3, 25000)",
+      [payment.rows[0].id, previousCharge.rows[0].id, currentCharge.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.payment_records SET status = 'Posted', status_changed_by_staff_id = $2 WHERE id = $1",
+      [payment.rows[0].id, staff.rows[0].id]
+    );
+    await client.query("SET CONSTRAINTS ALL IMMEDIATE");
+
+    const receipt = await client.query(
+      "SELECT receipt_number, receipt_data_snapshot FROM cornhill_school.payment_receipts WHERE payment_id = $1",
+      [payment.rows[0].id]
+    );
+    assert(receipt.rowCount === 1, "A posted payment must issue exactly one receipt.");
+    assert(/^CR-[0-9]{4}-[0-9]{7}$/.test(receipt.rows[0].receipt_number), "Receipt number format is invalid.");
+    assert(receipt.rows[0].receipt_data_snapshot.pupil_code === first.rows[0].pupil_code, "Receipt must preserve the permanent pupil code.");
+    assert(receipt.rows[0].receipt_data_snapshot.allocations.length === 2, "Receipt must show previous and current term allocations.");
+    assert(receipt.rows[0].receipt_data_snapshot.allocations[0].balance_after_ugx === 0, "Previous-term debt must be reduced to zero.");
+    assert(receipt.rows[0].receipt_data_snapshot.allocations[1].balance_after_ugx === 75000, "Current-term remaining balance must be shown.");
+    const outbox = await client.query(
+      "SELECT status, destination_phone FROM cornhill_school.payment_notification_outbox WHERE payment_id = $1",
+      [payment.rows[0].id]
+    );
+    assert(outbox.rowCount === 1 && outbox.rows[0].status === "queued", "Only opted-in guardian contacts should receive a queued notification.");
+    assert(outbox.rows[0].destination_phone === "+256700000001", "Notification must use the consented guardian phone.");
+
+    const receiptMutationRejected = await expectPgError(
+      client, "receipt_snapshot_immutable_test",
+      "UPDATE cornhill_school.payment_receipts SET receipt_data_snapshot = '{}'::jsonb WHERE payment_id = $1",
+      [payment.rows[0].id], "23514"
+    );
+    assert(receiptMutationRejected, "Issued receipt content must be immutable.");
+
+    const postedPaymentEditRejected = await expectPgError(
+      client, "posted_payment_immutable_test",
+      "UPDATE cornhill_school.payment_records SET amount_ugx = 1 WHERE id = $1",
+      [payment.rows[0].id], "23514"
+    );
+    assert(postedPaymentEditRejected, "Posted payment amount must be immutable.");
+
+    await client.query(
+      "UPDATE cornhill_school.learners SET is_bursary = true, bursary_fee_ugx = 30000 WHERE id = $1",
+      [second.rows[0].id]
+    );
+    const bursaryItem = await client.query("SELECT id FROM cornhill_school.fee_catalogue WHERE item_code = 'BURSARY'");
+    await client.query(
+      "INSERT INTO cornhill_school.fee_obligations (learner_id, academic_term_id, fee_item_id, amount_ugx) VALUES ($1, $2, $3, 30000)",
+      [second.rows[0].id, termCurrent.rows[0].id, bursaryItem.rows[0].id]
+    );
+    const standardTuitionRejected = await expectPgError(
+      client, "bursary_standard_tuition_test",
+      "INSERT INTO cornhill_school.fee_obligations (learner_id, academic_term_id, fee_item_id, amount_ugx) VALUES ($1, $2, $3, 100000)",
+      [second.rows[0].id, termCurrent.rows[0].id, tuition.rows[0].id], "23514"
+    );
+    assert(standardTuitionRejected, "Bursary learners must not receive a normal full tuition obligation.");
+
+    const wrongLearnerPayment = await client.query(
+      "INSERT INTO cornhill_school.payment_records (learner_id, amount_ugx, payment_method, received_by_staff_id, idempotency_key) VALUES ($1, 1, 'cash', $2, gen_random_uuid()) RETURNING id",
+      [second.rows[0].id, staff.rows[0].id]
+    );
+    const crossLearnerAllocationRejected = await expectPgError(
+      client, "cross_learner_payment_allocation_test",
+      "INSERT INTO cornhill_school.payment_allocations (payment_id, fee_obligation_id, amount_ugx) VALUES ($1, $2, 1)",
+      [wrongLearnerPayment.rows[0].id, currentCharge.rows[0].id], "23514"
+    );
+    assert(crossLearnerAllocationRejected, "A payment cannot be allocated to another learner's account.");
+
+    const overpayment = await client.query(
+      "INSERT INTO cornhill_school.payment_records (learner_id, amount_ugx, payment_method, received_by_staff_id, idempotency_key) VALUES ($1, 80000, 'cash', $2, gen_random_uuid()) RETURNING id",
+      [first.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.payment_allocations (payment_id, fee_obligation_id, amount_ugx) VALUES ($1, $2, 80000)",
+      [overpayment.rows[0].id, currentCharge.rows[0].id]
+    );
+    const overpaymentRejected = await expectPgError(
+      client, "fee_obligation_overpayment_test",
+      "UPDATE cornhill_school.payment_records SET status = 'Posted' WHERE id = $1",
+      [overpayment.rows[0].id], "23514"
+    );
+    assert(overpaymentRejected, "Posted allocations must not exceed the fee obligation.");
 
     await client.query("ROLLBACK");
     console.log("Local school, academic and finance schemas verified: nineteen tables, ten classes, fifteen subjects, seven fee items, 28 permission codes, permanent pupil codes, LIN uniqueness and class-specific subject mappings.");
