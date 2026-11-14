@@ -724,6 +724,24 @@ try {
       "INSERT INTO cornhill_school.payroll_runs (payroll_period_id, prepared_by_staff_id) VALUES ($1, $2) RETURNING id",
       [payrollPeriod.rows[0].id, staff.rows[0].id]
     );
+    const periodCodeRewriteRejected = await expectPgError(
+      client, "payroll_period_code_identity_test",
+      "UPDATE cornhill_school.payroll_periods SET period_code = '2026-CHANGED' WHERE id = $1",
+      [payrollPeriod.rows[0].id], "23514"
+    );
+    assert(periodCodeRewriteRejected, "A payroll period code cannot change after its payroll run is created.");
+    const periodDateRewriteRejected = await expectPgError(
+      client, "payroll_period_date_identity_test",
+      "UPDATE cornhill_school.payroll_periods SET starts_on = '2026-11-02' WHERE id = $1",
+      [payrollPeriod.rows[0].id], "23514"
+    );
+    assert(periodDateRewriteRejected, "Payroll period coverage dates cannot change after a run is created.");
+    const periodPaymentDateRewriteRejected = await expectPgError(
+      client, "payroll_period_payment_date_identity_test",
+      "UPDATE cornhill_school.payroll_periods SET payment_date = '2026-12-02' WHERE id = $1",
+      [payrollPeriod.rows[0].id], "23514"
+    );
+    assert(periodPaymentDateRewriteRejected, "A payroll period payment date cannot change after a run is created.");
     const payrollAudit = await client.query(
       "INSERT INTO cornhill_school.payroll_audit_events (payroll_run_id, actor_staff_id, event_code, reason, details) VALUES ($1, $2, 'payroll.prepared', 'CI audit immutability check', '{\"source\":\"schema-verifier\"}'::jsonb) RETURNING id",
       [payrollRun.rows[0].id, staff.rows[0].id]
