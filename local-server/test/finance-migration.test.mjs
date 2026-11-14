@@ -335,3 +335,17 @@ test("migration 028 scopes evidence lookup to the exact record, active permitted
  assert.match(recordEvidenceLookup,/REVOKE ALL ON FUNCTION cornhill_school[.]finance_list_record_evidence_requests/);
  assert.match(recordEvidenceLookup,/GRANT EXECUTE ON FUNCTION cornhill_school[.]finance_list_record_evidence_requests\(uuid,text,uuid\)\s+TO cornhill_finance_runtime/);
 });
+
+
+const recordHistory=await readFile(new URL("../migrations/029_local_finance_record_history.sql",import.meta.url),"utf8");
+test("finance record history combines exact-record workflow and evidence events without duplicate audit tables",()=>{
+ assert.match(recordHistory,/finance_list_record_history/);
+ assert.match(recordHistory,/expense_request_events/);
+ assert.match(recordHistory,/bank_transaction_events/);
+ assert.match(recordHistory,/evidence_capture_events/);
+ assert.match(recordHistory,/r\.context_record_id=p_record/);
+ assert.match(recordHistory,/LIMIT 100/);
+ assert.match(recordHistory,/finance_actor_has_permission/);
+ assert.match(recordHistory,/REVOKE ALL ON FUNCTION/);
+ assert.match(recordHistory,/GRANT EXECUTE ON FUNCTION .*cornhill_finance_runtime/);
+});
