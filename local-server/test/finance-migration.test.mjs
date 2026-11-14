@@ -201,3 +201,28 @@ test("expense and banking permissions are explicit and runtime table access rema
  assert.match(expenseBank,/REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api/);
  assert.doesNotMatch(expenseBank,/GRANT SELECT|GRANT INSERT|GRANT ALL ON TABLE/);
 });
+
+
+const expenseBankWorkflows=await readFile(new URL("../migrations/020_local_expense_banking_workflows.sql",import.meta.url),"utf8");
+test("expense requests serialize daily limit checks and require active permission",()=>{
+ assert.match(expenseBankWorkflows,/finance_actor_has_permission/);
+ assert.match(expenseBankWorkflows,/FOR UPDATE/);
+ assert.match(expenseBankWorkflows,/timezone\('Africa\\/Kampala',now\(\)\)/);
+ assert.match(expenseBankWorkflows,/Daily expense limit would be exceeded/);
+});
+test("expense approval and posting enforce separation of duties and approved evidence",()=>{
+ assert.match(expenseBankWorkflows,/requester cannot approve or reject their own request/);
+ assert.match(expenseBankWorkflows,/e[.]status='Approved'/);
+ assert.match(expenseBankWorkflows,/ON CONFLICT\(expense_request_id\) DO NOTHING/);
+});
+test("bank workflows require independent review and approved evidence before verified ledger posting",()=>{
+ assert.match(expenseBankWorkflows,/entrant cannot approve or reject their own transaction/);
+ assert.match(expenseBankWorkflows,/e[.]status='Approved'/);
+ assert.match(expenseBankWorkflows,/ON CONFLICT\(bank_transaction_id\) DO NOTHING/);
+ assert.match(expenseBankWorkflows,/FOR UPDATE/);
+});
+test("financial evidence attachment is scoped to the matching request and account",()=>{
+ assert.match(expenseBankWorkflows,/attach_local_finance_evidence/);
+ assert.match(expenseBankWorkflows,/context_record_id=p_record/);
+ assert.match(expenseBankWorkflows,/GRANT EXECUTE ON FUNCTION/);
+});
