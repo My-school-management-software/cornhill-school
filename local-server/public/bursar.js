@@ -195,6 +195,84 @@
     showMessage("login-message", message, message ? "error" : "");
   }
 
+  const financeQueuePermissions = {expenseReview:false,expensePost:false,bankReview:false,bankVerify:false};
+  function queueButton(label, action, disabled=false) {
+    const button=document.createElement("button");
+    button.type="button";button.className="button secondary";button.textContent=label;button.disabled=disabled;
+    button.addEventListener("click",action);return button;
+  }
+  function renderFinanceQueue(containerId,items,kind) {
+    const container=byId(containerId);container.replaceChildren();
+    if(!items.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="No requests are waiting in this queue.";container.append(empty);return;}
+    for(const item of items){
+      const card=document.createElement("article");card.className="finance-review-item";
+      const heading=document.createElement("strong");
+      heading.textContent=kind==="expense"?(item.requestNumber+" · "+item.categoryName):(item.bankName+" · "+item.accountName+" · •••• "+item.last4);
+      const details=document.createElement("p");details.textContent=money(item.amountUgx)+" · "+item.status+" · "+(kind==="expense"?item.expenseDate:item.transactionDate);
+      const description=document.createElement("p");description.textContent=item.description;
+      card.append(heading,details,description);
+      if(item.externalReference){const reference=document.createElement("p");reference.className="muted";reference.textContent="Reference: "+item.externalReference;card.append(reference);}
+      const controls=document.createElement("div");controls.className="finance-review-actions";
+      const id=item.id;
+      const prefix=kind==="expense"?"/finance/expenses/":"/finance/bank-transactions/";
+      const messageId=kind==="expense"?"expense-review-message":"bank-review-message";
+      if(item.status==="Pending" && (kind==="expense"?financeQueuePermissions.expenseReview:financeQueuePermissions.bankReview)){
+        const note=document.createElement("input");note.type="text";note.maxLength=500;note.placeholder="Review note (required when rejecting)";note.setAttribute("aria-label","Review note");
+        controls.append(note);
+        controls.append(queueButton("Approve",()=>runFinanceQueueAction(messageId,async()=>{
+          await request(prefix+id+"/review",{method:"POST",body:{decision:"Approved",note:note.value.trim()||null}});
+        })));
+        controls.append(queueButton("Reject",()=>{
+          if(note.value.trim().length<5){showMessage(messageId,"Enter a reason of at least five characters before rejecting.","error");return;}
+          runFinanceQueueAction(messageId,async()=>{await request(prefix+id+"/review",{method:"POST",body:{decision:"Rejected",note:note.value.trim()}});});
+        }));
+      }
+      if(item.status==="Approved"){
+        if(kind==="expense"?financeQueuePermissions.expenseReview:financeQueuePermissions.bankReview){
+          const evidence=document.createElement("input");evidence.type="text";evidence.maxLength=36;evidence.pattern="[0-9a-fA-F-]{36}";evidence.placeholder="Evidence request ID (UUID)";evidence.value=item.evidenceRequestId||"";
+          evidence.setAttribute("aria-label","Evidence request ID");
+          controls.append(evidence);
+          controls.append(queueButton(item.evidenceRequestId?"Update evidence link":"Attach evidence",()=>{
+            if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(evidence.value.trim())){
+              showMessage(messageId,"Enter a valid evidence request ID.","error");return;
+            }
+            runFinanceQueueAction(messageId,async()=>{await request(prefix+id+"/evidence",{method:"POST",body:{evidenceRequestId:evidence.value.trim()}});});
+          }));
+        }
+        if(kind==="expense"&&financeQueuePermissions.expensePost){
+          controls.append(queueButton("Post expense",()=>runFinanceQueueAction(messageId,async()=>{
+            await request(prefix+id+"/post",{method:"POST",body:{}});
+          })));
+        }
+        if(kind==="bank"&&financeQueuePermissions.bankVerify){
+          controls.append(queueButton("Verify transaction",()=>runFinanceQueueAction(messageId,async()=>{
+            await request(prefix+id+"/verify",{method:"POST",body:{}});
+          })));
+        }
+        const evidenceState=document.createElement("p");evidenceState.className="muted";
+        evidenceState.textContent=item.evidenceRequestId?"Evidence request linked. Final posting requires that evidence to be approved.":"Evidence is not linked; attach the matching evidence request before final posting.";
+        card.append(evidenceState);
+      }
+      if(controls.childNodes.length)card.append(controls);
+      container.append(card);
+    }
+  }
+  async function runFinanceQueueAction(messageId,action) {
+    try{await action();showMessage(messageId,"Finance action completed.","success");await refreshFinanceQueues();}
+    catch(error){showMessage(messageId,error.message,"error");}
+  }
+  async function refreshFinanceQueues() {
+    const expensePanel=byId("expense-review-panel"),bankPanel=byId("bank-review-panel");
+    const tasks=[];
+    if(financeQueuePermissions.expenseReview||financeQueuePermissions.expensePost){
+      tasks.push(request("/finance/expense-review-queue").then(data=>renderFinanceQueue("expense-review-queue",data.items||[],"expense")).catch(error=>showMessage("expense-review-message",error.message,"error")));
+    }
+    if(financeQueuePermissions.bankReview||financeQueuePermissions.bankVerify){
+      tasks.push(request("/finance/bank-review-queue").then(data=>renderFinanceQueue("bank-review-queue",data.items||[],"bank")).catch(error=>showMessage("bank-review-message",error.message,"error")));
+    }
+    await Promise.all(tasks);
+  }
+
   async function establishSession(principal) {
     if (!permissionGranted(principal)) {
       showLogin("Your staff account does not currently have permission to record school payments. Contact the authorised school administrator.");
@@ -227,7 +305,15 @@
     byId("expense-request-form").hidden = !canRequestExpenses;
     byId("bank-account-form").hidden = !canManageBanking;
     byId("bank-transaction-form").hidden = !canManageBanking;
+    financeQueuePermissions.expenseReview=hasPermission(principal,"finance.expenses_review");
+    financeQueuePermissions.expensePost=hasPermission(principal,"finance.expenses_post");
+    financeQueuePermissions.bankReview=hasPermission(principal,"finance.banking_review");
+    financeQueuePermissions.bankVerify=hasPermission(principal,"finance.banking_verify");
+    byId("finance-review-workspace").hidden=!(financeQueuePermissions.expenseReview||financeQueuePermissions.expensePost||financeQueuePermissions.bankReview||financeQueuePermissions.bankVerify);
+    byId("expense-review-panel").hidden=!(financeQueuePermissions.expenseReview||financeQueuePermissions.expensePost);
+    byId("bank-review-panel").hidden=!(financeQueuePermissions.bankReview||financeQueuePermissions.bankVerify);
     if (canRequestExpenses || canManageBanking) await refreshOperationsLookups({canRequestExpenses,canManageBanking});
+    if (!byId("finance-review-workspace").hidden) await refreshFinanceQueues();
     byId("login-message").textContent = "";
   }
 
@@ -999,6 +1085,8 @@
     } catch(error) { showMessage("bank-transaction-message",error.message,"error"); }
     finally { button.disabled = false; }
   });
+
+  byId("refresh-finance-queues").addEventListener("click", refreshFinanceQueues);
 
   byId("print-receipt").addEventListener("click", () => window.print());
   initialise();
