@@ -70,7 +70,7 @@ if (-not $SkipDatabase) {
     $roleExists = & $psql -X -h 127.0.0.1 -p 5432 -U postgres -d postgres -Atc "SELECT 1 FROM pg_roles WHERE rolname = 'cornhill_local_admin';"
     if ($LASTEXITCODE -ne 0) { Stop-WithGuidance "Could not inspect PostgreSQL roles." }
     $adminPassword = (Select-String -Path $envPath -Pattern '^CORNHILL_DB_ADMIN_PASSWORD=(.+)$').Matches.Groups[1].Value
-    if ($adminPassword.Length -lt 24 -or $adminPassword.StartsWith("REPLACE_WITH_")) { Stop-WithGuidance "CORNHILL_DB_ADMIN_PASSWORD in .env must be a unique random password of at least 24 characters." }
+    if ($adminPassword.Length -lt 24 -or $adminPassword -notmatch "^[A-Za-z0-9_-]+$") { Stop-WithGuidance "CORNHILL_DB_ADMIN_PASSWORD in .env must be a URL-safe random password of at least 24 characters." }
     if ($roleExists.Trim() -eq "1") {
       $roleSql = "ALTER ROLE cornhill_local_admin WITH LOGIN CREATEDB PASSWORD '$adminPassword';"
     } else {
@@ -86,6 +86,8 @@ if (-not $SkipDatabase) {
   try {
     Write-Host "Creating isolated database cornhill_local..."
     Invoke-Checked $createdb @("-h","127.0.0.1","-p","5432","-U","cornhill_local_admin","-O","cornhill_local_admin","cornhill_local") "Could not create cornhill_local. No existing database was deleted."
+    Write-Host "Removing temporary database-creation privilege from cornhill_local_admin..."
+    Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c","ALTER ROLE cornhill_local_admin NOCREATEDB;") "Could not remove the temporary CREATEDB privilege. Keep the database isolated and investigate before use."
   } finally {
     Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
     $adminPassword = $null
