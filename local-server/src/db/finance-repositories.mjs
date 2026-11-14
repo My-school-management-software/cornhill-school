@@ -32,7 +32,7 @@ export function createPostgresFinanceRepositories(pool) {
       const result=await pool.query("SELECT * FROM cornhill_school.finance_list_bank_review_queue($1::uuid)",[actorStaffId]);
       return result.rows.map(row=>({id:row.id,bankAccountId:row.bank_account_id,accountName:row.account_name,bankName:row.bank_name,last4:row.account_number_last4,transactionType:row.transaction_type,amountUgx:Number(row.amount_ugx),description:row.description,externalReference:row.external_reference,transactionDate:row.transaction_date,status:row.status,requestedByStaffId:row.requested_by_staff_id,evidenceRequestId:row.evidence_request_id,reviewNote:row.review_note}));
     },
-    async listLocalExpenseLimitStaff({actorStaffId}) {\n      assertUuid(actorStaffId,"Expense limit lookup actor ID");\n      const result=await pool.query("SELECT * FROM cornhill_school.finance_list_expense_limit_staff($1::uuid)",[actorStaffId]);\n      return result.rows.map(row=>({staffId:row.staff_account_id,staffNumber:row.staff_number,legalName:row.legal_name,jobTitle:row.job_title,dailyLimitUgx:row.daily_limit_ugx==null?null:Number(row.daily_limit_ugx),limitIsActive:row.limit_is_active}));\n    },\n    async listLocalExpenseLimitStaff({actorStaffId}) {
+    async listLocalExpenseLimitStaff({actorStaffId}) {
       assertUuid(actorStaffId,"Expense limit lookup actor ID");
       const result=await pool.query("SELECT * FROM cornhill_school.finance_list_expense_limit_staff($1::uuid)",[actorStaffId]);
       return result.rows.map(row=>({staffId:row.staff_account_id,staffNumber:row.staff_number,legalName:row.legal_name,jobTitle:row.job_title,dailyLimitUgx:row.daily_limit_ugx==null?null:Number(row.daily_limit_ugx),limitIsActive:row.limit_is_active}));
