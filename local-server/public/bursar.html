@@ -120,6 +120,20 @@
         </div>
       </section>
 
+      <section id="finance-archive-panel" class="panel operations-panel" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">FINANCE RECORDS</p><h3>Historical expense and bank archive</h3><p class="muted">Search submitted, approved, rejected, posted and verified records. Access is limited by your finance permissions.</p></div>
+        </div>
+        <form id="finance-archive-form" class="search-form">
+          <label class="field grow"><span>Search reference, description, category or bank account</span><input id="finance-archive-search" type="search" maxlength="80" placeholder="Enter a reference or keyword"></label>
+          <label class="field"><span>Record type</span><select id="finance-archive-type"><option value="all">All records</option><option value="expense">Expenses</option><option value="bank">Bank transactions</option></select></label>
+          <label class="field"><span>Status</span><select id="finance-archive-status"><option value="all">All statuses</option><option>Pending</option><option>Approved</option><option>Rejected</option><option>Posted</option><option>Cancelled</option><option>Verified</option></select></label>
+          <button class="button primary" type="submit">Search archive</button>
+        </form>
+        <p id="finance-archive-message" class="form-message" role="status" aria-live="polite"></p>
+        <div id="finance-archive-results" class="finance-review-list" aria-live="polite"><p class="muted">Search the archive to view historical records.</p></div>
+      </section>
+
       <section id="payment-search-panel" class="panel search-panel">
         <div class="section-heading">
           <div>
