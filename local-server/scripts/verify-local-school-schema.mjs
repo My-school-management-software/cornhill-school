@@ -41,8 +41,8 @@ try {
     "learners",
     "payment_allocations",
     "payment_notification_outbox",
-    "payment_records",
     "payment_receipts",
+    "payment_records",
     "subjects"
   ];
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
