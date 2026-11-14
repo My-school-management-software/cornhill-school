@@ -165,6 +165,20 @@ try {
     && assignmentGuardDefinition.includes("a.staff_account_id = NEW.staff_account_id"),
     "Special-session attendance guard must check approval, publication and assigned staff identity.");
 
+  const specialSessionAssignmentIntegrityTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'special_session_assignment_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(specialSessionAssignmentIntegrityTrigger.rows[0]?.installed === true,
+    "Special-session assignments must be protected against inactive staff and post-attendance changes.");
+  const specialSessionAssignmentIntegrityDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_special_session_assignment()'::regprocedure) AS definition"
+  );
+  const assignmentIntegrityDefinition = specialSessionAssignmentIntegrityDefinition.rows[0]?.definition ?? "";
+  assert(assignmentIntegrityDefinition.includes("staff_status IS DISTINCT FROM 'active'")
+    && assignmentIntegrityDefinition.includes("session_status = 'Cancelled'")
+    && assignmentIntegrityDefinition.includes("A staff assignment cannot be removed after attendance has been recorded"),
+    "Special-session assignment integrity must enforce active staff, non-cancelled sessions and attendance history.");
+
   const specialSessionGuardDefinition = await pool.query(
     "SELECT pg_get_functiondef('cornhill_school.guard_special_session_review()'::regprocedure) AS definition"
   );
@@ -430,6 +444,21 @@ try {
       "INSERT INTO cornhill_school.staff_scheduled_session_attendance (session_id, staff_account_id) VALUES ($1, $2) RETURNING id",
       [prepSession.rows[0].id, staff.rows[0].id]
     );
+    const assignmentRemovalRejected = await expectPgError(
+      client, "special_session_assignment_removal_test",
+      "DELETE FROM cornhill_school.staff_prep_assignments WHERE prep_session_id = $1 AND staff_account_id = $2",
+      [prepSession.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(assignmentRemovalRejected, "A staff assignment cannot be removed after attendance is recorded.");
+    const inactiveAssignee = await client.query(
+      "INSERT INTO cornhill_auth.staff_accounts (username, username_normalized, password_hash, account_status) VALUES ('ci-inactive-assignee', 'ci-inactive-assignee', '$argon2id$ci-test', 'disabled') RETURNING id"
+    );
+    const inactiveAssignmentRejected = await expectPgError(
+      client, "special_session_inactive_assignee_test",
+      "INSERT INTO cornhill_school.staff_prep_assignments (prep_session_id, staff_account_id, assigned_by_staff_id) VALUES ($1, $2, $3)",
+      [prepSession.rows[0].id, inactiveAssignee.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(inactiveAssignmentRejected, "Inactive staff accounts cannot be assigned to special sessions.");
     const unauthorizedStatementRejected = await expectPgError(
       client, "special_session_statement_authority_test",
       "UPDATE cornhill_school.staff_scheduled_session_attendance SET headteacher_statement = 'CI review statement', headteacher_statement_by = $2, headteacher_statement_at = now() WHERE id = $1",
