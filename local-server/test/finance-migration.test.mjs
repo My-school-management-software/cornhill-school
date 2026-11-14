@@ -153,4 +153,5 @@ test("finance API receives only evidence workflow function execution, not table 
  assert.match(evidence,/GRANT EXECUTE ON FUNCTION cornhill_school\.register_local_evidence_file/);
  assert.match(evidence,/GRANT EXECUTE ON FUNCTION cornhill_school\.review_local_evidence_request/);
  assert.doesNotMatch(evidence,/GRANT SELECT, INSERT|GRANT ALL ON TABLE/);
+ assert.doesNotMatch(evidence,/REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA cornhill_school/);
 });
