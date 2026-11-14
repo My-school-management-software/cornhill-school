@@ -19,7 +19,7 @@ test("runner strips outer transaction wrapper and accepts comment headers",()=>{
  assert.equal(prepareTransactionalMigration("\uFEFF-- header\r\nBEGIN;\r\nSELECT 1;\r\nCOMMIT;"),"SELECT 1;");
  assert.throws(()=>prepareTransactionalMigration("/* unterminated\nBEGIN; SELECT 1; COMMIT;"),/BEGIN\/COMMIT/);
 });
-test("all twenty-six migrations use valid outer transactions",async()=>{
+test("all twenty-seven migrations use valid outer transactions",async()=>{
  const dir=new URL("../migrations/",import.meta.url);const names=sortMigrationFiles(await readdir(dir));
  assert.deepEqual(names,[
  "001_local_identity_foundation.sql","002_local_authorization_foundation.sql","003_local_auth_rate_limit_indexes.sql",
@@ -30,7 +30,7 @@ test("all twenty-six migrations use valid outer transactions",async()=>{
  "013_local_finance_credit_allocation.sql","014_local_finance_credit_source_lookup.sql",
  "015_local_finance_credit_allocation_recovery.sql","016_local_finance_payment_recovery.sql",
  "017_local_finance_evidence_foundation.sql","018_local_finance_evidence_file_lookup.sql",
- "019_local_finance_expense_banking_foundation.sql","020_local_expense_banking_workflows.sql","021_local_expense_banking_permission_catalog.sql","022_local_bank_balance_concurrency_guard.sql","023_local_finance_workspace_lookups.sql","024_local_finance_review_queues.sql","025_local_finance_reviewer_evidence_attachment.sql","026_local_finance_approved_expense_evidence_link.sql"]);
+ "019_local_finance_expense_banking_foundation.sql","020_local_expense_banking_workflows.sql","021_local_expense_banking_permission_catalog.sql","022_local_bank_balance_concurrency_guard.sql","023_local_finance_workspace_lookups.sql","024_local_finance_review_queues.sql","025_local_finance_reviewer_evidence_attachment.sql","026_local_finance_approved_expense_evidence_link.sql","027_local_finance_expense_limit_staff_lookup.sql"]);
  for(const name of names){const source=await readFile(new URL(name,dir),"utf8");assert.doesNotThrow(()=>prepareTransactionalMigration(source),name);}
 });
 test("runner rejects malformed or destructive SQL and ledger mismatches",()=>{
