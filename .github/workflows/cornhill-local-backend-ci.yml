@@ -60,7 +60,7 @@ jobs:
           EOF
 
       - name: Provision authentication and finance roles in temporary CI database
-        run: node scripts/provision-local-finance-roles.mjs
+        run: node --env-file=.env scripts/provision-local-finance-roles.mjs
 
       - name: Apply all isolated local migrations
         env:
