@@ -204,6 +204,43 @@ CREATE TABLE cornhill_school.payroll_runs (
     )
 );
 
+CREATE FUNCTION cornhill_school.validate_payroll_run_transition()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, cornhill_school
+AS $function$
+BEGIN
+  IF NEW.run_status = OLD.run_status THEN
+    RETURN NEW;
+  END IF;
+  IF OLD.run_status = 'Draft' AND NEW.run_status = 'Reviewed' THEN
+    NEW.reviewed_at := COALESCE(NEW.reviewed_at, now());
+  ELSIF OLD.run_status = 'Reviewed' AND NEW.run_status = 'Approved' THEN
+    IF NEW.approved_by_staff_id IS NULL OR NEW.approved_by_staff_id = NEW.prepared_by_staff_id THEN
+      RAISE EXCEPTION 'Payroll approval must be performed by someone other than the preparer'
+        USING ERRCODE = 'check_violation';
+    END IF;
+    NEW.approved_at := COALESCE(NEW.approved_at, now());
+  ELSIF OLD.run_status = 'Approved' AND NEW.run_status = 'Posted' THEN
+    NEW.posted_at := COALESCE(NEW.posted_at, now());
+  ELSIF OLD.run_status = 'Posted' AND NEW.run_status = 'Reversed' THEN
+    IF NEW.status_reason IS NULL OR length(trim(NEW.status_reason)) < 5 THEN
+      RAISE EXCEPTION 'Payroll reversal requires an audit reason'
+        USING ERRCODE = 'check_violation';
+    END IF;
+    NEW.reversed_at := COALESCE(NEW.reversed_at, now());
+  ELSE
+    RAISE EXCEPTION 'Invalid payroll status transition'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER payroll_run_status_transition
+BEFORE UPDATE OF run_status ON cornhill_school.payroll_runs
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.validate_payroll_run_transition();
+
 CREATE TABLE cornhill_school.payroll_lines (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     payroll_run_id uuid NOT NULL REFERENCES cornhill_school.payroll_runs(id) ON DELETE RESTRICT,
@@ -218,6 +255,33 @@ CREATE TABLE cornhill_school.payroll_lines (
     UNIQUE (payroll_run_id, staff_account_id),
     CONSTRAINT payroll_line_nonnegative_net CHECK (base_salary_ugx + allowances_ugx >= deductions_ugx)
 );
+
+CREATE FUNCTION cornhill_school.prevent_non_draft_payroll_line_changes()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, cornhill_school
+AS $function$
+DECLARE
+  target_run_id uuid;
+  run_status text;
+BEGIN
+  target_run_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.payroll_run_id ELSE NEW.payroll_run_id END;
+  SELECT pr.run_status INTO run_status
+  FROM cornhill_school.payroll_runs pr
+  WHERE pr.id = target_run_id
+  FOR UPDATE;
+  IF run_status IS DISTINCT FROM 'Draft' THEN
+    RAISE EXCEPTION 'Payroll lines can only be changed while the payroll run is a draft'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER payroll_line_draft_only
+BEFORE INSERT OR UPDATE OR DELETE ON cornhill_school.payroll_lines
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.prevent_non_draft_payroll_line_changes();
 
 CREATE TABLE cornhill_school.payroll_line_items (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -271,6 +335,78 @@ $function$;
 CREATE TRIGGER payroll_line_item_approval
 BEFORE INSERT OR UPDATE ON cornhill_school.payroll_line_items
 FOR EACH ROW EXECUTE FUNCTION cornhill_school.validate_payroll_line_item();
+
+CREATE FUNCTION cornhill_school.prevent_payroll_item_delete_after_draft()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, cornhill_school
+AS $function$
+DECLARE
+  run_status text;
+BEGIN
+  SELECT pr.run_status INTO run_status
+  FROM cornhill_school.payroll_lines pl
+  JOIN cornhill_school.payroll_runs pr ON pr.id = pl.payroll_run_id
+  WHERE pl.id = OLD.payroll_line_id
+  FOR UPDATE OF pr;
+  IF run_status IS DISTINCT FROM 'Draft' THEN
+    RAISE EXCEPTION 'Payroll items can only be removed while the payroll run is a draft'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN OLD;
+END;
+$function$;
+
+CREATE TRIGGER payroll_item_draft_only_delete
+BEFORE DELETE ON cornhill_school.payroll_line_items
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.prevent_payroll_item_delete_after_draft();
+
+CREATE FUNCTION cornhill_school.assert_payroll_line_item_totals()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, cornhill_school
+AS $function$
+DECLARE
+  target_line_id uuid;
+  line_allowances bigint;
+  line_deductions bigint;
+  item_allowances bigint;
+  item_deductions bigint;
+BEGIN
+  IF TG_TABLE_NAME = 'payroll_lines' THEN
+    target_line_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END;
+  ELSE
+    target_line_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.payroll_line_id ELSE NEW.payroll_line_id END;
+  END IF;
+  SELECT allowances_ugx, deductions_ugx
+    INTO line_allowances, line_deductions
+  FROM cornhill_school.payroll_lines WHERE id = target_line_id;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+
+  SELECT
+    COALESCE(sum(amount_ugx) FILTER (WHERE item_type = 'Allowance'), 0),
+    COALESCE(sum(amount_ugx) FILTER (WHERE item_type = 'Deduction'), 0)
+  INTO item_allowances, item_deductions
+  FROM cornhill_school.payroll_line_items
+  WHERE payroll_line_id = target_line_id;
+
+  IF item_allowances <> line_allowances OR item_deductions <> line_deductions THEN
+    RAISE EXCEPTION 'Payroll line totals must match their approved allowance and deduction items'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NULL;
+END;
+$function$;
+
+CREATE CONSTRAINT TRIGGER payroll_line_item_totals_valid
+AFTER INSERT OR UPDATE ON cornhill_school.payroll_lines
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.assert_payroll_line_item_totals();
+
+CREATE CONSTRAINT TRIGGER payroll_item_totals_valid
+AFTER INSERT OR UPDATE OR DELETE ON cornhill_school.payroll_line_items
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.assert_payroll_line_item_totals();
 
 CREATE TABLE cornhill_school.payroll_audit_events (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
