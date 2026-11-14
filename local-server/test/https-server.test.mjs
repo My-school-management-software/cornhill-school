@@ -67,6 +67,26 @@ test("HTTPS server rejects TLS key/certificate paths inside the repository", asy
   );
 });
 
+test("HTTPS server source supports native Windows PFX and validates the exported certificate", async () => {
+  const source = await (await import("node:fs/promises")).readFile(
+    new URL("../src/https-server.mjs", import.meta.url), "utf8"
+  );
+  assert.match(source, /pfxPath/);
+  assert.match(source, /pfxPassphrase/);
+  assert.match(source, /createSecureContext\(\{ pfx, passphrase: pfxPassphrase/);
+  assert.match(source, /x509\.checkHost\(expectedHostname\)/);
+  assert.match(source, /TLS PFX bundle must be stored outside the source repository/);
+});
+
+test("HTTPS startup passes PFX settings from private environment variables", async () => {
+  const source = await (await import("node:fs/promises")).readFile(
+    new URL("../scripts/start-local-auth.mjs", import.meta.url), "utf8"
+  );
+  assert.match(source, /CORNHILL_TLS_PFX_PATH/);
+  assert.match(source, /CORNHILL_TLS_PFX_PASSWORD/);
+  assert.match(source, /pfxPassphrase/);
+});
+
 test("HTTPS server source bounds request and header timeouts", async () => {
   const source = await (await import("node:fs/promises")).readFile(
     new URL("../src/https-server.mjs", import.meta.url), "utf8"
