@@ -151,6 +151,20 @@ try {
   assert(specialSessionGuard.rows[0]?.installed === true,
     "Special-session review guard must be installed.");
 
+  const scheduledSessionAssignmentGuard = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'scheduled_session_attendance_assignment_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(scheduledSessionAssignmentGuard.rows[0]?.installed === true,
+    "Special-session attendance must require approved sessions and explicit staff assignment.");
+  const scheduledSessionAssignmentDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_scheduled_session_attendance_assignment()'::regprocedure) AS definition"
+  );
+  const assignmentGuardDefinition = scheduledSessionAssignmentDefinition.rows[0]?.definition ?? "";
+  assert(assignmentGuardDefinition.includes("session_status IS DISTINCT FROM 'Approved'")
+    && assignmentGuardDefinition.includes("session_published IS DISTINCT FROM true")
+    && assignmentGuardDefinition.includes("a.staff_account_id = NEW.staff_account_id"),
+    "Special-session attendance guard must check approval, publication and assigned staff identity.");
+
   const specialSessionGuardDefinition = await pool.query(
     "SELECT pg_get_functiondef('cornhill_school.guard_special_session_review()'::regprocedure) AS definition"
   );
@@ -388,6 +402,30 @@ try {
       "INSERT INTO cornhill_school.staff_prep_sessions (prep_date, title, start_time, end_time, class_name, approval_status, is_published, director_approved_by, director_approved_at, created_by_staff_id) VALUES (CURRENT_DATE, 'CI special session', '06:30', '07:30', 'P7', 'Approved', true, $1, now(), $1) RETURNING id",
       [approver.rows[0].id]
     );
+    await client.query(
+      "INSERT INTO cornhill_school.staff_prep_assignments (prep_session_id, staff_account_id, assigned_by_staff_id) VALUES ($1, $2, $3)",
+      [prepSession.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+    );
+    const unassignedAttendanceRejected = await expectPgError(
+      client, "special_session_unassigned_staff_test",
+      "INSERT INTO cornhill_school.staff_scheduled_session_attendance (session_id, staff_account_id) VALUES ($1, $2)",
+      [prepSession.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(unassignedAttendanceRejected, "Staff not assigned to a special session cannot have attendance recorded for it.");
+    const draftSession = await client.query(
+      "INSERT INTO cornhill_school.staff_prep_sessions (prep_date, title, start_time, end_time, class_name, created_by_staff_id) VALUES (CURRENT_DATE, 'CI draft session', '07:00', '08:00', 'P7', $1) RETURNING id",
+      [approver.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.staff_prep_assignments (prep_session_id, staff_account_id, assigned_by_staff_id) VALUES ($1, $2, $3)",
+      [draftSession.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+    );
+    const draftAttendanceRejected = await expectPgError(
+      client, "special_session_draft_attendance_test",
+      "INSERT INTO cornhill_school.staff_scheduled_session_attendance (session_id, staff_account_id) VALUES ($1, $2)",
+      [draftSession.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(draftAttendanceRejected, "Draft or unpublished special sessions cannot accept attendance.");
     const specialAttendance = await client.query(
       "INSERT INTO cornhill_school.staff_scheduled_session_attendance (session_id, staff_account_id) VALUES ($1, $2) RETURNING id",
       [prepSession.rows[0].id, staff.rows[0].id]
