@@ -24,7 +24,7 @@ async function invoke(handler,{path,method="POST",headers=postHeaders,body={},en
 }
 function setup({permissions=allPermissions,authError,overrides={}}={}){
  const calls=[];
- const names=["listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseLimitStaff","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence","listLocalFinanceRecordHistory"];
+ const names=["listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseLimitStaff","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence","listLocalFinanceRecordHistory","listLocalFinanceRecordArchive"];
  const financeRepository=Object.fromEntries(names.map(name=>[name,async input=>{calls.push({name,input});return RECORD;}]));
  Object.assign(financeRepository,overrides);
  const authService={async authenticate(input){if(authError)throw authError;return {...principal,rolePermissions:{bursar:permissions}};}};
@@ -124,6 +124,18 @@ test("expense and bank review queue endpoints require their respective reviewer 
  assert.equal(expenses.statusCode,200);assert.equal(bank.statusCode,200);
  assert.equal(expenses.json().items[0].id,RECORD);assert.equal(bank.json().items[0].status,"Approved");
  assert.deepEqual(calls.map(call=>call.name),["listLocalExpenseReviewQueue","listLocalBankReviewQueue"]);
+});
+
+test("searchable finance archive passes filters and remains permission-gated",async()=>{
+ const {handler,calls}=setup({permissions:["finance.expenses_review"],overrides:{
+  listLocalFinanceRecordArchive:async input=>{calls.push({name:"listLocalFinanceRecordArchive",input});return [{recordType:"expense",recordId:RECORD,reference:"EXP-2026-ABC12345",status:"Rejected",amountUgx:12000}];}
+ }});
+ const result=await invoke(handler,{path:"/api/v1/finance/record-archive?type=expense&status=Rejected&q=stationery&limit=25&offset=5",method:"GET",headers:getHeaders});
+ assert.equal(result.statusCode,200);
+ assert.equal(result.json().items[0].recordId,RECORD);
+ assert.deepEqual(calls[0].input,{actorStaffId:ACTOR,recordType:"expense",status:"Rejected",search:"stationery",limit:25,offset:5});
+ const denied=await invoke(setup({permissions:["finance.payments_record"]}).handler,{path:"/api/v1/finance/record-archive",method:"GET",headers:getHeaders});
+ assert.equal(denied.statusCode,403);
 });
 test("finance review queue endpoints deny users without review or posting permissions",async()=>{
  const {handler}=setup({permissions:["finance.expenses_request","finance.banking_manage"]});
