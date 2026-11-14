@@ -6,6 +6,7 @@ import { createArgon2PasswordHasher } from "./argon2-password-hasher.mjs";
 import { createAuthService } from "./auth-service.mjs";
 import { createAuthHttpHandler } from "./auth-http-handler.mjs";
 import { createFinanceHttpHandler } from "./finance-http-handler.mjs";
+import { createFinanceOperationsHttpHandler } from "./finance-operations-http-handler.mjs";
 import { createEvidenceHttpHandler } from "./evidence-http-handler.mjs";
 import { createPrivateEvidenceStore } from "./private-evidence-store.mjs";
 
@@ -93,6 +94,9 @@ export async function createLocalAuthRuntime({
         throw new Error("Local finance database identity check failed.");
       }
       const financeRepository = createPostgresFinanceRepositories(financePool);
+      const financeOperationsRouteHandler = createFinanceOperationsHttpHandler({
+        authService, financeRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+      });
       const financeRouteHandler = createFinanceHttpHandler({
         authService, financeRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
       });
@@ -110,6 +114,7 @@ export async function createLocalAuthRuntime({
       }
       routeHandler = async (request, response) => {
         if (await authRouteHandler(request, response)) return true;
+        if (await financeOperationsRouteHandler(request, response)) return true;
         if (await financeRouteHandler(request, response)) return true;
         return evidenceRouteHandler ? evidenceRouteHandler(request, response) : false;
       };
