@@ -50,6 +50,6 @@ ON cornhill_school.staff_scheduled_session_attendance
 FOR EACH ROW
 EXECUTE FUNCTION cornhill_school.guard_scheduled_session_attendance_assignment();
 
-REVOKE ALL ON FUNCTION cornhill_school.guard_scheduled_session_attendance() FROM PUBLIC;
+REVOKE ALL ON FUNCTION cornhill_school.guard_scheduled_session_attendance_assignment() FROM PUBLIC;
 
 COMMIT;
