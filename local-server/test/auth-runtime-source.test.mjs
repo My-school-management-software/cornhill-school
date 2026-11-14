@@ -21,5 +21,5 @@ test("auth runtime never falls back to the administrator DB role", () => {
   assert.doesNotMatch(source, /CORNHILL_DB_ADMIN_USER|CORNHILL_DB_ADMIN_PASSWORD/);
 });
 test("auth runtime closes its pool on startup failure", () => {
-  assert.match(source, /await pool\.end\(\)/);
+  assert.match(source, /await (?:pool|activePool)\.end\(\)/);
 });
