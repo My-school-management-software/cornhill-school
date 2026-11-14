@@ -255,3 +255,10 @@ test("permission helper uses the actual local role and employment tables",()=>{
  assert.match(expenseBankWorkflows,/cornhill_school[.]staff_profiles/);
  assert.match(expenseBankWorkflows,/employment_status='Active'/);
 });
+
+const expenseBankPermissions=await readFile(new URL("../migrations/021_local_expense_banking_permission_catalog.sql",import.meta.url),"utf8");
+test("expense and banking permission catalog includes every workflow capability",()=>{
+ for(const code of ["finance.expenses_manage","finance.expenses_request","finance.expenses_review","finance.expenses_post","finance.banking_manage","finance.banking_review","finance.banking_verify"])
+  assert.ok(expenseBankPermissions.includes("('"+code+"'"),"missing permission "+code);
+ assert.match(expenseBankPermissions,/ON CONFLICT\(permission_code\) DO NOTHING/);
+});
