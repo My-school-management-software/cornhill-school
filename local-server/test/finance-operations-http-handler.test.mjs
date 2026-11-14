@@ -139,3 +139,35 @@ test("independent reviewers can attach matching evidence without also holding re
  assert.equal(expense.statusCode,200);assert.equal(bank.statusCode,200);
  assert.deepEqual(calls.map(call=>call.input.contextType),["expense_request","bank_transaction"]);
 });
+
+test("finance operations reject an unauthorised Host before authentication or repository access",async()=>{
+ const {handler,calls}=setup();
+ const result=await invoke(handler,{path:"/api/v1/finance/expenses",headers:{...postHeaders,Host:"attacker.example"}});
+ assert.equal(result.statusCode,421);
+ assert.equal(calls.length,0);
+});
+
+test("finance operations reject non-JSON bodies before repository access",async()=>{
+ const {handler,calls}=setup();
+ const req=Readable.from([Buffer.from("description=expense")]);
+ req.url="/api/v1/finance/expenses";req.method="POST";
+ req.headers={host:"cornhill.local:4174",origin:ORIGIN,cookie:SESSION_COOKIE_NAME+"="+TOKEN,"x-cornhill-csrf":"B".repeat(43),"content-type":"application/x-www-form-urlencoded"};
+ req.socket={encrypted:true};
+ const res=response();
+ assert.equal(await handler(req,res),true);
+ assert.equal(res.statusCode,415);
+ assert.equal(calls.length,0);
+});
+
+test("finance operations enforce the request body size limit before calling repositories",async()=>{
+ const {handler,calls}=setup();
+ const req=Readable.from([Buffer.alloc(16*1024+1,65)]);
+ req.url="/api/v1/finance/expenses";req.method="POST";
+ req.headers={...Object.fromEntries(Object.entries(postHeaders).map(([k,v])=>[k.toLowerCase(),v]))};
+ req.headers["content-type"]="application/json";
+ req.socket={encrypted:true};
+ const res=response();
+ assert.equal(await handler(req,res),true);
+ assert.equal(res.statusCode,413);
+ assert.equal(calls.length,0);
+});
