@@ -48,6 +48,13 @@ try {
     "payment_notification_outbox",
     "payment_receipts",
     "payment_records",
+    "payroll_audit_events",
+    "payroll_line_items",
+    "payroll_lines",
+    "payroll_periods",
+    "payroll_runs",
+    "staff_employment_terms",
+    "staff_profiles",
     "subjects"
   ];
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
