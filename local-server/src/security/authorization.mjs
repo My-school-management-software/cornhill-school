@@ -6,8 +6,10 @@ const STAFF_ROLE_CODES = new Set([
 ]);
 
 const PERMISSION_CODES = new Set([
-  "learners.read", "learners.manage",
-  "academics.marks_enter", "academics.results_publish",
+  "learners.read", "learners.manage", "learners.guardians_manage", "learners.lin_manage",
+  "admissions.enquiries_read", "admissions.register_learner", "admissions.archive_learner",
+  "academics.terms_manage", "academics.subjects_manage", "academics.assessments_manage",
+  "academics.marks_enter", "academics.results_view", "academics.results_publish",
   "finance.payments_record", "finance.payments_reverse", "finance.reports_read",
   "staff.attendance_manage", "staff.payroll_read", "staff.payroll_manage",
   "staff.accounts_manage", "guardians.access_approve",
@@ -52,7 +54,7 @@ export function sessionMatchesPrincipal(session) {
 export function staffHasPermission({
   principal,
   permissionCode,
-  rolePermissions,
+  rolePermissions = principal?.rolePermissions,
   nowMs = Date.now()
 }) {
   if (!hasLiveSession(principal, "staff", nowMs)) return false;
