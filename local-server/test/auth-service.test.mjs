@@ -11,6 +11,7 @@ import {
   normalizeStaffIdentifier
 } from "../src/security/auth-service.mjs";
 import { createOpaqueSessionSecrets } from "../src/security/session-tokens.mjs";
+import { staffHasPermission } from "../src/security/authorization.mjs";
 
 const STAFF_ID = "11111111-1111-4111-8111-111111111111";
 const GUARDIAN_ID = "22222222-2222-4222-8222-222222222222";
@@ -272,6 +273,22 @@ test("session authentication requires an active matching stored session", async 
   const principal = await service.authenticate({ sessionToken: SESSION.sessionToken });
   assert.equal(principal.id, STAFF_ID);
   assert.equal(principal.principalType, "staff");
+});
+test("authenticated staff principal carries live session and current role grants", async () => {
+  const { service, state } = fixture();
+  state.sessionRow = {
+    principalType: "staff", staffAccountId: STAFF_ID, guardianAccountId: null,
+    tokenHash: SESSION.sessionTokenHash, csrfTokenHash: SESSION.csrfTokenHash,
+    accountStatus: "active", expiresAt: new Date(NOW.getTime() + 60_000),
+    revokedAt: null, roles: ["teacher"], classIds: [],
+    rolePermissions: { teacher: ["academics.marks_enter"] }
+  };
+  const principal = await service.authenticate({ sessionToken: SESSION.sessionToken });
+  assert.equal(principal.session.revokedAt, null);
+  assert.equal(Date.parse(principal.session.expiresAt), NOW.getTime() + 60_000);
+  assert.equal(staffHasPermission({
+    principal, permissionCode: "academics.marks_enter", nowMs: NOW.getTime()
+  }), true);
 });
 test("session authentication denies expired sessions", async () => {
   const { service, state } = fixture();

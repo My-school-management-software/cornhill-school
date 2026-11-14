@@ -359,7 +359,12 @@ export function createAuthService({
       username: session.username,
       displayName: session.displayName,
       roles: session.roles,
-      classIds: session.classIds
+      classIds: session.classIds,
+      rolePermissions: session.rolePermissions,
+      session: {
+        revokedAt: session.revokedAt ?? null,
+        expiresAt: session.expiresAt
+      }
     };
     return safePrincipal(account, session.principalType);
   }
