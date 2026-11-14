@@ -123,7 +123,7 @@ try {
   assert(financePermissions.rows[0]?.count === 16, "Expected sixteen finance permission codes, including expense and banking workflow controls.");
 
   const staffPermissions = await pool.query(
-    "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'staff'"
+    "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE permission_code LIKE 'staff.%'"
   );
   assert(staffPermissions.rows[0]?.count === 11, "Expected eleven staff and attendance permission codes.");
 
