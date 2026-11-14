@@ -113,6 +113,16 @@ test("expired staff sessions are denied", () => {
 test("finance permissions are recognised but require an explicit role grant", () => {
   assert.equal(staffHasPermission({
     principal: staff({ rolePermissions: {} }),
+    permissionCode: "finance.credit_allocate",
+    nowMs: NOW
+  }), false);
+  assert.equal(staffHasPermission({
+    principal: staff({ rolePermissions: { bursar: ["finance.credit_allocate"] }, roles: ["bursar"] }),
+    permissionCode: "finance.credit_allocate",
+    nowMs: NOW
+  }), true);
+  assert.equal(staffHasPermission({
+    principal: staff({ rolePermissions: {} }),
     permissionCode: "finance.fees_manage",
     nowMs: NOW
   }), false);

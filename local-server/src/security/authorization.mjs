@@ -12,7 +12,7 @@ const PERMISSION_CODES = new Set([
   "academics.marks_enter", "academics.results_view", "academics.results_publish",
   "finance.payments_record", "finance.payments_reverse", "finance.reports_read",
   "finance.fees_manage", "finance.bursary_manage", "finance.receipts_reprint",
-  "finance.expenses_manage", "finance.banking_manage",
+  "finance.expenses_manage", "finance.banking_manage", "finance.credit_allocate",
   "staff.attendance_manage", "staff.payroll_read", "staff.payroll_manage",
   "staff.profile_manage", "staff.attendance_import", "staff.attendance_adjust", "staff.payroll_approve",
   "staff.accounts_manage", "guardians.access_approve",
