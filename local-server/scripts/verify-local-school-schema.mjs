@@ -276,6 +276,12 @@ try {
     && scheduleHistorySql.includes("A schedule assignment with recorded attendance history cannot be changed or deleted"),
     "Schedule assignment changes must be rejected when attendance exists in the original effective range.");
 
+  const attendanceAdjustmentSingleUseIndex = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'cornhill_school' AND indexname = 'payroll_attendance_adjustment_single_use' AND indexdef ILIKE '%UNIQUE%' AND indexdef ILIKE '%source_attendance_adjustment_id%' AND indexdef ILIKE '%IS NOT NULL%') AS installed"
+  );
+  assert(attendanceAdjustmentSingleUseIndex.rows[0]?.installed === true,
+    "An approved attendance adjustment must not be linked to multiple payroll items.");
+
   const payrollDetailGuards = await pool.query(
     "SELECT tgname FROM pg_trigger WHERE tgname IN ('payroll_line_parent_identity_guard', 'payroll_line_item_parent_identity_guard') AND NOT tgisinternal"
   );
