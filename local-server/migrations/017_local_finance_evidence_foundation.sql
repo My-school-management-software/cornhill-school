@@ -187,13 +187,6 @@ RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
 AS $fn$
 DECLARE v_request cornhill_school.evidence_capture_requests%ROWTYPE;
 BEGIN
-  SELECT * INTO v_request FROM cornhill_school.evidence_capture_requests
-  WHERE id=p_request_id FOR UPDATE;
-  IF NOT FOUND OR v_request.assigned_staff_id<>p_actor_staff_id OR
-     v_request.status<>'Pending' OR v_request.expires_at<=now() OR
-     NOT EXISTS(SELECT 1 FROM cornhill_school.evidence_capture_files f WHERE f.request_id=p_request_id) THEN
-    RAISE EXCEPTION 'Evidence request cannot be submitted until valid evidence is uploaded' USING ERRCODE='23514';
-  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM cornhill_auth.staff_accounts sa
     JOIN cornhill_auth.staff_role_assignments ra ON ra.staff_account_id=sa.id
@@ -202,6 +195,13 @@ BEGIN
     WHERE sa.id=p_actor_staff_id AND sa.account_status='active'
       AND sp.employment_status='Active' AND rp.permission_code='finance.evidence_manage'
   ) THEN RAISE EXCEPTION 'Staff account lacks permission to submit financial evidence' USING ERRCODE='42501'; END IF;
+  SELECT * INTO v_request FROM cornhill_school.evidence_capture_requests
+  WHERE id=p_request_id FOR UPDATE;
+  IF NOT FOUND OR v_request.assigned_staff_id<>p_actor_staff_id OR
+     v_request.status<>'Pending' OR v_request.expires_at<=now() OR
+     NOT EXISTS(SELECT 1 FROM cornhill_school.evidence_capture_files f WHERE f.request_id=p_request_id) THEN
+    RAISE EXCEPTION 'Evidence request cannot be submitted until valid evidence is uploaded' USING ERRCODE='23514';
+  END IF;
   UPDATE cornhill_school.evidence_capture_requests
   SET status='Submitted',submitted_at=now(),updated_at=now()
   WHERE id=p_request_id;
@@ -267,8 +267,6 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
 AS $fn$
 DECLARE v_request cornhill_school.evidence_capture_requests%ROWTYPE; v_can_review boolean;
 BEGIN
-  SELECT * INTO v_request FROM cornhill_school.evidence_capture_requests WHERE id=p_request_id;
-  IF NOT FOUND THEN RETURN NULL; END IF;
   SELECT EXISTS(
     SELECT 1 FROM cornhill_auth.staff_accounts sa
     JOIN cornhill_auth.staff_role_assignments ra ON ra.staff_account_id=sa.id
@@ -277,6 +275,8 @@ BEGIN
     WHERE sa.id=p_actor_staff_id AND sa.account_status='active'
       AND sp.employment_status='Active' AND rp.permission_code='finance.evidence_review'
   ) INTO v_can_review;
+  SELECT * INTO v_request FROM cornhill_school.evidence_capture_requests WHERE id=p_request_id;
+  IF NOT FOUND THEN RETURN NULL; END IF;
   IF NOT v_can_review AND NOT EXISTS(
     SELECT 1 FROM cornhill_auth.staff_accounts sa
     JOIN cornhill_auth.staff_role_assignments ra ON ra.staff_account_id=sa.id
@@ -299,6 +299,16 @@ BEGIN
   );
 END $fn$;
 
+REVOKE ALL ON FUNCTION cornhill_school.create_local_evidence_request(uuid,uuid,text,text,uuid,text,bigint)
+  FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
+REVOKE ALL ON FUNCTION cornhill_school.register_local_evidence_file(uuid,uuid,uuid,text,text,bigint,text)
+  FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
+REVOKE ALL ON FUNCTION cornhill_school.submit_local_evidence_request(uuid,uuid)
+  FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
+REVOKE ALL ON FUNCTION cornhill_school.review_local_evidence_request(uuid,uuid,text,text)
+  FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
+REVOKE ALL ON FUNCTION cornhill_school.finance_get_evidence_request(uuid,uuid)
+  FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
