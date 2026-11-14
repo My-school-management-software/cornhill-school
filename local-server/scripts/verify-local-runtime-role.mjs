@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readLocalDatabaseConfig } from "../src/db/config.mjs";
+import { readLocalRuntimeDatabaseConfig } from "../src/db/runtime-config.mjs";
 
 const { Pool } = await import("pg");
 const pool = new Pool(readLocalDatabaseConfig());
@@ -19,8 +20,11 @@ try {
     ORDER BY r.rolname
   `);
   assert.equal(roles.rows.length, 2, "Both dedicated authentication roles must exist.");
+  const runtimePassword = process.env.CORNHILL_DB_RUNTIME_PASSWORD ?? "";
+  const expectsLogin = Buffer.byteLength(runtimePassword, "utf8") >= 32 && !runtimePassword.startsWith("REPLACE_WITH_");
   for (const role of roles.rows) {
-    assert.equal(role.rolcanlogin, false, role.rolname + " must remain NOLOGIN until a private password is set.");
+    const shouldLogin = role.rolname === "cornhill_auth_api" && expectsLogin;
+    assert.equal(role.rolcanlogin, shouldLogin, role.rolname + " has an unexpected LOGIN/NOLOGIN state.");
     assert.equal(role.rolsuper, false);
     assert.equal(role.rolcreatedb, false);
     assert.equal(role.rolcreaterole, false);
@@ -32,6 +36,18 @@ try {
     SELECT pg_has_role('cornhill_auth_api', 'cornhill_auth_runtime', 'MEMBER') AS member
   `);
   assert.equal(membership.rows[0]?.member, true);
+
+  if (expectsLogin) {
+    const { Pool: RuntimePool } = await import("pg");
+    const runtimePool = new RuntimePool(readLocalRuntimeDatabaseConfig());
+    try {
+      const identity = await runtimePool.query("SELECT current_user AS database_user, current_database() AS database_name");
+      assert.equal(identity.rows[0]?.database_user, "cornhill_auth_api");
+      assert.equal(identity.rows[0]?.database_name, "cornhill_local");
+    } finally {
+      await runtimePool.end();
+    }
+  }
 
   const checks = await pool.query(`
     SELECT
@@ -73,7 +89,7 @@ try {
   assert.equal(result.audit_read, false);
   assert.equal(result.audit_sequence_usage, true);
 
-  console.log("Authentication database role verified: NOLOGIN, non-privileged, scoped column grants and no permission/guardian-link administration.");
+  console.log("Authentication database role verified: restricted runtime group is NOLOGIN; API login is enabled only with a private runtime password; least-privilege grants verified.");
 } finally {
   await pool.end();
 }
