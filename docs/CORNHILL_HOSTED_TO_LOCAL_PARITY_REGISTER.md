@@ -424,3 +424,40 @@ A fresh verbose catalog read returned **123 public tables**, all with RLS enable
 5. Hosted backup, evidence and provider integration tables contain credentials, token ciphertexts, hashes or private file references. These fields require secret/key migration design and must never be copied into browser-accessible tables or logs.
 
 **Next reconciliation batch:** extract and compare per-table column definitions, PK/unique/check constraints, foreign keys and indexes for identity + learner + academic tables first; then inspect RLS policy expressions and grants for the same tables. Mark each table individually only after both schema and authorization semantics match. Overall reconciled count remains **0/123** at this stage.
+
+
+### Identity, learner and academic policy review — first tranche (2026-11-14)
+
+Read-only catalog and policy inspection covered the core identity, learner, guardian, admissions, teacher-assignment, assessment and report-card tables. Local migration source files 001, 005 and 006 were also compared. No hosted rows were read or changed in this policy pass.
+
+**Authorization patterns observed**
+- `students`: Admin and academic-leader read paths; assigned class teachers read their class; service-role titles (transport, library, matron, senior staff and school nurse) have a separate active-learner identity read path. Admin-only write policy.
+- `assessment_scores`: teachers can insert/update only where the assessment is assigned to them and the learner belongs to the assessment class; academic leaders/Admin can read broader results.
+- `assessments`: Admin/DOS management, academic-leader read, and assigned-subject teacher read.
+- `class_subjects`: Admin/DOS management; teachers can read only active-dated assignments with at least one explicit capability (marks, reports or parent messaging), including linked teacher-directory identity.
+- `school_classes`: Admin management; academic leaders and assigned class teachers read; selected service roles have limited class-name access.
+- `parent_guardian_contacts`: Admin-only direct table management policy. Parent portal access is expected to use server-side scoped sessions rather than direct broad table access.
+- `report_card_publications`: Admin-only management, with `approved_by = auth.uid()` on writes. Review workflow/events are readable by academic leaders.
+- `learner_charges`: Admin create/read and finance-operator read. Creation binds `created_by` to the current Auth user.
+- `learner_enrolment_periods`: finance-operator and Admin read policies; no direct write policy appeared in this policy query, so inspect grants and server-side mutation paths before mapping.
+- `school_admission_enquiries`: anonymous insert is constrained to pending/unreviewed records; authenticated applicants can insert and read only their own pending enquiries; Admin reviews and reads.
+- Academic year, term, subject and grade-band reference data are readable to authenticated users; management is restricted to Admin/DOS helper predicates.
+- `user_profiles`: users read their own profile; Admin can read all and update staff profiles.
+
+**Local schema comparison — known gaps/translation work**
+- Hosted learner table is `public.students`; local destination is `cornhill_school.learners`. The local design adds a generated permanent `pupil_code`, immutable-code trigger, source UUID mapping, class/status indexes and strict name/LIN/bursary/archive constraints. Hosted `admission_number` must be mapped to the permanent pupil code only after inspecting actual values and confirming it is stable; do not regenerate or overwrite existing codes during import.
+- Hosted learner attributes not yet represented one-for-one in migration 005 include alternate guardian details, guardian relationship/email, guardian WhatsApp consent, bursary approver/timestamp, bursary support notes, admission-proration fields and detailed archive actor/previous status. Several are represented in separate local guardian/admission/audit structures rather than on the learner row; create explicit field mapping or additive migration before import.
+- Hosted `parent_guardian_contacts` includes PIN/recovery hashes, failed-attempt and lockout state. Local `guardian_contacts` has basic contacts/consent but does not yet carry those hosted PIN lifecycle fields. Local guardian authentication is separately modelled in `cornhill_auth`; map identities/session security deliberately and never copy hashes blindly across different password/PIN schemes.
+- Hosted `learner_enrolment_periods` has academic year and term references, re-admission reason and exit metadata. Local `enrolment_periods` currently has class and status history but lacks the same academic-year/term relationship and re-admission reason.
+- Hosted academics use `academic_years`, `academic_terms`, `subjects`, `class_subjects`, `assessments`, and `assessment_scores`; local equivalents are `academic_years`, `academic_terms`, `subjects`, `class_subjects`, `assessments`, and `learner_marks`. The local design uses staff-account IDs, term numbers, class-subject composite integrity and per-mark max scores; hosted fields and IDs need explicit mapping.
+- Hosted curriculum grouping and UNEB grading (`school_curriculum_subjects`, `uneb_subject_grade_bands`) and teacher/class assignment history require dedicated local destinations or documented derivation; they are not fully represented by migration 006's initial subject/class mapping.
+- Hosted report-card review workflow has DOS, Headteacher and Director approval stages and immutable event history. Local migration 006 currently creates assessments/marks only; report-card review, publication, snapshots, approval history, fee-gated guardian access and published report artifact handling remain unimplemented locally.
+
+**Security and migration cautions**
+1. Preserve teacher subject-level capabilities and class membership checks; a generic “teacher can edit marks” permission is insufficient.
+2. Preserve separation between Admin, DOS, academic viewer, class teacher, subject teacher and finance operator. Local role permissions must encode scope, not just broad titles.
+3. Treat guardian PIN/recovery state and portal session hashes as sensitive authentication material. Reissue credentials or migrate only through a separately reviewed compatible verifier; never log or expose them.
+4. Anonymous admission enquiry creation needs input limits, abuse/rate controls and pending-only constraints in the local API.
+5. Do not infer that RLS-enabled tables with no policy are safe to expose: inspect table grants and server-side access paths. In particular, session/audit/history tables may be intentionally server-only.
+
+**Status for this tranche:** schema and policy findings recorded, but none of these tables is marked reconciled. Need complete per-table unique/check/index/trigger/grant comparison and local authorization route tests. Overall remains **0/123 reconciled**.
