@@ -69,3 +69,11 @@ test("finance review queue repositories map database rows without exposing accou
  assert.equal(Object.hasOwn(bank[0],"accountNumber"),false);
  assert.equal(calls.length,2);assert.deepEqual(calls.map(call=>call.values[0]),[ACTOR,ACTOR]);
 });
+
+
+test("expense limit staff repository maps active staff and configured limit without exposing extra account data",async()=>{
+ const calls=[];const pool={async query(sql,values){calls.push({sql,values});return {rows:[{staff_account_id:STAFF,staff_number:"ST-001",legal_name:"Staff Member",job_title:"Bursar",daily_limit_ugx:"150000",limit_is_active:true}]};}};
+ const repo=createPostgresFinanceRepositories(pool);
+ assert.deepEqual(await repo.listLocalExpenseLimitStaff({actorStaffId:ACTOR}),[{staffId:STAFF,staffNumber:"ST-001",legalName:"Staff Member",jobTitle:"Bursar",dailyLimitUgx:150000,limitIsActive:true}]);
+ assert.match(calls[0].sql,/finance_list_expense_limit_staff/);assert.deepEqual(calls[0].values,[ACTOR]);
+});
