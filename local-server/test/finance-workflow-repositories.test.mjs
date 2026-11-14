@@ -77,3 +77,15 @@ test("expense limit staff repository maps active staff and configured limit with
  assert.deepEqual(await repo.listLocalExpenseLimitStaff({actorStaffId:ACTOR}),[{staffId:STAFF,staffNumber:"ST-001",legalName:"Staff Member",jobTitle:"Bursar",dailyLimitUgx:150000,limitIsActive:true}]);
  assert.match(calls[0].sql,/finance_list_expense_limit_staff/);assert.deepEqual(calls[0].values,[ACTOR]);
 });
+
+test("finance repository returns only exact-record evidence request choices",async()=>{
+ const calls=[];const pool={async query(sql,values){calls.push({sql,values});return {rows:[{request_id:EVIDENCE,purpose:"Expense receipt",context_label:"Kitchen supplies",amount_ugx:"25000",status:"Approved",created_at:"2026-11-14T10:00:00Z",assigned_staff_id:STAFF,requested_by_staff_id:ACTOR}]};}};
+ const repo=createPostgresFinanceRepositories(pool);
+ assert.deepEqual(await repo.listRecordEvidenceRequests({actorStaffId:ACTOR,contextType:"expense_request",recordId:RECORD}),[
+  {requestId:EVIDENCE,purpose:"Expense receipt",contextLabel:"Kitchen supplies",amountUgx:25000,status:"Approved",createdAt:"2026-11-14T10:00:00Z",assignedStaffId:STAFF,requestedByStaffId:ACTOR}
+ ]);
+ assert.match(calls[0].sql,/finance_list_record_evidence_requests/);
+ assert.deepEqual(calls[0].values,[ACTOR,"expense_request",RECORD]);
+ await assert.rejects(()=>repo.listRecordEvidenceRequests({actorStaffId:ACTOR,contextType:"other",recordId:RECORD}),/context is invalid/);
+ assert.equal(calls.length,1);
+});
