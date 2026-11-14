@@ -24,7 +24,7 @@ async function invoke(handler,{path,method="POST",headers=postHeaders,body={},en
 }
 function setup({permissions=allPermissions,authError,overrides={}}={}){
  const calls=[];
- const names=["listLocalExpenseCategories","listLocalBankAccounts","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence"];
+ const names=["listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence"];
  const financeRepository=Object.fromEntries(names.map(name=>[name,async input=>{calls.push({name,input});return RECORD;}]));
  Object.assign(financeRepository,overrides);
  const authService={async authenticate(input){if(authError)throw authError;return {...principal,rolePermissions:{bursar:permissions}};}};
@@ -112,4 +112,22 @@ test("authenticated finance workspace lookups return category and bank-account p
  assert.equal(categories.statusCode,200);assert.equal(accounts.statusCode,200);
  assert.equal(categories.json().items[0].id,CATEGORY);assert.equal(accounts.json().items[0].last4,"1234");
  assert.equal(calls.length,2);
+});
+
+test("expense and bank review queue endpoints require their respective reviewer or verifier permissions",async()=>{
+ const {handler,calls}=setup({permissions:["finance.expenses_review","finance.banking_verify"],overrides:{
+  listLocalExpenseReviewQueue:async input=>{calls.push({name:"listLocalExpenseReviewQueue",input});return [{id:RECORD,status:"Pending",amountUgx:5000}];},
+  listLocalBankReviewQueue:async input=>{calls.push({name:"listLocalBankReviewQueue",input});return [{id:RECORD,status:"Approved",amountUgx:7000}];}
+ }});
+ const expenses=await invoke(handler,{path:"/api/v1/finance/expense-review-queue",method:"GET",headers:getHeaders});
+ const bank=await invoke(handler,{path:"/api/v1/finance/bank-review-queue",method:"GET",headers:getHeaders});
+ assert.equal(expenses.statusCode,200);assert.equal(bank.statusCode,200);
+ assert.equal(expenses.json().items[0].id,RECORD);assert.equal(bank.json().items[0].status,"Approved");
+ assert.deepEqual(calls.map(call=>call.name),["listLocalExpenseReviewQueue","listLocalBankReviewQueue"]);
+});
+test("finance review queue endpoints deny users without review or posting permissions",async()=>{
+ const {handler}=setup({permissions:["finance.expenses_request","finance.banking_manage"]});
+ const expenses=await invoke(handler,{path:"/api/v1/finance/expense-review-queue",method:"GET",headers:getHeaders});
+ const bank=await invoke(handler,{path:"/api/v1/finance/bank-review-queue",method:"GET",headers:getHeaders});
+ assert.equal(expenses.statusCode,403);assert.equal(bank.statusCode,403);
 });
