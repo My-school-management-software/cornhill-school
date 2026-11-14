@@ -820,3 +820,35 @@ This pass reviewed the tracked payment, expense/payroll and SMS migration defini
 - Local parity requires an atomic claim/lease protocol, bounded retry/backoff, idempotent provider requests, attempt audit, terminal/dead-letter handling, pre-send revalidation of guardian link/phone/consent, and race-safe cancellation when a receipt is reversed. A local Sent state must not be presented as provider-confirmed delivery without a delivery receipt.
 
 **Batch disposition:** these findings add implementation requirements, not new local schema. The current local migration 007 remains a finance foundation only; it is not yet a full replacement for the hosted payment, expense, payroll, bank and SMS workflows. No migration was added or applied.
+
+### Batched finance, payroll and attendance acceptance review (2026-11-14)
+
+This pass compared the existing hosted acceptance-test evidence and selected hosted migration definitions with the local-first parity requirements. Inspection only: no RPCs, payment, payroll, attendance, bank or guardian data was changed.
+
+**Payment posting and authorization**
+- The finance acceptance document confirms source-level review of atomic per-learner payment posting, explicit previous-term selection, current-term-first automatic allocation, unallocated credit, and reasoned Director/Admin reversal. It explicitly lists authenticated transaction execution, rollback, concurrent posting, balance reconciliation, and standard/thermal receipt printing as pending.
+- The hosted schema has two materially different posting generations: the richer Admin-only `post_school_payment_complete` (payer and collection item plus explicit allocation input) and the later finance-operator `post_school_payment` (Bursar posting, oldest-first allocation, no payer/collection-item arguments). Local design must not silently discard payer/collection details or the Bursar/Director split.
+- The exact live payment UI caller remains blocked by the very large minified application bundle. This is an explicit cutover blocker, not evidence that payment entry is unused.
+
+**Payroll and attendance policy**
+- The hosted salary/expense migration creates a Salaries & wages expense when a payroll item becomes Paid, linked uniquely to its payroll item. The trigger requires the category and runs in the same transaction; local parity must retain exactly-once expense creation and rollback if expense creation fails.
+- The hosted attendance-payroll migration automatically adds approved attendance incident deductions when a Pending payroll item is inserted. This is a policy mismatch with local migration 009 governance. Do not copy this trigger: local attendance deductions require the defined statement, review, explicit decision, reason, amount and payroll authorization. A preview must itemize the deduction before confirmation.
+- Hosted advance recovery is a separate payroll amount settled against approved outstanding advances on payment. Local implementation must preserve separate advance allocations and test partial recovery, multiple advances, retries, concurrency and corrections.
+- Existing attendance acceptance checks passed structurally over empty tables. The eight inspected attendance tables contained zero rows at the recorded check, so those passes do not establish real clock-in/out, late calculation, CSV import, offline sync, correction review or payroll integration.
+
+**Fingerprint device boundary**
+- The hosted attendance foundation supports administrator-imported USB CSV logs, staff/device ID mapping, event deduplication and append-only raw attendance events. It does not connect a physical terminal or store biometric templates.
+- The fingerprint integration plan requires supplier verification of exact model/firmware, raw export columns, timezone, offline backfill and a pilot before hardware activation. A USB-host flash-drive export must not be confused with direct PC USB integration.
+- Physical terminal connection and a real-device pilot remain pending. Keep biometric templates on the device; local records should contain only necessary staff/device identifiers and event metadata.
+
+**Banking and expense workflow**
+- The banking acceptance guide describes a verified balance as opening balance plus verified deposits minus verified withdrawals. Pending approval/evidence, rejected and cancelled transactions are excluded. Evidence approval is not a bank-statement reconciliation; local design should retain separate evidence-verification and statement-reconciliation states.
+- Bank evidence capture and the hosted banking workflow require connectivity. Do not silently allow the offline shell to record real banking transactions unless a separately designed, auditable offline ledger and conflict policy are implemented.
+- Non-payroll expenses must preserve request, approval, evidence review and exactly-once posting. Finance-operator daily limits require atomic reservation under concurrency; the currently reviewed hosted request routine has a read-sum-insert race.
+
+**Batched test disposition**
+- Structural/source evidence exists for payment posting/reversal, payroll-to-expense linkage, attendance event schema, device mapping and bank evidence workflows.
+- End-to-end tests remain pending for authenticated Bursar/Admin payment sessions, payment concurrency/rollback, receipt printing, expense-limit concurrency, bank statement reconciliation, payroll payment and advance recovery, attendance schedule/clock events, CSV duplicate imports, offline synchronization and real fingerprint hardware.
+- Empty-table integrity checks must be reported as structural checks only, not as successful workflow tests.
+
+**Cutover blockers retained:** exact active payment UI RPC caller; verified local finance expense/bank/SMS implementation; atomic finance-limit enforcement; explicit attendance/payroll decision flow; isolated end-to-end test environment; and real receipt-printer/device pilot. No local migration was added or applied in this review.
