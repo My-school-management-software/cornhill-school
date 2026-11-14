@@ -190,6 +190,22 @@ try {
   assert(guardDefinition.includes("i.amount_ugx") && guardDefinition.includes("linked_item_amount IS DISTINCT FROM NEW.approved_deduction_ugx"),
     "Special-session payroll linkage must validate the exact deduction amount.");
 
+  const attendanceEventReviewTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'attendance_event_review_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(attendanceEventReviewTrigger.rows[0]?.installed === true,
+    "Imported attendance events must have immutable evidence and review protection.");
+  const attendanceEventReviewDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_attendance_event_review()'::regprocedure) AS definition"
+  );
+  const attendanceEventReviewGuard = attendanceEventReviewDefinition.rows[0]?.definition ?? "";
+  assert(attendanceEventReviewGuard.includes("Imported attendance event evidence is immutable")
+    && attendanceEventReviewGuard.includes("Attendance event evidence cannot be deleted")
+    && attendanceEventReviewGuard.includes("Attendance event review decisions are final")
+    && attendanceEventReviewGuard.includes("Staff cannot review their own attendance event")
+    && attendanceEventReviewGuard.includes("reviewer_status IS DISTINCT FROM 'active'"),
+    "Attendance event evidence must be immutable and independently reviewed by active staff.");
+
   const attendanceAdjustmentHistoryTrigger = await pool.query(
     "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'attendance_adjustment_history_guard' AND NOT tgisinternal) AS installed"
   );
