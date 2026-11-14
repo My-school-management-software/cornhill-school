@@ -58,3 +58,9 @@ test("review queue UI uses text nodes for database content and responsive review
  assert.match(css,/finance-review-actions/);
  assert.match(css,/flex-wrap:\s*wrap/);
 });
+
+test("reviewers can attach matching evidence to pending and approved finance requests before final posting",()=>{
+ assert.match(js,/if\(item[.]status==="Pending"\|\|item[.]status==="Approved"\)/);
+ assert.match(js,/if\(item[.]status==="Approved"&&kind==="expense"/);
+ assert.match(js,/if\(item[.]status==="Approved"&&kind==="bank"/);
+});
