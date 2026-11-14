@@ -291,6 +291,15 @@ try {
     && attendancePayrollBasisSql.includes("FOR UPDATE OF pr"),
     "Attendance history must be frozen when a linked payroll run leaves draft.");
 
+  const payrollAdjustmentSourceDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.validate_payroll_line_item()'::regprocedure) AS definition"
+  );
+  const payrollAdjustmentSourceSql = payrollAdjustmentSourceDefinition.rows[0]?.definition ?? "";
+  assert(payrollAdjustmentSourceSql.includes("FOR UPDATE OF ad")
+    && payrollAdjustmentSourceSql.includes("NEW.source_attendance_adjustment_id IS DISTINCT FROM OLD.source_attendance_adjustment_id")
+    && payrollAdjustmentSourceSql.includes("Attendance-related payroll adjustments require separate approval"),
+    "Payroll adjustment linkage must lock its attendance day and preserve source provenance.");
+
   const attendanceAdjustmentSingleUseIndex = await pool.query(
     "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'cornhill_school' AND indexname = 'payroll_attendance_adjustment_single_use' AND indexdef ILIKE '%UNIQUE%' AND indexdef ILIKE '%source_attendance_adjustment_id%' AND indexdef ILIKE '%IS NOT NULL%') AS installed"
   );
@@ -844,6 +853,13 @@ try {
       "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, source_attendance_adjustment_id, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Deduction', 'ATTENDANCE', 'Approved attendance adjustment', 10000, $2, $3, $4, now())",
       [payrollLine.rows[0].id, approvedAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id]
     );
+    const payrollAdjustmentSourceRewriteRejected = await expectPgError(
+      client, "payroll_adjustment_source_rewrite_test",
+      "UPDATE cornhill_school.payroll_line_items SET source_attendance_adjustment_id = $2 WHERE payroll_line_id = $1 AND source_attendance_adjustment_id = $3",
+      [payrollLine.rows[0].id, reviewedAdjustment.rows[0].id, approvedAdjustment.rows[0].id], "23514"
+    );
+    assert(payrollAdjustmentSourceRewriteRejected,
+      "A payroll item cannot silently replace its original attendance adjustment source.");
     await client.query("SET CONSTRAINTS cornhill_school.payroll_line_item_totals_valid, cornhill_school.payroll_item_totals_valid IMMEDIATE");
     assert(String(payrollLine.rows[0].gross_pay_ugx) === "1100000", "Payroll gross pay calculation is incorrect.");
     assert(String(payrollLine.rows[0].net_pay_ugx) === "1090000", "Payroll net pay calculation is incorrect.");
