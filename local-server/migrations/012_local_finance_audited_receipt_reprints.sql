@@ -47,8 +47,8 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  SELECT r, p.status
-    INTO v_receipt, v_payment_status
+  SELECT r.*
+    INTO v_receipt
   FROM cornhill_school.payment_receipts r
   JOIN cornhill_school.payment_records p ON p.id = r.payment_id
   WHERE r.receipt_number = p_receipt_number
@@ -58,6 +58,13 @@ BEGIN
     RAISE EXCEPTION 'The requested payment receipt was not found'
       USING ERRCODE = 'P0002';
   END IF;
+
+  -- The joined query above locks both rows. Read the already-locked payment status
+  -- separately so the composite receipt row keeps its exact declared row type.
+  SELECT p.status
+    INTO v_payment_status
+  FROM cornhill_school.payment_records p
+  WHERE p.id = v_receipt.payment_id;
 
   IF v_payment_status NOT IN ('Posted', 'Reversed') THEN
     RAISE EXCEPTION 'Only issued payment receipts may be reprinted'
