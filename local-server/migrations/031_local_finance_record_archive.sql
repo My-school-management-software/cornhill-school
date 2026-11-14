@@ -87,7 +87,6 @@ $fn$;
 
 REVOKE ALL ON FUNCTION cornhill_school.finance_list_record_archive(uuid,text,text,text,integer,integer)
  FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
-GRANT EXECUTE ON FUNCTION cornhill_school.finance_list_record_archive(uuid,text,text,text,integer,integer)
- TO cornhill_finance_runtime;
+GRANT EXECUTE ON FUNCTION cornhill_school.finance_list_record_archive(uuid,text,text,text,integer,integer) TO cornhill_finance_runtime;
 
 COMMIT;
