@@ -60,6 +60,39 @@
         <button id="logout-button" class="button secondary" type="button">Sign out</button>
       </div>
 
+      <section id="expense-banking-workspace" class="panel operations-panel" hidden>
+        <div class="section-heading"><div><p class="eyebrow">SCHOOL OPERATIONS</p><h3>Expenses and bank transactions</h3><p class="muted">Requests are subject to independent review, evidence checks and posting controls.</p></div></div>
+        <div class="operations-grid">
+          <form id="expense-request-form" class="operation-card" hidden>
+            <h4>Submit an expense request</h4>
+            <label class="field"><span>Expense category</span><select id="expense-category" required></select></label>
+            <label class="field"><span>Description</span><input id="expense-description" minlength="5" maxlength="500" required></label>
+            <label class="field"><span>Amount (UGX)</span><input id="expense-amount" type="number" min="1" step="1" inputmode="numeric" required></label>
+            <button class="button primary" type="submit">Submit expense request</button>
+            <p id="expense-request-message" class="form-message" role="status" aria-live="polite"></p>
+          </form>
+          <form id="bank-account-form" class="operation-card" hidden>
+            <h4>Register a school bank account</h4>
+            <label class="field"><span>Account display name</span><input id="bank-account-name" minlength="2" maxlength="120" required></label>
+            <label class="field"><span>Bank name</span><input id="bank-name" minlength="2" maxlength="120" required></label>
+            <label class="field"><span>Account number — last four digits only</span><input id="bank-last4" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required></label>
+            <label class="field"><span>Opening balance (UGX)</span><input id="bank-opening-balance" type="number" min="0" step="1" value="0" required></label>
+            <button class="button secondary" type="submit">Save bank account</button>
+            <p id="bank-account-message" class="form-message" role="status" aria-live="polite"></p>
+          </form>
+          <form id="bank-transaction-form" class="operation-card" hidden>
+            <h4>Record a bank deposit or withdrawal</h4>
+            <label class="field"><span>Bank account</span><select id="bank-account-select" required></select></label>
+            <label class="field"><span>Transaction type</span><select id="bank-transaction-type"><option>Deposit</option><option>Withdrawal</option></select></label>
+            <label class="field"><span>Amount (UGX)</span><input id="bank-transaction-amount" type="number" min="1" step="1" required></label>
+            <label class="field"><span>Description</span><input id="bank-transaction-description" minlength="5" maxlength="500" required></label>
+            <label class="field"><span>External reference (optional)</span><input id="bank-transaction-reference" maxlength="120"></label>
+            <button class="button primary" type="submit">Submit bank transaction</button>
+            <p id="bank-transaction-message" class="form-message" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+
       <section class="panel search-panel">
         <div class="section-heading">
           <div>
