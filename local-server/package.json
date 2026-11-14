@@ -1,24 +1,16 @@
 {
-  "name": "cornhill-local-server",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "description": "Loopback-only CORNHILL local backend scaffold",
-  "scripts": {
-    "start": "node src/server.mjs",
-    "test": "node --test",
-    "db:migrate": "node --env-file=.env scripts/migrate.mjs",
-    "db:verify": "node --env-file=.env scripts/verify-local-schema.mjs",
-    "db:verify-auth": "node --env-file=.env scripts/verify-auth-repositories.mjs",
-    "db:verify-runtime": "node --env-file=.env scripts/verify-local-runtime-role.mjs",
-    "db:verify-school": "node --env-file=.env scripts/verify-local-school-schema.mjs",
-    "start:auth": "node --env-file=.env scripts/start-local-auth.mjs"
+  "name":"cornhill-local-server","version":"0.1.0","private":true,"type":"module",
+  "description":"Loopback-only CORNHILL local backend scaffold",
+  "scripts":{
+    "start":"node src/server.mjs","test":"node --test",
+    "db:migrate":"node --env-file=.env scripts/migrate.mjs",
+    "db:verify":"node --env-file=.env scripts/verify-local-schema.mjs",
+    "db:verify-auth":"node --env-file=.env scripts/verify-auth-repositories.mjs",
+    "db:verify-runtime":"node --env-file=.env scripts/verify-local-runtime-role.mjs",
+    "db:verify-school":"node --env-file=.env scripts/verify-local-school-schema.mjs",
+    "db:verify-finance":"node --env-file=.env scripts/verify-local-finance.mjs",
+    "start:auth":"node --env-file=.env scripts/start-local-auth.mjs"
   },
-  "engines": {
-    "node": ">=22"
-  },
-  "dependencies": {
-    "pg": "8.16.3",
-    "@node-rs/argon2": "2.2.2"
-  }
+  "engines":{"node":">=22"},
+  "dependencies":{"pg":"8.16.3","@node-rs/argon2":"2.2.2"}
 }

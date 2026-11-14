@@ -852,3 +852,13 @@ This pass compared the existing hosted acceptance-test evidence and selected hos
 - Empty-table integrity checks must be reported as structural checks only, not as successful workflow tests.
 
 **Cutover blockers retained:** exact active payment UI RPC caller; verified local finance expense/bank/SMS implementation; atomic finance-limit enforcement; explicit attendance/payroll decision flow; isolated end-to-end test environment; and real receipt-printer/device pilot. No local migration was added or applied in this review.
+
+### Local finance payment posting — Batch 15 (2026-11-14)
+
+Migration 010 adds payer and collection item details plus an unallocated UGX amount. Posted receipts reconcile the payment total as allocated amounts plus retained credit. The receipt snapshot preserves payer/collection fields and unallocated balance.
+
+A SECURITY DEFINER routine performs payment posting with an active staff/employment check, explicit `finance.payments_record` permission, learner and obligation ownership checks, learner-row serialization, balance validation, idempotent retry, receipt creation and audit recording in one transaction. A new guard closes the posted-allocation UPDATE path. The finance API role is separate from the authentication runtime role, remains NOLOGIN and has no direct access to finance tables or receipt sequence.
+
+A synthetic PostgreSQL verifier is added for split old-term/current-term allocations, unallocated credit, idempotent retry, negative authorization/overpayment/mutation cases, receipt snapshot and consent-gated outbox. CI and the Windows installer provision the restricted roles. **The new CI result is pending.** The new work has not been applied to the school's existing local database.
+
+**Still pending:** a secure authenticated HTTP API and finance screen; a controlled later-allocation operation for retained credit; role matrix approval; expenses and approvals; bank ledger and statement reconciliation; SMS worker; thermal-printer receipt layout; and a real-data migration rehearsal. No hosted backend or school data was changed.

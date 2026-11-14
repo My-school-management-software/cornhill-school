@@ -59,6 +59,9 @@ jobs:
           CORNHILL_DB_ADMIN_PASSWORD=ci-only-not-a-school-secret-2026
           EOF
 
+      - name: Provision isolated finance roles in temporary CI database
+        run: node scripts/provision-local-finance-roles.mjs
+
       - name: Apply all isolated local migrations
         env:
           CORNHILL_ALLOW_LOCAL_MIGRATIONS: "true"
@@ -82,6 +85,9 @@ jobs:
 
       - name: Verify local learner and admissions schema
         run: npm run db:verify-school
+
+      - name: Verify local atomic payment workflow and finance role
+        run: npm run db:verify-finance
 
   windows-unit:
     runs-on: windows-latest

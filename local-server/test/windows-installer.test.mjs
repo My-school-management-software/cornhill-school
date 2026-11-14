@@ -86,3 +86,11 @@ test("installer safely handles psql output and verifies ownership before resumin
   assert.match(script, /pg_get_userbyid\(datdba\)/);
   assert.match(script, /\$env:PGPASSWORD = \$adminPassword/);
 });
+
+test("installer provisions separate NOLOGIN finance roles", () => {
+  assert.match(script, /Provisioning separate restricted finance roles/);
+  assert.match(script, /CREATE ROLE cornhill_finance_runtime NOLOGIN/);
+  assert.match(script, /CREATE ROLE cornhill_finance_api NOLOGIN INHERIT/);
+  assert.match(script, /GRANT cornhill_finance_runtime TO cornhill_finance_api/);
+  assert.ok(script.includes("db:verify-finance"));
+});

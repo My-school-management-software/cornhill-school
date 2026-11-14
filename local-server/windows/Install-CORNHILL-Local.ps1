@@ -108,6 +108,24 @@ GRANT cornhill_auth_runtime TO cornhill_auth_api;
 '@
     Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c",$authRoleSql) "Could not provision the restricted authentication roles."
 
+    Write-Host "Provisioning separate restricted finance roles..."
+    $financeRoleSql = @'
+DO $roles$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'cornhill_finance_runtime') THEN
+    CREATE ROLE cornhill_finance_runtime NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'cornhill_finance_api') THEN
+    CREATE ROLE cornhill_finance_api NOLOGIN INHERIT;
+  END IF;
+END
+$roles$;
+ALTER ROLE cornhill_finance_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE cornhill_finance_api NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+GRANT cornhill_finance_runtime TO cornhill_finance_api;
+'@
+    Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c",$financeRoleSql) "Could not provision restricted finance roles."
+
     $exists = & $psql -X -h 127.0.0.1 -p 5432 -U postgres -d postgres -Atc "SELECT 1 FROM pg_database WHERE datname = 'cornhill_local';"
     if ($LASTEXITCODE -ne 0) { Stop-WithGuidance "Could not inspect PostgreSQL databases." }
     $existsText = [string]($exists -join "")
@@ -136,7 +154,7 @@ GRANT cornhill_auth_runtime TO cornhill_auth_api;
     Write-Host "Applying local-only numbered migrations..."
     Invoke-Checked "npm" @("run","db:migrate") "Local migrations failed. Preserve the database and inspect the error before retrying."
     Write-Host "Verifying local schema and security..."
-    foreach ($check in @("db:verify","db:verify-auth","db:verify-runtime","db:verify-school")) {
+    foreach ($check in @("db:verify","db:verify-auth","db:verify-runtime","db:verify-school","db:verify-finance")) {
       Invoke-Checked "npm" @("run",$check) "Verification failed at $check. Do not treat this installation as ready."
     }
   } finally {
