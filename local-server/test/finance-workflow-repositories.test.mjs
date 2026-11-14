@@ -39,10 +39,17 @@ test("expense and banking repository rejects malformed UUIDs and invalid limits 
 });
 
 test("finance workspace repositories load categories and active bank accounts through guarded routines",async()=>{
- const {repo,calls}=fixture();
- assert.deepEqual(await repo.listLocalExpenseCategories({actorStaffId:ACTOR}),[{id:RECORD,code:undefined,name:undefined}]);
- assert.deepEqual(await repo.listLocalBankAccounts({actorStaffId:ACTOR}),[{id:RECORD,accountName:undefined,bankName:undefined,last4:undefined,openingBalanceUgx:NaN}]);
+ const calls=[];
+ const pool={async query(sql,values){
+  calls.push({sql,values});
+  if(sql.includes("finance_list_expense_categories"))return {rows:[{id:CATEGORY,category_code:"FOOD",category_name:"Food and kitchen"}]};
+  return {rows:[{id:RECORD,account_name:"School account",bank_name:"Example Bank",account_number_last4:"1234",opening_balance_ugx:"1000"}]};
+ }};
+ const repo=createPostgresFinanceRepositories(pool);
+ assert.deepEqual(await repo.listLocalExpenseCategories({actorStaffId:ACTOR}),[{id:CATEGORY,code:"FOOD",name:"Food and kitchen"}]);
+ assert.deepEqual(await repo.listLocalBankAccounts({actorStaffId:ACTOR}),[{id:RECORD,accountName:"School account",bankName:"Example Bank",last4:"1234",openingBalanceUgx:1000}]);
  assert.equal(calls.length,2);
  assert.match(calls[0].sql,/finance_list_expense_categories/);
  assert.match(calls[1].sql,/finance_list_bank_accounts/);
+ assert.deepEqual(calls.map(call=>call.values[0]),[ACTOR,ACTOR]);
 });
