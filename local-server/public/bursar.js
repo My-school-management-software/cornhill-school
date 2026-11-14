@@ -146,6 +146,44 @@
     );
   }
 
+  function hasPermission(principal, code) {
+    return (principal.roles || []).some(role =>
+      Array.isArray(principal.rolePermissions?.[role]) && principal.rolePermissions[role].includes(code)
+    );
+  }
+
+  async function loadOperationsLookups() {
+    const [categories, accounts] = await Promise.all([
+      request("/finance/expense-categories"),
+      request("/finance/bank-accounts")
+    ]);
+    const categorySelect = byId("expense-category");
+    categorySelect.replaceChildren();
+    for (const item of categories.items || []) {
+      const option = document.createElement("option");
+      option.value = item.id; option.textContent = item.name;
+      categorySelect.append(option);
+    }
+    const accountSelect = byId("bank-account-select");
+    accountSelect.replaceChildren();
+    for (const item of accounts.items || []) {
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = item.bankName + " · " + item.accountName + " · •••• " + item.last4;
+      accountSelect.append(option);
+    }
+    if (!categorySelect.options.length) categorySelect.add(new Option("No active categories available", ""));
+    if (!accountSelect.options.length) accountSelect.add(new Option("Register a bank account first", ""));
+  }
+
+  async function refreshOperationsLookups() {
+    try { await loadOperationsLookups(); }
+    catch (error) {
+      showMessage("expense-request-message", "Finance lookup data could not be loaded: " + error.message, "error");
+      showMessage("bank-transaction-message", "Bank accounts could not be loaded: " + error.message, "error");
+    }
+  }
+
   function showLogin(message = "") {
     byId("workspace").hidden = true;
     byId("login-panel").hidden = false;
@@ -176,6 +214,13 @@
       principal.rolePermissions[role].includes("finance.credit_allocate")
     );
     byId("credit-section").hidden = !canAllocateCredits;
+    const canRequestExpenses = hasPermission(principal, "finance.expenses_request");
+    const canManageBanking = hasPermission(principal, "finance.banking_manage");
+    byId("expense-banking-workspace").hidden = !(canRequestExpenses || canManageBanking);
+    byId("expense-request-form").hidden = !canRequestExpenses;
+    byId("bank-account-form").hidden = !canManageBanking;
+    byId("bank-transaction-form").hidden = !canManageBanking;
+    if (canRequestExpenses || canManageBanking) await refreshOperationsLookups();
     byId("login-message").textContent = "";
   }
 
@@ -896,6 +941,56 @@
     } finally {
       button.disabled = false;
     }
+  });
+
+  byId("expense-request-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button[type=submit]");
+    button.disabled = true;
+    try {
+      const result = await request("/finance/expenses", {method:"POST",body:{
+        categoryId:byId("expense-category").value,
+        description:byId("expense-description").value.trim(),
+        amountUgx:Number(byId("expense-amount").value)
+      }});
+      byId("expense-description").value = ""; byId("expense-amount").value = "";
+      showMessage("expense-request-message","Expense request submitted for independent review. Reference: "+result.result,"success");
+    } catch(error) { showMessage("expense-request-message",error.message,"error"); }
+    finally { button.disabled = false; }
+  });
+
+  byId("bank-account-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button[type=submit]");
+    button.disabled = true;
+    try {
+      const result = await request("/finance/bank-accounts",{method:"POST",body:{
+        accountName:byId("bank-account-name").value.trim(),bankName:byId("bank-name").value.trim(),
+        last4:byId("bank-last4").value,openingBalanceUgx:Number(byId("bank-opening-balance").value)
+      }});
+      event.currentTarget.reset();
+      showMessage("bank-account-message","Bank account registered. Reference: "+result.result,"success");
+      await refreshOperationsLookups();
+    } catch(error) { showMessage("bank-account-message",error.message,"error"); }
+    finally { button.disabled = false; }
+  });
+
+  byId("bank-transaction-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button[type=submit]");
+    button.disabled = true;
+    try {
+      const result = await request("/finance/bank-transactions",{method:"POST",body:{
+        accountId:byId("bank-account-select").value,
+        transactionType:byId("bank-transaction-type").value,
+        amountUgx:Number(byId("bank-transaction-amount").value),
+        description:byId("bank-transaction-description").value.trim(),
+        externalReference:byId("bank-transaction-reference").value.trim() || null
+      }});
+      byId("bank-transaction-form").reset();
+      showMessage("bank-transaction-message","Bank transaction submitted for independent review. Reference: "+result.result,"success");
+    } catch(error) { showMessage("bank-transaction-message",error.message,"error"); }
+    finally { button.disabled = false; }
   });
 
   byId("print-receipt").addEventListener("click", () => window.print());
