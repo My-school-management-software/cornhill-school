@@ -133,6 +133,24 @@ try {
   assert(saturdayPolicy.rows[0]?.saturday_start_time === "08:00:00", "Saturday attendance must start at 08:00.");
   assert(saturdayPolicy.rows[0]?.saturday_end_time === "13:00:00", "Saturday attendance must end at 13:00.");
 
+  const specialSessionPolicy = await pool.query(
+    "SELECT prep_deductions_enabled FROM cornhill_school.staff_attendance_policy_settings WHERE id = true"
+  );
+  assert(specialSessionPolicy.rows[0]?.prep_deductions_enabled === false,
+    "Special-session salary deductions must remain disabled by default.");
+
+  const specialSessionColumns = await pool.query(
+    "SELECT column_name FROM information_schema.columns WHERE table_schema = 'cornhill_school' AND table_name = 'staff_scheduled_session_attendance' AND column_name IN ('review_deadline_at','headteacher_statement','director_decision','approved_deduction_ugx','payroll_line_item_id') ORDER BY column_name"
+  );
+  assert(specialSessionColumns.rows.length === 5,
+    "Special-session attendance must include review, statement, decision, deduction and payroll-link fields.");
+
+  const specialSessionGuard = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'special_session_review_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(specialSessionGuard.rows[0]?.installed === true,
+    "Special-session review guard must be installed.");
+
   const publicAccess = await pool.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace n
