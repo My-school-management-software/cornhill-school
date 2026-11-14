@@ -71,7 +71,7 @@ test("Bursar workspace exposes permission-gated daily expense limit administrati
  assert.match(js,/finance[.]expenses_manage/);
  assert.match(js,/finance\/expenses\/limit-staff/);
  assert.match(js,/finance\/expenses\/limits/);
- assert.match(js,/Only active staff accounts are listed/);
+ assert.match(html,/Only active staff accounts are listed/);
  assert.match(js,/Number[.]isSafeInteger\(dailyLimitUgx\)/);
 });
 
