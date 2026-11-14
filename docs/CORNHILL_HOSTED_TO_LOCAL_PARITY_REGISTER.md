@@ -64,6 +64,136 @@ Create one named entry per source table. For each table capture:
 
 **Progress:** 0/123 source tables individually reconciled in this register. Do not infer table names or mark rows complete from aggregate counts.
 
+**Source table-name inventory (read-only metadata snapshot, 2026-11-14):** all 123 names were retrieved from the hosted project's public schema. RLS is enabled on all 123. This establishes names and RLS-enabled state only; it does not reconcile columns, policies, constraints, indexes, routines, triggers, grants, data semantics or callers. No table rows or personal records were read for this inventory.
+
+| # | Source table | Name/RLS status |
+|---:|---|---|
+| 1 | `public.user_profiles` | INVENTORIED — RLS enabled |
+| 2 | `public.school_classes` | INVENTORIED — RLS enabled |
+| 3 | `public.students` | INVENTORIED — RLS enabled |
+| 4 | `public.staff_attendance_device_users` | INVENTORIED — RLS enabled |
+| 5 | `public.staff_attendance_import_batches` | INVENTORIED — RLS enabled |
+| 6 | `public.staff_attendance_events` | INVENTORIED — RLS enabled |
+| 7 | `public.staff_attendance_adjustments` | INVENTORIED — RLS enabled |
+| 8 | `public.academic_years` | INVENTORIED — RLS enabled |
+| 9 | `public.academic_terms` | INVENTORIED — RLS enabled |
+| 10 | `public.subjects` | INVENTORIED — RLS enabled |
+| 11 | `public.class_subjects` | INVENTORIED — RLS enabled |
+| 12 | `public.assessments` | INVENTORIED — RLS enabled |
+| 13 | `public.assessment_scores` | INVENTORIED — RLS enabled |
+| 14 | `public.fee_items` | INVENTORIED — RLS enabled |
+| 15 | `public.fee_schedules` | INVENTORIED — RLS enabled |
+| 16 | `public.learner_charges` | INVENTORIED — RLS enabled |
+| 17 | `public.school_payments` | INVENTORIED — RLS enabled |
+| 18 | `public.payment_allocations` | INVENTORIED — RLS enabled |
+| 19 | `public.academic_grade_bands` | INVENTORIED — RLS enabled |
+| 20 | `public.report_card_publications` | INVENTORIED — RLS enabled |
+| 21 | `public.staff_work_schedules` | INVENTORIED — RLS enabled |
+| 22 | `public.staff_attendance_schedule_assignments` | INVENTORIED — RLS enabled |
+| 23 | `public.school_sms_outbox` | INVENTORIED — RLS enabled |
+| 24 | `public.staff_communication_posts` | INVENTORIED — RLS enabled |
+| 25 | `public.staff_communication_comments` | INVENTORIED — RLS enabled |
+| 26 | `public.staff_communication_reactions` | INVENTORIED — RLS enabled |
+| 27 | `public.school_position_catalogue` | INVENTORIED — RLS enabled |
+| 28 | `public.school_curriculum_subjects` | INVENTORIED — RLS enabled |
+| 29 | `public.inventory_categories` | INVENTORIED — RLS enabled |
+| 30 | `public.inventory_items` | INVENTORIED — RLS enabled |
+| 31 | `public.inventory_movements` | INVENTORIED — RLS enabled |
+| 32 | `public.daily_collection_records` | INVENTORIED — RLS enabled |
+| 33 | `public.expense_categories` | INVENTORIED — RLS enabled |
+| 34 | `public.staff_salary_agreements` | INVENTORIED — RLS enabled |
+| 35 | `public.payroll_periods` | INVENTORIED — RLS enabled |
+| 36 | `public.payroll_items` | INVENTORIED — RLS enabled |
+| 37 | `public.school_expenses` | INVENTORIED — RLS enabled |
+| 38 | `public.staff_attendance_alerts` | INVENTORIED — RLS enabled |
+| 39 | `public.staff_attendance_deduction_settings` | INVENTORIED — RLS enabled |
+| 40 | `public.staff_attendance_incidents` | INVENTORIED — RLS enabled |
+| 41 | `public.staff_salary_advances` | INVENTORIED — RLS enabled |
+| 42 | `public.student_class_history` | INVENTORIED — RLS enabled |
+| 43 | `public.student_status_history` | INVENTORIED — RLS enabled |
+| 44 | `public.uneb_subject_grade_bands` | INVENTORIED — RLS enabled |
+| 45 | `public.class_login_directory` | INVENTORIED — RLS enabled |
+| 46 | `public.class_teacher_access` | INVENTORIED — RLS enabled |
+| 47 | `public.staff_direct_messages` | INVENTORIED — RLS enabled |
+| 48 | `public.staff_call_signals` | INVENTORIED — RLS enabled |
+| 49 | `public.staff_media_messages` | INVENTORIED — RLS enabled |
+| 50 | `public.google_drive_backup_connections` | INVENTORIED — RLS enabled |
+| 51 | `public.google_drive_backup_oauth_states` | INVENTORIED — RLS enabled |
+| 52 | `public.google_drive_backup_runs` | INVENTORIED — RLS enabled |
+| 53 | `public.google_drive_backup_settings` | INVENTORIED — RLS enabled |
+| 54 | `public.learner_bursary_awards` | INVENTORIED — RLS enabled |
+| 55 | `public.communication_templates` | INVENTORIED — RLS enabled |
+| 56 | `public.communication_outbox` | INVENTORIED — RLS enabled |
+| 57 | `public.communication_delivery_events` | INVENTORIED — RLS enabled |
+| 58 | `public.communication_provider_settings` | INVENTORIED — RLS enabled |
+| 59 | `public.parent_guardian_contacts` | INVENTORIED — RLS enabled |
+| 60 | `public.parent_contact_change_log` | INVENTORIED — RLS enabled |
+| 61 | `public.learner_conduct_reports` | INVENTORIED — RLS enabled |
+| 62 | `public.learner_enrolment_periods` | INVENTORIED — RLS enabled |
+| 63 | `public.google_drive_backup_validations` | INVENTORIED — RLS enabled |
+| 64 | `public.guardian_pin_audit` | INVENTORIED — RLS enabled |
+| 65 | `public.parent_portal_sessions` | INVENTORIED — RLS enabled |
+| 66 | `public.parent_school_messages` | INVENTORIED — RLS enabled |
+| 67 | `public.parent_school_message_events` | INVENTORIED — RLS enabled |
+| 68 | `public.class_subject_teacher_history` | INVENTORIED — RLS enabled |
+| 69 | `public.parent_report_access_audit` | INVENTORIED — RLS enabled |
+| 70 | `public.school_public_contact_settings` | INVENTORIED — RLS enabled |
+| 71 | `public.learner_archive_audit` | INVENTORIED — RLS enabled |
+| 72 | `public.school_notifications` | INVENTORIED — RLS enabled |
+| 73 | `public.learner_code_aliases` | INVENTORIED — RLS enabled |
+| 74 | `public.learner_code_change_audit` | INVENTORIED — RLS enabled |
+| 75 | `public.school_bursary_review_audit` | INVENTORIED — RLS enabled |
+| 76 | `public.academic_teacher_directory` | INVENTORIED — RLS enabled |
+| 77 | `public.class_teacher_directory_assignments` | INVENTORIED — RLS enabled |
+| 78 | `public.class_teacher_directory_assignment_history` | INVENTORIED — RLS enabled |
+| 79 | `public.school_staff_directory` | INVENTORIED — RLS enabled |
+| 80 | `public.school_notification_user_state` | INVENTORIED — RLS enabled |
+| 81 | `public.evidence_capture_devices` | INVENTORIED — RLS enabled |
+| 82 | `public.evidence_capture_requests` | INVENTORIED — RLS enabled |
+| 83 | `public.evidence_capture_files` | INVENTORIED — RLS enabled |
+| 84 | `public.evidence_capture_reviews` | INVENTORIED — RLS enabled |
+| 85 | `public.school_bank_accounts` | INVENTORIED — RLS enabled |
+| 86 | `public.school_bank_transactions` | INVENTORIED — RLS enabled |
+| 87 | `public.school_bank_transaction_events` | INVENTORIED — RLS enabled |
+| 88 | `public.school_finance_operator_limits` | INVENTORIED — RLS enabled |
+| 89 | `public.school_expense_requests` | INVENTORIED — RLS enabled |
+| 90 | `public.school_expense_request_events` | INVENTORIED — RLS enabled |
+| 91 | `public.school_apps` | INVENTORIED — RLS enabled |
+| 92 | `public.school_admission_enquiries` | INVENTORIED — RLS enabled |
+| 93 | `public.school_hr_leave_requests` | INVENTORIED — RLS enabled |
+| 94 | `public.school_learning_resources` | INVENTORIED — RLS enabled |
+| 95 | `public.school_library_books` | INVENTORIED — RLS enabled |
+| 96 | `public.school_library_loans` | INVENTORIED — RLS enabled |
+| 97 | `public.school_transport_routes` | INVENTORIED — RLS enabled |
+| 98 | `public.school_transport_assignments` | INVENTORIED — RLS enabled |
+| 99 | `public.school_welfare_cases` | INVENTORIED — RLS enabled |
+| 100 | `public.school_provider_integrations` | INVENTORIED — RLS enabled |
+| 101 | `public.school_visitor_log` | INVENTORIED — RLS enabled |
+| 102 | `public.school_assets` | INVENTORIED — RLS enabled |
+| 103 | `public.school_asset_maintenance` | INVENTORIED — RLS enabled |
+| 104 | `public.school_staff_notices` | INVENTORIED — RLS enabled |
+| 105 | `public.school_calendar_events` | INVENTORIED — RLS enabled |
+| 106 | `public.school_record_index` | INVENTORIED — RLS enabled |
+| 107 | `public.school_document_template_settings` | INVENTORIED — RLS enabled |
+| 108 | `public.report_card_review_workflows` | INVENTORIED — RLS enabled |
+| 109 | `public.report_card_review_events` | INVENTORIED — RLS enabled |
+| 110 | `public.staff_access_codes` | INVENTORIED — RLS enabled |
+| 111 | `public.staff_access_code_login_attempts` | INVENTORIED — RLS enabled |
+| 112 | `public.staff_access_code_audit` | INVENTORIED — RLS enabled |
+| 113 | `public.bursar_account_enrollments` | INVENTORIED — RLS enabled |
+| 114 | `public.bursar_account_enrollment_events` | INVENTORIED — RLS enabled |
+| 115 | `public.staff_activation_codes` | INVENTORIED — RLS enabled |
+| 116 | `public.staff_activation_code_audit` | INVENTORIED — RLS enabled |
+| 117 | `public.staff_attendance_policy_settings` | INVENTORIED — RLS enabled |
+| 118 | `public.staff_attendance_calendar_exceptions` | INVENTORIED — RLS enabled |
+| 119 | `public.staff_prep_sessions` | INVENTORIED — RLS enabled |
+| 120 | `public.staff_prep_assignments` | INVENTORIED — RLS enabled |
+| 121 | `public.staff_scheduled_session_attendance` | INVENTORIED — RLS enabled |
+| 122 | `public.staff_scheduled_session_incidents` | INVENTORIED — RLS enabled |
+| 123 | `public.school_usage_events` | INVENTORIED — RLS enabled |
+
+**Progress clarification:** 123/123 source table names inventoried; 0/123 tables individually reconciled to a local destination. Keep the reconciliation count at zero until every table's full definition, policy behavior, dependencies, data classification, migration and tests have been checked.
+
 ### B. Security and database behavior
 
 | Inventory item | Source baseline | Required local evidence | Status |
