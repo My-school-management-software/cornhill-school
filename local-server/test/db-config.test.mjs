@@ -11,7 +11,7 @@ const valid = {
 test("database config defaults to loopback and the isolated local database", () => {
   const config = readLocalDatabaseConfig(valid);
   assert.equal(config.host, "127.0.0.1");
-  assert.equal(config.port, 54329);
+  assert.equal(config.port, 5432);
   assert.equal(config.database, "cornhill_local");
   assert.equal(config.ssl, false);
   assert.equal(config.max, 5);
