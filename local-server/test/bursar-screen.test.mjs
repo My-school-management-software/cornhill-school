@@ -77,3 +77,23 @@ test("receipt reprint action is hidden unless the staff session grants the separ
   assert.match(js,/canReprintReceipts/);
   assert.match(js,/reprint-panel/);
 });
+
+test("Bursar screen exposes retained-credit sources and a separate allocation form",()=>{
+  for(const id of ["credit-section","credit-sources","credit-allocation-form","credit-source-select","credit-allocation-lines","credit-reason","credit-allocation-button","credit-message"]) {
+    assert.ok(html.includes('id="'+id+'"'),"Missing retained-credit component "+id);
+  }
+  assert.match(html,/The original receipt will remain unchanged/);
+});
+test("Bursar retained-credit workflow loads permission-scoped sources and posts idempotently",()=>{
+  assert.match(js,/finance\.credit_allocate/);
+  assert.match(js,/\/finance\/learners\//);
+  assert.match(js,/\/credits/);
+  assert.match(js,/\/finance\/credits\/allocate/);
+  assert.match(js,/pendingCreditSubmission/);
+  assert.match(js,/crypto\.randomUUID\(\)/);
+  assert.match(js,/Retry will reuse the exact same request safely/);
+  assert.match(js,/original payment and receipt remain unchanged/);
+});
+test("Bursar retained-credit controls are excluded from printed receipts",()=>{
+  assert.match(css,/#credit-section \{ display: none !important; \}/);
+});

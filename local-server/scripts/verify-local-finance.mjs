@@ -51,7 +51,9 @@ try {
       has_function_privilege('cornhill_finance_api',
         'cornhill_school.reprint_local_payment_receipt(uuid,text,text)','EXECUTE') AS can_reprint,
       has_function_privilege('cornhill_finance_api',
-        'cornhill_school.allocate_local_payment_credit(uuid,uuid,uuid,jsonb,text)','EXECUTE') AS can_allocate_credit
+        'cornhill_school.allocate_local_payment_credit(uuid,uuid,uuid,jsonb,text)','EXECUTE') AS can_allocate_credit,
+      has_function_privilege('cornhill_finance_api',
+        'cornhill_school.finance_list_learner_credit_sources(uuid,uuid)','EXECUTE') AS can_list_credit_sources
   `);
   const a=acl.rows[0];
   assert.equal(a.member,true);
@@ -71,6 +73,7 @@ try {
   assert.equal(a.can_get_account,true);
   assert.equal(a.can_reprint,true);
   assert.equal(a.can_allocate_credit,true);
+  assert.equal(a.can_list_credit_sources,true);
 
   // All business data below is synthetic and rolled back as one transaction.
   const client=await pool.connect();
@@ -219,7 +222,14 @@ try {
     assert.equal(reprintAudit.rows[0].entity_type,"receipt");
     assert.equal(reprintAudit.rows[0].reason,"Parent requested another printed copy");
 
-    const originalReceiptSnapshot=structuredClone(receipt.rows[0].receipt_data_snapshot);
+    const initialCreditSources=await client.query(
+      "SELECT * FROM cornhill_school.finance_list_learner_credit_sources($1,$2)",
+      [staffId,learnerId]
+    );
+    assert.equal(initialCreditSources.rowCount,1);
+    assert.equal(Number(initialCreditSources.rows[0].remaining_credit_ugx),10000);
+
+        const originalReceiptSnapshot=structuredClone(receipt.rows[0].receipt_data_snapshot);
     const originalPayment=await client.query(
       "SELECT amount_ugx,unallocated_amount_ugx,status FROM cornhill_school.payment_records WHERE id=$1",
       [posted.rows[0].payment_id]
@@ -267,6 +277,12 @@ try {
     );
     assert.equal(Number(creditBalance.rows[0].paid_ugx),31000);
     assert.equal(Number(creditBalance.rows[0].balance_ugx),69000);
+    const remainingCreditSources=await client.query(
+      "SELECT * FROM cornhill_school.finance_list_learner_credit_sources($1,$2)",
+      [staffId,learnerId]
+    );
+    assert.equal(remainingCreditSources.rowCount,1);
+    assert.equal(Number(remainingCreditSources.rows[0].remaining_credit_ugx),4000);
     const creditAudit=await client.query(
       "SELECT event_code,reason,details FROM cornhill_school.finance_audit_events WHERE entity_id=$1 AND event_code='payment.credit_allocated'",
       [posted.rows[0].payment_id]
@@ -297,6 +313,9 @@ try {
     await expectPgError(client,'finance_learner_lookup_permission_test',
       "SELECT * FROM cornhill_school.finance_search_learners($1,'Finance')",
       [noPermission.rows[0].id],'42501');
+    await expectPgError(client,'credit_source_lookup_permission_test',
+      "SELECT * FROM cornhill_school.finance_list_learner_credit_sources($1,$2)",
+      [noPermission.rows[0].id,learnerId],'42501');
     await expectPgError(client,'receipt_reprint_permission_test',
       "SELECT cornhill_school.reprint_local_payment_receipt($1,$2,'No reprint permission')",
       [noPermission.rows[0].id,posted.rows[0].receipt_number],'42501');

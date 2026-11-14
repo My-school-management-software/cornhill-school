@@ -135,7 +135,7 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
   if (!authService || typeof authService.authenticate !== "function") {
     throw new TypeError("A local authentication service is required for finance routes.");
   }
-  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt", "allocateCredit"]) {
+  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt", "allocateCredit", "listLearnerCredits"]) {
     if (!financeRepository || typeof financeRepository[method] !== "function") {
       throw new TypeError("A complete local finance repository is required.");
     }
@@ -183,10 +183,12 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
         csrfToken: typeof csrfHeader === "string" ? csrfHeader : undefined
       });
       const receiptReprintMatch = path.match(/^\/api\/v1\/finance\/receipts\/(CR-[0-9]{4}-[0-9]{7})\/reprint$/);
+      const creditListMatch = path.match(/^\/api\/v1\/finance\/learners\/([0-9a-f-]{36})\/credits$/i);
+      const creditListRoute = Boolean(creditListMatch && method === "GET" && UUID_PATTERN.test(creditListMatch[1]));
       const creditAllocateRoute = path === "/api/v1/finance/credits/allocate" && method === "POST";
       const requiredPermission = receiptReprintMatch && method === "POST"
         ? "finance.receipts_reprint"
-        : creditAllocateRoute
+        : (creditAllocateRoute || creditListRoute)
           ? "finance.credit_allocate"
           : "finance.payments_record";
       if (!staffHasPermission({ principal, permissionCode: requiredPermission })) {
@@ -205,6 +207,16 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
           search: search.trim()
         });
         sendJson(response, 200, { learners });
+        return true;
+      }
+
+      if (creditListRoute) {
+        const learnerId = creditListMatch[1];
+        const credits = await financeRepository.listLearnerCredits({
+          actorStaffId: principal.id,
+          learnerId
+        });
+        sendJson(response, 200, { credits });
         return true;
       }
 

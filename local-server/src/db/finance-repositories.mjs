@@ -53,6 +53,26 @@ export function createPostgresFinanceRepositories(pool) {
       return result.rows[0]?.receipt ?? null;
     },
 
+    async listLearnerCredits({ actorStaffId, learnerId }) {
+      assertUuid(actorStaffId, "Finance actor ID");
+      assertUuid(learnerId, "Learner ID");
+      const result = await pool.query(
+        "SELECT * FROM cornhill_school.finance_list_learner_credit_sources($1::uuid,$2::uuid)",
+        [actorStaffId, learnerId]
+      );
+      return result.rows.map(row => ({
+        paymentId: row.payment_id,
+        receiptNumber: row.receipt_number,
+        amountUgx: Number(row.amount_ugx),
+        originalUnallocatedUgx: Number(row.original_unallocated_ugx),
+        allocatedCreditUgx: Number(row.allocated_credit_ugx),
+        remainingCreditUgx: Number(row.remaining_credit_ugx),
+        receivedAt: row.received_at,
+        collectionItem: row.collection_item,
+        payerName: row.payer_name
+      }));
+    },
+
     async allocateCredit(input) {
       assertUuid(input.actorStaffId, "Finance actor ID");
       assertUuid(input.sourcePaymentId, "Source payment ID");

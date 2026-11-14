@@ -147,3 +147,90 @@ button { font: inherit; cursor: pointer; }
   #receipt-panel { display: block !important; margin: 0; padding: 0; border: 0; box-shadow: none; }
   .receipt-paper { max-width: 76mm; margin: 0; padding: 3mm; border: 0; font-size: 10px; }
 }
+
+
+.credit-section {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid #dce8e1;
+  border-radius: 14px;
+  background: #f8fbf9;
+}
+.credit-source-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.credit-source-card {
+  display: grid;
+  gap: 4px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: white;
+}
+.credit-source-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.credit-source-card b {
+  color: var(--brand-dark);
+  font-size: 13px;
+}
+.credit-allocation-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+.credit-allocation-form h5 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 14px;
+}
+.credit-allocation-lines {
+  display: grid;
+  gap: 8px;
+}
+.credit-allocation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 150px);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+.credit-allocation-row span {
+  font-size: 13px;
+}
+.credit-allocation-row input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+.credit-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--accent);
+  font-size: 13px;
+}
+.credit-summary strong {
+  text-align: right;
+  color: var(--brand-dark);
+}
+@media (max-width: 560px) {
+  .credit-allocation-row {
+    grid-template-columns: 1fr;
+  }
+}
+@media print {
+  #credit-section { display: none !important; }
+}

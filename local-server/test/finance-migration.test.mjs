@@ -89,3 +89,13 @@ test("retained credit uses an immutable append-only allocation ledger and separa
  assert.match(credit,/REVOKE ALL ON TABLE/);
  assert.match(credit,/GRANT EXECUTE ON FUNCTION cornhill_school\.allocate_local_payment_credit/);
 });
+
+const creditLookup=await readFile(new URL("../migrations/014_local_finance_credit_source_lookup.sql",import.meta.url),"utf8");
+test("retained-credit source lookup exposes only remaining posted credit to its separate permission",()=>{
+ assert.match(creditLookup,/finance_list_learner_credit_sources/);
+ assert.match(creditLookup,/finance[.]credit_allocate/);
+ assert.match(creditLookup,/p[.]status = 'Posted'/);
+ assert.match(creditLookup,/remaining_credit_ugx/);
+ assert.match(creditLookup,/REVOKE ALL ON FUNCTION/);
+ assert.match(creditLookup,/GRANT EXECUTE ON FUNCTION/);
+});

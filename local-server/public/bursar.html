@@ -102,6 +102,38 @@
         </div>
         <div id="fee-obligations" class="fee-list"></div>
 
+        <section id="credit-section" class="credit-section" hidden>
+          <div class="balance-heading">
+            <div>
+              <h4>Retained learner credit</h4>
+              <p class="muted">Apply unused credit from an earlier receipt to this learner's outstanding fee balances. The original receipt will remain unchanged.</p>
+            </div>
+          </div>
+          <div id="credit-sources" class="credit-source-list" aria-live="polite"></div>
+          <form id="credit-allocation-form" class="credit-allocation-form" hidden>
+            <label class="field">
+              <span>Receipt containing retained credit</span>
+              <select id="credit-source-select" required></select>
+            </label>
+            <div>
+              <h5>Choose outstanding fee balances</h5>
+              <div id="credit-allocation-lines" class="credit-allocation-lines"></div>
+            </div>
+            <label class="field">
+              <span>Reason for applying credit</span>
+              <input id="credit-reason" type="text" minlength="5" maxlength="300" placeholder="Apply retained credit to current term" required>
+            </label>
+            <div class="credit-summary">
+              <span>Selected allocation total</span>
+              <strong id="credit-allocation-total">UGX 0</strong>
+              <span>Credit remaining after this allocation</span>
+              <strong id="credit-remaining-total">UGX 0</strong>
+            </div>
+            <button id="credit-allocation-button" class="button secondary" type="submit">Apply retained credit</button>
+          </form>
+          <p id="credit-message" class="form-message" role="status" aria-live="polite"></p>
+        </section>
+
         <form id="payment-form" class="payment-form">
           <div class="section-heading">
             <div>

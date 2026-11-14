@@ -7,6 +7,9 @@
   let accountSnapshot = null;
   let pendingSubmission = null;
   let canReprintReceipts = false;
+  let canAllocateCredits = false;
+  let creditSources = [];
+  let pendingCreditSubmission = null;
   const PENDING_KEY_STORAGE = "cornhill.finance.pending-payment-key";
   function readRecoveredPaymentKey() {
     try {
@@ -100,6 +103,11 @@
       principal.rolePermissions[role].includes("finance.receipts_reprint")
     );
     byId("reprint-panel").hidden = !canReprintReceipts;
+    canAllocateCredits = (principal.roles || []).some(role =>
+      Array.isArray(principal.rolePermissions?.[role]) &&
+      principal.rolePermissions[role].includes("finance.credit_allocate")
+    );
+    byId("credit-section").hidden = !canAllocateCredits;
     byId("login-message").textContent = "";
   }
 
@@ -154,6 +162,9 @@
     try { await request("/auth/logout", { method: "POST", body: {} }); } catch { /* Clear the local workspace regardless. */ }
     activeLearnerId = null;
     accountSnapshot = null;
+    creditSources = [];
+    pendingCreditSubmission = null;
+    byId("credit-section").hidden = true;
     byId("learner-panel").hidden = true;
     byId("receipt-panel").hidden = true;
     showLogin("You have signed out.");
@@ -206,8 +217,8 @@
   });
 
   async function loadLearner(learnerId) {
-    if (pendingSubmission) {
-      showMessage("search-message", "A payment request is awaiting confirmation. Retry that exact request before switching to another learner.", "error");
+    if (pendingSubmission || pendingCreditSubmission) {
+      showMessage("search-message", "A finance request is awaiting confirmation. Retry that exact request before switching to another learner.", "error");
       return;
     }
     try {
@@ -217,6 +228,7 @@
       renderAccount(accountSnapshot);
       byId("learner-panel").hidden = false;
       byId("receipt-panel").hidden = true;
+      if (canAllocateCredits) await loadLearnerCredits(learnerId);
       byId("payment-form").reset();
       if (recoveredIdempotencyKey) {
         byId("pending-note").hidden = false;
@@ -423,6 +435,180 @@
     byId("receipt-panel").hidden = false;
     byId("receipt-panel").scrollIntoView({ behavior: "smooth", block: "start" });
   }
+
+  function selectedCreditSource() {
+    const id = byId("credit-source-select").value;
+    return creditSources.find(source => source.paymentId === id) || null;
+  }
+
+  function updateCreditSummary() {
+    const source = selectedCreditSource();
+    let total = 0;
+    byId("credit-allocation-lines").querySelectorAll(".credit-allocation-amount").forEach(input => {
+      const value = Number(input.value);
+      if (Number.isSafeInteger(value) && value > 0) total += value;
+    });
+    const available = Number(source?.remainingCreditUgx ?? 0);
+    byId("credit-allocation-total").textContent = money(total);
+    byId("credit-remaining-total").textContent = money(Math.max(available - total, 0));
+    return { total, available };
+  }
+
+  function renderCreditAllocationLines() {
+    const container = byId("credit-allocation-lines");
+    container.replaceChildren();
+    const items = (accountSnapshot?.fee_obligations || []).filter(item => Number(item.balance_ugx) > 0);
+    if (!items.length) {
+      const message = document.createElement("p");
+      message.className = "muted";
+      message.textContent = "There are no outstanding fee balances to receive retained credit.";
+      container.append(message);
+      return;
+    }
+    for (const item of items) {
+      const row = document.createElement("label");
+      row.className = "credit-allocation-row";
+      const description = document.createElement("span");
+      description.textContent = (item.fee_item_name || "Fee") + " · " +
+        (item.academic_year || "") + " · " + (item.term_name || "Term") +
+        " · Balance " + money(item.balance_ugx);
+      const input = document.createElement("input");
+      input.type = "number";
+      input.inputMode = "numeric";
+      input.min = "0";
+      input.max = String(Number(item.balance_ugx));
+      input.step = "1";
+      input.placeholder = "0";
+      input.className = "credit-allocation-amount";
+      input.dataset.feeId = item.fee_obligation_id;
+      input.addEventListener("input", updateCreditSummary);
+      row.append(description, input);
+      container.append(row);
+    }
+    updateCreditSummary();
+  }
+
+  function renderCreditSources() {
+    const list = byId("credit-sources");
+    const form = byId("credit-allocation-form");
+    const select = byId("credit-source-select");
+    list.replaceChildren();
+    select.replaceChildren();
+    if (!creditSources.length) {
+      form.hidden = true;
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "No retained learner credit is currently available.";
+      list.append(empty);
+      return;
+    }
+    for (const source of creditSources) {
+      const card = document.createElement("div");
+      card.className = "credit-source-card";
+      const receipt = document.createElement("strong");
+      receipt.textContent = source.receiptNumber;
+      const details = document.createElement("span");
+      details.textContent = (source.collectionItem || "School fees") +
+        " · Original credit " + money(source.originalUnallocatedUgx) +
+        " · Already applied " + money(source.allocatedCreditUgx);
+      const remaining = document.createElement("b");
+      remaining.textContent = "Available " + money(source.remainingCreditUgx);
+      card.append(receipt, details, remaining);
+      list.append(card);
+
+      const option = document.createElement("option");
+      option.value = source.paymentId;
+      option.textContent = source.receiptNumber + " · Available " + money(source.remainingCreditUgx);
+      select.append(option);
+    }
+    form.hidden = false;
+    renderCreditAllocationLines();
+    updateCreditSummary();
+  }
+
+  async function loadLearnerCredits(learnerId) {
+    if (!canAllocateCredits) return;
+    try {
+      const result = await request("/finance/learners/" + encodeURIComponent(learnerId) + "/credits");
+      creditSources = Array.isArray(result.credits) ? result.credits : [];
+      renderCreditSources();
+      if (creditSources.length) {
+        showMessage("credit-message", "Retained credit is available for this learner. Each application is recorded in the finance audit trail.");
+      } else {
+        showMessage("credit-message", "No retained credit is currently available.");
+      }
+    } catch (error) {
+      creditSources = [];
+      renderCreditSources();
+      showMessage("credit-message", error.message, "error");
+    }
+  }
+
+  byId("credit-source-select").addEventListener("change", updateCreditSummary);
+
+  byId("credit-allocation-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!canAllocateCredits || !activeLearnerId) return;
+    const retrying = Boolean(pendingCreditSubmission);
+    if (!pendingCreditSubmission) {
+      const source = selectedCreditSource();
+      const reason = byId("credit-reason").value.trim();
+      const allocations = [];
+      byId("credit-allocation-lines").querySelectorAll(".credit-allocation-amount").forEach(input => {
+        const amountUgx = Number(input.value);
+        if (Number.isSafeInteger(amountUgx) && amountUgx > 0) {
+          allocations.push({ feeObligationId: input.dataset.feeId, amountUgx });
+        }
+      });
+      const totals = updateCreditSummary();
+      if (!source) {
+        showMessage("credit-message", "Select a receipt containing retained credit.", "error");
+        return;
+      }
+      if (!allocations.length) {
+        showMessage("credit-message", "Enter an amount for at least one outstanding fee balance.", "error");
+        return;
+      }
+      if (totals.total > totals.available) {
+        showMessage("credit-message", "The selected allocation exceeds the available retained credit.", "error");
+        return;
+      }
+      if (reason.length < 5 || reason.length > 300) {
+        showMessage("credit-message", "Enter a reason between 5 and 300 characters.", "error");
+        return;
+      }
+      pendingCreditSubmission = {
+        key: crypto.randomUUID(),
+        body: { sourcePaymentId: source.paymentId, allocations, reason }
+      };
+    }
+    const button = byId("credit-allocation-button");
+    button.disabled = true;
+    showMessage("credit-message", retrying
+      ? "Retrying the exact previous credit allocation with its original request key…"
+      : "Applying retained credit…");
+    try {
+      await request("/finance/credits/allocate", {
+        method: "POST",
+        body: pendingCreditSubmission.body,
+        idempotencyKey: pendingCreditSubmission.key
+      });
+      pendingCreditSubmission = null;
+      byId("credit-reason").value = "";
+      const learnerToRefresh = activeLearnerId;
+      await loadLearner(learnerToRefresh);
+      showMessage("credit-message", "Retained credit applied successfully. The original payment and receipt remain unchanged.", "success");
+    } catch (error) {
+      showMessage("credit-message",
+        error.message + (pendingCreditSubmission ? " Retry will reuse the exact same request safely." : ""),
+        "error");
+      if (error.status && error.status >= 400 && error.status < 500 && error.status !== 409) {
+        pendingCreditSubmission = null;
+      }
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   byId("payment-form").addEventListener("submit", async event => {
     event.preventDefault();
