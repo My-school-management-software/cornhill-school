@@ -328,6 +328,7 @@ try {
       "INSERT INTO cornhill_school.payroll_runs (payroll_period_id, prepared_by_staff_id) VALUES ($1, $2) RETURNING id",
       [payrollPeriod.rows[0].id, staff.rows[0].id]
     );
+    await client.query("SET CONSTRAINTS payroll_line_item_totals_valid, payroll_item_totals_valid DEFERRED");
     const payrollLine = await client.query(
       "INSERT INTO cornhill_school.payroll_lines (payroll_run_id, staff_account_id, base_salary_ugx, allowances_ugx, deductions_ugx) VALUES ($1, $2, 1000000, 100000, 10000) RETURNING id, gross_pay_ugx, net_pay_ugx",
       [payrollRun.rows[0].id, staff.rows[0].id]
@@ -338,7 +339,6 @@ try {
       [payrollLine.rows[0].id, pendingAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id], "23514"
     );
     assert(pendingAttendanceDeductionRejected, "Pending attendance adjustments cannot be used in payroll.");
-    await client.query("SET CONSTRAINTS payroll_line_item_totals_valid, payroll_item_totals_valid DEFERRED");
     await client.query(
       "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Allowance', 'RESPONSIBILITY', 'Approved responsibility allowance', 100000, $2, $3, now())",
       [payrollLine.rows[0].id, staff.rows[0].id, approver.rows[0].id]
