@@ -85,7 +85,7 @@ test("retained credit uses an immutable append-only allocation ledger and separa
  assert.match(credit,/FOR UPDATE/);
  assert.match(credit,/remaining unallocated amount/);
  assert.match(credit,/Combined payment and retained-credit allocations exceed a fee obligation/);
- assert.doesNotMatch(credit,/UPDATE cornhill_school\\.payment_receipts/);
+ assert.doesNotMatch(credit,/UPDATE cornhill_school[.]payment_receipts/);
  assert.match(credit,/REVOKE ALL ON TABLE/);
  assert.match(credit,/GRANT EXECUTE ON FUNCTION cornhill_school\.allocate_local_payment_credit/);
 });
