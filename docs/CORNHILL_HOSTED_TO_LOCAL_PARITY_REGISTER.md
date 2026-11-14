@@ -920,3 +920,16 @@ A permission-gated authenticated API endpoint `POST /api/v1/finance/credits/allo
 - Synthetic finance checks confirmed the retained-credit ledger, reasoned audit event, same-key replay, changed-payload retry rejection, source-credit overdraw rejection, unchanged original payment and immutable receipt snapshot, updated learner fee balance, and rejection of a subsequent over-allocation through ordinary payment posting.
 
 The run used a disposable CI database and synthetic records. It did not apply migration 013 to the school's Windows database or modify hosted Supabase/Vercel resources.
+
+
+### Batch 20 verification result (2026-11-14)
+
+GitHub Actions run [43587983581](https://github.com/My-school-management-software/cornhill-school/actions/runs/43587983581) completed successfully on the Batch 20 branch head.
+
+- Windows unit suite: **324 passed, 0 failed**.
+- PostgreSQL 17 applied migrations 001–014 and verified migration repeatability/checksums.
+- Migration 014 adds a SECURITY DEFINER, permission-gated lookup for posted payment receipts with remaining retained learner credit.
+- The Bursar screen now displays original receipt, original unallocated amount, already applied amount and remaining credit, and supports reasoned application to outstanding fee obligations.
+- API/UI permission tests, credit source lookup integration, Batch 19 ledger/idempotency/balance checks and receipt immutability checks passed.
+
+No migration has been applied to the school's Windows database. No live school data or hosted Supabase/Vercel resources were changed.

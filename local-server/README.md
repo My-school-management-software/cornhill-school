@@ -75,3 +75,16 @@ GitHub Actions run [43587494430](https://github.com/My-school-management-softwar
 - Synthetic finance integration passed: retained credit allocated, same-key retry returned the original batch, changed-payload retry and credit overdraw were rejected, original payment and receipt snapshot remained unchanged, the fee balance reflected the credit, and a subsequent payment that would exceed the remaining fee balance was rejected.
 
 This is disposable CI verification only. Migration 013 has not been applied to the school's Windows database.
+
+
+### Batch 20 verification — Bursar retained-credit workflow (2026-11-14)
+
+GitHub Actions run [43587983581](https://github.com/My-school-management-software/cornhill-school/actions/runs/43587983581) passed both jobs:
+
+- Windows unit suite: **324 passed, 0 failed**.
+- PostgreSQL 17 applied migrations 001–014 and verified repeat-run checksums.
+- The retained-credit source lookup was tested with its separate permission.
+- The Bursar UI now lists available retained credit by original receipt and provides a reasoned allocation form for outstanding balances.
+- Authenticated API, UI asset, permission, source listing and finance integration checks passed.
+
+This is disposable CI verification only. Migration 014 has not been applied to the school's Windows database.
