@@ -97,7 +97,12 @@ BEGIN
   RAISE EXCEPTION 'Staff account lacks expense posting permission' USING ERRCODE='42501';
  END IF;
  SELECT * INTO v_row FROM cornhill_school.expense_requests WHERE id=p_request FOR UPDATE;
- IF NOT FOUND OR v_row.status<>'Approved' THEN
+ IF NOT FOUND THEN RAISE EXCEPTION 'Expense request was not found' USING ERRCODE='P0002'; END IF;
+ IF v_row.status='Posted' THEN
+  SELECT id INTO v_id FROM cornhill_school.expense_ledger WHERE expense_request_id=p_request;
+  RETURN v_id;
+ END IF;
+ IF v_row.status<>'Approved' THEN
   RAISE EXCEPTION 'Only approved expense requests can be posted' USING ERRCODE='23514';
  END IF;
  IF v_row.evidence_request_id IS NULL OR NOT EXISTS(
@@ -193,7 +198,12 @@ BEGIN
   RAISE EXCEPTION 'Staff account lacks bank verification permission' USING ERRCODE='42501';
  END IF;
  SELECT * INTO v_row FROM cornhill_school.bank_transactions WHERE id=p_transaction FOR UPDATE;
- IF NOT FOUND OR v_row.status<>'Approved' THEN
+ IF NOT FOUND THEN RAISE EXCEPTION 'Bank transaction was not found' USING ERRCODE='P0002'; END IF;
+ IF v_row.status='Verified' THEN
+  SELECT id INTO v_id FROM cornhill_school.bank_ledger WHERE bank_transaction_id=p_transaction;
+  RETURN v_id;
+ END IF;
+ IF v_row.status<>'Approved' THEN
   RAISE EXCEPTION 'Only approved bank transactions can be verified' USING ERRCODE='23514';
  END IF;
  IF v_row.evidence_request_id IS NULL OR NOT EXISTS(
