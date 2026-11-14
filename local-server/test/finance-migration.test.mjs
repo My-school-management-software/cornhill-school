@@ -226,3 +226,8 @@ test("financial evidence attachment is scoped to the matching request and accoun
  assert.match(expenseBankWorkflows,/context_record_id=p_record/);
  assert.match(expenseBankWorkflows,/GRANT EXECUTE ON FUNCTION/);
 });
+
+test("expense and bank posting retries return existing ledger rows",()=>{
+ assert.match(expenseBankWorkflows,/v_row[.]status='Posted'[\s\S]*?WHERE expense_request_id=p_request/);
+ assert.match(expenseBankWorkflows,/v_row[.]status='Verified'[\s\S]*?WHERE bank_transaction_id=p_transaction/);
+});
