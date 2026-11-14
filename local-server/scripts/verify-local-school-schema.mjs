@@ -261,6 +261,25 @@ try {
     "Payroll audit events are append-only and cannot be changed or deleted"
   ), "Payroll audit records must reject updates and deletes.");
 
+  const payrollDetailGuards = await pool.query(
+    "SELECT tgname FROM pg_trigger WHERE tgname IN ('payroll_line_parent_identity_guard', 'payroll_line_item_parent_identity_guard') AND NOT tgisinternal"
+  );
+  const payrollDetailGuardNames = new Set(payrollDetailGuards.rows.map(row => row.tgname));
+  assert(payrollDetailGuardNames.has("payroll_line_parent_identity_guard")
+    && payrollDetailGuardNames.has("payroll_line_item_parent_identity_guard"),
+    "Payroll line and item parent identity guards must both be installed.");
+  const payrollLineGuardDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_payroll_line_parent_identity()'::regprocedure) AS definition"
+  );
+  const payrollItemGuardDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_payroll_item_parent_identity()'::regprocedure) AS definition"
+  );
+  assert((payrollLineGuardDefinition.rows[0]?.definition ?? "").includes("OLD.payroll_run_id")
+    && (payrollLineGuardDefinition.rows[0]?.definition ?? "").includes("NEW.payroll_run_id IS DISTINCT FROM OLD.payroll_run_id")
+    && (payrollItemGuardDefinition.rows[0]?.definition ?? "").includes("OLD.payroll_line_id")
+    && (payrollItemGuardDefinition.rows[0]?.definition ?? "").includes("NEW.payroll_line_id IS DISTINCT FROM OLD.payroll_line_id"),
+    "Payroll detail rows must remain attached to their original payroll run and line.");
+
   const publicAccess = await pool.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace n
