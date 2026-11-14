@@ -186,7 +186,7 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
       const creditListMatch = path.match(/^\/api\/v1\/finance\/learners\/([0-9a-f-]{36})\/credits$/i);
       const creditListRoute = Boolean(creditListMatch && method === "GET" && UUID_PATTERN.test(creditListMatch[1]));
       const creditAllocateRoute = path === "/api/v1/finance/credits/allocate" && method === "POST";
-      const creditStatusMatch = path.match(/^\\/api\\/v1\\/finance\\/credits\\/allocations\\/([0-9a-f-]{36})$/i);
+      const creditStatusMatch = path.match(/^\/api\/v1\/finance\/credits\/allocations\/([0-9a-f-]{36})$/i);
       const creditStatusRoute = Boolean(creditStatusMatch && method === "GET" && UUID_PATTERN.test(creditStatusMatch[1]));
       const requiredPermission = receiptReprintMatch && method === "POST"
         ? "finance.receipts_reprint"

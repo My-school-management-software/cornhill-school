@@ -115,7 +115,7 @@ test("Bursar blocks switching learners while a retained-credit request is unreso
 test("Bursar persists only an actor-scoped opaque credit request key across tabs",()=>{
   assert.match(js,/localStorage\.setItem/);
   assert.match(js,/PENDING_CREDIT_KEY_STORAGE/);
-  assert.match(js,/getCreditAllocationByKey|finance\\/credits\\/allocations/);
+  assert.match(js,/getCreditAllocationByKey|finance\/credits\/allocations/);
   assert.match(js,/body: null/);
   assert.match(js,/re-enter the same source receipt, fee amounts and reason/);
 });
