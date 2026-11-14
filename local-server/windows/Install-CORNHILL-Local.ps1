@@ -15,7 +15,11 @@ function Invoke-Checked([string]$Command,[string[]]$Arguments,[string]$Failure) 
   if ($LASTEXITCODE -ne 0) { Stop-WithGuidance $Failure }
 }
 function New-LocalSecret {
-  return [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(36)).TrimEnd("=").Replace("+","-").Replace("/","_")
+  $bytes = New-Object byte[] 36
+  $generator = [Security.Cryptography.RandomNumberGenerator]::Create()
+  try { $generator.GetBytes($bytes) }
+  finally { $generator.Dispose() }
+  return [Convert]::ToBase64String($bytes).TrimEnd("=").Replace("+","-").Replace("/","_")
 }
 $os = Get-CimInstance Win32_OperatingSystem
 if ([int]$os.BuildNumber -lt 19041) { Stop-WithGuidance "Windows 10 version 2004 or newer, or Windows 11, is required." }
