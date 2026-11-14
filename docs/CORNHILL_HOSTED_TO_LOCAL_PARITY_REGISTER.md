@@ -674,3 +674,35 @@ Read-only review of selected hosted routine definitions and EXECUTE privileges. 
 7. Document the intended service-role/user-JWT boundary for every privileged RPC, with tests proving anonymous calls fail and authorised/unauthorised staff are correctly distinguished.
 
 **Status:** Additional hosted payment routine and EXECUTE privilege behavior documented. This is still partial finance reconciliation; **0/16 finance tables are fully reconciled**. Actual Edge Function/UI callers, all expense-limit enforcement paths, deposit posting, bank balances, notification delivery, and local end-to-end tests remain pending. No hosted or local database changes were made.
+
+
+### Finance event-trigger and notification review (2026-11-14)
+
+Read-only inspection of non-internal triggers and their function bodies on payment, expense, bank and evidence tables. No triggers were fired and no business rows were read or changed.
+
+**Confirmed trigger paths**
+- New payment insert invokes `assign_current_enrolment_to_new_payment` before insert. If no enrolment period is supplied, it assigns the latest active enrolment for that learner; if none exists, it rejects the payment insert.
+- New payment insert invokes `queue_parent_payment_sms` after insert. The trigger function only queues when payment status is already `Posted`, and only when the learner's guardian SMS opt-in is true and a guardian phone is present. The outbox insert is idempotent per payment (`ON CONFLICT(payment_id) DO NOTHING`). Confirm the payment table default status and outbox worker behavior before assuming every posting creates a deliverable message.
+- Payment transition to `Reversed` invokes a trigger that changes linked SMS rows still in `Pending` status to `Cancelled`. It does not cancel messages already being processed or delivered; worker concurrency/claim semantics and delivery event history still need review.
+- Evidence-file insertion creates a `school_record_index` entry linked to the capture request and source context, with duplicate file indexing prevented by conflict handling.
+- Evidence submission status change to `Submitted` creates an idempotent Admin notification asking for original-file review.
+- Bank transaction insert/status changes create deduplicated notifications. Awaiting approval/evidence is routed to Admin audience; later status updates are routed to the original entrant. Notifications carry finance workspace action metadata.
+- Expense request insert/status changes similarly create deduplicated Admin or entrant notifications. This is a notification workflow, not proof of permission to approve or post.
+- Evidence review insertion has two separate trigger handlers: bank evidence updates the linked bank transaction to Verified or Evidence rejected and appends a bank event; expense evidence locks the linked expense request, marks it Verified, inserts the corresponding Posted expense (unique by request link), and appends an event. The expense conversion is trigger-driven and occurs within the evidence-review transaction.
+
+**Local parity and test requirements**
+1. Preserve active-enrolment assignment and fail closed when no valid enrolment exists; also preserve explicit historical enrolment linkage when a payment is posted for an earlier period.
+2. Queue guardian notices only after a successfully posted receipt and only for the correct active, approved guardian contact with explicit opt-in. Do not treat a phone field alone as consent.
+3. Design an outbox worker with atomic claiming/leases, retry limits, provider response capture, idempotency and a terminal state model. Reversal must cancel unclaimed pending messages and safely coordinate with in-flight delivery; do not claim that already-sent SMS can be recalled.
+4. Preserve evidence file-to-request-to-source-record indexing and keep original evidence immutable. Rejected or replaced evidence must remain in the audit trail.
+5. Keep notifications deduplicated and audience-scoped, but always re-check authorization at action time; a notification payload must never grant access.
+6. Test the expense evidence-review trigger for duplicate review delivery, concurrent review, rejected evidence, re-requested evidence, and exactly-one posted expense per approved request.
+7. Test bank status transitions and event/notification consistency, including evidence re-request and rejection. A Verified status must not be misrepresented as proof that bank balances have been reconciled.
+
+**Outstanding source questions**
+- Inspect the SMS outbox worker and communication delivery events for claim/lease/retry semantics, provider delivery receipts, consent changes after queueing, and handling of permanent failures.
+- Trace the exact application/server caller for `post_school_payment_with_allocations`; its inspected EXECUTE grant is service-role-only, while its function body still requires `auth.uid()` and Admin status. Repository code search did not surface the function name in the indexed branch search, so caller mapping is not yet established.
+- Inspect bank deposit creation and final bank ledger/balance derivation, plus direct insert/update grants and triggers. Current review confirms the approval/evidence path but not complete bank accounting.
+- Inspect every direct expense insert path and the finance operator limit checks; no trigger reviewed here enforces configured single/daily spending limits.
+
+**Status:** Trigger-driven finance and evidence behaviors documented. Finance remains partially reconciled, with **0/16 source finance tables fully reconciled**. No local migration or hosted schema/data was changed.
