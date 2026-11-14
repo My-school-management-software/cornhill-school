@@ -92,13 +92,19 @@ test("finance repository returns only exact-record evidence request choices",asy
 
 
 test("finance record history uses the permission-scoped SQL lookup and maps immutable events",async()=>{
- const {repo,calls}=fixture();
+ const calls=[];
+ const pool={async query(sql,values){calls.push({sql,values});return {rows:[{
+  event_id:RECORD,event_code:"expense.approved",actor_staff_id:ACTOR,actor_name:"Finance Reviewer",
+  occurred_at:"2026-11-14T10:00:00Z",note:"Checked invoice",details:{note:"Checked invoice"}
+ }]};}};
+ const repo=createPostgresFinanceRepositories(pool);
  const items=await repo.listLocalFinanceRecordHistory({actorStaffId:ACTOR,contextType:"expense_request",recordId:RECORD});
  assert.equal(items.length,1);
  assert.equal(calls[0].values[0],ACTOR);
  assert.match(calls[0].sql,/finance_list_record_history/);
- assert.equal(items[0].eventCode,"Approved");
- assert.equal(items[0].actorName,undefined);
+ assert.equal(items[0].eventCode,"expense.approved");
+ assert.equal(items[0].actorName,"Finance Reviewer");
+ assert.equal(items[0].note,"Checked invoice");
 });
 test("finance record history rejects invalid context and UUID before querying",async()=>{
  const {repo,calls}=fixture();
