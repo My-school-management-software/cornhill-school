@@ -131,7 +131,7 @@ test("private evidence metadata enforces opaque keys, integrity hashes and uploa
  assert.match(evidence,/storage_object_key uuid NOT NULL UNIQUE/);
  assert.match(evidence,/sha256 char\(64\) NOT NULL CHECK/);
  assert.match(evidence,/size_bytes BETWEEN 1 AND 15728640/);
- assert.match(evidence,/content_type IN \('image/jpeg','image/png','image/webp','application\/pdf'\)/);
+ assert.ok(evidence.includes("content_type IN ('image/jpeg','image/png','image/webp','application/pdf')"));
  assert.match(evidence,/finance\.evidence_manage/);
  assert.match(evidence,/finance\.evidence_review/);
 });

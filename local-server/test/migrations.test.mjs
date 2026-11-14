@@ -19,7 +19,7 @@ test("runner strips outer transaction wrapper and accepts comment headers",()=>{
  assert.equal(prepareTransactionalMigration("\uFEFF-- header\r\nBEGIN;\r\nSELECT 1;\r\nCOMMIT;"),"SELECT 1;");
  assert.throws(()=>prepareTransactionalMigration("/* unterminated\nBEGIN; SELECT 1; COMMIT;"),/BEGIN\/COMMIT/);
 });
-test("all sixteen migrations use valid outer transactions",async()=>{
+test("all seventeen migrations use valid outer transactions",async()=>{
  const dir=new URL("../migrations/",import.meta.url);const names=sortMigrationFiles(await readdir(dir));
  assert.deepEqual(names,[
  "001_local_identity_foundation.sql","002_local_authorization_foundation.sql","003_local_auth_rate_limit_indexes.sql",
@@ -28,7 +28,8 @@ test("all sixteen migrations use valid outer transactions",async()=>{
  "009_local_attendance_salary_governance.sql","010_local_finance_payment_posting.sql",
  "011_local_finance_learner_lookup_api.sql","012_local_finance_audited_receipt_reprints.sql",
  "013_local_finance_credit_allocation.sql","014_local_finance_credit_source_lookup.sql",
- "015_local_finance_credit_allocation_recovery.sql","016_local_finance_payment_recovery.sql"]);
+ "015_local_finance_credit_allocation_recovery.sql","016_local_finance_payment_recovery.sql",
+ "017_local_finance_evidence_foundation.sql"]);
  for(const name of names){const source=await readFile(new URL(name,dir),"utf8");assert.doesNotThrow(()=>prepareTransactionalMigration(source),name);}
 });
 test("runner rejects malformed or destructive SQL and ledger mismatches",()=>{
