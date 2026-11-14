@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,6 +30,8 @@ test("rejects source names containing path components without using them as stor
   const saved = await store.put({ bytes: PNG, contentType: "image/png", originalFileName: "../../bank-slip.png" });
   assert.equal(saved.originalFileName, ".._.._bank-slip.png");
   assert.deepEqual((await store.get(saved.objectKey, saved.sha256)).bytes, PNG);
+  const windowsName = await store.put({ bytes: PNG, contentType: "image/png", originalFileName: "..\\\\bank\\\\slip.png" });
+  assert.equal(windowsName.originalFileName, ".._.._bank_slip.png");
 });
 
 test("rejects a mismatched MIME declaration and unknown file signatures", async t => {
@@ -50,6 +52,14 @@ test("rejects storage roots inside the source repository", async () => {
     rootPath: join(repositoryRoot, "local-server", ".private-evidence"),
     repositoryRoot
   }), /outside the source repository/);
+});
+
+
+test("restricts POSIX evidence directory permissions to the owning account", async t => {
+  const { root } = await fixture(t);
+  if (process.platform === "win32") return t.skip("POSIX mode bits are not enforced on Windows.");
+  const stats = await lstat(root);
+  assert.equal(stats.mode & 0o077, 0);
 });
 
 test("rejects malformed and traversal-like object keys", async t => {
