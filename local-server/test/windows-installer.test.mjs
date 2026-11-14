@@ -72,14 +72,16 @@ test("installer does not claim the complete local school app is ready", () => {
   assert.match(script, /NOT enabled yet/);
 });
 
-test("installer validates URL-safe database secrets and removes temporary CREATEDB privilege", () => {
+test("installer validates URL-safe database secrets and never grants CREATEDB to the migration role", () => {
   assert.ok(script.includes('$adminPassword -notmatch "^[A-Za-z0-9_-]+$"'));
-  assert.match(script, /ALTER ROLE cornhill_local_admin NOCREATEDB/);
+  assert.match(script, /LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE/);
+  assert.doesNotMatch(script, /ALTER ROLE cornhill_local_admin WITH LOGIN CREATEDB/);
 });
 
-test("installer safely handles empty psql output and restores the postgres password for privilege cleanup", () => {
+test("installer safely handles psql output and verifies ownership before resuming", () => {
   assert.match(script, /\$versionText = \[string\]\(\$versionCheck -join ""\)/);
   assert.match(script, /\$existsText = \[string\]\(\$exists -join ""\)/);
   assert.match(script, /\$roleExistsText = \[string\]\(\$roleExists -join ""\)/);
-  assert.match(script, /\$env:PGPASSWORD = \$adminPassword[\s\S]*?\$env:PGPASSWORD = \$postgresPassword[\s\S]*?ALTER ROLE cornhill_local_admin NOCREATEDB/);
+  assert.match(script, /pg_get_userbyid\(datdba\)/);
+  assert.match(script, /\$env:PGPASSWORD = \$adminPassword/);
 });
