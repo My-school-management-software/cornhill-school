@@ -15,7 +15,7 @@ test("PostgreSQL integration verifier checks all eleven identity and authorizati
 
 test("PostgreSQL integration verifier checks seeded roles, permission catalog and empty grants", () => {
   assert.ok(source.includes("roles.rows[0]?.count !== 17"));
-  assert.ok(source.includes("permissionCount.rows[0]?.count !== 28"));
+  assert.ok(source.includes("permissionCount.rows[0]?.count !== 32"));
   assert.ok(source.includes("roleGrants.rows[0]?.count !== 0"));
   assert.ok(source.includes("a.grantee = 0"));
   assert.ok(source.includes("PUBLIC unexpectedly has access"));

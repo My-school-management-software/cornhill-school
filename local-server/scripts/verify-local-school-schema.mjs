@@ -30,6 +30,11 @@ try {
     "admission_enquiries",
     "admission_events",
     "assessments",
+    "attendance_adjustments",
+    "attendance_days",
+    "attendance_devices",
+    "attendance_events",
+    "attendance_import_batches",
     "class_subjects",
     "classes",
     "enrolment_periods",
@@ -59,7 +64,7 @@ try {
   const permissionCount = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog"
   );
-  assert(permissionCount.rows[0]?.count === 28, "Expected 28 unique permission catalogue entries after finance permissions are added.");
+  assert(permissionCount.rows[0]?.count === 32, "Expected 32 unique permission catalogue entries after staff and payroll permissions are added.");
 
   const subjects = await pool.query(
     "SELECT subject_code FROM cornhill_school.subjects ORDER BY subject_code"
@@ -85,6 +90,11 @@ try {
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'finance'"
   );
   assert(financePermissions.rows[0]?.count === 8, "Expected eight finance permission codes.");
+
+  const staffPermissions = await pool.query(
+    "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'staff'"
+  );
+  assert(staffPermissions.rows[0]?.count === 7, "Expected seven staff and attendance permission codes.");
 
   const publicAccess = await pool.query(`
     SELECT EXISTS (
@@ -264,7 +274,7 @@ try {
     assert(overpaymentRejected, "Posted allocations must not exceed the fee obligation.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic and finance schemas verified: nineteen tables, ten classes, fifteen subjects, seven fee items, 28 permission codes, permanent pupil codes, LIN uniqueness and class-specific subject mappings.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: thirty-one tables, ten classes, fifteen subjects, seven fee items, 32 permission codes, permanent pupil codes, LIN uniqueness and class-specific subject mappings.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
