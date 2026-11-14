@@ -461,3 +461,87 @@ Read-only catalog and policy inspection covered the core identity, learner, guar
 5. Do not infer that RLS-enabled tables with no policy are safe to expose: inspect table grants and server-side access paths. In particular, session/audit/history tables may be intentionally server-only.
 
 **Status for this tranche:** schema and policy findings recorded, but none of these tables is marked reconciled. Need complete per-table unique/check/index/trigger/grant comparison and local authorization route tests. Overall remains **0/123 reconciled**.
+
+
+## AI-assisted development safety and technical governance requirements (2026-11-14)
+
+**Decision recorded:** CORNHILL will follow an AI-assisted, local-first development model. The school owner may describe required business behavior in ordinary language; AI-assisted development may translate those requirements into code, tests and documentation. The owner is not required to write or understand source code to request changes or review plain-language change reports.
+
+This is an architecture and governance requirement, **not a claim that the controls below have already been implemented**.
+
+### Non-negotiable safety boundaries
+
+1. **No direct AI editing of the live production application or production database.** Development and testing occur in a separate working copy and isolated development database.
+2. **No automatic release.** AI may prepare a change and report its evidence; a release must pass the defined checks and receive the required human approval.
+3. **Least privilege.** AI development credentials must not possess unrestricted production database, backup deletion, user administration or financial-record privileges.
+4. **Protected business data.** Learner identities/codes/LIN, guardian access, marks/report cards, payments/allocations/receipts, bursary balances, staff attendance, salary/payroll, permissions and audit history require explicit migration and review controls.
+5. **Traceability.** Every proposed change must identify its request, purpose, author/agent, affected files, relevant database migrations, tests, reviewer, approver, release version and outcome.
+6. **Recoverability.** A release must have a verified pre-release backup and a documented recovery plan. Code rollback and database recovery are separate operations; a code revert must never be assumed to reverse a database migration.
+7. **No destructive shortcuts.** No automatic table drops, bulk record deletion, production data reset, credential replacement or permission broadening as part of an ordinary feature change.
+
+### Required change lifecycle
+
+| Stage | Required behavior | Gate |
+|---|---|---|
+| Request | Record the owner's requested outcome and acceptance criteria in plain language. | Confirm scope before implementation when ambiguity could affect records, money, access or policy. |
+| Inspect | Read the existing code, dependencies, tests and relevant schema before editing. | Identify impacted modules and protected components. |
+| Develop | Make the smallest coherent change in an isolated branch/workspace. | Never edit the live installation. |
+| Verify | Run formatting/lint, type/build checks where applicable, automated tests, migration checks and security-specific tests. | Failed or skipped critical checks block release and are reported plainly. |
+| Review | Produce a human-readable change summary, file list, risk notes, test evidence and migration/backup plan. | Supervisor review for material changes. |
+| Approve | Require designated release approval, separate from the AI authoring identity. | CTO/authorised release approver; additional school approval for sensitive business-policy changes. |
+| Release | Apply a signed/versioned release through a controlled updater, with health checks. | Backup verified; compatibility and migration preconditions met. |
+| Observe/recover | Record result, monitor health and provide a tested rollback/restore procedure. | Stop rollout and recover safely on failed health checks. |
+
+### Required technical roles and separation
+
+- **Developer/AI agent:** may read approved development sources, edit the isolated development branch, run tests and prepare a release candidate. No routine production write access.
+- **Supervisor:** reviews the request-to-change match, affected modules, tests, migration plan and operational impact. Cannot silently approve their own unreviewed change.
+- **CTO/release authority:** controls release signing/approval, version promotion and emergency rollback. This technical authority does not grant permission to alter school finance or learner records.
+- **School business approvers:** approve changes to fee rules, salary policy, attendance deductions, academic grading, parent access and other school policy. Technical approval alone does not authorise a change in school policy.
+- **System administrator:** manages machine/service availability and approved backups, but does not automatically receive unrestricted business-record access.
+
+Accounts must be individually attributable; shared developer or approval accounts are not acceptable. Emergency access must be time-limited, justified and audited.
+
+### AI Change Protection and Audit Centre — planned capabilities
+
+The CORNHILL Technical Administration Centre should eventually provide:
+- Change request register and plain-language impact summaries.
+- Protected-file/component rules and explicit high-risk change warnings.
+- Development branch/workspace status and version history.
+- Test results with pass/fail/skipped status and links to evidence.
+- Supervisor review and CTO release approval workflow.
+- Database migration preview, compatibility checks and migration history.
+- Pre-release backup verification and restore-test status.
+- Signed release manifests/checksums and updater integrity verification.
+- Deployment/health-check history and controlled rollback.
+- Append-only audit events for requests, edits, reviews, approvals, releases and recovery actions.
+
+The Centre must not expose source-code secrets, database passwords, signing keys, guardian authentication material or private school records to AI prompts or browser-facing pages. Secrets must be stored outside source control and rotated through a controlled procedure.
+
+### Release and database safeguards
+
+- Use version control with small, reviewable commits and protected release branches.
+- Pin and review dependencies; scan for known vulnerabilities and secret leakage.
+- Require automated regression tests for affected modules and critical cross-module workflows.
+- Database migrations must be versioned, repeatable where practical, checked for destructive operations, and tested against a disposable copy before release.
+- Prefer additive, backward-compatible schema changes and staged data transformations. Destructive cleanup requires a separate approved migration and verified restore point.
+- Verify backup integrity and periodically test restoration to an isolated environment. A backup that has not been restore-tested is not sufficient evidence of recoverability.
+- Use release health checks and a maintenance/stop mechanism. Do not let a failed update leave the school with a half-upgraded application.
+- Offline installations must validate update signatures/checksums before applying packages; updates should be transferable through an approved local package without requiring a full reinstall.
+- Remote maintenance is disabled by default. If later enabled, it must be explicitly authorised, time-limited, strongly authenticated, narrowly scoped and audited.
+
+### Acceptance criteria before enabling AI-assisted production releases
+
+This governance feature is not complete until tests demonstrate that:
+1. AI/developer credentials cannot write to production business tables or modify production application files directly.
+2. A change cannot be promoted without passing required checks and the designated approval.
+3. Protected components trigger enhanced review and cannot bypass the approval gate.
+4. Every change and release has a complete, attributable audit trail.
+5. A failed release is detected and the previous application version can be restored.
+6. Database migrations have tested backup/restore and recovery procedures, including cases where code rollback alone is insufficient.
+7. School records remain intact across an upgrade and are verified with pre/post migration counts and integrity checks.
+8. Offline update packages are authenticated and rejected if corrupted or unsigned.
+9. Remote maintenance cannot be started without explicit, expiring authorisation.
+10. Plain-language status reports clearly distinguish passed, failed, skipped and not-yet-tested checks.
+
+**Implementation status:** REQUIREMENT RECORDED — NOT IMPLEMENTED OR VERIFIED. Do not present the Technical Administration Centre, AI permissions isolation, signed updater, approval gates or rollback automation as existing functionality until code and tests prove them.
