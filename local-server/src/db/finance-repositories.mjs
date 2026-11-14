@@ -53,6 +53,29 @@ export function createPostgresFinanceRepositories(pool) {
       return result.rows[0]?.receipt ?? null;
     },
 
+    async allocateCredit(input) {
+      assertUuid(input.actorStaffId, "Finance actor ID");
+      assertUuid(input.sourcePaymentId, "Source payment ID");
+      assertUuid(input.idempotencyKey, "Credit allocation idempotency key");
+      if (!Array.isArray(input.allocations) || input.allocations.length < 1 || input.allocations.length > 100) {
+        throw new TypeError("Between 1 and 100 credit allocations are required.");
+      }
+      if (typeof input.reason !== "string" || input.reason.trim().length < 5 || input.reason.trim().length > 300) {
+        throw new TypeError("A credit allocation reason of 5 to 300 characters is required.");
+      }
+      const result = await pool.query(
+        "SELECT cornhill_school.allocate_local_payment_credit($1::uuid,$2::uuid,$3::uuid,$4::jsonb,$5::text) AS allocation",
+        [
+          input.actorStaffId,
+          input.sourcePaymentId,
+          input.idempotencyKey,
+          JSON.stringify(input.allocations),
+          input.reason.trim()
+        ]
+      );
+      return result.rows[0]?.allocation ?? null;
+    },
+
     async postPayment(input) {
       assertUuid(input.actorStaffId, "Finance actor ID");
       assertUuid(input.learnerId, "Learner ID");

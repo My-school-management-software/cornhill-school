@@ -72,3 +72,20 @@ test("receipt reprinting has independent permission, reason and immutable snapsh
  assert.match(reprint,/REVOKE ALL ON FUNCTION cornhill_school\.reprint_local_payment_receipt/);
  assert.match(reprint,/GRANT EXECUTE ON FUNCTION cornhill_school\.reprint_local_payment_receipt/);
 });
+
+const credit=await readFile(new URL("../migrations/013_local_finance_credit_allocation.sql",import.meta.url),"utf8");
+test("retained credit uses an immutable append-only allocation ledger and separate permission",()=>{
+ assert.match(credit,/finance\.credit_allocate/);
+ assert.match(credit,/CREATE TABLE cornhill_school\.payment_credit_allocation_batches/);
+ assert.match(credit,/CREATE TABLE cornhill_school\.payment_credit_allocations/);
+ assert.match(credit,/prevent_credit_ledger_mutation/);
+ assert.match(credit,/payment\.credit_allocated/);
+ assert.match(credit,/allocate_local_payment_credit/);
+ assert.match(credit,/pg_advisory_xact_lock/);
+ assert.match(credit,/FOR UPDATE/);
+ assert.match(credit,/remaining unallocated amount/);
+ assert.match(credit,/Combined payment and retained-credit allocations exceed a fee obligation/);
+ assert.match(credit,/receipt_data_snapshot/);
+ assert.match(credit,/REVOKE ALL ON TABLE/);
+ assert.match(credit,/GRANT EXECUTE ON FUNCTION cornhill_school\.allocate_local_payment_credit/);
+});

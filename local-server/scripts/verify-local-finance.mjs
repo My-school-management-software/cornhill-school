@@ -39,6 +39,8 @@ try {
       has_table_privilege('cornhill_finance_api','cornhill_school.payment_records','INSERT') AS payment_insert,
       has_table_privilege('cornhill_finance_api','cornhill_school.payment_allocations','UPDATE') AS allocation_update,
       has_table_privilege('cornhill_finance_api','cornhill_school.payment_receipts','SELECT') AS receipt_read,
+      has_table_privilege('cornhill_finance_api','cornhill_school.payment_credit_allocation_batches','SELECT') AS credit_batch_read,
+      has_table_privilege('cornhill_finance_api','cornhill_school.payment_credit_allocations','INSERT') AS credit_allocation_insert,
       has_sequence_privilege('cornhill_finance_api','cornhill_school.receipt_number_sequence','USAGE') AS sequence_usage,
       has_function_privilege('cornhill_finance_api',
         'cornhill_school.post_local_payment(uuid,uuid,bigint,text,uuid,jsonb,text,text,text,text,text)','EXECUTE') AS can_post,
@@ -58,7 +60,7 @@ try {
   assert.equal(a.payment_read,false);
   assert.equal(a.payment_insert,false);
   assert.equal(a.allocation_update,false);
-  assert.equal(a.receipt_read,false);
+  assert.equal(a.receipt_read,false);\n  assert.equal(a.credit_batch_read,false);\n  assert.equal(a.credit_allocation_insert,false);
   assert.equal(a.sequence_usage,false);
   assert.equal(a.can_post,true);
   assert.equal(a.can_search,true);

@@ -9,7 +9,7 @@ const ORIGIN="https://cornhill.local:4174";
 const STAFF_ID="11111111-1111-4111-8111-111111111111";
 const LEARNER_ID="22222222-2222-4222-8222-222222222222";
 const FEE_OLD="33333333-3333-4333-8333-333333333333";
-const FEE_NOW="44444444-4444-4444-8444-444444444444";
+const FEE_NOW="44444444-4444-4444-8444-444444444444";\nconst SOURCE_PAYMENT="55555555-5555-4555-8555-555555555555";
 const TOKEN="A".repeat(43);
 const principal={
   id:STAFF_ID,principalType:"staff",accountStatus:"active",
@@ -35,7 +35,7 @@ async function invoke(handler,{path,method="GET",headers={},body,encrypted=true}
   return {...res,handled};
 }
 function setup({principalValue=principal,authError,repoOverrides={}}={}){
-  const calls={auth:[],search:[],account:[],post:[],reprints:[]};
+  const calls={auth:[],search:[],account:[],post:[],reprints:[],credits:[]};
   const authService={
     async authenticate(input){
       calls.auth.push(input);
@@ -47,7 +47,7 @@ function setup({principalValue=principal,authError,repoOverrides={}}={}){
     async searchLearners(input){calls.search.push(input);return [{learnerId:LEARNER_ID,pupilCode:"CRN-F-001",learnerName:"CI Learner",className:"P.4",isBursary:false}];},
     async getLearnerAccount(input){calls.account.push(input);return {learner:{id:LEARNER_ID,pupil_code:"CRN-F-001"},totals:{charged_ugx:150000,paid_ugx:25000,balance_ugx:125000},fee_obligations:[]};},
     async postPayment(input){calls.post.push(input);return {paymentId:"55555555-5555-4555-8555-555555555555",receiptNumber:"CR-2026-0000001",status:"Posted",allocatedAmountUgx:75000,unallocatedAmountUgx:10000,receipt:{amount_ugx:85000}};},
-    async reprintReceipt(input){calls.reprints.push(input);return {receipt_number:input.receiptNumber,payment_status:"Posted",print_count:2,receipt_data_snapshot:{amount_ugx:85000}};},
+    async reprintReceipt(input){calls.reprints.push(input);return {receipt_number:input.receiptNumber,payment_status:"Posted",print_count:2,receipt_data_snapshot:{amount_ugx:85000}};},\n    async allocateCredit(input){calls.credits.push(input);return {batch_id:"77777777-7777-4777-8777-777777777777",source_payment_id:input.sourcePaymentId,total_allocated_ugx:6000,remaining_credit_ugx:4000,replayed:false};},
     ...repoOverrides
   };
   return {handler:createFinanceHttpHandler({authService,financeRepository,expectedOrigin:ORIGIN}),calls};
@@ -228,4 +228,45 @@ test("receipt reprint maps an unknown original receipt to 404",async()=>{
   });
   assert.equal(result.statusCode,404);
   assert.equal(calls.reprints.length,1);
+});
+
+const creditPrincipal={...principal,rolePermissions:{bursar:["finance.credit_allocate"]}};
+test("retained-credit allocation requires its independent permission and records authenticated actor",async()=>{
+  const {handler,calls}=setup({principalValue:creditPrincipal});
+  const result=await invoke(handler,{
+    path:"/api/v1/finance/credits/allocate",method:"POST",headers:postHeaders,
+    body:JSON.stringify({
+      sourcePaymentId:SOURCE_PAYMENT,
+      allocations:[{feeObligationId:FEE_NOW,amountUgx:6000}],
+      reason:"Apply retained credit to current term"
+    })
+  });
+  assert.equal(result.statusCode,200);
+  assert.equal(result.json().allocation.remaining_credit_ugx,4000);
+  assert.equal(calls.credits.length,1);
+  assert.equal(calls.credits[0].actorStaffId,STAFF_ID);
+  assert.equal(calls.credits[0].sourcePaymentId,SOURCE_PAYMENT);
+  assert.equal(calls.credits[0].idempotencyKey,postHeaders["Idempotency-Key"]);
+  assert.deepEqual(calls.credits[0].allocations,[{fee_obligation_id:FEE_NOW,amount_ugx:6000}]);
+  assert.equal(calls.credits[0].reason,"Apply retained credit to current term");
+});
+test("retained-credit allocation rejects staff without the separate permission",async()=>{
+  const {handler,calls}=setup();
+  const result=await invoke(handler,{
+    path:"/api/v1/finance/credits/allocate",method:"POST",headers:postHeaders,
+    body:JSON.stringify({sourcePaymentId:SOURCE_PAYMENT,allocations:[{feeObligationId:FEE_NOW,amountUgx:6000}],reason:"Apply retained credit"})
+  });
+  assert.equal(result.statusCode,403);
+  assert.equal(calls.credits.length,0);
+});
+test("retained-credit allocation validates idempotency, reason, duplicate fees and whole-UGX amounts",async()=>{
+  const {handler,calls}=setup({principalValue:creditPrincipal});
+  const path="/api/v1/finance/credits/allocate";
+  const valid={sourcePaymentId:SOURCE_PAYMENT,allocations:[{feeObligationId:FEE_NOW,amountUgx:6000}],reason:"Apply retained credit"};
+  const badKey=await invoke(handler,{path,method:"POST",headers:{...postHeaders,"Idempotency-Key":"bad"},body:JSON.stringify(valid)});
+  const badReason=await invoke(handler,{path,method:"POST",headers:postHeaders,body:JSON.stringify({...valid,reason:"no"})});
+  const duplicate=await invoke(handler,{path,method:"POST",headers:postHeaders,body:JSON.stringify({...valid,allocations:[{feeObligationId:FEE_NOW,amountUgx:1},{feeObligationId:FEE_NOW,amountUgx:2}]})});
+  const fraction=await invoke(handler,{path,method:"POST",headers:postHeaders,body:JSON.stringify({...valid,allocations:[{feeObligationId:FEE_NOW,amountUgx:1.5}]})});
+  assert.deepEqual([badKey.statusCode,badReason.statusCode,duplicate.statusCode,fraction.statusCode],[400,400,400,400]);
+  assert.equal(calls.credits.length,0);
 });

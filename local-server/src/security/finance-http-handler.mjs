@@ -135,7 +135,7 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
   if (!authService || typeof authService.authenticate !== "function") {
     throw new TypeError("A local authentication service is required for finance routes.");
   }
-  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt"]) {
+  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt", "allocateCredit"]) {
     if (!financeRepository || typeof financeRepository[method] !== "function") {
       throw new TypeError("A complete local finance repository is required.");
     }
@@ -218,6 +218,44 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
           return true;
         }
         sendJson(response, 200, { account });
+        return true;
+      }
+
+      if (creditAllocateRoute) {
+        const body = await readJsonBody(request);
+        const idempotencyKey = request.headers["idempotency-key"];
+        if (!UUID_PATTERN.test(idempotencyKey ?? "")) {
+          throw new FinanceInputError(400, "A valid Idempotency-Key header is required.");
+        }
+        if (typeof body.sourcePaymentId !== "string" || !UUID_PATTERN.test(body.sourcePaymentId)) {
+          throw new FinanceInputError(400, "Select a valid original payment with retained credit.");
+        }
+        if (!Array.isArray(body.allocations) || body.allocations.length < 1 || body.allocations.length > 100) {
+          throw new FinanceInputError(400, "Choose between 1 and 100 fee balances for credit allocation.");
+        }
+        const seen = new Set();
+        const allocations = body.allocations.map(item => {
+          if (!item || typeof item !== "object" || Array.isArray(item) ||
+              typeof item.feeObligationId !== "string" || !UUID_PATTERN.test(item.feeObligationId) ||
+              !Number.isSafeInteger(item.amountUgx) || item.amountUgx <= 0) {
+            throw new FinanceInputError(400, "Each credit allocation must contain a fee ID and positive whole-UGX amount.");
+          }
+          const id = item.feeObligationId.toLowerCase();
+          if (seen.has(id)) throw new FinanceInputError(400, "A fee balance may only appear once in a credit allocation.");
+          seen.add(id);
+          return { fee_obligation_id: item.feeObligationId, amount_ugx: item.amountUgx };
+        });
+        if (typeof body.reason !== "string" || body.reason.trim().length < 5 || body.reason.trim().length > 300) {
+          throw new FinanceInputError(400, "Enter a credit allocation reason between 5 and 300 characters.");
+        }
+        const allocation = await financeRepository.allocateCredit({
+          actorStaffId: principal.id,
+          sourcePaymentId: body.sourcePaymentId,
+          idempotencyKey,
+          allocations,
+          reason: body.reason.trim()
+        });
+        sendJson(response, 200, { allocation });
         return true;
       }
 

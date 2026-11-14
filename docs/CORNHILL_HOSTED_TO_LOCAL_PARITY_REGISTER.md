@@ -897,3 +897,14 @@ The latest branch head `2cee4c499999128a1692a32ac9c21dcbef972e83` passed GitHub 
 This is CI verification against a disposable PostgreSQL database, not application to the school's Windows database. No live Supabase/Vercel resource or real school record was changed.
 
 **Next local finance gap:** controlled later allocation of retained unallocated learner credit, with a separate append-only allocation ledger, permission checks, obligation-balance locking, idempotent retries and audit evidence. It must not rewrite the original posted payment or immutable receipt snapshot.
+
+
+### Batch 19 — retained learner-credit allocation (2026-11-14)
+
+Migration 013 adds immutable credit-allocation batch and allocation ledgers, the independent high-risk `finance.credit_allocate` permission, a reasoned/idempotent SECURITY DEFINER allocation function, and an audit event. It serializes by idempotency key, locks the source payment and learner, locks fee obligations in stable UUID order, validates source payment status, remaining retained credit, same-learner ownership, open obligation state and current balance. It records a replay-safe result without editing the source payment or receipt snapshot.
+
+The fee-obligation balance view now combines posted payment allocations and retained-credit ledger allocations. The shared posted-payment invariant was extended so a later ordinary payment cannot exceed a fee balance already reduced by retained credit. Reversal of a source payment with consumed credit is blocked pending a separately designed credit-release/reversal workflow.
+
+A permission-gated authenticated API endpoint `POST /api/v1/finance/credits/allocate` is added. The finance API database role can execute the allocation function but cannot directly read or mutate the ledger tables.
+
+**Verification plan:** synthetic PostgreSQL checks cover allocation, idempotent replay, changed-payload retry rejection, overdraw rejection, fee-balance visibility, audit evidence, unchanged original payment/receipt snapshots, no-permission rejection, and a subsequent payment over-allocation attempt. Windows unit/HTTP tests cover route authorization, actor derivation, idempotency and payload validation. CI is pending; the Windows school database remains untouched.

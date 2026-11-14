@@ -54,3 +54,12 @@ The status page on port 4173 is not a school-data application. The separate HTTP
 - LAN access, Android access, offline synchronisation, backups, recovery, thermal-printer hardware compatibility and the full school-wide UI remain pending. The Bursar print view is not yet verified on a physical thermal printer.
 
 The live CORNHILL PWA remains on its current hosted backend until a separately approved migration and cutover.
+
+
+### Batch 19 — retained learner-credit allocation (2026-11-14)
+
+Migration 013 introduces a separate append-only ledger for allocating the unused credit retained on a posted payment. It requires the independent `finance.credit_allocate` permission, an explanatory reason and an idempotency key. Source payment, learner and fee-obligation rows are locked; the source payment must remain Posted; only open obligations belonging to the same learner may receive credit; and available retained credit and fee balances are checked inside the database transaction.
+
+The original payment amount, unallocated amount and immutable receipt snapshot are not changed. The learner fee-balance view now includes both original payment allocations and later credit allocations. The shared posted-payment invariant checks both sources so a subsequent payment cannot overrun a balance already reduced by retained credit. A source payment with consumed credit cannot be reversed until an approved credit-release workflow exists.
+
+The authenticated finance API exposes a separate permission-gated `POST /api/v1/finance/credits/allocate` route. The database finance API role receives function execution only, not direct access to the new ledger tables. Batch 19 CI verification is pending. The migration has not been applied to the school's Windows database.
