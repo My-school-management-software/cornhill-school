@@ -13,7 +13,7 @@ test("installer checks supported Windows and Node versions", () => {
 });
 
 test("installer preserves existing environment and creates secrets only when absent", () => {
-  assert.match(script, /if \(-not \(Test-Path envPath\)\)/);
+  assert.match(script, /if \(-not \(Test-Path \\$envPath\)\)/);
   assert.match(script, /RandomNumberGenerator/);
   assert.match(script, /Existing \.env preserved/);
   assert.match(script, /CORNHILL_DB_PORT=5432/);
