@@ -472,6 +472,40 @@ CREATE INDEX payment_notification_ready_idx
   ON cornhill_school.payment_notification_outbox (next_attempt_at, created_at)
   WHERE status = 'queued';
 
+CREATE OR REPLACE VIEW cornhill_school.fee_obligation_balances
+WITH (security_invoker = true)
+AS
+SELECT
+  fo.id AS fee_obligation_id,
+  fo.learner_id,
+  l.pupil_code,
+  concat_ws(' ', l.first_name, l.middle_name, l.last_name) AS learner_name,
+  fo.academic_term_id,
+  ay.year_label AS academic_year,
+  at.term_number,
+  at.term_name,
+  fc.item_code AS fee_item_code,
+  fc.item_name AS fee_item_name,
+  fo.amount_ugx,
+  COALESCE(paid.paid_ugx, 0)::bigint AS paid_ugx,
+  GREATEST(fo.amount_ugx - COALESCE(paid.paid_ugx, 0), 0)::bigint AS balance_ugx,
+  fo.status AS obligation_status,
+  (fo.due_date IS NOT NULL AND fo.due_date < CURRENT_DATE
+    AND fo.amount_ugx > COALESCE(paid.paid_ugx, 0)
+    AND fo.status = 'Open') AS is_overdue
+FROM cornhill_school.fee_obligations fo
+JOIN cornhill_school.learners l ON l.id = fo.learner_id
+JOIN cornhill_school.academic_terms at ON at.id = fo.academic_term_id
+JOIN cornhill_school.academic_years ay ON ay.id = at.academic_year_id
+JOIN cornhill_school.fee_catalogue fc ON fc.id = fo.fee_item_id
+LEFT JOIN LATERAL (
+  SELECT sum(pa.amount_ugx)::bigint AS paid_ugx
+  FROM cornhill_school.payment_allocations pa
+  JOIN cornhill_school.payment_records pr ON pr.id = pa.payment_id
+  WHERE pa.fee_obligation_id = fo.id AND pr.status = 'Posted'
+) paid ON true;
+
+
 CREATE TRIGGER payment_receipt_and_notification
 AFTER UPDATE OF status ON cornhill_school.payment_records
 FOR EACH ROW EXECUTE FUNCTION cornhill_school.issue_payment_receipt();
