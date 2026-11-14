@@ -601,3 +601,40 @@ Positive controls already present in the migration include:
 - Guardian payment notifications must respect active contact linkage and recorded opt-in; queued notifications must be cancellable when the underlying payment is reversed.
 
 **Status:** 16/16 hosted finance table names and structural definitions captured for this tranche; selected policy behavior recorded; local migration 007 inspected. **0/16 finance tables are marked fully reconciled.** Constraints, indexes, trigger definitions, routine bodies, complete grants, all call sites, data mappings and local authorization/workflow tests remain to be completed. No hosted data or schema was modified.
+
+
+### Finance deep review — constraints, approval routines and local risk checks (2026-11-14)
+
+This follow-up used read-only PostgreSQL catalog inspection and source retrieval. It did not invoke any finance RPC, Edge Function, payment, approval, reversal, bank or bursary action, and did not read or change school financial transactions.
+
+**Hosted database invariants confirmed**
+- Fee schedules enforce positive UGX amounts, allowed learner types and foreign-key links to fee item, class, academic year and term.
+- Learner charges enforce positive amounts, unique invoice numbers and links to learner, enrolment period, fee item, academic year and term.
+- Payments enforce positive amounts, allowed methods/statuses, bounded unallocated amount, learner/receiver/reversal actor links and enrolment-period link. Allocations enforce positive amounts, unique payment/charge pairs and links to both payment and charge.
+- Bank accounts constrain institution/account holder combinations, non-negative opening balances and last-four-digit account-number display. Bank transactions enforce positive amounts, Deposit/Withdrawal direction and a constrained approval/evidence/rejection state machine; account and assigned evidence-device links are restrictive.
+- Expense requests enforce positive amounts, permitted payment methods and a staged approval/evidence/cancellation lifecycle. Posted expenses are linked to a category, recorder and optionally a unique payroll item or expense request.
+
+**Hosted routines/workflow behavior inspected**
+- Bank withdrawal approval is Admin-only, row-locks the transaction, requires an active evidence device, creates an evidence-capture request, transitions to Awaiting evidence and writes a transaction event. Rejection requires a reason and records the rejecting actor/time. Evidence review updates the bank transaction and appends an event.
+- Expense request approval is Admin-only, row-locks the request, requires an active evidence device, creates an evidence request and records approval. Evidence approval transitions the request to Verified and creates the corresponding Posted expense in the same trigger-driven workflow; rejection and evidence re-request are separately represented.
+- Payment reversal requires an authenticated Admin and a 5–500 character reason; it row-locks a Posted payment and records Reversed status, actor, timestamp and reason. Posted allocations are excluded from paid totals when payment status becomes Reversed.
+- Bursary award routine validates Admin identity, active learner and current-term enrolment, category/amount, reason, active term dates, optional evidence path and duplicate term charges; it uses a transaction advisory lock and checks existing allocations before changing an existing charge.
+- Bursar activation routine locks the enrollment and staff directory records, requires approved enrollment, verified matching email, eligible active non-teaching employee, matching bursar job title and no existing profile, then links the profile and writes an activation event. Catalog privilege inspection showed this routine is not executable directly by `authenticated`; the intended trusted Edge/RPC caller and its service boundary must be traced before local porting.
+- Finance operator limit setter is Admin-only and validates the target as an active Bursar/Deputy Bursar, with positive enabled limits and single-expense limit no greater than daily limit. This setter alone does not prove that the limits are checked atomically in every expense creation/posting path; enforcement call sites remain to be traced.
+
+**Local finance migration comparison — additional critical gaps**
+- Local migration 007 requires every posted payment to be fully allocated to obligations. Hosted payment records explicitly support a non-zero `unallocated_amount_ugx` remainder. This is a behavioral difference, not merely a renamed column. The local design must decide and document whether partial/unallocated receipts are supported; do not silently discard or auto-allocate amounts without preserving the hosted semantics and the school's approved rules.
+- Local migration 007 has a controlled payment lifecycle and immutable receipt snapshot. It also cancels queued notification-outbox rows on reversal. Hosted reversal routine changes payment status and hosted SMS trigger only queues on Posted; a separate audit of already queued/delivered notification behavior and retry worker is still required.
+- Local `finance_audit_events` is a table foundation, but the reviewed migration does not yet prove that all posting, voiding, reversing, fee adjustment, receipt reprint, expense and banking operations write complete immutable audit events with actor and reason.
+- Local migration 007 defines permission catalogue entries for expenses and banking, but contains no expense/bank tables or posting routines. Permission catalogue entries are not grants or implementation.
+- Local receipt snapshot captures allocation/term/year and balance-at-issue, but parity still requires hosted invoice/receipt identity mapping, payer/collection fields, previous-term debt behavior, and support for partial allocations if approved.
+
+**Security and correctness checks still required**
+1. Trace all function execute grants, owners, SECURITY DEFINER search paths, and exact Edge/RPC callers, especially bursar activation and finance-limit enforcement.
+2. Find every expense insert/posting path and prove the configured single/daily limits are enforced under concurrency, not only configured by an Admin routine.
+3. Inspect payment create/post routine end-to-end, including idempotency/concurrent allocation, unallocated balance handling, reversal audit, receipt snapshot, and queued SMS cancellation/retry behavior.
+4. Inspect bank deposit recording and reconciliation, including duplicate bank references, account balance derivation, reversal/correction model and evidence approval separation.
+5. Confirm expense payroll-item links cannot double-count payroll expenses and that void/reversal never deletes source evidence or audit history.
+6. Verify all privileged routines are explicitly granted only to intended roles; absence of RLS policies on server-managed enrollment/audit tables is not permission to expose them.
+
+**Status:** This tranche adds hosted constraint and selected routine behavior evidence for the finance/banking review. It does not change the previous completion count: 0/16 hosted finance tables are fully reconciled. No local migration or hosted schema/data was changed.
