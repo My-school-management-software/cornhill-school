@@ -37,6 +37,22 @@ function amountField(body,key){
  if(!Number.isSafeInteger(value)||value<=0)throw new InputError(400,"Amount must be a positive whole-UGX number.");
  return value;
 }
+function archiveFilters(url){
+ const recordType=url.searchParams.get("type")??"all";
+ const status=url.searchParams.get("status")??"all";
+ const search=url.searchParams.get("q");
+ const rawLimit=url.searchParams.get("limit");
+ const rawOffset=url.searchParams.get("offset");
+ const limit=rawLimit===null?50:/^(?:[1-9][0-9]{0,2})$/.test(rawLimit)?Number(rawLimit):NaN;
+ const offset=rawOffset===null?0:/^(?:0|[1-9][0-9]{0,5})$/.test(rawOffset)?Number(rawOffset):NaN;
+ if(!["all","expense","bank"].includes(recordType)||!["all","Pending","Approved","Rejected","Posted","Cancelled","Verified"].includes(status)||
+    (search!==null&&search.length>80)||!Number.isInteger(limit)||limit<1||limit>100||
+    !Number.isInteger(offset)||offset<0||offset>100000){
+  throw new InputError(400,"Finance archive filters are invalid.");
+ }
+ return {recordType,status,search,limit,offset};
+}
+
 function mapError(error){
  if(error instanceof InputError)return {status:error.status,message:error.message};
  if(error instanceof AuthenticationRateLimitError)return {status:429,message:error.message};
@@ -119,11 +135,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
    if(!permitted){send(response,403,{error:"You do not have permission for this finance operation."});return true;}
    const actorStaffId=principal.id;
    if(method==="GET"){
-    const result=route.kind==="archive"?await financeRepository.listLocalFinanceRecordArchive({
-     actorStaffId,recordType:url.searchParams.get("type")??"all",status:url.searchParams.get("status")??"all",
-     search:url.searchParams.get("q"),limit:url.searchParams.has("limit")?Number(url.searchParams.get("limit")):50,
-     offset:url.searchParams.has("offset")?Number(url.searchParams.get("offset")):0
-    }):route.kind==="history"?await financeRepository.listLocalFinanceRecordHistory({actorStaffId,contextType:match[1].toLowerCase()==="expenses"?"expense_request":"bank_transaction",recordId:match[2]}):route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):route.kind==="bankAccounts"?await financeRepository.listLocalBankAccounts({actorStaffId}):route.kind==="limitStaff"?await financeRepository.listLocalExpenseLimitStaff({actorStaffId}):route.kind==="expenseQueue"?await financeRepository.listLocalExpenseReviewQueue({actorStaffId}):await financeRepository.listLocalBankReviewQueue({actorStaffId});
+    const result=route.kind==="archive"?await financeRepository.listLocalFinanceRecordArchive({actorStaffId,...archiveFilters(url)}):route.kind==="history"?await financeRepository.listLocalFinanceRecordHistory({actorStaffId,contextType:match[1].toLowerCase()==="expenses"?"expense_request":"bank_transaction",recordId:match[2]}):route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):route.kind==="bankAccounts"?await financeRepository.listLocalBankAccounts({actorStaffId}):route.kind==="limitStaff"?await financeRepository.listLocalExpenseLimitStaff({actorStaffId}):route.kind==="expenseQueue"?await financeRepository.listLocalExpenseReviewQueue({actorStaffId}):await financeRepository.listLocalBankReviewQueue({actorStaffId});
     send(response,200,{items:result});return true;
    }
    const body=await readBody(request);
