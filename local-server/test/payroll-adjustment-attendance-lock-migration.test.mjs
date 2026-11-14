@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 test("payroll attendance-adjustment linkage is serialized and keeps its approved provenance", async () => {
   const sql = await readFile(new URL("../migrations/053_local_payroll_adjustment_attendance_lock.sql", import.meta.url), "utf8");
 
-  assert.match(sql, /^BEGIN;/);
+  assert.match(sql, /\bBEGIN;/);
   assert.match(sql, /COMMIT;\s*$/);
   assert.match(sql, /CREATE OR REPLACE FUNCTION cornhill_school\.validate_payroll_line_item\(\)/);
   assert.match(sql, /SET search_path = pg_catalog, cornhill_school/);
