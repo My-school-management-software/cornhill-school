@@ -25,6 +25,11 @@ test("installer generates secrets with APIs supported by Windows PowerShell 5.1"
   assert.doesNotMatch(script, /RandomNumberGenerator\]::GetBytes\(36\)/);
 });
 
+test("installer bootstraps a missing npm lockfile before clean installation", () => {
+  assert.ok(script.includes('$lockPath = Join-Path $root "package-lock.json"'));
+  assert.ok(script.includes('"install","--package-lock-only","--ignore-scripts"'));
+  assert.ok(script.includes('"ci","--no-audit","--no-fund"'));
+});
 test("installer uses native PostgreSQL 17 tools and does not require Docker", () => {
   assert.match(script, /PostgreSQL\\17\\bin/);
   assert.match(script, /psql\.exe/);
