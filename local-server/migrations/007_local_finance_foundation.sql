@@ -3,6 +3,31 @@
 
 BEGIN;
 
+
+CREATE FUNCTION cornhill_school.prevent_posted_allocation_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, cornhill_school
+AS $function$
+DECLARE
+  payment_status text;
+BEGIN
+  SELECT status INTO payment_status
+  FROM cornhill_school.payment_records
+  WHERE id = OLD.payment_id
+  FOR UPDATE;
+  IF payment_status IS DISTINCT FROM 'Draft' THEN
+    RAISE EXCEPTION 'Allocations for a non-draft payment cannot be removed'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN OLD;
+END;
+$function$;
+
+CREATE TRIGGER payment_allocation_delete_scope
+BEFORE DELETE ON cornhill_school.payment_allocations
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.prevent_posted_allocation_delete();
+
 CREATE SEQUENCE cornhill_school.receipt_number_sequence AS bigint START WITH 1 INCREMENT BY 1 NO CYCLE;
 
 CREATE TABLE cornhill_school.fee_catalogue (
@@ -304,6 +329,36 @@ CREATE TABLE cornhill_school.payment_receipts (
     print_count integer NOT NULL DEFAULT 0 CHECK (print_count >= 0),
     last_printed_at timestamptz
 );
+
+
+CREATE FUNCTION cornhill_school.protect_payment_receipt()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, cornhill_school
+AS $function$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'Issued payment receipts cannot be deleted'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  IF NEW.payment_id IS DISTINCT FROM OLD.payment_id OR
+     NEW.receipt_number IS DISTINCT FROM OLD.receipt_number OR
+     NEW.receipt_data_snapshot IS DISTINCT FROM OLD.receipt_data_snapshot OR
+     NEW.issued_at IS DISTINCT FROM OLD.issued_at OR
+     NEW.print_count < OLD.print_count OR
+     NEW.print_count > OLD.print_count + 1 OR
+     (NEW.print_count = OLD.print_count AND NEW.last_printed_at IS DISTINCT FROM OLD.last_printed_at) OR
+     (NEW.print_count = OLD.print_count + 1 AND NEW.last_printed_at IS NULL) THEN
+    RAISE EXCEPTION 'Receipt content is immutable; only a single print event may be recorded'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER payment_receipt_immutable
+BEFORE UPDATE OR DELETE ON cornhill_school.payment_receipts
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.protect_payment_receipt();
 
 CREATE FUNCTION cornhill_school.issue_payment_receipt()
 RETURNS trigger
