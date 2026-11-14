@@ -63,6 +63,14 @@
       <section id="expense-banking-workspace" class="panel operations-panel" hidden>
         <div class="section-heading"><div><p class="eyebrow">SCHOOL OPERATIONS</p><h3>Expenses and bank transactions</h3><p class="muted">Requests are subject to independent review, evidence checks and posting controls.</p></div></div>
         <div class="operations-grid">
+          <form id="expense-limit-form" class="operation-card" hidden>
+            <h4>Set daily expense limits</h4>
+            <p class="muted">Only active staff accounts are listed. Limits apply to expense requests submitted by the selected staff member.</p>
+            <label class="field"><span>Staff member</span><select id="expense-limit-staff" required></select></label>
+            <label class="field"><span>Daily limit (UGX)</span><input id="expense-daily-limit" type="number" min="1" step="1" inputmode="numeric" required></label>
+            <button class="button secondary" type="submit">Save daily limit</button>
+            <p id="expense-limit-message" class="form-message" role="status" aria-live="polite"></p>
+          </form>
           <form id="expense-request-form" class="operation-card" hidden>
             <h4>Submit an expense request</h4>
             <label class="field"><span>Expense category</span><select id="expense-category" required></select></label>
