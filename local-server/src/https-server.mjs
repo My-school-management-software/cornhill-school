@@ -49,27 +49,11 @@ function assertOutsideRepository(filePath, label) {
   }
 }
 
-async function readTlsMaterial({ keyPath, certPath, expectedHostname }) {
-  assertOutsideRepository(keyPath, "TLS private key");
+async function readTlsMaterial({ keyPath, certPath, pfxPath, pfxPassphrase, expectedHostname }) {
   assertOutsideRepository(certPath, "TLS certificate");
-
-  const [actualKeyPath, actualCertPath] = await Promise.all([
-    realpath(keyPath),
-    realpath(certPath)
-  ]);
-  assertOutsideRepository(actualKeyPath, "TLS private key");
+  const actualCertPath = await realpath(certPath);
   assertOutsideRepository(actualCertPath, "TLS certificate");
-
-  const [keyStats, key, cert] = await Promise.all([
-    stat(actualKeyPath),
-    readFile(actualKeyPath),
-    readFile(actualCertPath)
-  ]);
-
-  if (process.platform !== "win32" && (keyStats.mode & 0o077) !== 0) {
-    throw new Error("TLS private key file permissions are too broad.");
-  }
-
+  const cert = await readFile(actualCertPath);
   const x509 = new X509Certificate(cert);
   if (!x509.checkHost(expectedHostname)) {
     throw new Error("TLS certificate does not match the configured local HTTPS hostname.");
@@ -79,7 +63,30 @@ async function readTlsMaterial({ keyPath, certPath, expectedHostname }) {
     throw new Error("TLS certificate is not currently valid.");
   }
 
-  // Validate that the certificate and private key form a usable pair.
+  if (pfxPath) {
+    assertOutsideRepository(pfxPath, "TLS PFX bundle");
+    if (typeof pfxPassphrase !== "string" || pfxPassphrase.length < 12) {
+      throw new TypeError("TLS PFX passphrase must contain at least 12 characters.");
+    }
+    const actualPfxPath = await realpath(pfxPath);
+    assertOutsideRepository(actualPfxPath, "TLS PFX bundle");
+    const pfxStats = await stat(actualPfxPath);
+    const pfx = await readFile(actualPfxPath);
+    if (process.platform !== "win32" && (pfxStats.mode & 0o077) !== 0) {
+      throw new Error("TLS PFX file permissions are too broad.");
+    }
+    createSecureContext({ pfx, passphrase: pfxPassphrase, minVersion: "TLSv1.2", maxVersion: "TLSv1.3" });
+    return { pfx, passphrase: pfxPassphrase };
+  }
+
+  assertOutsideRepository(keyPath, "TLS private key");
+  const actualKeyPath = await realpath(keyPath);
+  assertOutsideRepository(actualKeyPath, "TLS private key");
+  const keyStats = await stat(actualKeyPath);
+  const key = await readFile(actualKeyPath);
+  if (process.platform !== "win32" && (keyStats.mode & 0o077) !== 0) {
+    throw new Error("TLS private key file permissions are too broad.");
+  }
   createSecureContext({ key, cert, minVersion: "TLSv1.2", maxVersion: "TLSv1.3" });
   return { key, cert };
 }
@@ -132,6 +139,8 @@ export async function createCornhillHttpsServer({
   expectedOrigin,
   keyPath,
   certPath,
+  pfxPath,
+  pfxPassphrase,
   host = "127.0.0.1",
   port = 4174,
   financeApiEnabled = false
@@ -155,6 +164,8 @@ export async function createCornhillHttpsServer({
   const tls = await readTlsMaterial({
     keyPath,
     certPath,
+    pfxPath,
+    pfxPassphrase,
     expectedHostname: origin.hostname
   });
 
@@ -205,7 +216,6 @@ export async function createCornhillHttpsServer({
     });
   });
 
-  // Bound unauthenticated request/header lifetimes before any route runs.
   server.requestTimeout = 15_000;
   server.headersTimeout = 10_000;
   server.keepAliveTimeout = 5_000;
