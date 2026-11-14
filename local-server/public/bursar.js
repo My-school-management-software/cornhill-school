@@ -14,6 +14,7 @@
   const PENDING_CREDIT_STORAGE = "cornhill.finance.pending-credit-allocation";
   const PENDING_CREDIT_KEY_STORAGE = "cornhill.finance.pending-credit-key";
   let currentStaffId = null;
+  let canManageExpenseLimits = false;
   function readRecoveredPaymentKey(actorStaffId) {
     const suffix = ":" + actorStaffId;
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -184,8 +185,8 @@
     if(!staffSelect.options.length)staffSelect.add(new Option("No active staff accounts available",""));
   }
 
-  async function refreshOperationsLookups({canRequestExpenses=true,canManageBanking=true,canManageExpenseLimits=false}={}) {
-    try { await loadOperationsLookups({canRequestExpenses,canManageBanking,canManageExpenseLimits}); }
+  async function refreshOperationsLookups({canRequestExpenses=true,canManageBanking=true,canManageExpenseLimits:canManageLimits=canManageExpenseLimits}={}) {
+    try { await loadOperationsLookups({canRequestExpenses,canManageBanking,canManageExpenseLimits:canManageLimits}); }
     catch (error) {
       showMessage("expense-request-message", "Finance lookup data could not be loaded: " + error.message, "error");
       showMessage("bank-transaction-message", "Bank accounts could not be loaded: " + error.message, "error");
@@ -306,7 +307,7 @@
     byId("credit-section").hidden = !canAllocateCredits;
     const canRequestExpenses = hasPermission(principal, "finance.expenses_request");
     const canManageBanking = hasPermission(principal, "finance.banking_manage");
-    const canManageExpenseLimits = hasPermission(principal, "finance.expenses_manage");
+    canManageExpenseLimits = hasPermission(principal, "finance.expenses_manage");
     byId("expense-banking-workspace").hidden = !(canRequestExpenses || canManageBanking || canManageExpenseLimits);
     byId("expense-limit-form").hidden = !canManageExpenseLimits;
     byId("expense-request-form").hidden = !canRequestExpenses;
@@ -374,6 +375,7 @@
   byId("logout-button").addEventListener("click", async () => {
     try { await request("/auth/logout", { method: "POST", body: {} }); } catch { /* Clear the local workspace regardless. */ }
     activeLearnerId = null;
+    canManageExpenseLimits = false;
     accountSnapshot = null;
     creditSources = [];
     byId("credit-section").hidden = true;
