@@ -97,7 +97,22 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
    const principal=await authService.authenticate({sessionToken,method,csrfToken:typeof csrfHeader==="string"?csrfHeader:undefined});
    const {route,match}=matched;
    const permission=route.kind==="history"?(match[1].toLowerCase()==="expenses"?"finance.expenses_request":"finance.banking_manage"):route.kind==="evidence"?(match[1].toLowerCase()==="expenses"?"finance.expenses_request":"finance.banking_manage"):route.kind==="expenseQueue"?(staffHasPermission({principal,permissionCode:"finance.expenses_review"})?"finance.expenses_review":"finance.expenses_post"):route.kind==="bankQueue"?(staffHasPermission({principal,permissionCode:"finance.banking_review"})?"finance.banking_review":"finance.banking_verify"):route.permission;
-   const permitted=route.kind==="history"?(match[1].toLowerCase()==="expenses"?["finance.expenses_request","finance.expenses_review","finance.expenses_post"].some(permissionCode=>staffHasPermission({principal,permissionCode})):["finance.banking_manage","finance.banking_review","finance.banking_verify"].some(permissionCode=>staffHasPermission({principal,permissionCode}))):route.kind==="expenseQueue"?(staffHasPermission({principal,permissionCode:"finance.expenses_review"})||staffHasPermission({principal,permissionCode:"finance.expenses_post"})):route.kind==="bankQueue"?(staffHasPermission({principal,permissionCode:"finance.banking_review"})||staffHasPermission({principal,permissionCode:"finance.banking_verify"})):route.kind==="evidence"?(match[1].toLowerCase()==="expenses"?(staffHasPermission({principal,permissionCode:"finance.expenses_request"})||staffHasPermission({principal,permissionCode:"finance.expenses_review"})):(staffHasPermission({principal,permissionCode:"finance.banking_manage"})||staffHasPermission({principal,permissionCode:"finance.banking_review"})):staffHasPermission({principal,permissionCode:permission});
+   let permitted;
+   if(route.kind==="history"){
+    permitted=match[1].toLowerCase()==="expenses"
+     ?["finance.expenses_request","finance.expenses_review","finance.expenses_post"].some(permissionCode=>staffHasPermission({principal,permissionCode}))
+     :["finance.banking_manage","finance.banking_review","finance.banking_verify"].some(permissionCode=>staffHasPermission({principal,permissionCode}));
+   }else if(route.kind==="expenseQueue"){
+    permitted=staffHasPermission({principal,permissionCode:"finance.expenses_review"})||staffHasPermission({principal,permissionCode:"finance.expenses_post"});
+   }else if(route.kind==="bankQueue"){
+    permitted=staffHasPermission({principal,permissionCode:"finance.banking_review"})||staffHasPermission({principal,permissionCode:"finance.banking_verify"});
+   }else if(route.kind==="evidence"){
+    permitted=match[1].toLowerCase()==="expenses"
+     ?staffHasPermission({principal,permissionCode:"finance.expenses_request"})||staffHasPermission({principal,permissionCode:"finance.expenses_review"})
+     :staffHasPermission({principal,permissionCode:"finance.banking_manage"})||staffHasPermission({principal,permissionCode:"finance.banking_review"});
+   }else{
+    permitted=staffHasPermission({principal,permissionCode:permission});
+   }
    if(!permitted){send(response,403,{error:"You do not have permission for this finance operation."});return true;}
    const actorStaffId=principal.id;
    if(method==="GET"){
