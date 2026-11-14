@@ -306,7 +306,7 @@ LANGUAGE plpgsql
 SET search_path = pg_catalog, cornhill_school
 AS $function$
 DECLARE
-  adjustment_status text;
+  linked_adjustment_status text;
   run_status text;
 BEGIN
   SELECT pr.run_status INTO run_status
@@ -320,10 +320,10 @@ BEGIN
   END IF;
 
   IF NEW.source_attendance_adjustment_id IS NOT NULL THEN
-    SELECT adjustment_status INTO adjustment_status
-    FROM cornhill_school.attendance_adjustments
-    WHERE id = NEW.source_attendance_adjustment_id;
-    IF adjustment_status IS DISTINCT FROM 'Approved' THEN
+    SELECT a.adjustment_status INTO linked_adjustment_status
+    FROM cornhill_school.attendance_adjustments a
+    WHERE a.id = NEW.source_attendance_adjustment_id;
+    IF linked_adjustment_status IS DISTINCT FROM 'Approved' THEN
       RAISE EXCEPTION 'Attendance-related payroll adjustments require separate approval'
         USING ERRCODE = 'check_violation';
     END IF;
