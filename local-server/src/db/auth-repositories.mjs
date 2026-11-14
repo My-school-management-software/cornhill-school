@@ -263,6 +263,18 @@ export function createPostgresAuthRepositories(pool) {
             WHERE ra.staff_account_id = sa.id
           ), ARRAY[]::text[]) AS roles,
           COALESCE((
+            SELECT jsonb_object_agg(grants.role_code, grants.permissions)
+            FROM (
+              SELECT ra.role_code,
+                COALESCE(array_agg(rp.permission_code ORDER BY rp.permission_code)
+                  FILTER (WHERE rp.permission_code IS NOT NULL), ARRAY[]::text[]) AS permissions
+              FROM cornhill_auth.staff_role_assignments ra
+              LEFT JOIN cornhill_auth.staff_role_permissions rp ON rp.role_code = ra.role_code
+              WHERE ra.staff_account_id = sa.id
+              GROUP BY ra.role_code
+            ) grants
+          ), '{}'::jsonb) AS "rolePermissions",
+          COALESCE((
             SELECT array_agg(ca.class_id::text ORDER BY ca.class_id::text)
             FROM cornhill_auth.staff_class_assignments ca
             WHERE ca.staff_account_id = sa.id AND ca.is_active = true
