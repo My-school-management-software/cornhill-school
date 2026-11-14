@@ -8,7 +8,7 @@ This branch contains the school-controlled local backend foundation for moving C
 - Separate loopback-only HTTPS authentication server and launcher.
 - Argon2id staff/guardian authentication, secure cookies, CSRF validation, session expiry/revocation and rate limiting.
 - Explicit role permissions, staff class assignments and guardian-to-learner scope checks. Role grants remain empty by default.
-- Eight additive PostgreSQL migrations:
+- Nine additive PostgreSQL migrations:
   1. Staff/guardian identity and session records.
   2. Permission catalog, role permissions and staff class assignments.
   3. Failed-login rate-limit indexes.
@@ -17,6 +17,7 @@ This branch contains the school-controlled local backend foundation for moving C
   6. Academic years/terms, subject catalogue, class mappings, assessments and learner marks.
   7. UGX fee obligations, bursary rules, payment allocations, immutable receipt snapshots and consent-based SMS outbox.
   8. Staff profiles, employment terms, attendance device imports, attendance summaries, approved corrections and staged payroll.
+  9. Attendance policy settings, staff work schedules, dated salary agreements, calendar exceptions, reviewed attendance incidents and Director-approved special sessions.
 - Local schema verifiers for authentication, learners, academics, finance, attendance and payroll.
 - Windows unit-test CI and Linux/PostgreSQL 17 integration CI.
 
