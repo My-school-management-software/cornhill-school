@@ -231,3 +231,11 @@ test("expense and bank posting retries return existing ledger rows",()=>{
  assert.match(expenseBankWorkflows,/v_row[.]status='Posted'[\s\S]*?WHERE expense_request_id=p_request/);
  assert.match(expenseBankWorkflows,/v_row[.]status='Verified'[\s\S]*?WHERE bank_transaction_id=p_transaction/);
 });
+
+test("expense limit administration and bank account creation are permission-gated",()=>{
+ assert.match(expenseBankWorkflows,/set_local_expense_operator_limit/);
+ assert.match(expenseBankWorkflows,/finance[.]expenses_manage/);
+ assert.match(expenseBankWorkflows,/create_local_bank_account/);
+ assert.match(expenseBankWorkflows,/account_number_last4/);
+ assert.match(expenseBankWorkflows,/GRANT EXECUTE ON FUNCTION cornhill_school[.]set_local_expense_operator_limit/);
+});
