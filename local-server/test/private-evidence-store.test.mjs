@@ -30,8 +30,8 @@ test("rejects source names containing path components without using them as stor
   const saved = await store.put({ bytes: PNG, contentType: "image/png", originalFileName: "../../bank-slip.png" });
   assert.equal(saved.originalFileName, ".._.._bank-slip.png");
   assert.deepEqual((await store.get(saved.objectKey, saved.sha256)).bytes, PNG);
-  const windowsName = await store.put({ bytes: PNG, contentType: "image/png", originalFileName: "..\\\\bank\\\\slip.png" });
-  assert.equal(windowsName.originalFileName, ".._.._bank_slip.png");
+  const windowsName = await store.put({ bytes: PNG, contentType: "image/png", originalFileName: String.fromCharCode(46, 46, 92, 98, 97, 110, 107, 92, 115, 108, 105, 112, 46, 112, 110, 103) });
+  assert.equal(windowsName.originalFileName, ".._bank_slip.png");
 });
 
 test("rejects a mismatched MIME declaration and unknown file signatures", async t => {
