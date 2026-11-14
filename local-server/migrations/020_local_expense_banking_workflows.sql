@@ -92,7 +92,7 @@ BEGIN
  END IF;
  SELECT coalesce(sum(amount_ugx),0) INTO v_total
  FROM cornhill_school.expense_requests
- WHERE requested_by_staff_id=p_actor AND expense_date=v_day AND status<>'Cancelled';
+ WHERE requested_by_staff_id=p_actor AND expense_date=v_day AND status NOT IN ('Cancelled','Rejected');
  IF v_total+p_amount>v_limit THEN
   RAISE EXCEPTION 'Daily expense limit would be exceeded' USING ERRCODE='23514';
  END IF;
