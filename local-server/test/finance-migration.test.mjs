@@ -167,3 +167,37 @@ test("evidence file lookup is security-definer, actor-scoped and never grants ta
  assert.match(evidenceFileLookup,/GRANT EXECUTE ON FUNCTION/);
  assert.doesNotMatch(evidenceFileLookup,/GRANT SELECT|GRANT ALL ON TABLE/);
 });
+
+const expenseBank=await readFile(new URL("../migrations/019_local_finance_expense_banking_foundation.sql",import.meta.url),"utf8");
+test("expense and banking foundation keeps UGX amounts, daily operator limits and evidence links",()=>{
+ assert.match(expenseBank,/finance_operator_limits/);
+ assert.match(expenseBank,/daily_limit_ugx bigint NOT NULL CHECK\(daily_limit_ugx > 0\)/);
+ assert.match(expenseBank,/timezone\('Africa\/Kampala',now\(\)\)/);
+ assert.match(expenseBank,/evidence_request_id uuid REFERENCES cornhill_school\.evidence_capture_requests/);
+ assert.match(expenseBank,/finance\.expenses_request/);
+ assert.match(expenseBank,/finance\.expenses_review/);
+ assert.match(expenseBank,/finance\.banking_verify/);
+});
+test("expense and bank ledgers are append-only and duplicate postings are constrained",()=>{
+ assert.match(expenseBank,/expense_request_id uuid NOT NULL UNIQUE/);
+ assert.match(expenseBank,/bank_transaction_id uuid NOT NULL UNIQUE/);
+ assert.match(expenseBank,/prevent_expense_banking_history_mutation/);
+ assert.match(expenseBank,/expense_ledger_immutable/);
+ assert.match(expenseBank,/bank_ledger_immutable/);
+ assert.match(expenseBank,/expense_request_events_immutable/);
+ assert.match(expenseBank,/bank_transaction_events_immutable/);
+});
+test("bank ledger records only verified actor-stamped signed UGX transactions",()=>{
+ assert.match(expenseBank,/verified_by_staff_id uuid NOT NULL/);
+ assert.match(expenseBank,/verified_at timestamptz NOT NULL/);
+ assert.match(expenseBank,/signed_amount_ugx=-amount_ugx/);
+ assert.match(expenseBank,/status IN \('Pending','Approved','Rejected','Verified'\)/);
+ assert.match(expenseBank,/reviewed_by_staff_id<>requested_by_staff_id/);
+});
+test("expense and banking permissions are explicit and runtime table access remains revoked",()=>{
+ assert.match(expenseBank,/finance\.expenses_post/);
+ assert.match(expenseBank,/finance\.banking_manage/);
+ assert.match(expenseBank,/finance\.banking_review/);
+ assert.match(expenseBank,/REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api/);
+ assert.doesNotMatch(expenseBank,/GRANT SELECT|GRANT INSERT|GRANT ALL ON TABLE/);
+});
