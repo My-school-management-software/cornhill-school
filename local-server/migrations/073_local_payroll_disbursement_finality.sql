@@ -41,5 +41,5 @@ SELECT pl.id AS payroll_line_id,pl.payroll_run_id,pl.staff_account_id,
 FROM cornhill_school.payroll_lines pl
 LEFT JOIN cornhill_school.payroll_disbursements pd ON pd.payroll_line_id=pl.id
 GROUP BY pl.id,pl.payroll_run_id,pl.staff_account_id,pl.net_pay_ugx;
-REVOKE ALL ON payroll_disbursement_summary FROM PUBLIC;
+REVOKE ALL ON cornhill_school.payroll_disbursement_summary FROM PUBLIC;
 COMMIT;
