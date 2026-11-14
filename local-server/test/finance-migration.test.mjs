@@ -309,3 +309,14 @@ test("approved expenses can receive matching evidence before ledger posting",()=
  assert.match(approvedExpenseEvidence,/finance[.]expenses_review/);
  assert.match(approvedExpenseEvidence,/GRANT EXECUTE ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
 });
+
+
+test("migration 027 limits the expense-limit staff directory to authorised administrators and active staff",async()=>{
+ const sql=await readFile(new URL("../migrations/027_local_finance_expense_limit_staff_lookup.sql",import.meta.url),"utf8");
+ assert.match(sql,/finance_actor_has_permission\(p_actor,'finance[.]expenses_manage'\)/);
+ assert.match(sql,/sa[.]account_status='active'/);
+ assert.match(sql,/sp[.]employment_status='Active'/);
+ assert.match(sql,/LIMIT 250/);
+ assert.match(sql,/REVOKE ALL ON FUNCTION cornhill_school[.]finance_list_expense_limit_staff/);
+ assert.match(sql,/GRANT EXECUTE ON FUNCTION cornhill_school[.]finance_list_expense_limit_staff\(uuid\)\s+TO cornhill_finance_runtime/);
+});
