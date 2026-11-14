@@ -783,6 +783,47 @@ try {
     );
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
+    const postedHeaderEditRejected = await expectPgError(
+      client, "posted_payroll_header_edit_test",
+      "UPDATE cornhill_school.payroll_runs SET status_reason = 'tampered posted header' WHERE id = $1",
+      [payrollRun.rows[0].id], "23514"
+    );
+    assert(postedHeaderEditRejected, "Posted payroll headers cannot be edited in place.");
+    const postedIdentityRewriteRejected = await expectPgError(
+      client, "posted_payroll_identity_rewrite_test",
+      "UPDATE cornhill_school.payroll_runs SET run_status = 'Reversed', posted_by_staff_id = $2, status_reason = 'attempted identity rewrite' WHERE id = $1",
+      [payrollRun.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(postedIdentityRewriteRejected, "A payroll reversal cannot rewrite the original posting identity.");
+    const postedRunDeleteRejected = await expectPgError(
+      client, "posted_payroll_delete_test",
+      "DELETE FROM cornhill_school.payroll_runs WHERE id = $1",
+      [payrollRun.rows[0].id], "23514"
+    );
+    assert(postedRunDeleteRejected, "Posted payroll runs cannot be deleted.");
+    await client.query(
+      "UPDATE cornhill_school.payroll_runs SET run_status = 'Reversed', status_reason = 'CI verified payroll reversal' WHERE id = $1",
+      [payrollRun.rows[0].id]
+    );
+    const reversedPayroll = await client.query(
+      "SELECT run_status, reversed_at, status_reason FROM cornhill_school.payroll_runs WHERE id = $1",
+      [payrollRun.rows[0].id]
+    );
+    assert(reversedPayroll.rows[0]?.run_status === "Reversed" && reversedPayroll.rows[0]?.reversed_at,
+      "An approved posted payroll run should reverse with a database-assigned timestamp.");
+    const reversedRunEditRejected = await expectPgError(
+      client, "reversed_payroll_edit_test",
+      "UPDATE cornhill_school.payroll_runs SET status_reason = 'rewritten reversal reason' WHERE id = $1",
+      [payrollRun.rows[0].id], "23514"
+    );
+    assert(reversedRunEditRejected, "Reversed payroll history must be immutable.");
+    const reversedRunDeleteRejected = await expectPgError(
+      client, "reversed_payroll_delete_test",
+      "DELETE FROM cornhill_school.payroll_runs WHERE id = $1",
+      [payrollRun.rows[0].id], "23514"
+    );
+    assert(reversedRunDeleteRejected, "Reversed payroll history cannot be deleted.");
+
     await client.query("ROLLBACK");
     console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
