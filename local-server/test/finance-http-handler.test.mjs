@@ -9,7 +9,8 @@ const ORIGIN="https://cornhill.local:4174";
 const STAFF_ID="11111111-1111-4111-8111-111111111111";
 const LEARNER_ID="22222222-2222-4222-8222-222222222222";
 const FEE_OLD="33333333-3333-4333-8333-333333333333";
-const FEE_NOW="44444444-4444-4444-8444-444444444444";\nconst SOURCE_PAYMENT="55555555-5555-4555-8555-555555555555";
+const FEE_NOW="44444444-4444-4444-8444-444444444444";
+const SOURCE_PAYMENT="55555555-5555-4555-8555-555555555555";
 const TOKEN="A".repeat(43);
 const principal={
   id:STAFF_ID,principalType:"staff",accountStatus:"active",
@@ -47,7 +48,8 @@ function setup({principalValue=principal,authError,repoOverrides={}}={}){
     async searchLearners(input){calls.search.push(input);return [{learnerId:LEARNER_ID,pupilCode:"CRN-F-001",learnerName:"CI Learner",className:"P.4",isBursary:false}];},
     async getLearnerAccount(input){calls.account.push(input);return {learner:{id:LEARNER_ID,pupil_code:"CRN-F-001"},totals:{charged_ugx:150000,paid_ugx:25000,balance_ugx:125000},fee_obligations:[]};},
     async postPayment(input){calls.post.push(input);return {paymentId:"55555555-5555-4555-8555-555555555555",receiptNumber:"CR-2026-0000001",status:"Posted",allocatedAmountUgx:75000,unallocatedAmountUgx:10000,receipt:{amount_ugx:85000}};},
-    async reprintReceipt(input){calls.reprints.push(input);return {receipt_number:input.receiptNumber,payment_status:"Posted",print_count:2,receipt_data_snapshot:{amount_ugx:85000}};},\n    async allocateCredit(input){calls.credits.push(input);return {batch_id:"77777777-7777-4777-8777-777777777777",source_payment_id:input.sourcePaymentId,total_allocated_ugx:6000,remaining_credit_ugx:4000,replayed:false};},
+    async reprintReceipt(input){calls.reprints.push(input);return {receipt_number:input.receiptNumber,payment_status:"Posted",print_count:2,receipt_data_snapshot:{amount_ugx:85000}};},
+    async allocateCredit(input){calls.credits.push(input);return {batch_id:"77777777-7777-4777-8777-777777777777",source_payment_id:input.sourcePaymentId,total_allocated_ugx:6000,remaining_credit_ugx:4000,replayed:false};},
     ...repoOverrides
   };
   return {handler:createFinanceHttpHandler({authService,financeRepository,expectedOrigin:ORIGIN}),calls};

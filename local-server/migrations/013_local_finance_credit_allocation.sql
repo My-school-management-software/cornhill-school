@@ -455,7 +455,7 @@ $function$;
 REVOKE ALL ON TABLE
   cornhill_school.payment_credit_allocation_batches,
   cornhill_school.payment_credit_allocations
-FROM PUBLIC, cornhill_auth_runtime, cornhill_auth_api, cornhill_finance_api;
+FROM PUBLIC, cornhill_auth_runtime, cornhill_auth_api, cornhill_finance_runtime, cornhill_finance_api;
 
 REVOKE ALL ON FUNCTION cornhill_school.prevent_credit_ledger_mutation() FROM PUBLIC;
 REVOKE ALL ON FUNCTION cornhill_school.guard_credit_source_payment_reversal() FROM PUBLIC;

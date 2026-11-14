@@ -49,7 +49,9 @@ try {
       has_function_privilege('cornhill_finance_api',
         'cornhill_school.finance_get_learner_account(uuid,uuid)','EXECUTE') AS can_get_account,
       has_function_privilege('cornhill_finance_api',
-        'cornhill_school.reprint_local_payment_receipt(uuid,text,text)','EXECUTE') AS can_reprint
+        'cornhill_school.reprint_local_payment_receipt(uuid,text,text)','EXECUTE') AS can_reprint,
+      has_function_privilege('cornhill_finance_api',
+        'cornhill_school.allocate_local_payment_credit(uuid,uuid,uuid,jsonb,text)','EXECUTE') AS can_allocate_credit
   `);
   const a=acl.rows[0];
   assert.equal(a.member,true);
@@ -60,12 +62,15 @@ try {
   assert.equal(a.payment_read,false);
   assert.equal(a.payment_insert,false);
   assert.equal(a.allocation_update,false);
-  assert.equal(a.receipt_read,false);\n  assert.equal(a.credit_batch_read,false);\n  assert.equal(a.credit_allocation_insert,false);
+  assert.equal(a.receipt_read,false);
+  assert.equal(a.credit_batch_read,false);
+  assert.equal(a.credit_allocation_insert,false);
   assert.equal(a.sequence_usage,false);
   assert.equal(a.can_post,true);
   assert.equal(a.can_search,true);
   assert.equal(a.can_get_account,true);
   assert.equal(a.can_reprint,true);
+  assert.equal(a.can_allocate_credit,true);
 
   // All business data below is synthetic and rolled back as one transaction.
   const client=await pool.connect();
@@ -89,6 +94,10 @@ try {
     );
     await client.query(
       "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('bursar','finance.receipts_reprint',$1)",
+      [staffId]
+    );
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('bursar','finance.credit_allocate',$1)",
       [staffId]
     );
 
@@ -210,6 +219,67 @@ try {
     assert.equal(reprintAudit.rows[0].entity_type,"receipt");
     assert.equal(reprintAudit.rows[0].reason,"Parent requested another printed copy");
 
+    const originalReceiptSnapshot=structuredClone(receipt.rows[0].receipt_data_snapshot);
+    const originalPayment=await client.query(
+      "SELECT amount_ugx,unallocated_amount_ugx,status FROM cornhill_school.payment_records WHERE id=$1",
+      [posted.rows[0].payment_id]
+    );
+    const creditArgs=[
+      staffId,posted.rows[0].payment_id,"77777777-7777-4777-8777-777777777777",
+      JSON.stringify([{fee_obligation_id:currentFee.rows[0].id,amount_ugx:6000}]),
+      "Apply retained credit to current term"
+    ];
+    const credit=await client.query(
+      "SELECT cornhill_school.allocate_local_payment_credit($1,$2,$3,$4::jsonb,$5) AS allocation",
+      creditArgs
+    );
+    assert.equal(Number(credit.rows[0].allocation.total_allocated_ugx),6000);
+    assert.equal(Number(credit.rows[0].allocation.remaining_credit_ugx),4000);
+    assert.equal(credit.rows[0].allocation.replayed,false);
+    const creditRetry=await client.query(
+      "SELECT cornhill_school.allocate_local_payment_credit($1,$2,$3,$4::jsonb,$5) AS allocation",
+      creditArgs
+    );
+    assert.equal(creditRetry.rows[0].allocation.batch_id,credit.rows[0].allocation.batch_id);
+    assert.equal(creditRetry.rows[0].allocation.replayed,true);
+    await expectPgError(client,'credit_overdraw_test',
+      "SELECT cornhill_school.allocate_local_payment_credit($1,$2,$3,$4::jsonb,$5)",
+      [staffId,posted.rows[0].payment_id,"88888888-8888-4888-8888-888888888888",
+       JSON.stringify([{fee_obligation_id:currentFee.rows[0].id,amount_ugx:5000}]),"Try to allocate too much credit"],'23514');
+    await expectPgError(client,'credit_changed_retry_test',
+      "SELECT cornhill_school.allocate_local_payment_credit($1,$2,$3,$4::jsonb,$5)",
+      [staffId,posted.rows[0].payment_id,creditArgs[2],
+       JSON.stringify([{fee_obligation_id:currentFee.rows[0].id,amount_ugx:5000}]),creditArgs[4]],'23505');
+
+    const unchangedPayment=await client.query(
+      "SELECT amount_ugx,unallocated_amount_ugx,status FROM cornhill_school.payment_records WHERE id=$1",
+      [posted.rows[0].payment_id]
+    );
+    assert.deepEqual(unchangedPayment.rows[0],originalPayment.rows[0]);
+    const unchangedReceipt=await client.query(
+      "SELECT receipt_data_snapshot FROM cornhill_school.payment_receipts WHERE payment_id=$1",
+      [posted.rows[0].payment_id]
+    );
+    assert.deepEqual(unchangedReceipt.rows[0].receipt_data_snapshot,originalReceiptSnapshot);
+    const creditBalance=await client.query(
+      "SELECT paid_ugx,balance_ugx FROM cornhill_school.fee_obligation_balances WHERE fee_obligation_id=$1",
+      [currentFee.rows[0].id]
+    );
+    assert.equal(Number(creditBalance.rows[0].paid_ugx),31000);
+    assert.equal(Number(creditBalance.rows[0].balance_ugx),69000);
+    const creditAudit=await client.query(
+      "SELECT event_code,reason,details FROM cornhill_school.finance_audit_events WHERE entity_id=$1 AND event_code='payment.credit_allocated'",
+      [posted.rows[0].payment_id]
+    );
+    assert.equal(creditAudit.rowCount,1);
+    assert.equal(creditAudit.rows[0].reason,"Apply retained credit to current term");
+    assert.equal(Number(creditAudit.rows[0].details.total_allocated_ugx),6000);
+
+    await expectPgError(client,'regular_payment_credit_balance_test',
+      "SELECT * FROM cornhill_school.post_local_payment($1,$2,70000,'cash',$3,$4::jsonb)",
+      [staffId,learnerId,"99999999-9999-4999-8999-999999999999",
+       JSON.stringify([{fee_obligation_id:currentFee.rows[0].id,amount_ugx:70000}])],'23514');
+
     await expectPgError(client,'receipt_reprint_reason_test',
       "SELECT cornhill_school.reprint_local_payment_receipt($1,$2,'bad')",
       [staffId,posted.rows[0].receipt_number],'22023');
@@ -263,7 +333,7 @@ try {
   } finally {
     client.release();
   }
-  console.log("Local finance verification passed: scoped finance privileges, split payment, unallocated credit, immutable receipt, guardian consent outbox, idempotency and rejection tests.");
+  console.log("Local finance verification passed: scoped finance privileges, split payment, retained-credit allocation ledger, credit idempotency, combined fee-balance enforcement, immutable receipt, guardian consent outbox and rejection tests.");
 } finally {
   await pool.end();
 }
