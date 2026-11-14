@@ -151,6 +151,17 @@ try {
   assert(specialSessionGuard.rows[0]?.installed === true,
     "Special-session review guard must be installed.");
 
+  const specialSessionGuardDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_special_session_review()'::regprocedure) AS definition"
+  );
+  const guardDefinition = specialSessionGuardDefinition.rows[0]?.definition ?? "";
+  assert(guardDefinition.includes("r.role_code = 'director'") && guardDefinition.includes("a.account_status = 'active'"),
+    "Special-session decisions must be restricted to active Director role holders.");
+  assert(guardDefinition.includes("r.role_code IN ('headteacher', 'director_of_studies')"),
+    "Special-session statements must be authored by an active Headteacher or Director of Studies.");
+  assert(guardDefinition.includes("i.amount_ugx") && guardDefinition.includes("linked_item_amount IS DISTINCT FROM NEW.approved_deduction_ugx"),
+    "Special-session payroll linkage must validate the exact deduction amount.");
+
   const publicAccess = await pool.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace n
