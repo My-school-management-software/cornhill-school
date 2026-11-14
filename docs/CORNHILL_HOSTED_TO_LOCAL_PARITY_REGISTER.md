@@ -706,3 +706,36 @@ Read-only inspection of non-internal triggers and their function bodies on payme
 - Inspect every direct expense insert path and the finance operator limit checks; no trigger reviewed here enforces configured single/daily spending limits.
 
 **Status:** Trigger-driven finance and evidence behaviors documented. Finance remains partially reconciled, with **0/16 source finance tables fully reconciled**. No local migration or hosted schema/data was changed.
+
+
+### Finance outbox, bank ledger boundary and payroll-expense linkage review (2026-11-14)
+
+Read-only review of hosted table columns, constraints, selected routines and Edge Function inventory. No SMS was sent, no Edge Function endpoint was invoked, and no financial records were read or changed.
+
+**Parent SMS outbox — confirmed schema and limitation**
+- `school_sms_outbox` stores student/payment IDs, destination phone, message body, status (`Pending`, `Sent`, `Failed`, `Cancelled`), provider, provider message ID, attempt count, last error, creation time and sent time. It has a unique payment ID and a nonnegative attempt counter.
+- The inspected schema has no explicit claim/lease owner, claim expiry, next-attempt timestamp, last-attempt timestamp, delivery-receipt timestamp, or append-only per-attempt event table. The inventory of 11 active Edge Functions did not reveal a dedicated SMS sender/worker function. This does not prove no external worker exists, but the worker is not established by the inspected Supabase Edge Function list.
+- The reversal trigger cancels only rows still marked `Pending`. Without a proven atomic claim/lease protocol, a worker could race with reversal or leave a row stuck. `Sent` means the application marked it sent; provider delivery confirmation is not demonstrated by the columns reviewed.
+- The trigger snapshots the guardian phone and consent at payment insertion. A consent withdrawal or phone change after queueing needs an explicit pre-send policy and a final consent re-check. The current reviewed schema does not establish that check.
+
+**Bank transaction accounting — important gap**
+- `create_school_bank_transaction` permits authorised finance operators to record a positive deposit or withdrawal. Deposits immediately enter `Awaiting evidence` and create an evidence request; withdrawals enter `Awaiting approval` and are not included in a verified balance until authorised and evidence is approved.
+- Bank account columns include opening balance and account metadata, but no derived/current balance column. The inspected bank transaction/event model records workflow status and events, not a complete immutable double-entry ledger or reconciliation statement.
+- The bank transaction constraints enforce direction, positive amount, allowed workflow status, and withdrawal approval-state consistency. The transaction number is unique. No unique constraint on bank reference was found in the reviewed constraints, so duplicate bank references across one account need a defined matching/reconciliation rule rather than assuming uniqueness.
+- A Verified evidence status is not, by itself, proof that the bank statement was reconciled or that the transaction is included in a final balance. Local design must separate entered, approved/evidence-verified, statement-matched, posted-to-ledger and reconciled states where required.
+
+**Payroll-to-expense linkage — confirmed control and remaining risk**
+- When a payroll item changes to `Paid`, the hosted trigger requires its payroll period to be `Approved` or `Part-paid`, creates a `Salaries & wages` expense, and updates the payroll period to `Paid` or `Part-paid` based on remaining unpaid items.
+- `school_expenses.payroll_item_id` has a unique constraint, which prevents more than one expense row from linking to the same payroll item. The expense row retains a foreign key to the payroll item.
+- This is a useful double-counting safeguard, but local implementation must also test transaction rollback, status correction/reversal, payroll item re-payment, voided salary expense handling, and reconciliation between payroll totals and expenditure totals. Do not create a second manual salary expense for a payroll item already represented by the trigger.
+- Payroll item deductions and advance recovery are bounded by gross pay in hosted constraints. The local policy must still ensure every deduction has a lawful/approved reason and is not automatically inferred from attendance incidents.
+
+**Local implementation requirements**
+1. Design a durable SMS outbox worker with atomic `SKIP LOCKED` claiming or equivalent leases, bounded retry/backoff, idempotency, provider response capture, dead-letter/manual retry, and immutable attempt history.
+2. Re-check active guardian link, current phone and explicit SMS consent immediately before sending. On reversal, cancel pending work and safely coordinate in-flight delivery; preserve the fact that already-submitted SMS cannot be recalled.
+3. Keep receipt notification content minimal and avoid exposing unnecessary learner details. Record delivery status separately from provider acceptance where the provider supports delivery receipts.
+4. Design bank balances from verified ledger entries and opening balances, not from unreviewed requests. Add statement import/matching, duplicate-reference warnings, reconciliation periods and adjustment events with dual control.
+5. Keep bank deposit and withdrawal workflow distinct from actual ledger posting. Rejected evidence, replacement evidence, voids and corrections must remain auditable.
+6. Preserve unique payroll-item-to-expense linkage and add tests for retries, reversals, voids and payroll reconciliation. Attendance-related pay adjustments remain review-and-approval decisions, never automatic.
+
+**Status:** SMS outbox and bank/payroll accounting boundaries documented. Finance remains partially reconciled, with **0/16 hosted source finance tables fully reconciled**. SMS sender/worker caller, bank reconciliation/ledger, expense limit enforcement and full local end-to-end tests remain pending. No hosted or local database changes were made.
