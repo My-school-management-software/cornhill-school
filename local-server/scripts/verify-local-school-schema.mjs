@@ -276,6 +276,20 @@ try {
     && scheduleHistorySql.includes("A schedule assignment with recorded attendance history cannot be changed or deleted"),
     "Schedule assignment changes must be rejected when attendance exists in the original effective range.");
 
+  const attendancePayrollBasisTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'attendance_day_payroll_basis_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(attendancePayrollBasisTrigger.rows[0]?.installed === true,
+    "Attendance facts linked to advanced payroll must be protected.");
+  const attendancePayrollBasisDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_attendance_day_payroll_basis()'::regprocedure) AS definition"
+  );
+  const attendancePayrollBasisSql = attendancePayrollBasisDefinition.rows[0]?.definition ?? "";
+  assert(attendancePayrollBasisSql.includes("FROM cornhill_school.attendance_adjustments aa")
+    && attendancePayrollBasisSql.includes("pli.source_attendance_adjustment_id = aa.id")
+    && attendancePayrollBasisSql.includes("pr.run_status <> 'Draft'"),
+    "Attendance history must be frozen when a linked payroll run leaves draft.");
+
   const attendanceAdjustmentSingleUseIndex = await pool.query(
     "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'cornhill_school' AND indexname = 'payroll_attendance_adjustment_single_use' AND indexdef ILIKE '%UNIQUE%' AND indexdef ILIKE '%source_attendance_adjustment_id%' AND indexdef ILIKE '%IS NOT NULL%') AS installed"
   );
