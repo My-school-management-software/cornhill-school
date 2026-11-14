@@ -55,7 +55,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
  const methods=[
   "listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseLimitStaff","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest",
   "postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction",
-  "attachLocalFinanceEvidence","listLocalFinanceRecordHistory"
+  "attachLocalFinanceEvidence","listLocalFinanceRecordHistory","listLocalFinanceRecordArchive"
  ];
  for(const method of methods)if(!financeRepository||typeof financeRepository[method]!=="function")
   throw new TypeError("A complete expense and banking repository is required.");
@@ -68,6 +68,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
   const path=url.pathname;
   if(!path.startsWith("/api/v1/finance/"))return false;
   const routeTable=[
+    {regex:/^\/api\/v1\/finance\/record-archive$/,permission:null,kind:"archive",methods:["GET"]},
     {regex:/^\/api\/v1\/finance\/(expenses|bank-transactions)\/([0-9a-f-]{36})\/history$/i,permission:null,kind:"history",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/expense-categories$/,permission:"finance.expenses_request",kind:"categories",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/expense-review-queue$/,permission:null,kind:"expenseQueue",methods:["GET"]},
@@ -98,7 +99,9 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
    const {route,match}=matched;
    const permission=route.kind==="history"?(match[1].toLowerCase()==="expenses"?"finance.expenses_request":"finance.banking_manage"):route.kind==="evidence"?(match[1].toLowerCase()==="expenses"?"finance.expenses_request":"finance.banking_manage"):route.kind==="expenseQueue"?(staffHasPermission({principal,permissionCode:"finance.expenses_review"})?"finance.expenses_review":"finance.expenses_post"):route.kind==="bankQueue"?(staffHasPermission({principal,permissionCode:"finance.banking_review"})?"finance.banking_review":"finance.banking_verify"):route.permission;
    let permitted;
-   if(route.kind==="history"){
+   if(route.kind==="archive"){
+    permitted=["finance.expenses_request","finance.expenses_review","finance.expenses_post","finance.banking_manage","finance.banking_review","finance.banking_verify"].some(permissionCode=>staffHasPermission({principal,permissionCode}));
+   }else if(route.kind==="history"){
     permitted=match[1].toLowerCase()==="expenses"
      ?["finance.expenses_request","finance.expenses_review","finance.expenses_post"].some(permissionCode=>staffHasPermission({principal,permissionCode}))
      :["finance.banking_manage","finance.banking_review","finance.banking_verify"].some(permissionCode=>staffHasPermission({principal,permissionCode}));
@@ -116,7 +119,11 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
    if(!permitted){send(response,403,{error:"You do not have permission for this finance operation."});return true;}
    const actorStaffId=principal.id;
    if(method==="GET"){
-    const result=route.kind==="history"?await financeRepository.listLocalFinanceRecordHistory({actorStaffId,contextType:match[1].toLowerCase()==="expenses"?"expense_request":"bank_transaction",recordId:match[2]}):route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):route.kind==="bankAccounts"?await financeRepository.listLocalBankAccounts({actorStaffId}):route.kind==="limitStaff"?await financeRepository.listLocalExpenseLimitStaff({actorStaffId}):route.kind==="expenseQueue"?await financeRepository.listLocalExpenseReviewQueue({actorStaffId}):await financeRepository.listLocalBankReviewQueue({actorStaffId});
+    const result=route.kind==="archive"?await financeRepository.listLocalFinanceRecordArchive({
+     actorStaffId,recordType:url.searchParams.get("type")??"all",status:url.searchParams.get("status")??"all",
+     search:url.searchParams.get("q"),limit:url.searchParams.has("limit")?Number(url.searchParams.get("limit")):50,
+     offset:url.searchParams.has("offset")?Number(url.searchParams.get("offset")):0
+    }):route.kind==="history"?await financeRepository.listLocalFinanceRecordHistory({actorStaffId,contextType:match[1].toLowerCase()==="expenses"?"expense_request":"bank_transaction",recordId:match[2]}):route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):route.kind==="bankAccounts"?await financeRepository.listLocalBankAccounts({actorStaffId}):route.kind==="limitStaff"?await financeRepository.listLocalExpenseLimitStaff({actorStaffId}):route.kind==="expenseQueue"?await financeRepository.listLocalExpenseReviewQueue({actorStaffId}):await financeRepository.listLocalBankReviewQueue({actorStaffId});
     send(response,200,{items:result});return true;
    }
    const body=await readBody(request);
