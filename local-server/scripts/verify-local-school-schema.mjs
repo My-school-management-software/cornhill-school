@@ -414,6 +414,34 @@ try {
       && authorisedStatement.rows[0]?.headteacher_statement_by === approver.rows[0].id,
       "An active Director of Studies account should be able to author the special-session statement.");
 
+    await client.query("ALTER TABLE cornhill_school.staff_scheduled_session_attendance DISABLE TRIGGER special_session_review_guard");
+    await client.query(
+      "UPDATE cornhill_school.staff_scheduled_session_attendance SET review_deadline_at = now() - interval '1 minute' WHERE id = $1",
+      [specialAttendance.rows[0].id]
+    );
+    await client.query("ALTER TABLE cornhill_school.staff_scheduled_session_attendance ENABLE TRIGGER special_session_review_guard");
+    const unauthorizedDirectorDecisionRejected = await expectPgError(
+      client, "special_session_director_authority_test",
+      "UPDATE cornhill_school.staff_scheduled_session_attendance SET director_decision = 'excused', director_decision_by = $2, director_decision_at = now() WHERE id = $1",
+      [specialAttendance.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(unauthorizedDirectorDecisionRejected, "An ordinary staff account cannot decide a special-session attendance case.");
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_assignments (staff_account_id, role_code, assigned_by) VALUES ($1, 'director', $2)",
+      [approver.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.staff_scheduled_session_attendance SET director_decision = 'excused', director_decision_by = $2, director_decision_at = now() WHERE id = $1",
+      [specialAttendance.rows[0].id, approver.rows[0].id]
+    );
+    const authorisedDirectorDecision = await client.query(
+      "SELECT director_decision, director_decision_by FROM cornhill_school.staff_scheduled_session_attendance WHERE id = $1",
+      [specialAttendance.rows[0].id]
+    );
+    assert(authorisedDirectorDecision.rows[0]?.director_decision === "excused"
+      && authorisedDirectorDecision.rows[0]?.director_decision_by === approver.rows[0].id,
+      "An active Director account should be able to record an excused special-session decision.");
+
     const overlappingSalaryAgreementRejected = await expectPgError(
       client, "overlapping_salary_agreement_test",
       "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1100000, 55000, '2026-06-01', '2027-01-01', $2)",
@@ -523,7 +551,7 @@ try {
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and special-session statement authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
