@@ -10,21 +10,46 @@
   let canAllocateCredits = false;
   let creditSources = [];
   const PENDING_KEY_STORAGE = "cornhill.finance.pending-payment-key";
+  const PENDING_PAYMENT_RECOVERY_STORAGE = "cornhill.finance.pending-payment-recovery";
   const PENDING_CREDIT_STORAGE = "cornhill.finance.pending-credit-allocation";
   const PENDING_CREDIT_KEY_STORAGE = "cornhill.finance.pending-credit-key";
-  function readRecoveredPaymentKey() {
+  let currentStaffId = null;
+  function readRecoveredPaymentKey(actorStaffId) {
+    const suffix = ":" + actorStaffId;
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     try {
-      const value = sessionStorage.getItem(PENDING_KEY_STORAGE);
-      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value || "") ? value : null;
+      const raw = sessionStorage.getItem(PENDING_KEY_STORAGE + suffix);
+      if (raw) {
+        const value = JSON.parse(raw);
+        if (value && uuid.test(value.key || "") && uuid.test(value.learnerId || "")) return value;
+        sessionStorage.removeItem(PENDING_KEY_STORAGE + suffix);
+      }
+      const legacy = sessionStorage.getItem(PENDING_KEY_STORAGE);
+      if (uuid.test(legacy || "")) return { key: legacy, learnerId: null, legacy: true };
+      const saved = localStorage.getItem(PENDING_PAYMENT_RECOVERY_STORAGE + suffix);
+      if (!saved) return null;
+      const value = JSON.parse(saved);
+      return value && uuid.test(value.key || "") && uuid.test(value.learnerId || "") ? value : null;
     } catch { return null; }
   }
-  function saveRecoveredPaymentKey(value) {
+  function saveRecoveredPaymentKey(value, learnerId) {
+    const suffix = currentStaffId ? ":" + currentStaffId : "";
     try {
-      if (value) sessionStorage.setItem(PENDING_KEY_STORAGE, value);
-      else sessionStorage.removeItem(PENDING_KEY_STORAGE);
-    } catch { /* In-memory idempotency remains active for this page session. */ }
+      if (value) {
+        const record = { key: value, learnerId };
+        sessionStorage.setItem(PENDING_KEY_STORAGE + suffix, JSON.stringify(record));
+        localStorage.setItem(PENDING_PAYMENT_RECOVERY_STORAGE + suffix, JSON.stringify(record));
+        recoveredPaymentRequest = record;
+      } else {
+        sessionStorage.removeItem(PENDING_KEY_STORAGE + suffix);
+        sessionStorage.removeItem(PENDING_KEY_STORAGE);
+        localStorage.removeItem(PENDING_PAYMENT_RECOVERY_STORAGE + suffix);
+        recoveredPaymentRequest = null;
+      }
+    } catch { /* Do not persist payment details; server-side idempotency remains authoritative. */ }
   }
-  let recoveredIdempotencyKey = readRecoveredPaymentKey();
+  let recoveredPaymentRequest = null;
+  let recoveredIdempotencyKey = null;
 
   function readPendingCreditSubmission(actorStaffId) {
     const suffix = ":" + actorStaffId;
@@ -62,7 +87,6 @@
       }
     } catch { /* The server remains authoritative; do not store financial details in persistent storage. */ }
   }
-  let currentStaffId = null;
   let pendingCreditSubmission = null;
 
   function money(value) {
@@ -138,6 +162,8 @@
     byId("login-panel").hidden = true;
     byId("workspace").hidden = false;
     currentStaffId = principal.id;
+    recoveredPaymentRequest = readRecoveredPaymentKey(currentStaffId);
+    recoveredIdempotencyKey = recoveredPaymentRequest?.key || null;
     pendingCreditSubmission = readPendingCreditSubmission(currentStaffId);
     byId("staff-label").textContent = "Signed in as " + (principal.displayName || "authorised staff member");
     canReprintReceipts = (principal.roles || []).some(role =>
@@ -258,7 +284,9 @@
   });
 
   async function loadLearner(learnerId) {
-    if (pendingSubmission || (pendingCreditSubmission && learnerId !== pendingCreditSubmission.learnerId)) {
+    if (pendingSubmission ||
+        (recoveredPaymentRequest?.learnerId && learnerId !== recoveredPaymentRequest.learnerId) ||
+        (pendingCreditSubmission && learnerId !== pendingCreditSubmission.learnerId)) {
       showMessage("search-message", "A finance request is awaiting confirmation. Open the same learner and retry that exact request before switching to another learner.", "error");
       return;
     }
@@ -269,11 +297,28 @@
       renderAccount(accountSnapshot);
       byId("learner-panel").hidden = false;
       byId("receipt-panel").hidden = true;
+      if (recoveredPaymentRequest && recoveredPaymentRequest.learnerId === learnerId) {
+        byId("post-payment-button").disabled = true;
+        byId("pending-note").hidden = false;
+        byId("pending-note").textContent = "Checking whether the earlier payment request was already posted…";
+        const status = await request("/finance/payments/requests/" + encodeURIComponent(recoveredPaymentRequest.key));
+        if (status.payment) {
+          const recoveredPayment = status.payment;
+          recoveredIdempotencyKey = null;
+          pendingSubmission = null;
+          saveRecoveredPaymentKey(null);
+          await loadLearner(learnerId);
+          renderReceipt(recoveredPayment);
+          showMessage("payment-message", "The earlier payment was already posted. Its original receipt has been recovered without posting a second payment.", "success");
+          return;
+        }
+        byId("post-payment-button").disabled = false;
+      }
       if (canAllocateCredits) await loadLearnerCredits(learnerId);
       byId("payment-form").reset();
       if (recoveredIdempotencyKey) {
         byId("pending-note").hidden = false;
-        byId("pending-note").textContent = "A payment request key from this browser tab is awaiting confirmation. Re-enter the exact same payment details to safely check or retry that submission.";
+        byId("pending-note").textContent = "A payment request key is awaiting confirmation. Re-enter the exact same payment details for this learner to safely check or retry it. The key is retained without storing payment details in persistent browser storage.";
       }
       byId("payment-method").value = "cash";
       byId("collection-item").value = "School fees";
@@ -763,7 +808,7 @@
         }
       };
       recoveredIdempotencyKey = pendingSubmission.key;
-      saveRecoveredPaymentKey(recoveredIdempotencyKey);
+      saveRecoveredPaymentKey(recoveredIdempotencyKey, activeLearnerId);
     }
     const button = byId("post-payment-button");
     button.disabled = true;
@@ -777,6 +822,7 @@
       });
       pendingSubmission = null;
       recoveredIdempotencyKey = null;
+      recoveredPaymentRequest = null;
       saveRecoveredPaymentKey(null);
       setPaymentFormLocked(false);
       showMessage("payment-message", "Payment posted successfully and receipt issued.", "success");
@@ -784,14 +830,37 @@
       await loadLearner(learnerToRefresh);
       renderReceipt(result.payment);
     } catch (error) {
-      showMessage("payment-message",
-        error.message + (pendingSubmission ? " Retrying will resend the same payment request safely." : ""),
-        "error");
-      if (error.status && error.status >= 400 && error.status < 500 && error.status !== 409) {
-        pendingSubmission = null;
-        recoveredIdempotencyKey = null;
-        saveRecoveredPaymentKey(null);
-        setPaymentFormLocked(false);
+      if (error.status === 409 && recoveredIdempotencyKey) {
+        try {
+          const status = await request("/finance/payments/requests/" + encodeURIComponent(recoveredIdempotencyKey));
+          if (status.payment) {
+            const recoveredPayment = status.payment;
+            pendingSubmission = null;
+            recoveredIdempotencyKey = null;
+            recoveredPaymentRequest = null;
+            saveRecoveredPaymentKey(null);
+            setPaymentFormLocked(false);
+            await loadLearner(activeLearnerId);
+            renderReceipt(recoveredPayment);
+            showMessage("payment-message", "The earlier payment was already posted. Its original receipt has been recovered.", "success");
+            return;
+          }
+          pendingSubmission = null;
+          setPaymentFormLocked(false);
+          showMessage("payment-message", "No completed payment was found for this request key. Check the details and retry using the same key; do not start a separate payment request.", "error");
+        } catch {
+          showMessage("payment-message", "The payment result is not yet confirmed. Do not create another payment. Check the local service and retry the status check.", "error");
+        }
+      } else {
+        showMessage("payment-message",
+          error.message + (pendingSubmission ? " Retrying will resend the same payment request safely." : ""),
+          "error");
+        if (error.status && error.status >= 400 && error.status < 500) {
+          pendingSubmission = null;
+          recoveredIdempotencyKey = null;
+          saveRecoveredPaymentKey(null);
+          setPaymentFormLocked(false);
+        }
       }
     } finally {
       button.disabled = false;

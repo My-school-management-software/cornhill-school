@@ -111,3 +111,16 @@ test("retained-credit recovery lookup is scoped to the authenticated actor and o
  assert.match(creditStatus,/GRANT EXECUTE ON FUNCTION/);
  assert.doesNotMatch(creditStatus,/UPDATE cornhill_school[.]payment_receipts/);
 });
+
+const paymentRecovery=await readFile(new URL("../migrations/016_local_finance_payment_recovery.sql",import.meta.url),"utf8");
+test("payment recovery is actor-scoped, permission-gated and returns the original receipt snapshot",()=>{
+ assert.match(paymentRecovery,/finance_get_payment_by_key/);
+ assert.match(paymentRecovery,/finance[.]payments_record/);
+ assert.match(paymentRecovery,/p[.]idempotency_key = p_idempotency_key/);
+ assert.match(paymentRecovery,/p[.]received_by_staff_id = p_actor_staff_id/);
+ assert.match(paymentRecovery,/receipt_data_snapshot/);
+ assert.match(paymentRecovery,/SECURITY DEFINER/);
+ assert.match(paymentRecovery,/REVOKE ALL ON FUNCTION/);
+ assert.match(paymentRecovery,/GRANT EXECUTE ON FUNCTION/);
+ assert.doesNotMatch(paymentRecovery,/UPDATE cornhill_school[.]payment_receipts/);
+});

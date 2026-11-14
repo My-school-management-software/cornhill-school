@@ -135,7 +135,7 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
   if (!authService || typeof authService.authenticate !== "function") {
     throw new TypeError("A local authentication service is required for finance routes.");
   }
-  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt", "allocateCredit", "listLearnerCredits", "getCreditAllocationByKey"]) {
+  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt", "allocateCredit", "listLearnerCredits", "getCreditAllocationByKey", "getPaymentByIdempotencyKey"]) {
     if (!financeRepository || typeof financeRepository[method] !== "function") {
       throw new TypeError("A complete local finance repository is required.");
     }
@@ -186,6 +186,8 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
       const creditListMatch = path.match(/^\/api\/v1\/finance\/learners\/([0-9a-f-]{36})\/credits$/i);
       const creditListRoute = Boolean(creditListMatch && method === "GET" && UUID_PATTERN.test(creditListMatch[1]));
       const creditAllocateRoute = path === "/api/v1/finance/credits/allocate" && method === "POST";
+      const paymentStatusMatch = path.match(/^\/api\/v1\/finance\/payments\/requests\/([0-9a-f-]{36})$/i);
+      const paymentStatusRoute = Boolean(paymentStatusMatch && method === "GET" && UUID_PATTERN.test(paymentStatusMatch[1]));
       const creditStatusMatch = path.match(/^\/api\/v1\/finance\/credits\/allocations\/([0-9a-f-]{36})$/i);
       const creditStatusRoute = Boolean(creditStatusMatch && method === "GET" && UUID_PATTERN.test(creditStatusMatch[1]));
       const requiredPermission = receiptReprintMatch && method === "POST"
@@ -209,6 +211,15 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
           search: search.trim()
         });
         sendJson(response, 200, { learners });
+        return true;
+      }
+
+      if (paymentStatusRoute) {
+        const payment = await financeRepository.getPaymentByIdempotencyKey({
+          actorStaffId: principal.id,
+          idempotencyKey: paymentStatusMatch[1]
+        });
+        sendJson(response, 200, { payment });
         return true;
       }
 

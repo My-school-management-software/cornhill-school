@@ -106,6 +106,16 @@ export function createPostgresFinanceRepositories(pool) {
       return result.rows[0]?.allocation ?? null;
     },
 
+    async getPaymentByIdempotencyKey({ actorStaffId, idempotencyKey }) {
+      assertUuid(actorStaffId, "Finance actor ID");
+      assertUuid(idempotencyKey, "Payment idempotency key");
+      const result = await pool.query(
+        "SELECT cornhill_school.finance_get_payment_by_key($1::uuid,$2::uuid) AS payment",
+        [actorStaffId, idempotencyKey]
+      );
+      return result.rows[0]?.payment ?? null;
+    },
+
     async postPayment(input) {
       assertUuid(input.actorStaffId, "Finance actor ID");
       assertUuid(input.learnerId, "Learner ID");

@@ -36,7 +36,7 @@ async function invoke(handler,{path,method="GET",headers={},body,encrypted=true}
   return {...res,handled};
 }
 function setup({principalValue=principal,authError,repoOverrides={}}={}){
-  const calls={auth:[],search:[],account:[],post:[],reprints:[],credits:[],creditLists:[],creditLookups:[]};
+  const calls={auth:[],search:[],account:[],post:[],reprints:[],credits:[],creditLists:[],creditLookups:[],paymentLookups:[]};
   const authService={
     async authenticate(input){
       calls.auth.push(input);
@@ -51,6 +51,7 @@ function setup({principalValue=principal,authError,repoOverrides={}}={}){
     async reprintReceipt(input){calls.reprints.push(input);return {receipt_number:input.receiptNumber,payment_status:"Posted",print_count:2,receipt_data_snapshot:{amount_ugx:85000}};},
     async allocateCredit(input){calls.credits.push(input);return {batch_id:"77777777-7777-4777-8777-777777777777",source_payment_id:input.sourcePaymentId,total_allocated_ugx:6000,remaining_credit_ugx:4000,replayed:false};},
     async getCreditAllocationByKey(input){calls.creditLookups.push(input);return repoOverrides.creditLookupResult ?? null;},
+    async getPaymentByIdempotencyKey(input){calls.paymentLookups.push(input);return repoOverrides.paymentLookupResult ?? null;},
     async listLearnerCredits(input){calls.creditLists.push(input);return [{paymentId:SOURCE_PAYMENT,receiptNumber:"CR-2026-0000001",amountUgx:85000,originalUnallocatedUgx:10000,allocatedCreditUgx:6000,remainingCreditUgx:4000}];},
     ...repoOverrides
   };
@@ -309,4 +310,24 @@ test("retained-credit status lookup is permission-gated and returns null when no
   const missing=await invoke(allowed.handler,{path:"/api/v1/finance/credits/allocations/66666666-6666-4666-8666-666666666666",headers:getHeaders});
   assert.equal(missing.statusCode,200);
   assert.equal(missing.json().allocation,null);
+});
+
+test("payment status recovery returns the original immutable receipt only to the staff member who posted it",async()=>{
+  const payment={paymentId:"88888888-8888-4888-8888-888888888888",receiptNumber:"CR-2026-0000001",status:"Posted",allocatedAmountUgx:75000,unallocatedAmountUgx:10000,receipt:{amount_ugx:85000}};
+  const {handler,calls}=setup({repoOverrides:{paymentLookupResult:payment}});
+  const result=await invoke(handler,{path:"/api/v1/finance/payments/requests/66666666-6666-4666-8666-666666666666",headers:getHeaders});
+  assert.equal(result.statusCode,200);
+  assert.equal(result.json().payment.receiptNumber,"CR-2026-0000001");
+  assert.equal(calls.paymentLookups[0].actorStaffId,STAFF_ID);
+  assert.equal(calls.paymentLookups[0].idempotencyKey,"66666666-6666-4666-8666-666666666666");
+});
+test("payment status recovery requires payment-record permission and safely reports an unknown key",async()=>{
+  const denied=setup({principalValue:{...principal,rolePermissions:{bursar:[]}}});
+  const noPermission=await invoke(denied.handler,{path:"/api/v1/finance/payments/requests/66666666-6666-4666-8666-666666666666",headers:getHeaders});
+  assert.equal(noPermission.statusCode,403);
+  assert.equal(denied.calls.paymentLookups.length,0);
+  const allowed=setup();
+  const missing=await invoke(allowed.handler,{path:"/api/v1/finance/payments/requests/66666666-6666-4666-8666-666666666666",headers:getHeaders});
+  assert.equal(missing.statusCode,200);
+  assert.equal(missing.json().payment,null);
 });

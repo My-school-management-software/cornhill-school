@@ -119,3 +119,12 @@ test("Bursar persists only an actor-scoped opaque credit request key across tabs
   assert.match(js,/body: null/);
   assert.match(js,/[Rr]e-enter the same source receipt, fee amounts and reason/);
 });
+
+test("Bursar payment recovery persists only the actor-scoped key and learner reference",()=>{
+  assert.match(js,/PENDING_PAYMENT_RECOVERY_STORAGE/);
+  assert.match(js,/localStorage\.setItem/);
+  assert.match(js,/finance\/payments\/requests/);
+  assert.match(js,/paymentLookup|status\.payment/);
+  assert.match(js,/body: value\.body/);
+  assert.match(js,/Re-enter the exact same payment details/);
+});
