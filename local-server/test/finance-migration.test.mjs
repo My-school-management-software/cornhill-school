@@ -357,3 +357,18 @@ test("migration 030 completes the assignable expense and banking permission cata
   assert.ok(workflowPermissions.includes("('"+code+"'"),"missing permission "+code);
  assert.match(workflowPermissions,/ON CONFLICT\(permission_code\) DO NOTHING/);
 });
+
+const recordArchive=await readFile(new URL("../migrations/031_local_finance_record_archive.sql",import.meta.url),"utf8");
+test("migration 031 provides a bounded searchable archive with per-domain permission and ownership scope",()=>{
+ assert.match(recordArchive,/finance_list_record_archive/);
+ assert.match(recordArchive,/p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100/);
+ assert.match(recordArchive,/p_offset IS NULL OR p_offset NOT BETWEEN 0 AND 100000/);
+ assert.match(recordArchive,/v_expense_all OR e[.]requested_by_staff_id=p_actor/);
+ assert.match(recordArchive,/v_bank_all OR b[.]requested_by_staff_id=p_actor/);
+ assert.match(recordArchive,/finance[.]expenses_review/);
+ assert.match(recordArchive,/finance[.]banking_review/);
+ assert.match(recordArchive,/ILIKE/);
+ assert.match(recordArchive,/ORDER BY created_at DESC/);
+ assert.match(recordArchive,/REVOKE ALL ON FUNCTION/);
+ assert.match(recordArchive,/GRANT EXECUTE ON FUNCTION .*cornhill_finance_runtime/);
+});
