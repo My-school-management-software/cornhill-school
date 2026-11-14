@@ -37,8 +37,8 @@ function detectContentType(bytes) {
 
 function safeOriginalName(value) {
   if (typeof value !== "string") throw new EvidenceStoreError("A source filename is required.");
-  const cleaned = value.normalize("NFKC").replace(/[\\/\\\x00-\\x1f\\x7f]/g, "_").trim();
-  const basename = cleaned.split(/[\\/]/).pop()?.slice(0, 160) ?? "";
+  const basename = value.normalize("NFKC").replaceAll("/", "_").replaceAll("\\\\", "_")
+    .replace(/[\u0000-\u001f\u007f]/g, "_").trim().slice(0, 160);
   if (!basename || basename === "." || basename === "..") {
     throw new EvidenceStoreError("The source filename is invalid.");
   }

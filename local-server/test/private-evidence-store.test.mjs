@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createPrivateEvidenceStore, EvidenceStoreError, MAX_EVIDENCE_BYTES } from "../src/security/private-evidence-store.mjs";
 
 const PNG = Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
@@ -44,7 +45,7 @@ test("rejects empty and oversized files before writing", async t => {
 });
 
 test("rejects storage roots inside the source repository", async () => {
-  const repositoryRoot = resolve("..");
+  const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
   await assert.rejects(createPrivateEvidenceStore({
     rootPath: join(repositoryRoot, "local-server", ".private-evidence"),
     repositoryRoot
@@ -76,7 +77,11 @@ test("refuses symbolic-link storage objects", async t => {
   const outside = join(parent, "outside.blob");
   await writeFile(outside, PNG);
   const key = "11111111-1111-4111-8111-111111111111";
-  await symlink(outside, join(root, key + ".blob"));
+  try { await symlink(outside, join(root, key + ".blob")); }
+  catch (error) {
+    if (["EPERM", "EACCES", "ENOTSUP"].includes(error.code)) return t.skip("Symbolic-link creation is unavailable on this Windows configuration.");
+    throw error;
+  }
   await assert.rejects(store.get(key, "0".repeat(64)), error =>
     error.code === "EVIDENCE_INTEGRITY_FAILURE" || error.code === "ELOOP");
 });
