@@ -884,8 +884,10 @@ try {
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
     const postedAttendanceBasisChecks = [
+      ["expected_minutes", "expected_minutes = expected_minutes + 1"],
       ["worked_minutes", "worked_minutes = worked_minutes + 1"],
       ["attendance_status", "attendance_status = 'Present'"],
+      ["calculation_source", "calculation_source = 'Manual'"],
       ["first_clock_in", "first_clock_in = first_clock_in - interval '1 minute'"],
       ["last_clock_out", "last_clock_out = last_clock_out + interval '1 minute'"],
       ["work_date", "work_date = work_date + 1"],
