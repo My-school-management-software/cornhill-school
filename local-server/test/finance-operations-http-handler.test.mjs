@@ -24,7 +24,7 @@ async function invoke(handler,{path,method="POST",headers=postHeaders,body={},en
 }
 function setup({permissions=allPermissions,authError,overrides={}}={}){
  const calls=[];
- const names=["setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence"];
+ const names=["listLocalExpenseCategories","listLocalBankAccounts","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence"];
  const financeRepository=Object.fromEntries(names.map(name=>[name,async input=>{calls.push({name,input});return RECORD;}]));
  Object.assign(financeRepository,overrides);
  const authService={async authenticate(input){if(authError)throw authError;return {...principal,rolePermissions:{bursar:permissions}};}};
@@ -100,4 +100,16 @@ test("operations handler leaves unrelated routes for other handlers and rejects 
  assert.equal(other.handled,false);
  const method=await invoke(handler,{path:"/api/v1/finance/expenses",method:"GET",headers:getHeaders});
  assert.equal(method.statusCode,405);
+});
+
+test("authenticated finance workspace lookups return category and bank-account picklists",async()=>{
+ const {handler,calls}=setup({overrides:{
+  listLocalExpenseCategories:async input=>{calls.push({name:"listLocalExpenseCategories",input});return [{id:CATEGORY,code:"FOOD",name:"Food and kitchen"}];},
+  listLocalBankAccounts:async input=>{calls.push({name:"listLocalBankAccounts",input});return [{id:RECORD,accountName:"School account",bankName:"Example Bank",last4:"1234",openingBalanceUgx:1000}];}
+ }});
+ const categories=await invoke(handler,{path:"/api/v1/finance/expense-categories",method:"GET",headers:getHeaders});
+ const accounts=await invoke(handler,{path:"/api/v1/finance/bank-accounts",method:"GET",headers:getHeaders});
+ assert.equal(categories.statusCode,200);assert.equal(accounts.statusCode,200);
+ assert.equal(categories.json().items[0].id,CATEGORY);assert.equal(accounts.json().items[0].last4,"1234");
+ assert.equal(calls.length,2);
 });
