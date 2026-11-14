@@ -37,3 +37,12 @@ test("expense and banking repository rejects malformed UUIDs and invalid limits 
  await assert.rejects(()=>repo.attachLocalFinanceEvidence({actorStaffId:ACTOR,contextType:"expense_request",recordId:RECORD,evidenceRequestId:"bad"}),/valid UUID/);
  assert.equal(calls.length,0);
 });
+
+test("finance workspace repositories load categories and active bank accounts through guarded routines",async()=>{
+ const {repo,calls}=fixture();
+ assert.deepEqual(await repo.listLocalExpenseCategories({actorStaffId:ACTOR}),[{id:RECORD,code:undefined,name:undefined}]);
+ assert.deepEqual(await repo.listLocalBankAccounts({actorStaffId:ACTOR}),[{id:RECORD,accountName:undefined,bankName:undefined,last4:undefined,openingBalanceUgx:NaN}]);
+ assert.equal(calls.length,2);
+ assert.match(calls[0].sql,/finance_list_expense_categories/);
+ assert.match(calls[1].sql,/finance_list_bank_accounts/);
+});
