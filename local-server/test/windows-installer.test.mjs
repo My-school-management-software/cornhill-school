@@ -19,6 +19,12 @@ test("installer preserves existing environment and creates secrets only when abs
   assert.match(script, /CORNHILL_DB_PORT=5432/);
 });
 
+test("installer generates secrets with APIs supported by Windows PowerShell 5.1", () => {
+  assert.match(script, /RandomNumberGenerator\]::Create\(\)/);
+  assert.match(script, /\$generator\.GetBytes\(\$bytes\)/);
+  assert.doesNotMatch(script, /RandomNumberGenerator\]::GetBytes\(36\)/);
+});
+
 test("installer uses native PostgreSQL 17 tools and does not require Docker", () => {
   assert.match(script, /PostgreSQL\\17\\bin/);
   assert.match(script, /psql\.exe/);
