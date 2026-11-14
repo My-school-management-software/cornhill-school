@@ -118,6 +118,7 @@ test("evidence request details and private downloads are authenticated and no-st
  const {handler,calls}=setup();
  const record=await invoke(handler,{path:"/api/v1/finance/evidence/requests/"+REQUEST,headers:getHeaders});
  assert.equal(record.statusCode,200);assert.equal(record.json().request.request_id,REQUEST);
+ assert.doesNotMatch(String(record.body),/storage_object_key|storageObjectKey/);
  const download=await invoke(handler,{path:"/api/v1/finance/evidence/files/"+FILE+"/download",headers:getHeaders});
  assert.equal(download.statusCode,200);assert.deepEqual(download.body,PNG);
  assert.equal(download.headers["Cache-Control"],"no-store");assert.equal(download.headers["X-Content-Type-Options"],"nosniff");

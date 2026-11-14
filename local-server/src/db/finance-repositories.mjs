@@ -44,7 +44,15 @@ export function createPostgresFinanceRepositories(pool) {
     async getEvidenceRequest({actorStaffId,requestId}) {
       assertUuid(actorStaffId,"Evidence actor ID"); assertUuid(requestId,"Evidence request ID");
       const result=await pool.query("SELECT cornhill_school.finance_get_evidence_request($1::uuid,$2::uuid) AS request",[actorStaffId,requestId]);
-      return result.rows[0]?.request ?? null;
+      const row=result.rows[0]?.request;
+      if (!row || typeof row !== "object") return null;
+      // Storage object keys are private implementation details; downloads use the
+      // separate actor-scoped lookup routine and never expose keys in JSON responses.
+      const files = Array.isArray(row.files) ? row.files.map(file => {
+        const { storage_object_key: _privateKey, ...publicMetadata } = file;
+        return publicMetadata;
+      }) : [];
+      return { ...row, files };
     },
     async findEvidenceFile({actorStaffId,fileId}) {
       assertUuid(actorStaffId,"Evidence actor ID"); assertUuid(fileId,"Evidence file ID");
