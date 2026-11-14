@@ -86,7 +86,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
   const matched=routeTable.map(route=>({route,match:path.match(route.regex)})).find(item=>item.match);
   if(!matched)return false;
   const method=String(request.method??"GET").toUpperCase();
-  const allowedMethods=route.methods??["POST"];
+  const allowedMethods=matched.route.methods??["POST"];
   if(!allowedMethods.includes(method)){response.writeHead(405,{...HEADERS,Allow:allowedMethods.join(", "),"Content-Length":0});response.end();return true;}
   if(request.socket?.encrypted!==true){send(response,426,{error:"Secure HTTPS transport is required."});return true;}
   if(request.headers.host!==origin.host){send(response,421,{error:"Request host is not authorised."});return true;}
