@@ -26,7 +26,8 @@ test("all thirteen migrations use valid outer transactions",async()=>{
  "004_local_auth_runtime_role.sql","005_local_learner_admissions_foundation.sql","006_local_academics_foundation.sql",
  "007_local_finance_foundation.sql","008_local_staff_attendance_payroll_foundation.sql",
  "009_local_attendance_salary_governance.sql","010_local_finance_payment_posting.sql",
- "011_local_finance_learner_lookup_api.sql","012_local_finance_audited_receipt_reprints.sql",\n "013_local_finance_credit_allocation.sql"]);
+ "011_local_finance_learner_lookup_api.sql","012_local_finance_audited_receipt_reprints.sql",
+ "013_local_finance_credit_allocation.sql"]);
  for(const name of names){const source=await readFile(new URL(name,dir),"utf8");assert.doesNotThrow(()=>prepareTransactionalMigration(source),name);}
 });
 test("runner rejects malformed or destructive SQL and ledger mismatches",()=>{

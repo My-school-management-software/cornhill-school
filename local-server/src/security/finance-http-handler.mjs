@@ -183,9 +183,12 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
         csrfToken: typeof csrfHeader === "string" ? csrfHeader : undefined
       });
       const receiptReprintMatch = path.match(/^\/api\/v1\/finance\/receipts\/(CR-[0-9]{4}-[0-9]{7})\/reprint$/);
+      const creditAllocateRoute = path === "/api/v1/finance/credits/allocate" && method === "POST";
       const requiredPermission = receiptReprintMatch && method === "POST"
         ? "finance.receipts_reprint"
-        : "finance.payments_record";
+        : creditAllocateRoute
+          ? "finance.credit_allocate"
+          : "finance.payments_record";
       if (!staffHasPermission({ principal, permissionCode: requiredPermission })) {
         sendJson(response, 403, { error: "You do not have permission for this finance operation." });
         return true;
