@@ -345,9 +345,55 @@ try {
       "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id, adjustment_status, approved_by_staff_id, approved_at) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Approved attendance correction', $2, 'Approved', $3, now()) RETURNING id",
       [attendanceDay.rows[0].id, staff.rows[0].id, approver.rows[0].id]
     );
+    await client.query(
+      "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1000000, 50000, '2026-01-01', '2026-12-31', $2)",
+      [staff.rows[0].id, approver.rows[0].id]
+    );
+    const overlappingSalaryAgreementRejected = await expectPgError(
+      client, "overlapping_salary_agreement_test",
+      "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1100000, 55000, '2026-06-01', '2027-01-01', $2)",
+      [staff.rows[0].id, approver.rows[0].id], "23P01"
+    );
+    assert(overlappingSalaryAgreementRejected, "Active salary agreements for one staff member must not overlap.");
+
+    const workSchedule = await client.query(
+      "INSERT INTO cornhill_school.staff_work_schedules (schedule_code, schedule_name, start_time, end_time) VALUES ('CI-DAY', 'CI Day Schedule', '08:00', '17:00') RETURNING id"
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.staff_attendance_schedule_assignments (staff_account_id, schedule_id, starts_on, ends_on, assigned_by_staff_id) VALUES ($1, $2, '2026-01-01', '2026-12-31', $3)",
+      [staff.rows[0].id, workSchedule.rows[0].id, approver.rows[0].id]
+    );
+    const overlappingScheduleRejected = await expectPgError(
+      client, "overlapping_staff_schedule_test",
+      "INSERT INTO cornhill_school.staff_attendance_schedule_assignments (staff_account_id, schedule_id, starts_on, ends_on, assigned_by_staff_id) VALUES ($1, $2, '2026-12-01', '2027-01-31', $3)",
+      [staff.rows[0].id, workSchedule.rows[0].id, approver.rows[0].id], "23P01"
+    );
+    assert(overlappingScheduleRejected, "A staff member cannot have overlapping attendance schedule assignments.");
+
+    const nextScheduleAssignment = await client.query(
+      "INSERT INTO cornhill_school.staff_attendance_schedule_assignments (staff_account_id, schedule_id, starts_on, ends_on, assigned_by_staff_id) VALUES ($1, $2, '2027-01-01', NULL, $3) RETURNING id",
+      [staff.rows[0].id, workSchedule.rows[0].id, approver.rows[0].id]
+    );
+    const scheduleIdentityChangeRejected = await expectPgError(
+      client, "schedule_assignment_identity_change_test",
+      "UPDATE cornhill_school.staff_attendance_schedule_assignments SET staff_account_id = $2 WHERE id = $1",
+      [nextScheduleAssignment.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(scheduleIdentityChangeRejected, "A schedule assignment cannot be reassigned to a different staff account.");
+
     const payrollPeriod = await client.query(
       "INSERT INTO cornhill_school.payroll_periods (period_code, starts_on, ends_on, payment_date) VALUES ('2026-NOV', '2026-11-01', '2026-11-30', '2026-12-01') RETURNING id"
     );
+    const overlappingPayrollPeriodRejected = await expectPgError(
+      client, "overlapping_payroll_period_test",
+      "INSERT INTO cornhill_school.payroll_periods (period_code, starts_on, ends_on) VALUES ('2026-NOV2', '2026-11-30', '2026-12-31')",
+      [], "23P01"
+    );
+    assert(overlappingPayrollPeriodRejected, "Payroll periods must not overlap.");
+    await client.query(
+      "INSERT INTO cornhill_school.payroll_periods (period_code, starts_on, ends_on) VALUES ('2026-DEC', '2026-12-01', '2026-12-31')"
+    );
+
     const payrollRun = await client.query(
       "INSERT INTO cornhill_school.payroll_runs (payroll_period_id, prepared_by_staff_id) VALUES ($1, $2) RETURNING id",
       [payrollPeriod.rows[0].id, staff.rows[0].id]
@@ -412,7 +458,7 @@ try {
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: thirty-one tables, ten classes, fifteen subjects, seven fee items, 32 permission codes, permanent pupil codes, LIN uniqueness and class-specific subject mappings.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings and date-range integrity.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
