@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#153a36">
+  <title>CORNHILL | Bursar Desk</title>
+  <meta name="description" content="Secure local Bursar payment entry for CORNHILL NURSERY AND PRIMARY SCHOOL.">
+  <link rel="stylesheet" href="/bursar.css">
+  <script src="/bursar.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark" aria-hidden="true">C</div>
+    <div class="brand-copy">
+      <p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p>
+      <h1>Bursar Desk</h1>
+    </div>
+    <span class="environment-tag">LOCAL FINANCE · UGX</span>
+  </header>
+
+  <main class="page-shell">
+    <div id="service-state" class="notice" role="status" aria-live="polite">Checking local finance service…</div>
+
+    <section id="finance-disabled" class="panel empty-state" hidden>
+      <h2>Finance service is not activated</h2>
+      <p>The Bursar screen is installed, but the protected finance database role is still disabled. No payment can be recorded from this page yet.</p>
+      <p class="muted">The system administrator must complete the approved local database credential and security checks before enabling this module.</p>
+    </section>
+
+    <section id="login-panel" class="panel login-panel" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">STAFF ACCESS</p>
+          <h2>Sign in to Finance</h2>
+          <p class="muted">Use your school staff account. Finance access is controlled by your assigned role permissions.</p>
+        </div>
+      </div>
+      <form id="login-form" class="form-grid compact">
+        <label class="field">
+          <span>Staff username</span>
+          <input id="username" name="username" type="text" required minlength="3" maxlength="120" autocomplete="username">
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="password" name="password" type="password" required maxlength="1024" autocomplete="current-password">
+        </label>
+        <button class="button primary" type="submit">Sign in securely</button>
+      </form>
+      <p id="login-message" class="form-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="workspace" hidden>
+      <div class="workspace-bar">
+        <div>
+          <p class="eyebrow">PAYMENT ENTRY</p>
+          <h2>School fee collection</h2>
+          <p id="staff-label" class="muted"></p>
+        </div>
+        <button id="logout-button" class="button secondary" type="button">Sign out</button>
+      </div>
+
+      <section class="panel search-panel">
+        <div class="section-heading">
+          <div>
+            <h3>Find a learner</h3>
+            <p class="muted">Search by permanent pupil code or learner name.</p>
+          </div>
+        </div>
+        <form id="search-form" class="search-form">
+          <label class="field grow">
+            <span>Pupil code or learner name</span>
+            <input id="learner-search" type="search" minlength="2" maxlength="80" placeholder="Enter pupil code or name" autocomplete="off" required>
+          </label>
+          <button class="button primary" type="submit">Search</button>
+        </form>
+        <div id="search-message" class="form-message" role="status" aria-live="polite"></div>
+        <div id="search-results" class="result-list" aria-label="Learner search results"></div>
+      </section>
+
+      <section id="learner-panel" class="panel learner-panel" hidden>
+        <div class="learner-heading">
+          <div>
+            <p class="eyebrow">LEARNER FINANCE ACCOUNT</p>
+            <h3 id="learner-name"></h3>
+            <p id="learner-meta" class="muted"></p>
+          </div>
+          <span id="bursary-badge" class="badge" hidden>BURSARY</span>
+        </div>
+
+        <div class="totals-grid">
+          <div class="total-card"><span>Total charged</span><strong id="total-charged">UGX 0</strong></div>
+          <div class="total-card"><span>Total paid</span><strong id="total-paid">UGX 0</strong></div>
+          <div class="total-card balance-card"><span>Outstanding balance</span><strong id="total-balance">UGX 0</strong></div>
+        </div>
+
+        <div class="balance-heading">
+          <div>
+            <h4>Fee balances by term</h4>
+            <p class="muted">Previous-term balances are optional. Select the balances this payment should cover.</p>
+          </div>
+        </div>
+        <div id="fee-obligations" class="fee-list"></div>
+
+        <form id="payment-form" class="payment-form">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">RECEIVE PAYMENT</p>
+              <h4>Payment details</h4>
+            </div>
+          </div>
+          <div class="form-grid">
+            <label class="field">
+              <span>Amount received (UGX)</span>
+              <input id="amount-received" type="number" inputmode="numeric" min="1" step="1" required>
+            </label>
+            <label class="field">
+              <span>Payment method</span>
+              <select id="payment-method" required>
+                <option value="cash">Cash</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="bank_transfer">Bank transfer</option>
+                <option value="card">Card</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </label>
+            <label id="provider-field" class="field" hidden>
+              <span>Mobile money provider</span>
+              <select id="mobile-provider">
+                <option value="MTN">MTN</option>
+                <option value="Airtel">Airtel</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Payer name (optional)</span>
+              <input id="payer-name" type="text" maxlength="140" autocomplete="off">
+            </label>
+            <label class="field">
+              <span>Collection item</span>
+              <select id="collection-item">
+                <option value="School fees">School fees</option>
+                <option value="Bursary fees">Bursary fees</option>
+                <option value="Boarding">Boarding</option>
+                <option value="Breakfast">Breakfast</option>
+                <option value="Lunch">Lunch</option>
+                <option value="Top Class graduation">Top Class graduation</option>
+                <option value="Other school payment">Other school payment</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>External payment reference (optional)</span>
+              <input id="external-reference" type="text" maxlength="120" autocomplete="off">
+            </label>
+            <label class="field full-width">
+              <span>Notes (optional)</span>
+              <textarea id="payment-notes" rows="2" maxlength="1000"></textarea>
+            </label>
+          </div>
+
+          <div class="allocation-summary" aria-live="polite">
+            <div><span>Allocated to fee balances</span><strong id="allocated-total">UGX 0</strong></div>
+            <div><span>Remaining as unallocated learner credit</span><strong id="unallocated-total">UGX 0</strong></div>
+          </div>
+          <p id="allocation-message" class="form-message" role="status" aria-live="polite">Choose which term balances this payment should cover.</p>
+          <div class="form-actions">
+            <button id="post-payment-button" class="button primary" type="submit">Record payment and issue receipt</button>
+          </div>
+          <p id="pending-note" class="form-message" role="status" aria-live="polite" hidden></p>
+          <p id="payment-message" class="form-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section id="receipt-panel" class="panel receipt-panel" hidden>
+        <div class="receipt-toolbar">
+          <div><p class="eyebrow">PAYMENT CONFIRMED</p><h3>Receipt issued</h3></div>
+          <button id="print-receipt" class="button secondary" type="button">Print receipt</button>
+        </div>
+        <div id="receipt-content" class="receipt-paper"></div>
+        <p class="muted print-hint">Use the browser print dialog and select your connected receipt or thermal printer.</p>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>CORNHILL local finance</span>
+    <span>Protected staff workspace · Uganda Shillings (UGX)</span>
+  </footer>
+</body>
+</html>

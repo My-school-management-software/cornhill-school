@@ -872,3 +872,9 @@ The local HTTPS route handler now has learner-search, learner-account and paymen
 HTTP handler tests and PostgreSQL integration checks are added for authorization, payload boundaries, payment idempotency, learner lookup, fee balances and direct-table privilege denial. CI for Batch 16 is pending. No finance credentials are activated on the Windows school database, and no hosted resource or school record has been changed.
 
 **Still pending:** a working Bursar frontend page, secure runtime credential activation procedure, later-allocation workflow for retained credits, thermal receipts, expense approvals, bank reconciliation, SMS worker, broader accounting and full cutover parity.
+
+### Local Bursar UI and HTTPS static assets — Batch 17 (2026-11-14)
+
+Added the local Bursar page at `/` and `/bursar` to the separate HTTPS service. It includes staff sign-in, learner search, term-by-term fee balance display, explicit optional prior-term allocations, UGX payment entry and a printable receipt preview. Payment retries preserve an identical request body and idempotency key. The narrow 76mm print stylesheet is browser-based only; no physical thermal-printer compatibility has been tested.
+
+HTTPS static content is served from an exact allow-list with same-origin-only script/style/connect policies and Host validation. The health endpoint reports finance-runtime availability; the page remains in disabled state unless the separate finance pool has been explicitly configured and the runtime login can connect. Runtime role passwords remain unprovisioned by the installer. Batch 17 UI CI is pending.

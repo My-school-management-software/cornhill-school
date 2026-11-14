@@ -13,6 +13,7 @@ async function start() {
   runtime = await createLocalAuthRuntime();
   server = await createCornhillHttpsServer({
     authHandler: runtime.authHandler,
+    financeApiEnabled: runtime.financeEnabled,
     expectedOrigin: process.env.CORNHILL_LOCAL_ORIGIN,
     keyPath,
     certPath,
@@ -25,7 +26,8 @@ async function start() {
     server.listen(port, host, resolve);
   });
 
-  console.log("CORNHILL local authentication API is listening at " + process.env.CORNHILL_LOCAL_ORIGIN);
+  console.log("CORNHILL local HTTPS service is listening at " + process.env.CORNHILL_LOCAL_ORIGIN);
+  console.log("Bursar finance API enabled: " + (runtime.financeEnabled ? "yes" : "no"));
   console.log("Loopback-only. No LAN clients are accepted by this listener.");
   console.log("Press Ctrl+C to stop.");
 }

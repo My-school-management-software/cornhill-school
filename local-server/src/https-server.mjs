@@ -94,13 +94,47 @@ function sendJson(response, statusCode, payload, method = "GET") {
   response.end(method === "HEAD" ? undefined : body);
 }
 
+const PUBLIC_ASSETS = new Map([
+  ["/", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/bursar", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/bursar.html", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/bursar.js", { file: new URL("../public/bursar.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/bursar.css", { file: new URL("../public/bursar.css", import.meta.url), type: "text/css; charset=utf-8" }]
+]);
+
+const STATIC_CONTENT_SECURITY_POLICY =
+  "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; " +
+  "img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; " +
+  "form-action 'self'; frame-ancestors 'none'";
+
+async function servePublicAsset(request, response, path) {
+  const asset = PUBLIC_ASSETS.get(path);
+  if (!asset) return false;
+  const method = String(request.method ?? "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") {
+    response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD", "Content-Length": 0 });
+    response.end();
+    return true;
+  }
+  const body = await readFile(asset.file);
+  response.writeHead(200, {
+    ...SECURITY_HEADERS,
+    "Content-Security-Policy": STATIC_CONTENT_SECURITY_POLICY,
+    "Content-Type": asset.type,
+    "Content-Length": body.length
+  });
+  response.end(method === "HEAD" ? undefined : body);
+  return true;
+}
+
 export async function createCornhillHttpsServer({
   authHandler,
   expectedOrigin,
   keyPath,
   certPath,
   host = "127.0.0.1",
-  port = 4174
+  port = 4174,
+  financeApiEnabled = false
 } = {}) {
   assertHandler(authHandler);
   assertLoopbackHost(host);
@@ -135,6 +169,11 @@ export async function createCornhillHttpsServer({
       const path = new URL(request.url ?? "/", expectedOrigin).pathname;
       const method = String(request.method ?? "GET").toUpperCase();
 
+      if (request.headers.host !== origin.host) {
+        sendJson(response, 421, { error: "Request host is not authorised." }, method);
+        return;
+      }
+
       if (path === "/api/v1/health") {
         if (method !== "GET" && method !== "HEAD") {
           response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD", "Content-Length": 0 });
@@ -143,13 +182,16 @@ export async function createCornhillHttpsServer({
         }
         sendJson(response, 200, {
           status: "ok",
-          service: "cornhill-local-auth-api",
+          service: "cornhill-local-api",
           transport: "https",
           bind: "loopback-only",
-          schoolDataEnabled: false
+          financeApiEnabled: financeApiEnabled === true,
+          fullSchoolManagementEnabled: false
         }, method);
         return;
       }
+
+      if (await servePublicAsset(request, response, path)) return;
 
       const handled = await authHandler(request, response);
       if (handled) return;

@@ -25,7 +25,7 @@ This branch contains the school-controlled local backend foundation for moving C
 
 ## Validation status
 
-Earlier CI runs passed Windows unit tests and PostgreSQL 17 checks for migrations 001–009, including schema verification and synthetic learner, fee, attendance and payroll constraints. The new migration 010 adds dedicated atomic payment-posting and role checks; those checks are pending the next CI run. The local finance verification uses synthetic records inside a transaction that is rolled back.
+CI passed on 2026-11-14 for migrations 001–011, Windows unit tests and PostgreSQL 17 integration verification. This includes the atomic split-payment workflow, unallocated credit, Bursar learner search/account functions, function-only finance database grants and synthetic payment tests rolled back after verification. The Bursar screen assets were added in Batch 17; their CI checks are pending.
 
 This is CI validation only. The migrations have **not** been applied to the school's Windows computer, and no real school data has been imported.
 
@@ -39,17 +39,17 @@ Use Node.js 22 or later. From this folder:
 4. Open http://127.0.0.1:4173 on the same computer.
 5. Press Ctrl+C to stop.
 
-The status page is not a school-data application. Do not enter real learner, staff, guardian, finance or payroll information. Do not run `npm run start:auth`: the runtime database login is deliberately NOLOGIN and the local certificate/private configuration has not been provisioned.
+The status page on port 4173 is not a school-data application. The separate HTTPS Bursar service is not enabled by the installer: authentication/finance runtime roles remain NOLOGIN, and private TLS files must be provisioned outside the repository before it can start. Do not enter real school data into the health-only status page.
 
 ## Important safety boundaries
 
 - These migrations are only for a brand-new, isolated local PostgreSQL database. Never run them against the live Supabase project.
 - No live Vercel or Supabase resources have been changed.
 - No production learner, guardian, staff, finance or payroll records have been copied.
-- The authentication HTTP handler and runtime are foundations; they are not yet wired into the health-only server or the main school application.
-- The Bursar finance HTTP routes are implemented for learner search, learner fee-account review and payment posting. They remain disabled unless a separate finance database runtime credential is privately provisioned; the example .env leaves this setting as a placeholder. No complete Bursar page is enabled yet. Unallocated credit is recorded; later allocation remains pending.
+- The authenticated HTTPS runtime composes the auth and finance handlers and can serve the local Bursar page. It remains separate from the health-only HTTP scaffold and the hosted main school application.
+- The Bursar screen is served at `/` or `/bursar` by the separate HTTPS service. It includes staff sign-in, learner search, term-by-term fee balances, optional previous-term allocations, UGX payment entry, idempotent posting and a printable receipt view. Its finance HTTP routes remain disabled unless a separate finance database runtime credential is privately provisioned; the example `.env` leaves this setting as a placeholder. Unallocated credit is recorded, but later allocation remains pending.
 - Authentication and finance runtime roles remain NOLOGIN by default. No runtime password is provisioned by the installer.
 - The server and HTTPS launcher bind to loopback only. Do not change this to 0.0.0.0 or expose the service to the school LAN.
-- LAN access, Android access, offline synchronisation, backups and recovery must wait for the remaining API, deployment, security and restore tests.
+- LAN access, Android access, offline synchronisation, backups, recovery, thermal-printer hardware compatibility and the full school-wide UI remain pending. The Bursar print view is not yet verified on a physical thermal printer.
 
 The live CORNHILL PWA remains on its current hosted backend until a separately approved migration and cutover.
