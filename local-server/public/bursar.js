@@ -202,6 +202,7 @@
   }
 
   const financeQueuePermissions = {expenseReview:false,expensePost:false,bankReview:false,bankVerify:false};
+  const financeArchivePermissions = {expense:false,bank:false};
   function queueButton(label, action, disabled=false) {
     const button=document.createElement("button");
     button.type="button";button.className="button secondary";button.textContent=label;button.disabled=disabled;
@@ -322,6 +323,50 @@
     await Promise.all(tasks);
   }
 
+  function renderFinanceArchive(items) {
+    const container=byId("finance-archive-results");container.replaceChildren();
+    if(!items.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="No matching historical finance records were found.";container.append(empty);return;}
+    for(const item of items){
+      const card=document.createElement("article");card.className="finance-review-item";
+      const heading=document.createElement("strong");heading.textContent=item.reference+" · "+item.title;
+      const detail=document.createElement("p");detail.textContent=money(item.amountUgx)+" · "+item.recordType+" · "+item.status+" · "+item.businessDate;
+      const actor=document.createElement("p");actor.className="muted";actor.textContent="Requested by "+(item.requestedByName||"Staff account");
+      const history=document.createElement("div");history.className="finance-history-list";history.hidden=true;
+      const button=queueButton("View history",async()=>{
+        button.disabled=true;button.textContent="Loading history…";
+        try{
+          const prefix=item.recordType==="expense"?"/finance/expenses/":"/finance/bank-transactions/";
+          const data=await request(prefix+item.recordId+"/history");history.replaceChildren();
+          if(!data.items?.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="No history events have been recorded for this item yet.";history.append(empty);}
+          for(const event of data.items||[]){
+            const row=document.createElement("article");row.className="finance-history-event";
+            const title=document.createElement("strong");title.textContent=String(event.eventCode||"Finance event").replaceAll("."," ");
+            const meta=document.createElement("p");meta.className="muted";const date=event.occurredAt?new Date(event.occurredAt):null;
+            meta.textContent=(event.actorName||"Staff account")+" · "+(date&&!Number.isNaN(date.valueOf())?date.toLocaleString():"Time unavailable");
+            row.append(title,meta);if(event.note){const note=document.createElement("p");note.textContent=event.note;row.append(note);}history.append(row);
+          }
+          history.hidden=false;button.textContent="Refresh history";
+        }catch(error){history.replaceChildren();const failed=document.createElement("p");failed.className="muted";failed.textContent="History could not be loaded: "+error.message;history.append(failed);history.hidden=false;button.textContent="Retry history";}
+        finally{button.disabled=false;}
+      });
+      card.append(heading,detail,actor,button,history);container.append(card);
+    }
+  }
+  async function refreshFinanceArchive() {
+    const params=new URLSearchParams({
+      type:byId("finance-archive-type").value,
+      status:byId("finance-archive-status").value,
+      q:byId("finance-archive-search").value.trim(),
+      limit:"50"
+    });
+    try{
+      const data=await request("/finance/record-archive?"+params.toString());
+      renderFinanceArchive(data.items||[]);
+      showMessage("finance-archive-message",(data.items||[]).length+" record(s) found. Showing up to 50.", "success");
+    }catch(error){showMessage("finance-archive-message",error.message,"error");}
+  }
+  byId("finance-archive-form").addEventListener("submit",event=>{event.preventDefault();refreshFinanceArchive();});
+
   async function establishSession(principal) {
     if (!permissionGranted(principal)) {
       showLogin("Your staff account does not currently have permission to record school payments. Contact the authorised school administrator.");
@@ -360,11 +405,15 @@
     financeQueuePermissions.expensePost=hasPermission(principal,"finance.expenses_post");
     financeQueuePermissions.bankReview=hasPermission(principal,"finance.banking_review");
     financeQueuePermissions.bankVerify=hasPermission(principal,"finance.banking_verify");
+    financeArchivePermissions.expense=hasPermission(principal,"finance.expenses_request")||financeQueuePermissions.expenseReview||financeQueuePermissions.expensePost;
+    financeArchivePermissions.bank=canManageBanking||financeQueuePermissions.bankReview||financeQueuePermissions.bankVerify;
+    byId("finance-archive-panel").hidden=!(financeArchivePermissions.expense||financeArchivePermissions.bank);
     byId("finance-review-workspace").hidden=!(financeQueuePermissions.expenseReview||financeQueuePermissions.expensePost||financeQueuePermissions.bankReview||financeQueuePermissions.bankVerify);
     byId("expense-review-panel").hidden=!(financeQueuePermissions.expenseReview||financeQueuePermissions.expensePost);
     byId("bank-review-panel").hidden=!(financeQueuePermissions.bankReview||financeQueuePermissions.bankVerify);
     if (canRequestExpenses || canManageBanking || canManageExpenseLimits) await refreshOperationsLookups({canRequestExpenses,canManageBanking,canManageExpenseLimits});
     if (!byId("finance-review-workspace").hidden) await refreshFinanceQueues();
+    if (!byId("finance-archive-panel").hidden) await refreshFinanceArchive();
     byId("login-message").textContent = "";
   }
 
