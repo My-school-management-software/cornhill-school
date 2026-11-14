@@ -297,14 +297,14 @@ const reviewerEvidence=await readFile(new URL("../migrations/025_local_finance_r
 test("reviewers may attach only evidence requests already linked to the exact finance record",()=>{
  assert.match(reviewerEvidence,/context_record_id=p_record/);
  assert.match(reviewerEvidence,/requested_by_staff_id=p_actor OR cornhill_school[.]finance_actor_has_permission/);
- assert.match(reviewerEvidence,/status IN \('Pending','Submitted','Approved'\)/);
+ assert.match(reviewerEvidence,/v_status NOT IN \('Pending','Submitted','Approved'\)/);
  assert.match(reviewerEvidence,/REVOKE ALL ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
  assert.match(reviewerEvidence,/GRANT EXECUTE ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
 });
 
 const approvedExpenseEvidence=await readFile(new URL("../migrations/026_local_finance_approved_expense_evidence_link.sql",import.meta.url),"utf8");
 test("approved expenses can receive matching evidence before ledger posting",()=>{
- assert.match(approvedExpenseEvidence,/status IN \('Pending','Approved'\)/);
+ assert.match(approvedExpenseEvidence,/v_status NOT IN \('Pending','Approved'\)/);
  assert.match(approvedExpenseEvidence,/context_record_id=p_record/);
  assert.match(approvedExpenseEvidence,/finance[.]expenses_review/);
  assert.match(approvedExpenseEvidence,/GRANT EXECUTE ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
@@ -323,7 +323,7 @@ test("migration 027 limits the expense-limit staff directory to authorised admin
 
 const recordEvidenceLookup=await readFile(new URL("../migrations/028_local_finance_record_evidence_lookup.sql",import.meta.url),"utf8");
 test("migration 028 scopes evidence lookup to the exact record, active permitted staff and attachable statuses",()=>{
- assert.match(recordEvidenceLookup,/p_context IN \('expense_request','bank_transaction'\)/);
+ assert.match(recordEvidenceLookup,/p_context NOT IN \('expense_request','bank_transaction'\)/);
  assert.match(recordEvidenceLookup,/r[.]context_type=p_context AND r[.]context_record_id=p_record/);
  assert.match(recordEvidenceLookup,/status IN \('Pending','Submitted','Approved'\)/);
  assert.match(recordEvidenceLookup,/finance[.]expenses_review/);
