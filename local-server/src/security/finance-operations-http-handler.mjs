@@ -68,6 +68,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
   const path=url.pathname;
   if(!path.startsWith("/api/v1/finance/"))return false;
   const routeTable=[
+    {regex:/^\/api\/v1\/finance\/(expenses|bank-transactions)\/([0-9a-f-]{36})\/history$/i,permission:null,kind:"history",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/expense-categories$/,permission:"finance.expenses_request",kind:"categories",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/expense-review-queue$/,permission:null,kind:"expenseQueue",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/bank-review-queue$/,permission:null,kind:"bankQueue",methods:["GET"]},
