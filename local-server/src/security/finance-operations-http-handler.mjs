@@ -86,7 +86,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
   if(!allowedMethods.includes(method)){response.writeHead(405,{...HEADERS,Allow:allowedMethods.join(", "),"Content-Length":0});response.end();return true;}
   if(request.socket?.encrypted!==true){send(response,426,{error:"Secure HTTPS transport is required."});return true;}
   if(request.headers.host!==origin.host){send(response,421,{error:"Request host is not authorised."});return true;}
-  if(request.headers.origin!==origin.origin){send(response,403,{error:"The request origin is not authorised."});return true;}
+  if(method==="POST"&&request.headers.origin!==origin.origin){send(response,403,{error:"The request origin is not authorised."});return true;}
   try{
    const sessionToken=readSessionTokenFromCookieHeader(request.headers.cookie);
    const csrfHeader=request.headers["x-cornhill-csrf"];
@@ -146,7 +146,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
      result=await financeRepository.attachLocalFinanceEvidence({actorStaffId,contextType:match[1].toLowerCase()==="expenses"?"expense_request":"bank_transaction",recordId:match[2],evidenceRequestId:body.evidenceRequestId});
      break;
    }
-   send(response,route.kind==="expense"||route.kind==="bankAccount"||route.kind==="bankTransaction"||route.kind==="limit"?201:200,{result});
+   send(response,route.kind==="expense"||route.kind==="bankAccounts"||route.kind==="bankTransaction"||route.kind==="limit"?201:200,{result});
    return true;
   }catch(error){const mapped=mapError(error);send(response,mapped.status,{error:mapped.message,requestId:randomUUID()});return true;}
  };
