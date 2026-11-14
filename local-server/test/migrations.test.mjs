@@ -49,7 +49,7 @@ test("migration runner accepts UTF-8 BOM and CRLF comment headers", () => {
 test("migration runner rejects unterminated leading block comments", () => {
   assert.throws(() => prepareTransactionalMigration("/* missing close\nBEGIN; SELECT 1; COMMIT;"), /BEGIN\/COMMIT/);
 });
-test("all seven committed SQL migrations have a valid outer transaction", async () => {
+test("all eight committed SQL migrations have a valid outer transaction", async () => {
   const dir = new URL("../migrations/", import.meta.url);
   const entries = await readdir(dir);
   const files = sortMigrationFiles(entries);
@@ -60,7 +60,8 @@ test("all seven committed SQL migrations have a valid outer transaction", async 
     "004_local_auth_runtime_role.sql",
     "005_local_learner_admissions_foundation.sql",
     "006_local_academics_foundation.sql",
-    "007_local_finance_foundation.sql"
+    "007_local_finance_foundation.sql",
+    "008_local_staff_attendance_payroll_foundation.sql"
   ]);
   for (const filename of files) {
     const source = await readFile(new URL(filename, dir), "utf8");
