@@ -53,6 +53,6 @@ test("installer does not claim the complete local school app is ready", () => {
 });
 
 test("installer validates URL-safe database secrets and removes temporary CREATEDB privilege", () => {
-  assert.match(script, /adminPassword -notmatch "\[\^A-Za-z0-9_-\]\+"/);
+  assert.ok(script.includes('$adminPassword -notmatch "^[A-Za-z0-9_-]+$"'));
   assert.match(script, /ALTER ROLE cornhill_local_admin NOCREATEDB/);
 });
