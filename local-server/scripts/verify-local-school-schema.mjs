@@ -988,7 +988,7 @@ try {
       [approver.rows[0].id]
     );
     const otherStaffAdjustment = await client.query(
-      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{"worked_minutes":300}'::jsonb, 'Other staff attendance correction', $2) RETURNING id",
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', jsonb_build_object('worked_minutes',300), 'Other staff attendance correction', $2) RETURNING id",
       [otherStaffAttendanceDay.rows[0].id, staff.rows[0].id]
     );
     await client.query(
@@ -1006,7 +1006,7 @@ try {
       [staff.rows[0].id]
     );
     const oldAttendanceAdjustment = await client.query(
-      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{"worked_minutes":300}'::jsonb, 'Earlier attendance correction', $2) RETURNING id",
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', jsonb_build_object('worked_minutes',300), 'Earlier attendance correction', $2) RETURNING id",
       [oldAttendanceDay.rows[0].id, staff.rows[0].id]
     );
     await client.query(
