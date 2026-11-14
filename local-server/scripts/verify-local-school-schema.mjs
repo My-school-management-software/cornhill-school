@@ -35,6 +35,10 @@ try {
     "attendance_devices",
     "attendance_events",
     "attendance_import_batches",
+    "bank_accounts",
+    "bank_ledger",
+    "bank_transaction_events",
+    "bank_transactions",
     "class_subjects",
     "classes",
     "enrolment_periods",
@@ -42,9 +46,14 @@ try {
     "evidence_capture_files",
     "evidence_capture_requests",
     "evidence_capture_reviews",
+    "expense_categories",
+    "expense_ledger",
+    "expense_request_events",
+    "expense_requests",
     "fee_catalogue",
     "fee_obligations",
     "finance_audit_events",
+    "finance_operator_limits",
     "guardian_contacts",
     "learner_marks",
     "learners",
@@ -86,7 +95,7 @@ try {
   const permissionCount = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog"
   );
-  assert(permissionCount.rows[0]?.count === 38, "Expected 38 unique permission catalogue entries after evidence workflow permissions are added.");
+  assert(permissionCount.rows[0]?.count === 43, "Expected 43 unique permission catalogue entries after finance workflow permissions are added.");
 
   const subjects = await pool.query(
     "SELECT subject_code FROM cornhill_school.subjects ORDER BY subject_code"
@@ -111,12 +120,12 @@ try {
   const financePermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'finance'"
   );
-  assert(financePermissions.rows[0]?.count === 11, "Expected eleven finance permission codes, including evidence controls.");
+  assert(financePermissions.rows[0]?.count === 16, "Expected sixteen finance permission codes, including expense and banking workflow controls.");
 
   const staffPermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'staff'"
   );
-  assert(staffPermissions.rows[0]?.count === 10, "Expected ten staff and attendance permission codes.");
+  assert(staffPermissions.rows[0]?.count === 11, "Expected eleven staff and attendance permission codes.");
 
   const publicAccess = await pool.query(`
     SELECT EXISTS (
