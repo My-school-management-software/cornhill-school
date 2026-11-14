@@ -234,3 +234,9 @@ button { font: inherit; cursor: pointer; }
 @media print {
   #credit-section { display: none !important; }
 }
+
+.operations-panel { margin-top: 20px; }
+.operations-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; margin-top: 16px; }
+.operation-card { display: grid; align-content: start; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: #fbfdfc; }
+.operation-card h4 { margin: 0; }
+.operation-card .form-message { overflow-wrap: anywhere; }
