@@ -131,6 +131,7 @@ try {
     );
     assert.equal(retry.rows[0].payment_id,posted.rows[0].payment_id,"Retry must return the original payment.");
     assert.equal(retry.rows[0].receipt_number,posted.rows[0].receipt_number,"Retry must return the original receipt.");
+    await client.query("SET CONSTRAINTS ALL IMMEDIATE");
     const receipt=await client.query(
       "SELECT receipt_number,receipt_data_snapshot FROM cornhill_school.payment_receipts WHERE payment_id=$1",
       [posted.rows[0].payment_id]

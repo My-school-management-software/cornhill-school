@@ -59,7 +59,7 @@ jobs:
           CORNHILL_DB_ADMIN_PASSWORD=ci-only-not-a-school-secret-2026
           EOF
 
-      - name: Provision isolated finance roles in temporary CI database
+      - name: Provision authentication and finance roles in temporary CI database
         run: node scripts/provision-local-finance-roles.mjs
 
       - name: Apply all isolated local migrations
