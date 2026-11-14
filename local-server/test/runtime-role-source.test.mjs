@@ -5,10 +5,15 @@ import { readFile } from "node:fs/promises";
 const migration = await readFile(new URL("../migrations/004_local_auth_runtime_role.sql", import.meta.url), "utf8");
 const verifier = await readFile(new URL("../scripts/verify-local-runtime-role.mjs", import.meta.url), "utf8");
 
-test("authentication runtime roles begin with login disabled and no elevated attributes", () => {
-  assert.match(migration, /CREATE ROLE cornhill_auth_runtime NOLOGIN/);
-  assert.match(migration, /CREATE ROLE cornhill_auth_api NOLOGIN INHERIT/);
-  assert.match(migration, /NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/);
+test("authentication runtime roles are administrator-provisioned and remain unprivileged", async () => {
+  const installer = await readFile(new URL("../windows/Install-CORNHILL-Local.ps1", import.meta.url), "utf8");
+  assert.match(installer, /CREATE ROLE cornhill_auth_runtime NOLOGIN/);
+  assert.match(installer, /CREATE ROLE cornhill_auth_api NOLOGIN INHERIT/);
+  assert.match(installer, /ALTER ROLE cornhill_auth_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/);
+  assert.match(installer, /ALTER ROLE cornhill_auth_api NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/);
+  assert.match(installer, /GRANT cornhill_auth_runtime TO cornhill_auth_api/);
+  assert.match(migration, /must be provisioned by the local PostgreSQL administrator before migration 004/);
+  assert.match(migration, /must remain NOLOGIN and non-privileged/);
 });
 test("runtime role migration uses column-level privileges rather than broad table CRUD", () => {
   assert.match(migration, /GRANT SELECT \(id, username, username_normalized, password_hash, account_status\)/);
