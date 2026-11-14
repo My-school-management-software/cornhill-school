@@ -50,13 +50,13 @@ The migration runner and test verifiers use the development administrator accoun
 
 ## Verify the installed schema
 
-After all five migrations succeed, run:
+After all seven migrations succeed, run:
 
 ```powershell
 npm run db:verify
 ```
 
-This checks the eleven identity/authorization tables, 17 seeded staff roles, 19 permission codes, zero role grants, both rate-limit indexes, schema isolation from PUBLIC and database constraints. Then run `npm run db:verify-auth` to exercise PostgreSQL authentication repositories, including concurrent throttling, default-deny permissions, class assignment revocation, guardian learner-link approval/revocation and atomic session creation/revocation. Finally run `npm run db:verify-runtime` to confirm the auth API role remains NOLOGIN, non-privileged and limited to the intended columns. Run `npm run db:verify-school` to verify the six local learner/admissions tables, ten seeded classes, generated and immutable pupil codes, LIN uniqueness, guardian constraints and single-active-enrolment rule.
+This checks the eleven identity/authorization tables, 17 seeded staff roles, 28 permission codes, zero role grants, both rate-limit indexes, schema isolation from PUBLIC and database constraints. Then run `npm run db:verify-auth` to exercise PostgreSQL authentication repositories, including concurrent throttling, default-deny permissions, class assignment revocation, guardian learner-link approval/revocation and atomic session creation/revocation. Finally run `npm run db:verify-runtime` to confirm the auth API role remains NOLOGIN, non-privileged and limited to the intended columns. Run `npm run db:verify-school` to verify the nineteen learner, admissions, academic and finance tables, ten seeded classes, fifteen subjects, seven fee items, permanent pupil codes, LIN uniqueness, bursary rules, payment allocations, receipt snapshots and consent-based notification outbox.
 
 ## Stop and preserve data
 
@@ -77,4 +77,4 @@ Do not run `docker compose down -v`: the `-v` option deletes the named database 
 - It is not configured for LAN access, remote access, backups or production operation. The HTTPS launcher is loopback-only.
 - Do not import real learner, guardian, staff or finance records.
 
-The next gate is to start this isolated database, apply all four migrations, and verify the constraints, permissions, repository behavior and restricted runtime role. Only after that should an administrator securely provision the runtime login, and only when HTTPS and the API integration are ready.
+The next gate is to start this isolated database, apply all seven migrations, and verify the constraints, permissions, repository behavior and restricted runtime role. Only after that should an administrator securely provision the runtime login, and only when HTTPS and the API integration are ready.

@@ -110,6 +110,18 @@ test("expired staff sessions are denied", () => {
     permissionCode: "learners.read", rolePermissions: teacherPermissions, nowMs: NOW
   }), false);
 });
+test("finance permissions are recognised but require an explicit role grant", () => {
+  assert.equal(staffHasPermission({
+    principal: staff({ rolePermissions: {} }),
+    permissionCode: "finance.fees_manage",
+    nowMs: NOW
+  }), false);
+  assert.equal(staffHasPermission({
+    principal: staff({ rolePermissions: { bursar: ["finance.fees_manage"] }, roles: ["bursar"] }),
+    permissionCode: "finance.fees_manage",
+    nowMs: NOW
+  }), true);
+});
 test("guardian principals cannot use staff permission checks", () => {
   assert.equal(staffHasPermission({
     principal: guardian(), permissionCode: "learners.read",
