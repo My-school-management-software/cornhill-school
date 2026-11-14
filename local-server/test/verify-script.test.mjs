@@ -16,7 +16,7 @@ test("PostgreSQL integration verifier checks all eleven identity and authorizati
 test("PostgreSQL integration verifier checks seeded roles, permission catalog and empty grants", () => {
   assert.ok(source.includes("roles.rows[0]?.count !== 17"));
   assert.ok(source.includes("SELECT permission_code FROM cornhill_auth.permission_catalog ORDER BY permission_code"));
-  assert.ok(source.includes("permissionCatalog.rows.length !== 43"));
+  assert.ok(source.includes("permissionCatalog.rows.length !== 49"));
   assert.ok(source.includes("permissionCatalog.rows.map(row => row.permission_code).join"));
 
   assert.ok(source.includes("roleGrants.rows[0]?.count !== 0"));
