@@ -272,3 +272,13 @@ test("bank withdrawals serialize on the shared bank-account row before checking 
  assert.match(bankConcurrency,/GRANT EXECUTE ON FUNCTION cornhill_school[.]verify_local_bank_transaction/);
  assert.match(bankConcurrency,/REVOKE ALL ON FUNCTION cornhill_school[.]verify_local_bank_transaction/);
 });
+
+const financeLookups=await readFile(new URL("../migrations/023_local_finance_workspace_lookups.sql",import.meta.url),"utf8");
+test("finance workspace lookups are permission-checked and expose only active records",()=>{
+ assert.match(financeLookups,/finance_list_expense_categories/);
+ assert.match(financeLookups,/finance_list_bank_accounts/);
+ assert.match(financeLookups,/WHERE c[.]is_active/);
+ assert.match(financeLookups,/WHERE b[.]is_active/);
+ assert.match(financeLookups,/GRANT EXECUTE ON FUNCTION cornhill_school[.]finance_list_expense_categories/);
+ assert.match(financeLookups,/GRANT EXECUTE ON FUNCTION cornhill_school[.]finance_list_bank_accounts/);
+});
