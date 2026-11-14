@@ -53,7 +53,7 @@ function mapError(error){
 export function createFinanceOperationsHttpHandler({authService,financeRepository,expectedOrigin}={}){
  if(!authService||typeof authService.authenticate!=="function")throw new TypeError("A local authentication service is required.");
  const methods=[
-  "setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest",
+  "listLocalExpenseCategories","listLocalBankAccounts","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest",
   "postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction",
   "attachLocalFinanceEvidence"
  ];
@@ -68,11 +68,13 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
   const path=url.pathname;
   if(!path.startsWith("/api/v1/finance/"))return false;
   const routeTable=[
+   {regex:/^\/api\/v1\/finance\/expense-categories$/,permission:"finance.expenses_request",kind:"categories",methods:["GET"]},
+   {regex:/^\/api\/v1\/finance\/bank-accounts$/,permission:"finance.banking_manage",kind:"bankAccounts",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/expenses\/limits$/,permission:"finance.expenses_manage",kind:"limit"},
    {regex:/^\/api\/v1\/finance\/expenses$/,permission:"finance.expenses_request",kind:"expense"},
    {regex:/^\/api\/v1\/finance\/expenses\/([0-9a-f-]{36})\/review$/i,permission:"finance.expenses_review",kind:"expenseReview"},
    {regex:/^\/api\/v1\/finance\/expenses\/([0-9a-f-]{36})\/post$/i,permission:"finance.expenses_post",kind:"expensePost"},
-   {regex:/^\/api\/v1\/finance\/bank-accounts$/,permission:"finance.banking_manage",kind:"bankAccount"},
+   {regex:/^\/api\/v1\/finance\/bank-accounts$/,permission:"finance.banking_manage",kind:"bankAccount",methods:["POST"]},
    {regex:/^\/api\/v1\/finance\/bank-transactions$/,permission:"finance.banking_manage",kind:"bankTransaction"},
    {regex:/^\/api\/v1\/finance\/bank-transactions\/([0-9a-f-]{36})\/review$/i,permission:"finance.banking_review",kind:"bankReview"},
    {regex:/^\/api\/v1\/finance\/bank-transactions\/([0-9a-f-]{36})\/verify$/i,permission:"finance.banking_verify",kind:"bankVerify"},
@@ -81,7 +83,8 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
   const matched=routeTable.map(route=>({route,match:path.match(route.regex)})).find(item=>item.match);
   if(!matched)return false;
   const method=String(request.method??"GET").toUpperCase();
-  if(method!=="POST"){response.writeHead(405,{...HEADERS,Allow:"POST","Content-Length":0});response.end();return true;}
+  const allowedMethods=route.methods??["POST"];
+  if(!allowedMethods.includes(method)){response.writeHead(405,{...HEADERS,Allow:allowedMethods.join(", "),"Content-Length":0});response.end();return true;}
   if(request.socket?.encrypted!==true){send(response,426,{error:"Secure HTTPS transport is required."});return true;}
   if(request.headers.host!==origin.host){send(response,421,{error:"Request host is not authorised."});return true;}
   if(request.headers.origin!==origin.origin){send(response,403,{error:"The request origin is not authorised."});return true;}
@@ -92,8 +95,12 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
    const {route,match}=matched;
    const permission=route.kind==="evidence"?(match[1].toLowerCase()==="expenses"?"finance.expenses_request":"finance.banking_manage"):route.permission;
    if(!staffHasPermission({principal,permissionCode:permission})){send(response,403,{error:"You do not have permission for this finance operation."});return true;}
-   const body=await readBody(request);
    const actorStaffId=principal.id;
+   if(method==="GET"){
+    const result=route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):await financeRepository.listLocalBankAccounts({actorStaffId});
+    send(response,200,{items:result});return true;
+   }
+   const body=await readBody(request);
    let result;
    switch(route.kind){
     case "limit":
