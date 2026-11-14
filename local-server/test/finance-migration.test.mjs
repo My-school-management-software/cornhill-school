@@ -239,3 +239,19 @@ test("expense limit administration and bank account creation are permission-gate
  assert.match(expenseBankWorkflows,/account_number_last4/);
  assert.match(expenseBankWorkflows,/GRANT EXECUTE ON FUNCTION cornhill_school[.]set_local_expense_operator_limit/);
 });
+
+test("expense and banking workflow SQL has balanced function bodies and valid account routine",()=>{
+ assert.equal((expenseBankWorkflows.match(/\$fn\$/g)||[]).length%2,0);
+ assert.match(expenseBankWorkflows,/p_last4 !~ '\^\[0-9\]\{4\}\$'/);
+ assert.match(expenseBankWorkflows,/account_number_last4,opening_balance_ugx,created_by_staff_id/);
+ assert.match(expenseBankWorkflows,/CREATE OR REPLACE FUNCTION cornhill_school[.]create_local_expense_request/);
+});
+test("daily limit excludes cancelled and rejected requests while counting pending and posted",()=>{
+ assert.match(expenseBankWorkflows,/status NOT IN \('Cancelled','Rejected'\)/);
+});
+test("permission helper uses the actual local role and employment tables",()=>{
+ assert.match(expenseBankWorkflows,/cornhill_auth[.]staff_role_assignments/);
+ assert.match(expenseBankWorkflows,/cornhill_auth[.]staff_role_permissions/);
+ assert.match(expenseBankWorkflows,/cornhill_school[.]staff_profiles/);
+ assert.match(expenseBankWorkflows,/employment_status='Active'/);
+});
