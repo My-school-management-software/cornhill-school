@@ -273,6 +273,113 @@ try {
     );
     assert(overpaymentRejected, "Posted allocations must not exceed the fee obligation.");
 
+    const approver = await client.query(
+      "INSERT INTO cornhill_auth.staff_accounts (username, username_normalized, password_hash, account_status) VALUES ('ci-approver', 'ci-approver', '$argon2id$ci-test', 'active') RETURNING id"
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.staff_profiles (staff_account_id, staff_number, legal_name, job_title, phone_e164) VALUES ($1, 'CI-001', 'CI Finance Officer', 'Bursar', '+256700000003')",
+      [staff.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.staff_employment_terms (staff_account_id, starts_on, contract_type, salary_basis, base_salary_ugx, approved_by_staff_id) VALUES ($1, '2026-01-01', 'Permanent', 'Monthly', 1000000, $2)",
+      [staff.rows[0].id, approver.rows[0].id]
+    );
+    const device = await client.query(
+      "INSERT INTO cornhill_school.attendance_devices (device_code, device_name, manufacturer, model, connection_type) VALUES ('CI-USB-01', 'CI Attendance Device', 'Test Manufacturer', 'Test Model', 'USB') RETURNING id"
+    );
+    const batch = await client.query(
+      "INSERT INTO cornhill_school.attendance_import_batches (device_id, source_name, source_checksum_sha256, imported_by_staff_id, rows_received, rows_accepted, rows_rejected, import_status, completed_at) VALUES ($1, 'ci-attendance.csv', repeat('b', 64), $2, 1, 1, 0, 'Completed', now()) RETURNING id",
+      [device.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.attendance_events (import_batch_id, device_id, staff_account_id, device_staff_identifier, external_event_id, event_type, occurred_at, source_type, review_status, reviewed_by_staff_id, reviewed_at) VALUES ($1, $2, $3, 'STAFF-001', 'CI-EVENT-001', 'Clock In', now(), 'Device', 'Verified', $4, now())",
+      [batch.rows[0].id, device.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+    );
+    const attendanceDay = await client.query(
+      "INSERT INTO cornhill_school.attendance_days (staff_account_id, work_date, first_clock_in, last_clock_out, expected_minutes, worked_minutes, attendance_status, calculation_source, verified_by_staff_id, verified_at) VALUES ($1, CURRENT_DATE, now() - interval '4 hours', now(), 480, 240, 'Half Day', 'Verified Device Events', $2, now()) RETURNING id",
+      [staff.rows[0].id, approver.rows[0].id]
+    );
+    const pendingAdjustment = await client.query(
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Verify attendance import time', $2) RETURNING id",
+      [attendanceDay.rows[0].id, staff.rows[0].id]
+    );
+    const samePersonApprovalRejected = await expectPgError(
+      client, "attendance_adjustment_self_approval_test",
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id, adjustment_status, approved_by_staff_id, approved_at) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Self approval should fail', $2, 'Approved', $2, now())",
+      [attendanceDay.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(samePersonApprovalRejected, "Attendance adjustment cannot be approved by its requester.");
+
+    const approvedAdjustment = await client.query(
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id, adjustment_status, approved_by_staff_id, approved_at) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Approved attendance correction', $2, 'Approved', $3, now()) RETURNING id",
+      [attendanceDay.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+    );
+    const payrollPeriod = await client.query(
+      "INSERT INTO cornhill_school.payroll_periods (period_code, starts_on, ends_on, payment_date) VALUES ('2026-NOV', '2026-11-01', '2026-11-30', '2026-12-01') RETURNING id"
+    );
+    const payrollRun = await client.query(
+      "INSERT INTO cornhill_school.payroll_runs (payroll_period_id, prepared_by_staff_id) VALUES ($1, $2) RETURNING id",
+      [payrollPeriod.rows[0].id, staff.rows[0].id]
+    );
+    const payrollLine = await client.query(
+      "INSERT INTO cornhill_school.payroll_lines (payroll_run_id, staff_account_id, base_salary_ugx, allowances_ugx, deductions_ugx) VALUES ($1, $2, 1000000, 100000, 10000) RETURNING id, gross_pay_ugx, net_pay_ugx",
+      [payrollRun.rows[0].id, staff.rows[0].id]
+    );
+    const pendingAttendanceDeductionRejected = await expectPgError(
+      client, "pending_attendance_payroll_item_test",
+      "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, source_attendance_adjustment_id, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Deduction', 'ATTENDANCE', 'Unapproved attendance adjustment', 10000, $2, $3, $4, now())",
+      [payrollLine.rows[0].id, pendingAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(pendingAttendanceDeductionRejected, "Pending attendance adjustments cannot be used in payroll.");
+    await client.query("SET CONSTRAINTS payroll_line_item_totals_valid, payroll_item_totals_valid DEFERRED");
+    await client.query(
+      "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Allowance', 'RESPONSIBILITY', 'Approved responsibility allowance', 100000, $2, $3, now())",
+      [payrollLine.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, source_attendance_adjustment_id, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Deduction', 'ATTENDANCE', 'Approved attendance adjustment', 10000, $2, $3, $4, now())",
+      [payrollLine.rows[0].id, approvedAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+    );
+    await client.query("SET CONSTRAINTS payroll_line_item_totals_valid, payroll_item_totals_valid IMMEDIATE");
+    assert(String(payrollLine.rows[0].gross_pay_ugx) === "1100000", "Payroll gross pay calculation is incorrect.");
+    assert(String(payrollLine.rows[0].net_pay_ugx) === "1090000", "Payroll net pay calculation is incorrect.");
+
+    await client.query(
+      "UPDATE cornhill_school.payroll_runs SET run_status = 'Reviewed', reviewed_by_staff_id = $2 WHERE id = $1",
+      [payrollRun.rows[0].id, staff.rows[0].id]
+    );
+    const reviewedLineEditRejected = await expectPgError(
+      client, "reviewed_payroll_line_edit_test",
+      "UPDATE cornhill_school.payroll_lines SET base_salary_ugx = 1 WHERE id = $1",
+      [payrollLine.rows[0].id], "23514"
+    );
+    assert(reviewedLineEditRejected, "Reviewed payroll lines must be locked.");
+    const directPostingRejected = await expectPgError(
+      client, "direct_payroll_posting_test",
+      "UPDATE cornhill_school.payroll_runs SET run_status = 'Posted', posted_by_staff_id = $2 WHERE id = $1",
+      [payrollRun.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(directPostingRejected, "Payroll cannot skip approval.");
+    const preparerApprovalRejected = await expectPgError(
+      client, "payroll_preparer_self_approval_test",
+      "UPDATE cornhill_school.payroll_runs SET run_status = 'Approved', approved_by_staff_id = $2 WHERE id = $1",
+      [payrollRun.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(preparerApprovalRejected, "Payroll preparer cannot approve their own run.");
+    await client.query(
+      "UPDATE cornhill_school.payroll_runs SET run_status = 'Approved', approved_by_staff_id = $2 WHERE id = $1",
+      [payrollRun.rows[0].id, approver.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.payroll_runs SET run_status = 'Posted', posted_by_staff_id = $2 WHERE id = $1",
+      [payrollRun.rows[0].id, staff.rows[0].id]
+    );
+    const postedPayroll = await client.query(
+      "SELECT run_status FROM cornhill_school.payroll_runs WHERE id = $1",
+      [payrollRun.rows[0].id]
+    );
+    assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
+
     await client.query("ROLLBACK");
     console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: thirty-one tables, ten classes, fifteen subjects, seven fee items, 32 permission codes, permanent pupil codes, LIN uniqueness and class-specific subject mappings.");
   } catch (error) {
