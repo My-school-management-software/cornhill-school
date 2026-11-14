@@ -933,3 +933,10 @@ GitHub Actions run [43587983581](https://github.com/My-school-management-softwar
 - API/UI permission tests, credit source lookup integration, Batch 19 ledger/idempotency/balance checks and receipt immutability checks passed.
 
 No migration has been applied to the school's Windows database. No live school data or hosted Supabase/Vercel resources were changed.
+
+
+### Finance parity inspection — Batch 24, pass 1 (2026-11-14)
+
+A read-only comparison of hosted finance migrations against local migrations 001–016 identified missing local expense-request, bursar-limit, banking and phone-evidence workflows. Local fees, payment posting/allocation, immutable receipts, credit allocation and payment-request recovery foundations exist, but their complete hosted schema/security parity remains unverified. The detailed comparison and required controls are recorded in `docs/CORNHILL_FINANCE_HOSTED_TO_LOCAL_PARITY_ASSESSMENT.md`.
+
+**Status:** Finance parity is IN PROGRESS. No finance source table is marked MAPPED or VERIFIED by this pass. No migration 017 was created because workflow, authorization, evidence and test design must precede schema implementation. No hosted or user-local database was changed.
