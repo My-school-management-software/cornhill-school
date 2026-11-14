@@ -326,6 +326,10 @@ test("migration 028 scopes evidence lookup to the exact record, active permitted
  assert.match(recordEvidenceLookup,/p_context IN \('expense_request','bank_transaction'\)/);
  assert.match(recordEvidenceLookup,/r[.]context_type=p_context AND r[.]context_record_id=p_record/);
  assert.match(recordEvidenceLookup,/status IN \('Pending','Submitted','Approved'\)/);
+ assert.match(recordEvidenceLookup,/finance[.]expenses_review/);
+ assert.match(recordEvidenceLookup,/finance[.]banking_review/);
+ assert.match(recordEvidenceLookup,/finance[.]expenses_request/);
+ assert.match(recordEvidenceLookup,/finance[.]banking_manage/);
  assert.match(recordEvidenceLookup,/v_can_review OR p_actor IN \(r[.]assigned_staff_id,r[.]requested_by_staff_id\)/);
  assert.match(recordEvidenceLookup,/LIMIT 50/);
  assert.match(recordEvidenceLookup,/REVOKE ALL ON FUNCTION cornhill_school[.]finance_list_record_evidence_requests/);
