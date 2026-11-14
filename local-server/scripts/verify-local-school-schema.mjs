@@ -46,7 +46,7 @@ try {
     "subjects"
   ];
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
-    "Local school schema must contain exactly the nineteen expected learner, admissions, academic and finance tables.");
+    "Local school table inventory mismatch. Expected: " + JSON.stringify(expected) + "; actual: " + JSON.stringify(tables.rows.map(row => row.table_name)));
 
   const classes = await pool.query(
     "SELECT class_code, display_name, section, level_order FROM cornhill_school.classes ORDER BY level_order"
