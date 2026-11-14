@@ -69,7 +69,7 @@ BEGIN
 END
 $fn$;
 
-REVOKE ALL ON FUNCTION cornhill_school.finance_list_record_history(uuid,text,uuid) FROM PUBLIC, cornhill_auth_runtime, cornhill_finance_runtime;
+REVOKE ALL ON FUNCTION cornhill_school.finance_list_record_history(uuid,text,uuid) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 GRANT EXECUTE ON FUNCTION cornhill_school.finance_list_record_history(uuid,text,uuid) TO cornhill_finance_runtime;
 
 COMMIT;
