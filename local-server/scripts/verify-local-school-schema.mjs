@@ -271,7 +271,8 @@ try {
   );
   const scheduleHistorySql = scheduleHistoryDefinition.rows[0]?.definition ?? "";
   assert(scheduleHistorySql.includes("FROM cornhill_school.attendance_days ad")
-    && scheduleHistorySql.includes("ad.work_date >= OLD.starts_on")\n    && scheduleHistorySql.includes("ad.work_date >= NEW.starts_on")
+    && scheduleHistorySql.includes("ad.work_date >= OLD.starts_on")
+    && scheduleHistorySql.includes("ad.work_date >= NEW.starts_on")
     && scheduleHistorySql.includes("A schedule assignment with recorded attendance history cannot be changed or deleted"),
     "Schedule assignment changes must be rejected when attendance exists in the original effective range.");
 
