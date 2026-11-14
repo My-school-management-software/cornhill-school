@@ -545,3 +545,59 @@ This governance feature is not complete until tests demonstrate that:
 10. Plain-language status reports clearly distinguish passed, failed, skipped and not-yet-tested checks.
 
 **Implementation status:** REQUIREMENT RECORDED — NOT IMPLEMENTED OR VERIFIED. Do not present the Technical Administration Centre, AI permissions isolation, signed updater, approval gates or rollback automation as existing functionality until code and tests prove them.
+
+
+### Finance and banking reconciliation — first structural/policy tranche (2026-11-14)
+
+Read-only catalog inspection covered the hosted fee, charge, payment, allocation, expense, bursary-review, bank, finance-limit and bursar-enrollment tables. The corresponding local source `local-server/migrations/007_local_finance_foundation.sql` was inspected. No hosted business rows were selected or changed; catalog row counts are metadata only.
+
+**Hosted source scope**
+The tranche covers 16 named public tables: `fee_items`, `fee_schedules`, `learner_charges`, `school_payments`, `payment_allocations`, `expense_categories`, `school_expenses`, `school_bursary_review_audit`, `school_bank_accounts`, `school_bank_transactions`, `school_bank_transaction_events`, `school_finance_operator_limits`, `school_expense_requests`, `school_expense_request_events`, `bursar_account_enrollments`, and `bursar_account_enrollment_events`. All 16 report RLS enabled.
+
+**Hosted authorization patterns observed**
+- Fee items and fee schedules: Admin manages; finance operators read.
+- Learner charges: Admin creates, with `created_by = auth.uid()`; Admin and finance operators read.
+- School payments: Admin creates with `received_by = auth.uid()`, reads and updates; finance operators have a separate read policy. Payment status includes Posted/Reversed; reversal actor, timestamp and reason are represented.
+- Payment allocations: Admin creates; Admin and finance operators read.
+- Expense categories: Admin manages; finance operators read.
+- School expenses: Admin manages; finance operators read. Expense records include posted/voided status and void reason/actor/time fields.
+- Finance operator limits: Admin manages limits; a user can read their own limit, Admin can read all.
+- Bank accounts: Admin inserts/updates/deletes; Admin and finance operators read.
+- Bank transactions and their event history: finance operators read. The transaction model has separate approval, rejection and evidence-verification actors/timestamps and links to evidence-capture devices.
+- Expense requests and event history: finance operators read only their own requests/events, while Admin has broader read scope.
+- `school_bursary_review_audit` and the two bursar-account enrollment tables had no RLS policies in the policy result. Preserve server-only/deny-by-default behavior until their grants, owners, RPC/Edge Function callers and exact intended access are reviewed; do not add broad authenticated policies by assumption.
+
+These are policy observations, not proof that every write path is complete or that the local service has implemented equivalent authorization. Grants and privileged routines still require detailed review.
+
+**Local migration 007 — what exists**
+The local foundation currently creates seven finance tables: `fee_catalogue`, `fee_obligations`, `payment_records`, `payment_allocations`, `payment_receipts`, `finance_audit_events`, and `payment_notification_outbox`. It also defines validation/immutability triggers, a fee-obligation balance view and permission-catalog entries.
+
+Positive controls already present in the migration include:
+- UGX-only amounts and positive-value checks;
+- separate bursary obligation validation, including rejection of a standard tuition obligation for bursary learners and matching the configured bursary amount;
+- draft/posted/voided/reversed payment lifecycle and idempotency key;
+- same-learner payment-to-obligation allocation checks;
+- full allocation and obligation-overpayment checks before a payment is considered posted;
+- immutable financial details after posting and protected issued receipt snapshots;
+- receipt creation on posting, with allocation details and balances captured in the receipt snapshot;
+- SMS outbox creation only for active guardian contacts with SMS opt-in.
+
+**Material parity gaps — not yet implemented locally**
+1. Hosted `fee_schedules` have class, learner-type, academic-year, term and class-group dimensions. Local `fee_catalogue` and `fee_obligations` need an explicit mapping for scheduled fees and class/boarding applicability.
+2. Hosted `learner_charges` include invoice number, enrolment-period link, proration days/total days/daily rate and prorated flag. The local obligation model needs an explicit reconciliation for invoice identity and mid-term admission proration.
+3. Hosted payment fields include receipt number, payer name, collection item, unallocated amount, reversal details and enrolment-period link. Local payment/receipt fields differ; preserve identifiers and semantics through a documented mapping rather than assuming the local receipt number can replace the hosted value.
+4. Hosted `school_bursary_review_audit` is a separate notification-review audit stream. Local finance audit events do not yet prove equivalent linkage or workflow.
+5. Hosted expenses include expense categories, payroll-item linkage, posted/voided lifecycle and expense identifiers. Local migration 007 has no expense tables or equivalent expense workflow.
+6. Hosted bank accounts, deposits/withdrawals, approval/rejection/evidence verification, bank event history and finance-operator spending limits have no corresponding tables in migration 007.
+7. Hosted expense request approvals, evidence requests, event history and the conversion/link to recorded expenses are not represented in migration 007.
+8. Hosted bursar enrollment and enrollment-event lifecycle are not represented in migration 007; they must be reconciled with the separate staff-account activation and authorization model.
+
+**Critical workflow requirements to preserve**
+- Previous-term debt must remain separately identifiable and optionally payable alongside current-term obligations; allocations and receipts must show each term's applied amount and remaining balance.
+- Bursary charges must be obligations with explicit bursary award/approval context, not normal tuition charges relabelled.
+- A posted payment must not be silently edited or deleted; correction must use a controlled reversal/adjustment with actor, reason, audit and receipt history.
+- Expense and bank workflows must preserve separation between request/entry, approval, evidence verification and final posting; do not flatten these stages into a single “record expense” action.
+- Finance operator limits and approval thresholds must be enforced server-side and atomically, not only by hiding UI controls.
+- Guardian payment notifications must respect active contact linkage and recorded opt-in; queued notifications must be cancellable when the underlying payment is reversed.
+
+**Status:** 16/16 hosted finance table names and structural definitions captured for this tranche; selected policy behavior recorded; local migration 007 inspected. **0/16 finance tables are marked fully reconciled.** Constraints, indexes, trigger definitions, routine bodies, complete grants, all call sites, data mappings and local authorization/workflow tests remain to be completed. No hosted data or schema was modified.
