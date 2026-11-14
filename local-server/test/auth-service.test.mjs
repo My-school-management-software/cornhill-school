@@ -128,6 +128,21 @@ test("successful staff login creates a hashed session and returns a minimal prin
   assert.notEqual(calls.sessions[0].tokenHash, SESSION.sessionToken);
   assert.equal(calls.completed, undefined);
 });
+test("staff login exposes only explicit catalogued role grants", async () => {
+  const { service, staffAccount } = fixture();
+  staffAccount.rolePermissions = {
+    teacher: ["academics.marks_enter", "learners.read", "system.root_access"],
+    made_up_role: ["system.root_access"]
+  };
+  const result = await service.loginStaff({
+    username: "teacher.one", password: "Correct-Horse-Battery"
+  });
+  assert.deepEqual(result.principal.rolePermissions, {
+    teacher: ["academics.marks_enter", "learners.read"]
+  });
+  assert.equal(Object.hasOwn(result.principal, "passwordHash"), false);
+});
+
 test("successful guardian login is represented as a guardian principal", async () => {
   const { service } = fixture();
   const result = await service.loginGuardian({
