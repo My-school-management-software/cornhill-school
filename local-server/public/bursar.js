@@ -152,10 +152,10 @@
     );
   }
 
-  async function loadOperationsLookups() {
+  async function loadOperationsLookups({canRequestExpenses,canManageBanking}) {
     const [categories, accounts] = await Promise.all([
-      request("/finance/expense-categories"),
-      request("/finance/bank-accounts")
+      canRequestExpenses ? request("/finance/expense-categories") : Promise.resolve({items:[]}),
+      canManageBanking ? request("/finance/bank-accounts") : Promise.resolve({items:[]})
     ]);
     const categorySelect = byId("expense-category");
     categorySelect.replaceChildren();
@@ -176,8 +176,8 @@
     if (!accountSelect.options.length) accountSelect.add(new Option("Register a bank account first", ""));
   }
 
-  async function refreshOperationsLookups() {
-    try { await loadOperationsLookups(); }
+  async function refreshOperationsLookups({canRequestExpenses=true,canManageBanking=true}={}) {
+    try { await loadOperationsLookups({canRequestExpenses,canManageBanking}); }
     catch (error) {
       showMessage("expense-request-message", "Finance lookup data could not be loaded: " + error.message, "error");
       showMessage("bank-transaction-message", "Bank accounts could not be loaded: " + error.message, "error");
@@ -220,7 +220,7 @@
     byId("expense-request-form").hidden = !canRequestExpenses;
     byId("bank-account-form").hidden = !canManageBanking;
     byId("bank-transaction-form").hidden = !canManageBanking;
-    if (canRequestExpenses || canManageBanking) await refreshOperationsLookups();
+    if (canRequestExpenses || canManageBanking) await refreshOperationsLookups({canRequestExpenses,canManageBanking});
     byId("login-message").textContent = "";
   }
 
@@ -970,7 +970,7 @@
       }});
       event.currentTarget.reset();
       showMessage("bank-account-message","Bank account registered. Reference: "+result.result,"success");
-      await refreshOperationsLookups();
+      await refreshOperationsLookups({canRequestExpenses:false,canManageBanking:true});
     } catch(error) { showMessage("bank-account-message",error.message,"error"); }
     finally { button.disabled = false; }
   });
