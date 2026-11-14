@@ -53,7 +53,7 @@ function mapError(error){
 export function createFinanceOperationsHttpHandler({authService,financeRepository,expectedOrigin}={}){
  if(!authService||typeof authService.authenticate!=="function")throw new TypeError("A local authentication service is required.");
  const methods=[
-  "listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest",
+  "listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseLimitStaff","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest",
   "postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction",
   "attachLocalFinanceEvidence"
  ];
@@ -72,6 +72,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
    {regex:/^\/api\/v1\/finance\/expense-review-queue$/,permission:null,kind:"expenseQueue",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/bank-review-queue$/,permission:null,kind:"bankQueue",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/bank-accounts$/,permission:"finance.banking_manage",kind:"bankAccounts",methods:["GET","POST"]},
+   {regex:/^\/api\/v1\/finance\/expenses\/limit-staff$/,permission:"finance.expenses_manage",kind:"limitStaff",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/expenses\/limits$/,permission:"finance.expenses_manage",kind:"limit"},
    {regex:/^\/api\/v1\/finance\/expenses$/,permission:"finance.expenses_request",kind:"expense"},
    {regex:/^\/api\/v1\/finance\/expenses\/([0-9a-f-]{36})\/review$/i,permission:"finance.expenses_review",kind:"expenseReview"},
@@ -99,7 +100,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
    if(!permitted){send(response,403,{error:"You do not have permission for this finance operation."});return true;}
    const actorStaffId=principal.id;
    if(method==="GET"){
-    const result=route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):route.kind==="bankAccounts"?await financeRepository.listLocalBankAccounts({actorStaffId}):route.kind==="expenseQueue"?await financeRepository.listLocalExpenseReviewQueue({actorStaffId}):await financeRepository.listLocalBankReviewQueue({actorStaffId});
+    const result=route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):route.kind==="bankAccounts"?await financeRepository.listLocalBankAccounts({actorStaffId}):route.kind==="limitStaff"?await financeRepository.listLocalExpenseLimitStaff({actorStaffId}):route.kind==="expenseQueue"?await financeRepository.listLocalExpenseReviewQueue({actorStaffId}):await financeRepository.listLocalBankReviewQueue({actorStaffId});
     send(response,200,{items:result});return true;
    }
    const body=await readBody(request);
