@@ -12,6 +12,58 @@ export function createPostgresFinanceRepositories(pool) {
   }
 
   return Object.freeze({
+    async createEvidenceRequest(input) {
+      assertUuid(input.actorStaffId, "Evidence actor ID");
+      assertUuid(input.assignedStaffId, "Assigned staff ID");
+      const result = await pool.query(
+        "SELECT cornhill_school.create_local_evidence_request($1::uuid,$2::uuid,$3::text,$4::text,$5::uuid,$6::text,$7::bigint) AS request_id",
+        [input.actorStaffId,input.assignedStaffId,input.purpose,input.contextType,input.contextRecordId,input.contextLabel,input.amountUgx]
+      );
+      return result.rows[0]?.request_id ?? null;
+    },
+    async registerEvidenceFile(input) {
+      assertUuid(input.actorStaffId, "Evidence actor ID");
+      assertUuid(input.requestId, "Evidence request ID");
+      assertUuid(input.objectKey, "Evidence storage object key");
+      const result = await pool.query(
+        "SELECT cornhill_school.register_local_evidence_file($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text,$6::bigint,$7::text) AS file_id",
+        [input.actorStaffId,input.requestId,input.objectKey,input.sha256,input.contentType,input.sizeBytes,input.originalFileName]
+      );
+      return result.rows[0]?.file_id ?? null;
+    },
+    async submitEvidenceRequest({actorStaffId,requestId}) {
+      assertUuid(actorStaffId,"Evidence actor ID"); assertUuid(requestId,"Evidence request ID");
+      const result=await pool.query("SELECT cornhill_school.submit_local_evidence_request($1::uuid,$2::uuid) AS request_id",[actorStaffId,requestId]);
+      return result.rows[0]?.request_id ?? null;
+    },
+    async reviewEvidenceRequest({actorStaffId,requestId,action,note}) {
+      assertUuid(actorStaffId,"Evidence reviewer ID"); assertUuid(requestId,"Evidence request ID");
+      const result=await pool.query("SELECT cornhill_school.review_local_evidence_request($1::uuid,$2::uuid,$3::text,$4::text) AS status",[actorStaffId,requestId,action,note]);
+      return result.rows[0]?.status ?? null;
+    },
+    async getEvidenceRequest({actorStaffId,requestId}) {
+      assertUuid(actorStaffId,"Evidence actor ID"); assertUuid(requestId,"Evidence request ID");
+      const result=await pool.query("SELECT cornhill_school.finance_get_evidence_request($1::uuid,$2::uuid) AS request",[actorStaffId,requestId]);
+      return result.rows[0]?.request ?? null;
+    },
+    async findEvidenceFile({actorStaffId,fileId}) {
+      assertUuid(actorStaffId,"Evidence actor ID"); assertUuid(fileId,"Evidence file ID");
+      const result=await pool.query(
+        "SELECT f.storage_object_key,f.sha256,f.content_type,f.original_file_name " +
+        "FROM cornhill_school.evidence_capture_files f " +
+        "JOIN cornhill_school.evidence_capture_requests r ON r.id=f.request_id " +
+        "WHERE f.id=$2::uuid AND (EXISTS(SELECT 1 FROM cornhill_auth.staff_role_assignments ra " +
+        "JOIN cornhill_auth.staff_role_permissions rp ON rp.role_code=ra.role_code " +
+        "WHERE ra.staff_account_id=$1::uuid AND rp.permission_code='finance.evidence_review') " +
+        "OR (EXISTS(SELECT 1 FROM cornhill_auth.staff_role_assignments ra " +
+        "JOIN cornhill_auth.staff_role_permissions rp ON rp.role_code=ra.role_code " +
+        "WHERE ra.staff_account_id=$1::uuid AND rp.permission_code='finance.evidence_manage') " +
+        "AND $1::uuid IN(r.assigned_staff_id,r.requested_by_staff_id)))",
+        [actorStaffId,fileId]
+      );
+      const row=result.rows[0];
+      return row?{storageObjectKey:row.storage_object_key,sha256:row.sha256,contentType:row.content_type,originalFileName:row.original_file_name}:null;
+    },
     async searchLearners({ actorStaffId, search }) {
       assertUuid(actorStaffId, "Finance actor ID");
       if (typeof search !== "string") throw new TypeError("Learner search text is required.");
