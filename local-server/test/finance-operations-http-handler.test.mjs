@@ -206,6 +206,26 @@ test("expense limit endpoint rejects invalid staff IDs and non-positive amounts"
 });
 
 
+test("finance archive rejects malformed filters before reaching the repository",async()=>{
+ const {handler,calls}=setup({permissions:["finance.expenses_review"]});
+ const paths=[
+  "/api/v1/finance/record-archive?type=unknown",
+  "/api/v1/finance/record-archive?status=Unknown",
+  "/api/v1/finance/record-archive?q="+("x".repeat(81)),
+  "/api/v1/finance/record-archive?limit=0",
+  "/api/v1/finance/record-archive?limit=101",
+  "/api/v1/finance/record-archive?limit=2.5",
+  "/api/v1/finance/record-archive?offset=-1",
+  "/api/v1/finance/record-archive?offset=100001",
+  "/api/v1/finance/record-archive?offset=not-a-number"
+ ];
+ for(const path of paths){
+  const result=await invoke(handler,{path,method:"GET",headers:getHeaders});
+  assert.equal(result.statusCode,400,path);
+ }
+ assert.equal(calls.length,0);
+});
+
 test("finance history endpoints return only the requested record history to authorised roles",async()=>{
  const {handler,calls}=setup({permissions:["finance.expenses_review","finance.banking_verify"],overrides:{
   listLocalFinanceRecordHistory:async input=>{calls.push({name:"listLocalFinanceRecordHistory",input});return [{eventCode:"expense.approved",actorName:"Reviewer"}];}
