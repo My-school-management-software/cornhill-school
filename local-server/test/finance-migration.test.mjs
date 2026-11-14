@@ -301,3 +301,11 @@ test("reviewers may attach only evidence requests already linked to the exact fi
  assert.match(reviewerEvidence,/REVOKE ALL ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
  assert.match(reviewerEvidence,/GRANT EXECUTE ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
 });
+
+const approvedExpenseEvidence=await readFile(new URL("../migrations/026_local_finance_approved_expense_evidence_link.sql",import.meta.url),"utf8");
+test("approved expenses can receive matching evidence before ledger posting",()=>{
+ assert.match(approvedExpenseEvidence,/status IN \('Pending','Approved'\)/);
+ assert.match(approvedExpenseEvidence,/context_record_id=p_record/);
+ assert.match(approvedExpenseEvidence,/finance[.]expenses_review/);
+ assert.match(approvedExpenseEvidence,/GRANT EXECUTE ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
+});
