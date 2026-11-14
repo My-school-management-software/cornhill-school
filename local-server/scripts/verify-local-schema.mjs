@@ -30,9 +30,13 @@ try {
     throw new Error("Expected 17 seeded staff roles.");
   }
 
-  const permissionCount = await pool.query("SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog");
-  if (permissionCount.rows[0]?.count !== 42) {
-    throw new Error("Expected 42 catalogued permission codes.");
+  const permissionCatalog = await pool.query(
+    "SELECT permission_code FROM cornhill_auth.permission_catalog ORDER BY permission_code"
+  );
+  if (permissionCatalog.rows.length !== 42) {
+    throw new Error(
+      `Expected 42 catalogued permission codes; found ${permissionCatalog.rows.length}: ${permissionCatalog.rows.map(row => row.permission_code).join(", ")}`
+    );
   }
 
   const roleGrants = await pool.query("SELECT count(*)::int AS count FROM cornhill_auth.staff_role_permissions");
