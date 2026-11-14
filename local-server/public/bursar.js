@@ -218,7 +218,29 @@
       const description=document.createElement("p");description.textContent=item.description;
       card.append(heading,details,description);
       if(item.externalReference){const reference=document.createElement("p");reference.className="muted";reference.textContent="Reference: "+item.externalReference;card.append(reference);}
+      const historyButton=queueButton("View history",async()=>{
+        historyButton.disabled=true;historyButton.textContent="Loading history…";
+        try{
+          const data=await request(prefix+id+"/history");
+          history.replaceChildren();
+          if(!data.items?.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="No history events have been recorded for this item yet.";history.append(empty);}
+          for(const event of data.items||[]){
+            const row=document.createElement("article");row.className="finance-history-event";
+            const title=document.createElement("strong");title.textContent=String(event.eventCode||"Finance event").replaceAll("."," ");
+            const meta=document.createElement("p");meta.className="muted";
+            const date=event.occurredAt?new Date(event.occurredAt):null;
+            meta.textContent=(event.actorName||"Staff account")+" · "+(date&&!Number.isNaN(date.valueOf())?date.toLocaleString():"Time unavailable");
+            row.append(title,meta);
+            if(event.note){const note=document.createElement("p");note.textContent=event.note;row.append(note);}
+            history.append(row);
+          }
+          history.hidden=false;historyButton.textContent="Refresh history";
+        }catch(error){history.replaceChildren();const failed=document.createElement("p");failed.className="muted";failed.textContent="History could not be loaded: "+error.message;history.append(failed);history.hidden=false;historyButton.textContent="Retry history";}
+        finally{historyButton.disabled=false;}
+      });
+      const history=document.createElement("div");history.className="finance-history-list";history.hidden=true;
       const controls=document.createElement("div");controls.className="finance-review-actions";
+
       const id=item.id;
       const prefix=kind==="expense"?"/finance/expenses/":"/finance/bank-transactions/";
       const messageId=kind==="expense"?"expense-review-message":"bank-review-message";
@@ -278,7 +300,9 @@
         evidenceState.textContent=item.evidenceRequestId?"Evidence request linked. Final posting requires that evidence to be approved.":"Evidence is not linked; attach the matching evidence request before final posting.";
         card.append(evidenceState);
       }
+      controls.append(historyButton);
       if(controls.childNodes.length)card.append(controls);
+      card.append(history);
       container.append(card);
     }
   }
