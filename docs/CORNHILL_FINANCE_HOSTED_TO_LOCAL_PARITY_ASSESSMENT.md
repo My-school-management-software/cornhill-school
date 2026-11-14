@@ -69,3 +69,32 @@ The finance-related source inventory also depends on staff identities, active-em
 - No user's Windows PostgreSQL database was changed.
 - No migration beyond 016 was created or applied.
 - No finance parity rows are marked VERIFIED.
+
+
+## Source-control review — pass 2
+
+A closer read of the hosted SQL function bodies found two controls that the local replacement should strengthen. These are static code-review observations; no live endpoint was called and no hosted state was changed.
+
+### 1. Daily expense-limit concurrency
+
+The hosted `create_school_expense_request` function reads an operator's enabled limit, sums that operator's same-day non-cancelled requests, compares the proposed amount, and then inserts the new request. In the inspected function, the limit row is not selected `FOR UPDATE`, and no per-operator/day advisory lock or equivalent serialization is visible around the sum-and-insert sequence.
+
+**Risk:** two simultaneous requests can each observe the same prior daily total and both pass the remaining-limit check. The aggregate can therefore exceed the configured daily limit under concurrent submissions, even though each request individually passed validation.
+
+**Local acceptance requirement:** serialize submissions per operator and Kampala business date (for example, lock the operator-limit row with `FOR UPDATE` inside the same transaction before summing and inserting). Add a PostgreSQL concurrency test that submits competing requests and proves the accepted aggregate never exceeds the limit. Do not rely on a JavaScript pre-check.
+
+### 2. Approval separation of duties
+
+The inspected hosted expense-approval and bank-withdrawal-approval functions require an administrator and verify that the request/transaction is awaiting approval. The inspected bodies do not explicitly reject an administrator who is also the original requester/entrant.
+
+**Local acceptance requirement:** enforce requester/approver separation for expenses and withdrawals by default: the approving staff account must differ from the submitting staff account. Any exceptional override must be a separately permissioned, reasoned, audited action approved by the school's policy. Add tests for self-approval rejection and valid independent approval.
+
+### 3. Additional implementation guardrails
+
+- All multi-step financial transitions (request + event + evidence request; approval + event; evidence review + ledger posting) must commit atomically. A failed audit/event insert must roll back the financial state change.
+- The local bank balance must be derived only from verified transactions, never from pending approval/evidence states.
+- Expense ledger posting must be unique per verified request and idempotent under duplicate evidence-review delivery.
+- Daily-limit accounting must define whether the cap includes all submitted requests except cancelled ones; preserve the intended Kampala-day boundary and make it explicit in tests.
+- The local workflow must check active employment and explicit permissions on every operation, not rely on role/title text alone.
+
+**Pass 2 outcome:** the hosted workflows have been reviewed deeply enough to add concrete local acceptance criteria, but not enough to mark any finance source object reconciled. Migration 017 remains deferred until the complete local evidence-storage and finance workflow design can be implemented and tested together.
