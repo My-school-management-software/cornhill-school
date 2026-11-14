@@ -323,8 +323,8 @@ try {
       "SELECT paid_ugx,balance_ugx FROM cornhill_school.fee_obligation_balances WHERE fee_obligation_id=$1",
       [currentFee.rows[0].id]
     );
-    assert.equal(Number(balances.rows[0].paid_ugx),25000);
-    assert.equal(Number(balances.rows[0].balance_ugx),75000);
+    assert.equal(Number(balances.rows[0].paid_ugx),31000);
+    assert.equal(Number(balances.rows[0].balance_ugx),69000);
 
     await client.query("ROLLBACK");
   } catch(error) {
