@@ -739,3 +739,31 @@ Read-only review of hosted table columns, constraints, selected routines and Edg
 6. Preserve unique payroll-item-to-expense linkage and add tests for retries, reversals, voids and payroll reconciliation. Attendance-related pay adjustments remain review-and-approval decisions, never automatic.
 
 **Status:** SMS outbox and bank/payroll accounting boundaries documented. Finance remains partially reconciled, with **0/16 hosted source finance tables fully reconciled**. SMS sender/worker caller, bank reconciliation/ledger, expense limit enforcement and full local end-to-end tests remain pending. No hosted or local database changes were made.
+
+
+### Finance limit enforcement, direct expense paths and attendance-to-payroll trigger review (2026-11-14)
+
+Read-only review of hosted function definitions, execute ACLs, triggers and table constraints. No routines were invoked and no school or payroll rows were read or changed.
+
+**Expense limits — concurrency weakness identified**
+- `create_school_expense_request` is authenticated-callable, SECURITY DEFINER, owned by `postgres`, and checks that the caller is an active finance operator. For non-admin operators it loads the enabled single/daily limits, checks the single request ceiling, then sums that user's non-cancelled expense requests created on the current Kampala date before inserting a new `Awaiting approval` request.
+- The routine does not take a per-operator/day lock or otherwise serialize the read-sum-insert sequence. Two simultaneous requests can both observe the same daily total and both pass, exceeding the configured daily cap. The limit check is therefore not concurrency-safe as inspected.
+- The sum is based on requests, not a separately locked daily spending ledger. A robust local design should reserve the amount atomically at request creation, release reservations on cancellation/rejection as policy defines, and separately reconcile approved/posted spend. Lock a stable operator/day row or use an equivalent serializable/atomic reservation mechanism; test concurrent requests.
+- The inspected Edge Function inventory contains no clearly named finance expense/payment/SMS worker function. This is an inventory observation, not proof that no external or client-side caller exists. `create_school_expense_request` and approval routines are database RPC paths.
+- `school_expenses` also receives posted expenses through the evidence-review trigger and payroll payment trigger. The payroll trigger inserts the salary expense automatically when a payroll item becomes Paid. The unique `payroll_item_id` constraint prevents a second linked salary expense for that item. Direct admin expense insertion paths and their exact UI callers still need separate mapping.
+
+**Critical attendance/payroll policy difference**
+- Hosted trigger `apply_attendance_deductions_to_payroll` runs BEFORE INSERT on `payroll_items`. When a new item is Pending, it sums all `approved_deduction_ugx` for that staff member's approved attendance incidents within the payroll period and automatically adds that sum to `deductions_ugx`. It rejects if deductions plus advance recovery exceed gross pay.
+- A second trigger, `settle_staff_advance_recovery`, runs after a payroll item changes to Paid. It reduces outstanding approved salary advances by the manually recorded `advance_recovery_ugx`, then marks matching approved attendance incidents as `deducted` and links them to the payroll item.
+- This hosted automatic deduction-on-payroll-insert behavior differs from local migration 009's governance model, where an attendance incident does not automatically deduct pay and must pass the specified review/decision controls. **Do not copy the hosted auto-add trigger into the local system.** Local policy must require the Headteacher/DOS statement, Director review/decision and an explicit payroll-authorized deduction amount; the payroll preview must visibly itemize and require confirmation. Incident approval alone must not silently alter salary.
+- Advance recovery must remain a separately identified, approved, bounded payroll item with an auditable allocation to the relevant advance(s). The settlement trigger's row locks are useful, but concurrency/retry and exact payment correction behavior need tests.
+
+**Local design/test requirements added**
+1. Enforce single and daily operator limits atomically under concurrent submissions; include simultaneous requests, cancellation, rejection, Kampala date boundary and role-disable tests.
+2. Make the daily policy explicit: whether it caps requested, approved, committed or paid amounts. Do not conflate request reservation with posted expenditure.
+3. Map every route that can insert a `school_expenses` row; non-payroll expenses must follow the approved request/evidence workflow, and payroll-generated expenses must remain unique per payroll item.
+4. Verify payroll payment retries/rollback and ensure salary expenses reconcile exactly once with net pay, without a second manual salary expense.
+5. Preserve local non-automatic attendance deduction governance. Require explicit decision, reason, amount, period and payroll approval; retain an audit trail and allow corrections through controlled adjustments rather than silently rewriting history.
+6. Test advance recovery against multiple outstanding advances, concurrent payroll payments, partial recovery, duplicate payment attempts and reversed/corrected payroll payments.
+
+**Status:** A concrete concurrency weakness in hosted daily expense-limit enforcement and an important hosted/local attendance-deduction policy divergence have been documented. Finance remains partially reconciled, with **0/16 hosted source finance tables fully reconciled**. No database, Edge Function, production or local schema changes were made.
