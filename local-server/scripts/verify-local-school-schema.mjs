@@ -190,6 +190,21 @@ try {
   assert(guardDefinition.includes("i.amount_ugx") && guardDefinition.includes("linked_item_amount IS DISTINCT FROM NEW.approved_deduction_ugx"),
     "Special-session payroll linkage must validate the exact deduction amount.");
 
+  const incidentGuardTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'attendance_incident_decision_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(incidentGuardTrigger.rows[0]?.installed === true,
+    "Ordinary attendance incident authority guard must be installed.");
+  const incidentGuardResult = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_attendance_incident_decision()'::regprocedure) AS definition"
+  );
+  const incidentGuardDefinition = incidentGuardResult.rows[0]?.definition ?? "";
+  assert(incidentGuardDefinition.includes("r.role_code IN ('headteacher', 'director_of_studies')")
+    && incidentGuardDefinition.includes("r.role_code = 'director'")
+    && incidentGuardDefinition.includes("A recorded Headteacher/DOS statement is immutable")
+    && incidentGuardDefinition.includes("Only an active Director may decide an attendance incident"),
+    "Ordinary attendance incidents must enforce active leadership authority and immutable review records.");
+
   const publicAccess = await pool.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace n
@@ -397,6 +412,52 @@ try {
       "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Verify attendance import time', $2) RETURNING id",
       [attendanceDay.rows[0].id, staff.rows[0].id]
     );
+
+    const incidentLeader = await client.query(
+      "INSERT INTO cornhill_auth.staff_accounts (username, username_normalized, password_hash, account_status) VALUES ('ci-incident-leader', 'ci-incident-leader', '$argon2id$ci-test', 'active') RETURNING id"
+    );
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_assignments (staff_account_id, role_code, assigned_by) VALUES ($1, 'director_of_studies', $2), ($1, 'director', $2)",
+      [incidentLeader.rows[0].id, staff.rows[0].id]
+    );
+    const incident = await client.query(
+      "INSERT INTO cornhill_school.staff_attendance_incidents (attendance_day_id, staff_account_id, attendance_date, incident_type) VALUES ($1, $2, CURRENT_DATE, 'late_clock_in') RETURNING id",
+      [attendanceDay.rows[0].id, staff.rows[0].id]
+    );
+    const ordinaryIncidentStatementRejected = await expectPgError(
+      client, "ordinary_incident_statement_authority_test",
+      "UPDATE cornhill_school.staff_attendance_incidents SET headteacher_statement = 'Ordinary staff cannot submit this', headteacher_statement_by = $2, headteacher_statement_at = now() WHERE id = $1",
+      [incident.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(ordinaryIncidentStatementRejected, "Ordinary staff cannot author an attendance incident leadership statement.");
+    await client.query(
+      "UPDATE cornhill_school.staff_attendance_incidents SET headteacher_statement = 'DOS reviewed the attendance record', headteacher_statement_by = $2, headteacher_statement_at = now() WHERE id = $1",
+      [incident.rows[0].id, incidentLeader.rows[0].id]
+    );
+    await client.query("ALTER TABLE cornhill_school.staff_attendance_incidents DISABLE TRIGGER attendance_incident_decision_guard");
+    await client.query(
+      "UPDATE cornhill_school.staff_attendance_incidents SET review_deadline_at = now() - interval '1 minute' WHERE id = $1",
+      [incident.rows[0].id]
+    );
+    await client.query("ALTER TABLE cornhill_school.staff_attendance_incidents ENABLE TRIGGER attendance_incident_decision_guard");
+    const ordinaryIncidentDecisionRejected = await expectPgError(
+      client, "ordinary_incident_director_authority_test",
+      "UPDATE cornhill_school.staff_attendance_incidents SET director_decision = 'excused', director_decision_by = $2, director_decision_at = now(), status = 'Excused' WHERE id = $1",
+      [incident.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(ordinaryIncidentDecisionRejected, "Ordinary staff cannot decide an attendance incident.");
+    await client.query(
+      "UPDATE cornhill_school.staff_attendance_incidents SET director_decision = 'excused', director_decision_by = $2, director_decision_at = now(), status = 'Excused' WHERE id = $1",
+      [incident.rows[0].id, incidentLeader.rows[0].id]
+    );
+    const approvedIncident = await client.query(
+      "SELECT status, director_decision, director_decision_by FROM cornhill_school.staff_attendance_incidents WHERE id = $1",
+      [incident.rows[0].id]
+    );
+    assert(approvedIncident.rows[0]?.status === "Excused"
+      && approvedIncident.rows[0]?.director_decision === "excused"
+      && approvedIncident.rows[0]?.director_decision_by === incidentLeader.rows[0].id,
+      "An active Director should be able to excuse an attendance incident after the review window.");
     const samePersonApprovalRejected = await expectPgError(
       client, "attendance_adjustment_self_approval_test",
       "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id, adjustment_status, approved_by_staff_id, approved_at) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Self approval should fail', $2, 'Approved', $2, now())",
@@ -618,7 +679,7 @@ try {
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
