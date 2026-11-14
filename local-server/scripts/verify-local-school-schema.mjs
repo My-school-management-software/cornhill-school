@@ -45,6 +45,8 @@ try {
     "learner_marks",
     "learners",
     "payment_allocations",
+    "payment_credit_allocation_batches",
+    "payment_credit_allocations",
     "payment_notification_outbox",
     "payment_receipts",
     "payment_records",
