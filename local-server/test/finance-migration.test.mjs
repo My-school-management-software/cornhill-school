@@ -282,3 +282,22 @@ test("finance workspace lookups are permission-checked and expose only active re
  assert.match(financeLookups,/GRANT EXECUTE ON FUNCTION cornhill_school[.]finance_list_expense_categories/);
  assert.match(financeLookups,/GRANT EXECUTE ON FUNCTION cornhill_school[.]finance_list_bank_accounts/);
 });
+
+const financeQueues=await readFile(new URL("../migrations/024_local_finance_review_queues.sql",import.meta.url),"utf8");
+test("expense and bank review queues enforce reviewer or posting permissions and cap returned records",()=>{
+ assert.match(financeQueues,/finance_list_expense_review_queue/);
+ assert.match(financeQueues,/finance_list_bank_review_queue/);
+ assert.match(financeQueues,/finance[.]expenses_review/);
+ assert.match(financeQueues,/finance[.]expenses_post/);
+ assert.match(financeQueues,/finance[.]banking_review/);
+ assert.match(financeQueues,/finance[.]banking_verify/);
+ assert.match(financeQueues,/LIMIT 100/);
+});
+const reviewerEvidence=await readFile(new URL("../migrations/025_local_finance_reviewer_evidence_attachment.sql",import.meta.url),"utf8");
+test("reviewers may attach only evidence requests already linked to the exact finance record",()=>{
+ assert.match(reviewerEvidence,/context_record_id=p_record/);
+ assert.match(reviewerEvidence,/requested_by_staff_id=p_actor OR cornhill_school[.]finance_actor_has_permission/);
+ assert.match(reviewerEvidence,/status IN \('Pending','Submitted','Approved'\)/);
+ assert.match(reviewerEvidence,/REVOKE ALL ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
+ assert.match(reviewerEvidence,/GRANT EXECUTE ON FUNCTION cornhill_school[.]attach_local_finance_evidence/);
+});
