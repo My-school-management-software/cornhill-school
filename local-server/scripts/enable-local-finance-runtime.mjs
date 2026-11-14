@@ -30,7 +30,7 @@ try {
   if (api.rolsuper || api.rolcreatedb || api.rolcreaterole || api.rolreplication || api.rolbypassrls || !api.member) throw new Error("Finance API role failed its least-privilege membership check.");
   stage = "enabling the restricted finance API role";
   const password = randomBytes(48).toString("base64url");
-  const statement = await pool.query("SELECT format('ALTER ROLE %I WITH LOGIN PASSWORD %L', 'cornhill_finance_api', $1) AS sql", [password]);
+  const statement = await pool.query("SELECT format('ALTER ROLE %I WITH LOGIN PASSWORD %L', 'cornhill_finance_api', $1::text) AS sql", [password]);
   await pool.query(statement.rows[0].sql);
   roleEnabled = true;
   stage = "securely saving the generated credential to the local .env file";
