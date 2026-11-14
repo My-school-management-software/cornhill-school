@@ -240,3 +240,10 @@ button { font: inherit; cursor: pointer; }
 .operation-card { display: grid; align-content: start; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: #fbfdfc; }
 .operation-card h4 { margin: 0; }
 .operation-card .form-message { overflow-wrap: anywhere; }
+
+.finance-review-list { display: grid; gap: 12px; }
+.finance-review-item { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; min-width: 0; }
+.finance-review-item p { margin: 0; overflow-wrap: anywhere; }
+.finance-review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.finance-review-actions input { flex: 1 1 190px; min-width: 0; }
+.finance-review-actions .button { flex: 0 0 auto; }
