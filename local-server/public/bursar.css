@@ -109,6 +109,10 @@ button { font: inherit; cursor: pointer; }
 .allocation-summary span { color: var(--muted); font-size: 11px; }
 .allocation-summary strong { font-size: 16px; color: var(--ink); }
 .form-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.reprint-panel { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.reprint-panel h4 { margin-bottom: 4px; }
+.reprint-form { display: grid; grid-template-columns: minmax(140px,.7fr) minmax(180px,1.3fr) auto; gap: 12px; align-items: end; margin-top: 12px; }
+.reprint-form .button { white-space: nowrap; }
 .receipt-paper {
   max-width: 520px; margin: 18px auto 4px; padding: 22px; border: 1px dashed #9eb3a8;
   background: white; color: #172d27; font-family: "Courier New", monospace; font-size: 12px;
@@ -129,13 +133,15 @@ button { font: inherit; cursor: pointer; }
   .fee-title { grid-column: 1 / -1; }
   .fee-row .fee-balance { text-align: right; }
   .form-grid { grid-template-columns: 1fr; }
+  .reprint-form { grid-template-columns: 1fr; }
+  .reprint-form .button { width: 100%; }
   .full-width { grid-column: auto; }
   .allocation-summary { grid-template-columns: 1fr; }
   .footer { flex-direction: column; }
 }
 @media print {
   body { background: white; }
-  .topbar,.footer,.notice,#finance-disabled,#login-panel,#workspace > .workspace-bar,#workspace > .search-panel,#workspace > .learner-panel,.receipt-toolbar button,.print-hint { display: none !important; }
+  .topbar,.footer,.notice,#finance-disabled,#login-panel,#workspace > .workspace-bar,#workspace > .search-panel,#workspace > .learner-panel,.receipt-toolbar button,.print-hint,.reprint-panel { display: none !important; }
   .page-shell { width: 100%; margin: 0; }
   #workspace { display: block !important; margin: 0; padding: 0; }
   #receipt-panel { display: block !important; margin: 0; padding: 0; border: 0; box-shadow: none; }

@@ -6,6 +6,7 @@
   let activeLearnerId = null;
   let accountSnapshot = null;
   let pendingSubmission = null;
+  let canReprintReceipts = false;
   const PENDING_KEY_STORAGE = "cornhill.finance.pending-payment-key";
   function readRecoveredPaymentKey() {
     try {
@@ -94,6 +95,11 @@
     byId("login-panel").hidden = true;
     byId("workspace").hidden = false;
     byId("staff-label").textContent = "Signed in as " + (principal.displayName || "authorised staff member");
+    canReprintReceipts = (principal.roles || []).some(role =>
+      Array.isArray(principal.rolePermissions?.[role]) &&
+      principal.rolePermissions[role].includes("finance.receipts_reprint")
+    );
+    byId("reprint-panel").hidden = !canReprintReceipts;
     byId("login-message").textContent = "";
   }
 
@@ -372,7 +378,10 @@
   });
 
   function renderReceipt(payment) {
-    const snapshot = payment.receipt || {};
+    const snapshot = payment.receipt || payment.receipt_data_snapshot || {};
+    const receiptNumber = payment.receiptNumber || payment.receipt_number || "";
+    const paymentStatus = payment.status || payment.payment_status || "Posted";
+    const printCount = payment.print_count ?? null;
     const container = byId("receipt-content");
     container.replaceChildren();
     const addLine = (label, value, emphasis = false) => {
@@ -390,9 +399,11 @@
     school.textContent = snapshot.school_name || "CORNHILL NURSERY AND PRIMARY SCHOOL";
     const title = document.createElement("div");
     title.className = "receipt-title";
-    title.textContent = "OFFICIAL PAYMENT RECEIPT";
+    title.textContent = payment.print_count != null ? "REPRINTED PAYMENT RECEIPT" : "OFFICIAL PAYMENT RECEIPT";
     container.append(school, title);
-    addLine("Receipt No.", payment.receiptNumber);
+    addLine("Receipt No.", receiptNumber);
+    if (paymentStatus === "Reversed") addLine("PAYMENT STATUS", "REVERSED — ORIGINAL RECEIPT COPY");
+    if (printCount != null) addLine("Reprint Copy", String(printCount));
     addLine("Learner", snapshot.learner_name || "");
     addLine("Pupil Code", snapshot.pupil_code || "");
     addLine("Payer", snapshot.payer_name || "Not supplied");
@@ -408,6 +419,7 @@
     thanks.textContent = "Thank you. Please keep this receipt for your records.";
     thanks.className = "receipt-thanks";
     container.append(thanks);
+    byId("reprint-number").value = receiptNumber;
     byId("receipt-panel").hidden = false;
     byId("receipt-panel").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -476,6 +488,36 @@
     } finally {
       button.disabled = false;
       updateAllocationSummary();
+    }
+  });
+
+  byId("reprint-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!canReprintReceipts) {
+      showMessage("reprint-message", "Your staff account does not have receipt reprint permission.", "error");
+      return;
+    }
+    const receiptNumber = byId("reprint-number").value.trim();
+    const reason = byId("reprint-reason").value.trim();
+    if (!/^CR-[0-9]{4}-[0-9]{7}$/.test(receiptNumber) || reason.length < 5 || reason.length > 300) {
+      showMessage("reprint-message", "Enter a valid receipt number and a reason of 5 to 300 characters.", "error");
+      return;
+    }
+    const button = byId("reprint-button");
+    button.disabled = true;
+    showMessage("reprint-message", "Checking receipt and recording the reprint…");
+    try {
+      const result = await request("/finance/receipts/" + encodeURIComponent(receiptNumber) + "/reprint", {
+        method: "POST",
+        body: { reason }
+      });
+      byId("reprint-reason").value = "";
+      renderReceipt(result.receipt);
+      showMessage("reprint-message", "Reprint recorded in the finance audit log. Use Print receipt to print this copy.", "success");
+    } catch (error) {
+      showMessage("reprint-message", error.message, "error");
+    } finally {
+      button.disabled = false;
     }
   });
 

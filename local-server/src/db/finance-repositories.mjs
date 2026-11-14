@@ -38,6 +38,21 @@ export function createPostgresFinanceRepositories(pool) {
       return result.rows[0]?.account ?? null;
     },
 
+    async reprintReceipt({ actorStaffId, receiptNumber, reason }) {
+      assertUuid(actorStaffId, "Finance actor ID");
+      if (typeof receiptNumber !== "string" || !/^CR-[0-9]{4}-[0-9]{7}$/.test(receiptNumber)) {
+        throw new TypeError("Receipt number is invalid.");
+      }
+      if (typeof reason !== "string" || reason.trim().length < 5 || reason.trim().length > 300) {
+        throw new TypeError("A reprint reason of 5 to 300 characters is required.");
+      }
+      const result = await pool.query(
+        "SELECT cornhill_school.reprint_local_payment_receipt($1::uuid, $2::text, $3::text) AS receipt",
+        [actorStaffId, receiptNumber, reason.trim()]
+      );
+      return result.rows[0]?.receipt ?? null;
+    },
+
     async postPayment(input) {
       assertUuid(input.actorStaffId, "Finance actor ID");
       assertUuid(input.learnerId, "Learner ID");

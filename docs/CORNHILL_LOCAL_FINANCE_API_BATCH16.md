@@ -23,4 +23,4 @@
 
 ## Boundaries
 
-The API is not enabled on the school's Windows database. Finance database roles remain NOLOGIN and the finance password is not provisioned by the installer. Batch 17 adds a separate Bursar page with sign-in, learner search, optional term allocation and browser-print receipt preview. Physical thermal printer testing, expenses, banking, SMS delivery and later unallocated-credit assignment remain pending. The hosted system and school records are unchanged.
+The API is not enabled on the school's Windows database. Finance database roles remain NOLOGIN and the finance password is not provisioned by the installer. Batch 17 adds a separate Bursar page with sign-in, learner search, optional term allocation and browser-print receipt preview. Physical thermal printer testing, expenses, banking, SMS delivery and later unallocated-credit assignment remain pending. The hosted system and school records are unchanged. Batch 18 adds a separate receipt reprint endpoint and reasoned audit record, guarded by `finance.receipts_reprint`.

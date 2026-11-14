@@ -45,7 +45,9 @@ try {
       has_function_privilege('cornhill_finance_api',
         'cornhill_school.finance_search_learners(uuid,text)','EXECUTE') AS can_search,
       has_function_privilege('cornhill_finance_api',
-        'cornhill_school.finance_get_learner_account(uuid,uuid)','EXECUTE') AS can_get_account
+        'cornhill_school.finance_get_learner_account(uuid,uuid)','EXECUTE') AS can_get_account,
+      has_function_privilege('cornhill_finance_api',
+        'cornhill_school.reprint_local_payment_receipt(uuid,text,text)','EXECUTE') AS can_reprint
   `);
   const a=acl.rows[0];
   assert.equal(a.member,true);
@@ -61,6 +63,7 @@ try {
   assert.equal(a.can_post,true);
   assert.equal(a.can_search,true);
   assert.equal(a.can_get_account,true);
+  assert.equal(a.can_reprint,true);
 
   // All business data below is synthetic and rolled back as one transaction.
   const client=await pool.connect();
@@ -80,6 +83,10 @@ try {
     );
     await client.query(
       "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('bursar','finance.payments_record',$1)",
+      [staffId]
+    );
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('bursar','finance.receipts_reprint',$1)",
       [staffId]
     );
 
@@ -174,6 +181,40 @@ try {
     assert.equal(outbox.rowCount,1);
     assert.equal(outbox.rows[0].status,'queued');
     assert.equal(outbox.rows[0].destination_phone,'+256700000091');
+    const reprinted=await client.query(
+      "SELECT cornhill_school.reprint_local_payment_receipt($1,$2,$3) AS receipt",
+      [staffId,posted.rows[0].receipt_number,"Parent requested another printed copy"]
+    );
+    const reprintData=reprinted.rows[0].receipt;
+    assert.equal(reprintData.receipt_number,posted.rows[0].receipt_number);
+    assert.equal(reprintData.payment_status,"Posted");
+    assert.equal(reprintData.print_count,1);
+    assert.equal(reprintData.receipt_data_snapshot.pupil_code,learner.rows[0].pupil_code);
+
+    const receiptPrintMeta=await client.query(
+      "SELECT print_count,last_printed_at,receipt_data_snapshot FROM cornhill_school.payment_receipts WHERE payment_id=$1",
+      [posted.rows[0].payment_id]
+    );
+    assert.equal(receiptPrintMeta.rows[0].print_count,1);
+    assert.ok(receiptPrintMeta.rows[0].last_printed_at);
+    assert.deepEqual(receiptPrintMeta.rows[0].receipt_data_snapshot,receipt.rows[0].receipt_data_snapshot);
+
+    const reprintAudit=await client.query(
+      "SELECT event_code,entity_type,reason,details FROM cornhill_school.finance_audit_events WHERE entity_id=$1 AND event_code='receipt.reprinted'",
+      [reprintData.receipt_id]
+    );
+    assert.equal(reprintAudit.rowCount,1);
+    assert.equal(reprintAudit.rows[0].event_code,"receipt.reprinted");
+    assert.equal(reprintAudit.rows[0].entity_type,"receipt");
+    assert.equal(reprintAudit.rows[0].reason,"Parent requested another printed copy");
+
+    await expectPgError(client,'receipt_reprint_reason_test',
+      "SELECT cornhill_school.reprint_local_payment_receipt($1,$2,'bad')",
+      [staffId,posted.rows[0].receipt_number],'22023');
+    await expectPgError(client,'receipt_reprint_not_found_test',
+      "SELECT cornhill_school.reprint_local_payment_receipt($1,'CR-2099-9999999','Missing original receipt')",
+      [staffId],'P0002');
+
 
     const noPermission=await client.query(
       "INSERT INTO cornhill_auth.staff_accounts(username,username_normalized,password_hash,account_status) VALUES('ci-no-finance','ci-no-finance','$argon2id$ci-only','active') RETURNING id"
@@ -184,6 +225,10 @@ try {
     await expectPgError(client,'finance_learner_lookup_permission_test',
       "SELECT * FROM cornhill_school.finance_search_learners($1,'Finance')",
       [noPermission.rows[0].id],'42501');
+    await expectPgError(client,'receipt_reprint_permission_test',
+      "SELECT cornhill_school.reprint_local_payment_receipt($1,$2,'No reprint permission')",
+      [noPermission.rows[0].id,posted.rows[0].receipt_number],'42501');
+
 
 
     await expectPgError(client,'idempotency_payload_test',

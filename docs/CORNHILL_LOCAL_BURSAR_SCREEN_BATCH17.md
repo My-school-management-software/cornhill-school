@@ -18,4 +18,4 @@ The installer still does not set passwords or enable LOGIN on either runtime rol
 
 ## Still pending
 
-Physical thermal printer tests, reprint authorization, a receipt-copy audit action, later assignment of retained credit, expenses and approvals, bank statement reconciliation, SMS delivery and broader accounting are not included. The main school application, Android/LAN access, offline sync and hosted cutover remain separate work.
+Batch 18 adds permission-gated receipt reprinting with a recorded reason and immutable receipt snapshot. Physical thermal printer tests, later assignment of retained credit, expenses and approvals, bank statement reconciliation, SMS delivery and broader accounting remain pending. The main school application, Android/LAN access, offline sync and hosted cutover remain separate work.

@@ -123,7 +123,8 @@ function mapFailure(error) {
   if (error instanceof AuthenticationError) return { status: 401, message: "A valid staff session is required." };
   if (error instanceof CsrfValidationError) return { status: 403, message: error.message };
   if (error instanceof AuthenticationServiceError) return { status: 503, message: error.message };
-  if (error?.code === "42501") return { status: 403, message: "You do not have permission to use finance payment entry." };
+  if (error?.code === "42501") return { status: 403, message: "You do not have permission for this finance operation." };
+  if (error?.code === "P0002") return { status: 404, message: "The requested payment receipt was not found." };
   if (error?.code === "22023") return { status: 400, message: "The finance request contains invalid information." };
   if (error?.code === "23514") return { status: 409, message: "The payment conflicts with the learner's current fee balance." };
   if (error?.code === "23505") return { status: 409, message: "This payment request has already been used or conflicts with an existing payment." };
@@ -134,7 +135,7 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
   if (!authService || typeof authService.authenticate !== "function") {
     throw new TypeError("A local authentication service is required for finance routes.");
   }
-  for (const method of ["searchLearners", "getLearnerAccount", "postPayment"]) {
+  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt"]) {
     if (!financeRepository || typeof financeRepository[method] !== "function") {
       throw new TypeError("A complete local finance repository is required.");
     }
@@ -181,8 +182,12 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
         method,
         csrfToken: typeof csrfHeader === "string" ? csrfHeader : undefined
       });
-      if (!staffHasPermission({ principal, permissionCode: "finance.payments_record" })) {
-        sendJson(response, 403, { error: "You do not have permission to use finance payment entry." });
+      const receiptReprintMatch = path.match(/^\/api\/v1\/finance\/receipts\/(CR-[0-9]{4}-[0-9]{7})\/reprint$/);
+      const requiredPermission = receiptReprintMatch && method === "POST"
+        ? "finance.receipts_reprint"
+        : "finance.payments_record";
+      if (!staffHasPermission({ principal, permissionCode: requiredPermission })) {
+        sendJson(response, 403, { error: "You do not have permission for this finance operation." });
         return true;
       }
 
@@ -221,6 +226,24 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
         const payment = validatePaymentBody(body, request.headers["idempotency-key"], principal.id);
         const result = await financeRepository.postPayment(payment);
         sendJson(response, 201, { payment: result });
+        return true;
+      }
+
+      if (receiptReprintMatch && method === "POST") {
+        const body = await readJsonBody(request);
+        if (typeof body.reason !== "string" || body.reason.trim().length < 5 || body.reason.trim().length > 300) {
+          throw new FinanceInputError(400, "Enter a reprint reason between 5 and 300 characters.");
+        }
+        const receipt = await financeRepository.reprintReceipt({
+          actorStaffId: principal.id,
+          receiptNumber: receiptReprintMatch[1],
+          reason: body.reason.trim()
+        });
+        if (!receipt) {
+          sendJson(response, 404, { error: "The requested payment receipt was not found." });
+          return true;
+        }
+        sendJson(response, 200, { receipt });
         return true;
       }
 

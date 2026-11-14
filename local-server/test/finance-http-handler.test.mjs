@@ -35,7 +35,7 @@ async function invoke(handler,{path,method="GET",headers={},body,encrypted=true}
   return {...res,handled};
 }
 function setup({principalValue=principal,authError,repoOverrides={}}={}){
-  const calls={auth:[],search:[],account:[],post:[]};
+  const calls={auth:[],search:[],account:[],post:[],reprints:[]};
   const authService={
     async authenticate(input){
       calls.auth.push(input);
@@ -47,6 +47,7 @@ function setup({principalValue=principal,authError,repoOverrides={}}={}){
     async searchLearners(input){calls.search.push(input);return [{learnerId:LEARNER_ID,pupilCode:"CRN-F-001",learnerName:"CI Learner",className:"P.4",isBursary:false}];},
     async getLearnerAccount(input){calls.account.push(input);return {learner:{id:LEARNER_ID,pupil_code:"CRN-F-001"},totals:{charged_ugx:150000,paid_ugx:25000,balance_ugx:125000},fee_obligations:[]};},
     async postPayment(input){calls.post.push(input);return {paymentId:"55555555-5555-4555-8555-555555555555",receiptNumber:"CR-2026-0000001",status:"Posted",allocatedAmountUgx:75000,unallocatedAmountUgx:10000,receipt:{amount_ugx:85000}};},
+    async reprintReceipt(input){calls.reprints.push(input);return {receipt_number:input.receiptNumber,payment_status:"Posted",print_count:2,receipt_data_snapshot:{amount_ugx:85000}};},
     ...repoOverrides
   };
   return {handler:createFinanceHttpHandler({authService,financeRepository,expectedOrigin:ORIGIN}),calls};
@@ -177,4 +178,54 @@ test("finance handler allows only GET and POST methods",async()=>{
   const {handler}=setup();
   const result=await invoke(handler,{path:"/api/v1/finance/learners",method:"DELETE",headers:getHeaders});
   assert.equal(result.statusCode,405);
+});
+
+test("receipt reprint requires its separate permission, a reason and a matching receipt number",async()=>{
+  const receiptPrincipal={
+    ...principal,
+    rolePermissions:{bursar:["finance.receipts_reprint"]}
+  };
+  const {handler,calls}=setup({principalValue:receiptPrincipal});
+  const path="/api/v1/finance/receipts/CR-2026-0000001/reprint";
+  const result=await invoke(handler,{path,method:"POST",headers:postHeaders,body:JSON.stringify({reason:"Parent requested another copy"})});
+  assert.equal(result.statusCode,200);
+  assert.equal(result.json().receipt.receipt_number,"CR-2026-0000001");
+  assert.equal(calls.reprints.length,1);
+  assert.equal(calls.reprints[0].actorStaffId,STAFF_ID);
+  assert.equal(calls.reprints[0].receiptNumber,"CR-2026-0000001");
+  assert.equal(calls.reprints[0].reason,"Parent requested another copy");
+  assert.equal(calls.post.length,0);
+});
+test("receipt reprint rejects a staff user without the separate reprint permission",async()=>{
+  const {handler,calls}=setup();
+  const result=await invoke(handler,{
+    path:"/api/v1/finance/receipts/CR-2026-0000001/reprint",
+    method:"POST",headers:postHeaders,body:JSON.stringify({reason:"Parent requested another copy"})
+  });
+  assert.equal(result.statusCode,403);
+  assert.equal(calls.reprints.length,0);
+});
+test("receipt reprint requires a valid explanatory reason",async()=>{
+  const {handler,calls}=setup({
+    principalValue:{...principal,rolePermissions:{bursar:["finance.receipts_reprint"]}}
+  });
+  const result=await invoke(handler,{
+    path:"/api/v1/finance/receipts/CR-2026-0000001/reprint",
+    method:"POST",headers:postHeaders,body:JSON.stringify({reason:"bad"})
+  });
+  assert.equal(result.statusCode,400);
+  assert.equal(calls.reprints.length,0);
+});
+
+test("receipt reprint maps an unknown original receipt to 404",async()=>{
+  const {handler,calls}=setup({
+    principalValue:{...principal,rolePermissions:{bursar:["finance.receipts_reprint"]}},
+    repoOverrides:{async reprintReceipt(input){calls.reprints.push(input);const error=new Error("not found");error.code="P0002";throw error;}}
+  });
+  const result=await invoke(handler,{
+    path:"/api/v1/finance/receipts/CR-2026-0000001/reprint",
+    method:"POST",headers:postHeaders,body:JSON.stringify({reason:"Parent requested another copy"})
+  });
+  assert.equal(result.statusCode,404);
+  assert.equal(calls.reprints.length,1);
 });

@@ -8,7 +8,7 @@ This branch contains the school-controlled local backend foundation for moving C
 - Separate loopback-only HTTPS authentication server and launcher.
 - Argon2id staff/guardian authentication, secure cookies, CSRF validation, session expiry/revocation and rate limiting.
 - Explicit role permissions, staff class assignments and guardian-to-learner scope checks. Role grants remain empty by default.
-- Eleven additive PostgreSQL migrations:
+- Twelve additive PostgreSQL migrations:
   1. Staff/guardian identity and session records.
   2. Permission catalog, role permissions and staff class assignments.
   3. Failed-login rate-limit indexes.
@@ -20,12 +20,13 @@ This branch contains the school-controlled local backend foundation for moving C
   9. Attendance policy settings, staff work schedules, dated salary agreements, calendar exceptions, reviewed attendance incidents and Director-approved special sessions.
   10. Local atomic payment posting, payer/collection details, unallocated credit, immutable receipt snapshots and restricted finance runtime permissions.
   11. Permission-gated Bursar learner search and learner fee-account read functions, without direct finance-table grants.
+  12. Permission-checked receipt reprints with a mandatory reason, print count and append-only finance audit record.
 - Local schema verifiers for authentication, learners, academics, finance, attendance and payroll.
 - Windows unit-test CI and Linux/PostgreSQL 17 integration CI.
 
 ## Validation status
 
-CI passed on 2026-11-14 for migrations 001–011, Windows unit tests and PostgreSQL 17 integration verification. This includes the atomic split-payment workflow, unallocated credit, Bursar learner search/account functions, function-only finance database grants and synthetic payment tests rolled back after verification. The Bursar screen assets were added in Batch 17; their CI checks are pending.
+CI passed on 2026-11-14 through Batch 17: Windows unit tests, PostgreSQL 17 migrations 001–011, migration repeat/checksum verification, schema/auth checks, atomic split-payment workflow, and Bursar screen/HTTPS asset checks. Batch 18 adds audited receipt reprinting and is pending its next CI run.
 
 This is CI validation only. The migrations have **not** been applied to the school's Windows computer, and no real school data has been imported.
 
@@ -47,7 +48,7 @@ The status page on port 4173 is not a school-data application. The separate HTTP
 - No live Vercel or Supabase resources have been changed.
 - No production learner, guardian, staff, finance or payroll records have been copied.
 - The authenticated HTTPS runtime composes the auth and finance handlers and can serve the local Bursar page. It remains separate from the health-only HTTP scaffold and the hosted main school application.
-- The Bursar screen is served at `/` or `/bursar` by the separate HTTPS service. It includes staff sign-in, learner search, term-by-term fee balances, optional previous-term allocations, UGX payment entry, idempotent posting and a printable receipt view. Its finance HTTP routes remain disabled unless a separate finance database runtime credential is privately provisioned; the example `.env` leaves this setting as a placeholder. Unallocated credit is recorded, but later allocation remains pending.
+- The Bursar screen is served at `/` or `/bursar` by the separate HTTPS service. It includes staff sign-in, learner search, term-by-term fee balances, optional previous-term allocations, UGX payment entry, idempotent posting, printable receipt preview and permission-gated audited reprinting with a reason. The audit logs a requested reprint action, not a printer-success signal. Its finance HTTP routes remain disabled unless a separate finance database runtime credential is privately provisioned; the example `.env` leaves this setting as a placeholder. Unallocated credit is recorded, but later allocation remains pending.
 - Authentication and finance runtime roles remain NOLOGIN by default. No runtime password is provisioned by the installer.
 - The server and HTTPS launcher bind to loopback only. Do not change this to 0.0.0.0 or expose the service to the school LAN.
 - LAN access, Android access, offline synchronisation, backups, recovery, thermal-printer hardware compatibility and the full school-wide UI remain pending. The Bursar print view is not yet verified on a physical thermal printer.

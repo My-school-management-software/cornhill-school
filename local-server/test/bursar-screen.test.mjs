@@ -16,14 +16,14 @@ test("Bursar page uses only same-origin local assets and has no third-party scri
   assert.doesNotMatch(html,/<link[^>]+href=["']https?:\/\//i);
 });
 test("Bursar page contains staff sign-in, learner search, fee account and payment receipt panels",()=>{
-  for(const id of ["login-form","search-form","learner-panel","fee-obligations","payment-form","receipt-panel","print-receipt"]) {
+  for(const id of ["login-form","search-form","learner-panel","fee-obligations","payment-form","receipt-panel","print-receipt","reprint-panel","reprint-form"]) {
     assert.ok(html.includes('id="'+id+'"'),"Missing Bursar component "+id);
   }
   assert.match(html,/Previous-term balances are optional/);
   assert.match(html,/Amount received \(UGX\)/);
 });
 test("Bursar client uses secure same-origin APIs, CSRF and stable idempotency keys",()=>{
-  for(const route of ["/api/v1/health","/auth/staff/login","/auth/session","/auth/logout","/finance/learners","/finance/payments"]) {
+  for(const route of ["/api/v1/health","/auth/staff/login","/auth/session","/auth/logout","/finance/learners","/finance/payments","/finance/receipts/"]) {
     assert.ok(js.includes(route),"Missing local API route "+route);
   }
   assert.match(js,/X-Cornhill-CSRF/);
@@ -50,6 +50,7 @@ test("Bursar UI makes prior term balances optional and displays unallocated rema
 test("Bursar print stylesheet includes a narrow receipt layout",()=>{
   assert.match(css,/@media print/);
   assert.match(css,/max-width: 76mm/);
+  assert.match(css,/\.reprint-panel \{ display: none !important; \}/);
   assert.match(css,/#receipt-panel\s*\{\s*display: block !important/);
 });
 test("HTTPS server serves only the allow-listed Bursar assets with a restrictive same-origin CSP",()=>{
@@ -63,4 +64,16 @@ test("HTTPS health response exposes finance activation state from runtime config
   assert.match(httpsSource,/financeApiEnabled: financeApiEnabled === true/);
   assert.match(launcher,/financeApiEnabled: runtime\.financeEnabled/);
   assert.match(launcher,/Bursar finance API enabled:/);
+});
+
+test("Bursar receipt reprint requires permission, a reason and an audited API route",()=>{
+  assert.match(js,/finance\.receipts_reprint/);
+  assert.match(js,/reprint-reason/);
+  assert.match(js,/reprint_local_payment_receipt|\/finance\/receipts\//);
+  assert.match(js,/Reprint Copy/);
+  assert.match(js,/REVERSED — ORIGINAL RECEIPT COPY/);
+});
+test("receipt reprint action is hidden unless the staff session grants the separate permission",()=>{
+  assert.match(js,/canReprintReceipts/);
+  assert.match(js,/reprint-panel/);
 });

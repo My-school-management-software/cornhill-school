@@ -177,7 +177,25 @@
         </div>
         <div id="receipt-content" class="receipt-paper"></div>
         <p class="muted print-hint">Use the browser print dialog and select your connected receipt or thermal printer.</p>
+
       </section>
+
+                    <section id="reprint-panel" class="panel reprint-panel" hidden>
+                <h4>Reprint an existing receipt</h4>
+                <p class="muted">Each reprint needs an authorised receipt permission and a recorded reason.</p>
+                <form id="reprint-form" class="reprint-form">
+                  <label class="field">
+                    <span>Receipt number</span>
+                    <input id="reprint-number" type="text" inputmode="text" maxlength="15" pattern="CR-[0-9]{4}-[0-9]{7}" placeholder="CR-2026-0000001" required>
+                  </label>
+                  <label class="field">
+                    <span>Reason for reprint</span>
+                    <input id="reprint-reason" type="text" minlength="5" maxlength="300" placeholder="Parent requested another copy" required>
+                  </label>
+                  <button id="reprint-button" class="button secondary" type="submit">Record reprint and open receipt</button>
+                </form>
+                <p id="reprint-message" class="form-message" role="status" aria-live="polite"></p>
+              </section>
     </section>
   </main>
 

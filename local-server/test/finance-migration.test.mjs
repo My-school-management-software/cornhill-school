@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 const foundation=await readFile(new URL("../migrations/007_local_finance_foundation.sql",import.meta.url),"utf8");
 const posting=await readFile(new URL("../migrations/010_local_finance_payment_posting.sql",import.meta.url),"utf8");
 const lookup=await readFile(new URL("../migrations/011_local_finance_learner_lookup_api.sql",import.meta.url),"utf8");
+const reprint=await readFile(new URL("../migrations/012_local_finance_audited_receipt_reprints.sql",import.meta.url),"utf8");
 test("finance foundation has protected UGX obligations and bursary rules",()=>{
  assert.match(foundation,/CREATE TABLE cornhill_school\.fee_catalogue/);
  assert.match(foundation,/CREATE TABLE cornhill_school\.fee_obligations/);
@@ -58,4 +59,16 @@ test("finance API gets function execution but not direct access to school financ
  assert.match(posting,/REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA cornhill_school/);
  assert.ok(posting.includes("FROM cornhill_finance_runtime,cornhill_finance_api"));
  assert.match(lookup,/GRANT EXECUTE ON FUNCTION cornhill_school\.finance_get_learner_account/);
+});
+
+test("receipt reprinting has independent permission, reason and immutable snapshot audit",()=>{
+ assert.match(reprint,/reprint_local_payment_receipt/);
+ assert.match(reprint,/finance\.receipts_reprint/);
+ assert.match(reprint,/p_reason/);
+ assert.match(reprint,/receipt\.reprinted/);
+ assert.match(reprint,/UPDATE cornhill_school\.payment_receipts/);
+ assert.match(reprint,/receipt_data_snapshot/);
+ assert.match(reprint,/FOR UPDATE OF r, p/);
+ assert.match(reprint,/REVOKE ALL ON FUNCTION cornhill_school\.reprint_local_payment_receipt/);
+ assert.match(reprint,/GRANT EXECUTE ON FUNCTION cornhill_school\.reprint_local_payment_receipt/);
 });
