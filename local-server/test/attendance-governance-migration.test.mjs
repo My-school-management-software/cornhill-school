@@ -27,7 +27,7 @@ test("attendance policy supports Kampala schedule rules, Saturdays and calendar 
 
 test("incident deductions require a completed review window and leadership statement", () => {
   assert.match(sql, /review_deadline_at/);
-  assert.match(sql, /NEW\.director_decision_at < NEW\.review_deadline_at/);
+  assert.match(sql, /now\(\) < NEW\.review_deadline_at/);
   assert.match(sql, /Headteacher or DOS statement is required/);
   assert.match(sql, /Approved attendance deduction exceeds the configured daily rate/);
   assert.match(sql, /attendance_incident_decision_guard/);

@@ -124,12 +124,17 @@ LANGUAGE plpgsql
 SET search_path = pg_catalog, cornhill_school
 AS $function$
 BEGIN
-  IF OLD.director_decision IS NOT NULL THEN
+  IF TG_OP = 'INSERT' AND NEW.director_decision IS NOT NULL THEN
+    RAISE EXCEPTION 'Attendance incidents must be created pending and undecided'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  IF TG_OP = 'UPDATE' AND OLD.director_decision IS NOT NULL THEN
     RAISE EXCEPTION 'A decided attendance incident is immutable; use a separately audited correction workflow'
       USING ERRCODE = 'check_violation';
   END IF;
   IF NEW.director_decision IS NOT NULL THEN
-    IF NEW.director_decision_at < NEW.review_deadline_at THEN
+    NEW.director_decision_at := now();
+    IF now() < NEW.review_deadline_at THEN
       RAISE EXCEPTION 'The attendance review window has not ended'
         USING ERRCODE = 'check_violation';
     END IF;
@@ -156,7 +161,7 @@ BEGIN
 END;
 $function$;
 CREATE TRIGGER attendance_incident_decision_guard
-BEFORE UPDATE ON cornhill_school.staff_attendance_incidents
+BEFORE INSERT OR UPDATE ON cornhill_school.staff_attendance_incidents
 FOR EACH ROW EXECUTE FUNCTION cornhill_school.guard_attendance_incident_decision();
 
 CREATE TABLE cornhill_school.staff_prep_sessions (

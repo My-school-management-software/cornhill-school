@@ -53,8 +53,16 @@ try {
     "payroll_lines",
     "payroll_periods",
     "payroll_runs",
+    "staff_attendance_calendar_exceptions",
+    "staff_attendance_incidents",
+    "staff_attendance_policy_settings",
+    "staff_attendance_schedule_assignments",
     "staff_employment_terms",
+    "staff_prep_assignments",
+    "staff_prep_sessions",
     "staff_profiles",
+    "staff_salary_agreements",
+    "staff_scheduled_session_attendance",
     "subjects"
   ];
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
@@ -71,7 +79,7 @@ try {
   const permissionCount = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog"
   );
-  assert(permissionCount.rows[0]?.count === 32, "Expected 32 unique permission catalogue entries after staff and payroll permissions are added.");
+  assert(permissionCount.rows[0]?.count === 35, "Expected 35 unique permission catalogue entries after staff and payroll permissions are added.");
 
   const subjects = await pool.query(
     "SELECT subject_code FROM cornhill_school.subjects ORDER BY subject_code"
@@ -101,7 +109,7 @@ try {
   const staffPermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'staff'"
   );
-  assert(staffPermissions.rows[0]?.count === 7, "Expected seven staff and attendance permission codes.");
+  assert(staffPermissions.rows[0]?.count === 10, "Expected ten staff and attendance permission codes.");
 
   const publicAccess = await pool.query(`
     SELECT EXISTS (
