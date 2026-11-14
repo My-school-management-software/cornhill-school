@@ -33,3 +33,28 @@ test("operations forms have responsive layouts and retain the existing thermal r
  assert.match(css,/@media print/);
  assert.match(css,/max-width:\s*76mm/);
 });
+
+test("Bursar screen provides separate expense and bank approval queues",()=>{
+ for(const id of ["finance-review-workspace","expense-review-panel","expense-review-queue","bank-review-panel","bank-review-queue","refresh-finance-queues"])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/person who submits a request cannot approve their own request/);
+});
+test("finance review interface wires independent approval, rejection, evidence and posting controls",()=>{
+ assert.match(js,/finance[.]expenses_review/);
+ assert.match(js,/finance[.]expenses_post/);
+ assert.match(js,/finance[.]banking_review/);
+ assert.match(js,/finance[.]banking_verify/);
+ assert.match(js,/\/finance\/expense-review-queue/);
+ assert.match(js,/\/finance\/bank-review-queue/);
+ assert.match(js,/decision:"Rejected"/);
+ assert.match(js,/decision:"Approved"/);
+ assert.match(js,/evidenceRequestId/);
+ assert.match(js,/\/post/);
+ assert.match(js,/\/verify/);
+});
+test("review queue UI uses text nodes for database content and responsive review controls",()=>{
+ assert.match(js,/document[.]createElement\("article"\)/);
+ assert.match(js,/heading[.]textContent/);
+ assert.match(css,/finance-review-list/);
+ assert.match(css,/finance-review-actions/);
+ assert.match(css,/flex-wrap:\s*wrap/);
+});
