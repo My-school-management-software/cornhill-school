@@ -28,7 +28,7 @@ test("leave requests have controlled transitions, independent review and overlap
 });
 test("leave balance ledger is append-only, approved and cannot go negative",()=>{
  assert.match(sql[names[3]],/Staff leave balance ledger is append-only/);
- assert.match(sql[names[3]],/Staff leave balance entries require independent approval/);
+ assert.match(sql[names[3]],/Leave balance entries require independent approval/);
  assert.match(sql[names[3]],/Staff leave balance cannot become negative/);
  assert.match(sql[names[3]],/request_status IS DISTINCT FROM 'Approved'/);
  assert.match(sql[names[3]],/staff_leave_usage_single_entry/);
@@ -47,7 +47,7 @@ test("payroll disbursements require posted payroll, independent verification and
  assert.match(sql[names[7]],/CREATE TABLE cornhill_school\.payroll_disbursements/);
  assert.match(sql[names[8]],/Payroll disbursements can only be recorded against a posted payroll run/);
  assert.match(sql[names[8]],/Payroll disbursement amount exceeds the remaining net pay/);
- assert.match(sql[names[8]],/independent verification decision/);
+ assert.match(sql[names[8]],/independent final verification decision/);
  assert.match(sql[names[8]],/beneficiary_staff_id/);
  assert.match(sql[names[9]],/Payroll disbursement evidence cannot be deleted/);
  assert.match(sql[names[9]],/Verified or rejected payroll disbursement evidence is immutable/);
