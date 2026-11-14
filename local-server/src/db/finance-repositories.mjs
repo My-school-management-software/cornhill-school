@@ -12,6 +12,52 @@ export function createPostgresFinanceRepositories(pool) {
   }
 
   return Object.freeze({
+    async setLocalExpenseOperatorLimit({actorStaffId,staffId,dailyLimitUgx}) {
+      assertUuid(actorStaffId,"Expense limit actor ID"); assertUuid(staffId,"Expense limit staff ID");
+      if(!Number.isSafeInteger(dailyLimitUgx)||dailyLimitUgx<=0) throw new TypeError("Daily expense limit must be a positive whole-UGX amount.");
+      const result=await pool.query("SELECT cornhill_school.set_local_expense_operator_limit($1::uuid,$2::uuid,$3::bigint) AS id",[actorStaffId,staffId,dailyLimitUgx]);
+      return result.rows[0]?.id ?? null;
+    },
+    async createLocalBankAccount({actorStaffId,accountName,bankName,last4,openingBalanceUgx}) {
+      assertUuid(actorStaffId,"Bank account actor ID");
+      const result=await pool.query("SELECT cornhill_school.create_local_bank_account($1::uuid,$2::text,$3::text,$4::text,$5::bigint) AS id",[actorStaffId,accountName,bankName,last4,openingBalanceUgx]);
+      return result.rows[0]?.id ?? null;
+    },
+    async createLocalExpenseRequest({actorStaffId,requestNumber,categoryId,description,amountUgx}) {
+      assertUuid(actorStaffId,"Expense requester ID"); assertUuid(categoryId,"Expense category ID");
+      const result=await pool.query("SELECT cornhill_school.create_local_expense_request($1::uuid,$2::text,$3::uuid,$4::text,$5::bigint) AS id",[actorStaffId,requestNumber,categoryId,description,amountUgx]);
+      return result.rows[0]?.id ?? null;
+    },
+    async reviewLocalExpenseRequest({actorStaffId,requestId,decision,note}) {
+      assertUuid(actorStaffId,"Expense reviewer ID"); assertUuid(requestId,"Expense request ID");
+      const result=await pool.query("SELECT cornhill_school.review_local_expense_request($1::uuid,$2::uuid,$3::text,$4::text) AS status",[actorStaffId,requestId,decision,note??null]);
+      return result.rows[0]?.status ?? null;
+    },
+    async postLocalExpense({actorStaffId,requestId}) {
+      assertUuid(actorStaffId,"Expense poster ID"); assertUuid(requestId,"Expense request ID");
+      const result=await pool.query("SELECT cornhill_school.post_local_expense($1::uuid,$2::uuid) AS ledger_id",[actorStaffId,requestId]);
+      return result.rows[0]?.ledger_id ?? null;
+    },
+    async createLocalBankTransaction({actorStaffId,accountId,transactionType,amountUgx,description,externalReference}) {
+      assertUuid(actorStaffId,"Bank transaction actor ID"); assertUuid(accountId,"Bank account ID");
+      const result=await pool.query("SELECT cornhill_school.create_local_bank_transaction($1::uuid,$2::uuid,$3::text,$4::bigint,$5::text,$6::text) AS id",[actorStaffId,accountId,transactionType,amountUgx,description,externalReference??null]);
+      return result.rows[0]?.id ?? null;
+    },
+    async reviewLocalBankTransaction({actorStaffId,transactionId,decision,note}) {
+      assertUuid(actorStaffId,"Bank reviewer ID"); assertUuid(transactionId,"Bank transaction ID");
+      const result=await pool.query("SELECT cornhill_school.review_local_bank_transaction($1::uuid,$2::uuid,$3::text,$4::text) AS status",[actorStaffId,transactionId,decision,note??null]);
+      return result.rows[0]?.status ?? null;
+    },
+    async verifyLocalBankTransaction({actorStaffId,transactionId}) {
+      assertUuid(actorStaffId,"Bank verifier ID"); assertUuid(transactionId,"Bank transaction ID");
+      const result=await pool.query("SELECT cornhill_school.verify_local_bank_transaction($1::uuid,$2::uuid) AS ledger_id",[actorStaffId,transactionId]);
+      return result.rows[0]?.ledger_id ?? null;
+    },
+    async attachLocalFinanceEvidence({actorStaffId,contextType,recordId,evidenceRequestId}) {
+      assertUuid(actorStaffId,"Finance evidence actor ID"); assertUuid(recordId,"Finance record ID"); assertUuid(evidenceRequestId,"Evidence request ID");
+      const result=await pool.query("SELECT cornhill_school.attach_local_finance_evidence($1::uuid,$2::text,$3::uuid,$4::uuid) AS evidence_request_id",[actorStaffId,contextType,recordId,evidenceRequestId]);
+      return result.rows[0]?.evidence_request_id ?? null;
+    },
     async createEvidenceRequest(input) {
       assertUuid(input.actorStaffId, "Evidence actor ID");
       assertUuid(input.assignedStaffId, "Assigned staff ID");
