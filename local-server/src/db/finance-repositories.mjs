@@ -73,6 +73,16 @@ export function createPostgresFinanceRepositories(pool) {
       }));
     },
 
+    async getCreditAllocationByKey({ actorStaffId, idempotencyKey }) {
+      assertUuid(actorStaffId, "Finance actor ID");
+      assertUuid(idempotencyKey, "Credit allocation idempotency key");
+      const result = await pool.query(
+        "SELECT cornhill_school.finance_get_credit_allocation_by_key($1::uuid,$2::uuid) AS allocation",
+        [actorStaffId, idempotencyKey]
+      );
+      return result.rows[0]?.allocation ?? null;
+    },
+
     async allocateCredit(input) {
       assertUuid(input.actorStaffId, "Finance actor ID");
       assertUuid(input.sourcePaymentId, "Source payment ID");

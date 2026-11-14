@@ -135,7 +135,7 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
   if (!authService || typeof authService.authenticate !== "function") {
     throw new TypeError("A local authentication service is required for finance routes.");
   }
-  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt", "allocateCredit", "listLearnerCredits"]) {
+  for (const method of ["searchLearners", "getLearnerAccount", "postPayment", "reprintReceipt", "allocateCredit", "listLearnerCredits", "getCreditAllocationByKey"]) {
     if (!financeRepository || typeof financeRepository[method] !== "function") {
       throw new TypeError("A complete local finance repository is required.");
     }
@@ -186,9 +186,11 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
       const creditListMatch = path.match(/^\/api\/v1\/finance\/learners\/([0-9a-f-]{36})\/credits$/i);
       const creditListRoute = Boolean(creditListMatch && method === "GET" && UUID_PATTERN.test(creditListMatch[1]));
       const creditAllocateRoute = path === "/api/v1/finance/credits/allocate" && method === "POST";
+      const creditStatusMatch = path.match(/^\\/api\\/v1\\/finance\\/credits\\/allocations\\/([0-9a-f-]{36})$/i);
+      const creditStatusRoute = Boolean(creditStatusMatch && method === "GET" && UUID_PATTERN.test(creditStatusMatch[1]));
       const requiredPermission = receiptReprintMatch && method === "POST"
         ? "finance.receipts_reprint"
-        : (creditAllocateRoute || creditListRoute)
+        : (creditAllocateRoute || creditListRoute || creditStatusRoute)
           ? "finance.credit_allocate"
           : "finance.payments_record";
       if (!staffHasPermission({ principal, permissionCode: requiredPermission })) {
@@ -207,6 +209,15 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
           search: search.trim()
         });
         sendJson(response, 200, { learners });
+        return true;
+      }
+
+      if (creditStatusRoute) {
+        const allocation = await financeRepository.getCreditAllocationByKey({
+          actorStaffId: principal.id,
+          idempotencyKey: creditStatusMatch[1]
+        });
+        sendJson(response, 200, { allocation });
         return true;
       }
 

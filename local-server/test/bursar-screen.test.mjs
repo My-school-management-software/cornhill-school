@@ -111,3 +111,11 @@ test("Bursar blocks switching learners while a retained-credit request is unreso
   assert.match(js,/pendingCreditSubmission && learnerId !== pendingCreditSubmission\.learnerId/);
   assert.match(js,/Open the same learner and retry that exact request/);
 });
+
+test("Bursar persists only an actor-scoped opaque credit request key across tabs",()=>{
+  assert.match(js,/localStorage\.setItem/);
+  assert.match(js,/PENDING_CREDIT_KEY_STORAGE/);
+  assert.match(js,/getCreditAllocationByKey|finance\\/credits\\/allocations/);
+  assert.match(js,/body: null/);
+  assert.match(js,/re-enter the same source receipt, fee amounts and reason/);
+});

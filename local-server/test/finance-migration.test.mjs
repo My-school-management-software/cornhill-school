@@ -99,3 +99,15 @@ test("retained-credit source lookup exposes only remaining posted credit to its 
  assert.match(creditLookup,/REVOKE ALL ON FUNCTION/);
  assert.match(creditLookup,/GRANT EXECUTE ON FUNCTION/);
 });
+
+const creditStatus=await readFile(new URL("../migrations/015_local_finance_credit_allocation_recovery.sql",import.meta.url),"utf8");
+test("retained-credit recovery lookup is scoped to the authenticated actor and opaque idempotency key",()=>{
+ assert.match(creditStatus,/finance_get_credit_allocation_by_key/);
+ assert.match(creditStatus,/finance[.]credit_allocate/);
+ assert.match(creditStatus,/b[.]actor_staff_id = p_actor_staff_id/);
+ assert.match(creditStatus,/b[.]idempotency_key = p_idempotency_key/);
+ assert.match(creditStatus,/SECURITY DEFINER/);
+ assert.match(creditStatus,/REVOKE ALL ON FUNCTION/);
+ assert.match(creditStatus,/GRANT EXECUTE ON FUNCTION/);
+ assert.doesNotMatch(creditStatus,/UPDATE cornhill_school[.]payment_receipts/);
+});

@@ -11,6 +11,7 @@
   let creditSources = [];
   const PENDING_KEY_STORAGE = "cornhill.finance.pending-payment-key";
   const PENDING_CREDIT_STORAGE = "cornhill.finance.pending-credit-allocation";
+  const PENDING_CREDIT_KEY_STORAGE = "cornhill.finance.pending-credit-key";
   function readRecoveredPaymentKey() {
     try {
       const value = sessionStorage.getItem(PENDING_KEY_STORAGE);
@@ -25,32 +26,44 @@
   }
   let recoveredIdempotencyKey = readRecoveredPaymentKey();
 
-  function readPendingCreditSubmission() {
+  function readPendingCreditSubmission(actorStaffId) {
+    const suffix = ":" + actorStaffId;
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const valid = value => value && uuid.test(value.key || "") && uuid.test(value.learnerId || "");
     try {
-      const raw = sessionStorage.getItem(PENDING_CREDIT_STORAGE);
-      if (!raw) return null;
-      const value = JSON.parse(raw);
-      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!value || !uuid.test(value.key || "") || !uuid.test(value.learnerId || "") ||
-          !value.body || !uuid.test(value.body.sourcePaymentId || "") ||
-          typeof value.body.reason !== "string" || value.body.reason.trim().length < 5 ||
-          value.body.reason.trim().length > 300 || !Array.isArray(value.body.allocations) ||
-          value.body.allocations.length < 1 || value.body.allocations.length > 100 ||
-          value.body.allocations.some(item => !item || !uuid.test(item.feeObligationId || "") ||
-            !Number.isSafeInteger(item.amountUgx) || item.amountUgx <= 0)) {
-        sessionStorage.removeItem(PENDING_CREDIT_STORAGE);
-        return null;
+      const raw = sessionStorage.getItem(PENDING_CREDIT_STORAGE + suffix);
+      if (raw) {
+        const value = JSON.parse(raw);
+        if (valid(value) && value.body && uuid.test(value.body.sourcePaymentId || "") &&
+            typeof value.body.reason === "string" && value.body.reason.trim().length >= 5 &&
+            value.body.reason.trim().length <= 300 && Array.isArray(value.body.allocations) &&
+            value.body.allocations.length >= 1 && value.body.allocations.length <= 100 &&
+            value.body.allocations.every(item => item && uuid.test(item.feeObligationId || "") &&
+              Number.isSafeInteger(item.amountUgx) && item.amountUgx > 0)) return value;
+        sessionStorage.removeItem(PENDING_CREDIT_STORAGE + suffix);
       }
-      return value;
+      const saved = localStorage.getItem(PENDING_CREDIT_KEY_STORAGE + suffix);
+      if (!saved) return null;
+      const value = JSON.parse(saved);
+      return valid(value) ? { key: value.key, learnerId: value.learnerId, body: null, recovered: true } : null;
     } catch { return null; }
   }
   function savePendingCreditSubmission(value) {
+    const suffix = currentStaffId ? ":" + currentStaffId : "";
     try {
-      if (value) sessionStorage.setItem(PENDING_CREDIT_STORAGE, JSON.stringify(value));
-      else sessionStorage.removeItem(PENDING_CREDIT_STORAGE);
-    } catch { /* In-memory idempotency remains active for this page session. */ }
+      if (value) {
+        sessionStorage.setItem(PENDING_CREDIT_STORAGE + suffix, JSON.stringify(value));
+        localStorage.setItem(PENDING_CREDIT_KEY_STORAGE + suffix, JSON.stringify({
+          key: value.key, learnerId: value.learnerId
+        }));
+      } else {
+        sessionStorage.removeItem(PENDING_CREDIT_STORAGE + suffix);
+        localStorage.removeItem(PENDING_CREDIT_KEY_STORAGE + suffix);
+      }
+    } catch { /* The server remains authoritative; do not store financial details in persistent storage. */ }
   }
-  let pendingCreditSubmission = readPendingCreditSubmission();
+  let currentStaffId = null;
+  let pendingCreditSubmission = null;
 
   function money(value) {
     const amount = Number(value ?? 0);
@@ -124,6 +137,8 @@
     }
     byId("login-panel").hidden = true;
     byId("workspace").hidden = false;
+    currentStaffId = principal.id;
+    pendingCreditSubmission = readPendingCreditSubmission(currentStaffId);
     byId("staff-label").textContent = "Signed in as " + (principal.displayName || "authorised staff member");
     canReprintReceipts = (principal.roles || []).some(role =>
       Array.isArray(principal.rolePermissions?.[role]) &&
@@ -557,7 +572,8 @@
       option.textContent = source.receiptNumber + " · Available " + money(source.remainingCreditUgx);
       select.append(option);
     }
-    if (pendingCreditSubmission && pendingCreditSubmission.learnerId === activeLearnerId &&
+    if (pendingCreditSubmission && pendingCreditSubmission.body &&
+        pendingCreditSubmission.learnerId === activeLearnerId &&
         !creditSources.some(source => source.paymentId === pendingCreditSubmission.body.sourcePaymentId)) {
       const option = document.createElement("option");
       option.value = pendingCreditSubmission.body.sourcePaymentId;
@@ -574,7 +590,8 @@
   }
 
   function restorePendingCreditForm() {
-    if (!pendingCreditSubmission || pendingCreditSubmission.learnerId !== activeLearnerId) return;
+    if (!pendingCreditSubmission || !pendingCreditSubmission.body ||
+        pendingCreditSubmission.learnerId !== activeLearnerId) return;
     const body = pendingCreditSubmission.body;
     byId("credit-source-select").value = body.sourcePaymentId;
     byId("credit-reason").value = body.reason;
@@ -593,10 +610,22 @@
   async function loadLearnerCredits(learnerId) {
     if (!canAllocateCredits) return;
     try {
+      if (pendingCreditSubmission && pendingCreditSubmission.learnerId === learnerId) {
+        const status = await request("/finance/credits/allocations/" + encodeURIComponent(pendingCreditSubmission.key));
+        if (status.allocation) {
+          pendingCreditSubmission = null;
+          savePendingCreditSubmission(null);
+          showMessage("credit-message", "The earlier retained-credit request was already recorded. Refreshing the learner account.");
+          await loadLearner(learnerId);
+          return;
+        }
+      }
       const result = await request("/finance/learners/" + encodeURIComponent(learnerId) + "/credits");
       creditSources = Array.isArray(result.credits) ? result.credits : [];
       renderCreditSources();
-      if (creditSources.length) {
+      if (pendingCreditSubmission && pendingCreditSubmission.learnerId === learnerId && !pendingCreditSubmission.body) {
+        showMessage("credit-message", "A request key was recovered from an earlier browser session, but its financial details were not saved. Re-enter the same source receipt, fee amounts and reason to retry safely with that key. If you cannot confirm the exact details, ask a supervisor before proceeding.", "error");
+      } else if (creditSources.length) {
         showMessage("credit-message", "Retained credit is available for this learner. Each application is recorded in the finance audit trail.");
       } else {
         showMessage("credit-message", "No retained credit is currently available.");
@@ -604,7 +633,7 @@
     } catch (error) {
       creditSources = [];
       renderCreditSources();
-      showMessage("credit-message", error.message, "error");
+      showMessage("credit-message", "Could not confirm the previous credit request status. Do not create a new allocation until the local service is available. " + error.message, "error");
     }
   }
 
@@ -613,8 +642,8 @@
   byId("credit-allocation-form").addEventListener("submit", async event => {
     event.preventDefault();
     if (!canAllocateCredits || !activeLearnerId) return;
-    const retrying = Boolean(pendingCreditSubmission);
-    if (!pendingCreditSubmission) {
+    const retrying = Boolean(pendingCreditSubmission && pendingCreditSubmission.body);
+    if (!pendingCreditSubmission || !pendingCreditSubmission.body) {
       const source = selectedCreditSource();
       const reason = byId("credit-reason").value.trim();
       const allocations = [];
@@ -642,7 +671,7 @@
         return;
       }
       pendingCreditSubmission = {
-        key: crypto.randomUUID(),
+        key: pendingCreditSubmission?.key || crypto.randomUUID(),
         learnerId: activeLearnerId,
         body: { sourcePaymentId: source.paymentId, allocations, reason }
       };

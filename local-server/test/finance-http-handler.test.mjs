@@ -36,7 +36,7 @@ async function invoke(handler,{path,method="GET",headers={},body,encrypted=true}
   return {...res,handled};
 }
 function setup({principalValue=principal,authError,repoOverrides={}}={}){
-  const calls={auth:[],search:[],account:[],post:[],reprints:[],credits:[],creditLists:[]};
+  const calls={auth:[],search:[],account:[],post:[],reprints:[],credits:[],creditLists:[],creditLookups:[]};
   const authService={
     async authenticate(input){
       calls.auth.push(input);
@@ -50,6 +50,7 @@ function setup({principalValue=principal,authError,repoOverrides={}}={}){
     async postPayment(input){calls.post.push(input);return {paymentId:"55555555-5555-4555-8555-555555555555",receiptNumber:"CR-2026-0000001",status:"Posted",allocatedAmountUgx:75000,unallocatedAmountUgx:10000,receipt:{amount_ugx:85000}};},
     async reprintReceipt(input){calls.reprints.push(input);return {receipt_number:input.receiptNumber,payment_status:"Posted",print_count:2,receipt_data_snapshot:{amount_ugx:85000}};},
     async allocateCredit(input){calls.credits.push(input);return {batch_id:"77777777-7777-4777-8777-777777777777",source_payment_id:input.sourcePaymentId,total_allocated_ugx:6000,remaining_credit_ugx:4000,replayed:false};},
+    async getCreditAllocationByKey(input){calls.creditLookups.push(input);return repoOverrides.creditLookupResult ?? null;},
     async listLearnerCredits(input){calls.creditLists.push(input);return [{paymentId:SOURCE_PAYMENT,receiptNumber:"CR-2026-0000001",amountUgx:85000,originalUnallocatedUgx:10000,allocatedCreditUgx:6000,remainingCreditUgx:4000}];},
     ...repoOverrides
   };
@@ -288,4 +289,24 @@ test("retained-credit source lookup is denied without its independent permission
   const result=await invoke(handler,{path:"/api/v1/finance/learners/"+LEARNER_ID+"/credits",headers:getHeaders});
   assert.equal(result.statusCode,403);
   assert.equal(calls.creditLists.length,0);
+});
+
+test("retained-credit status lookup returns only the authenticated staff member's recorded allocation",async()=>{
+  const allocation={batch_id:"77777777-7777-4777-8777-777777777777",source_payment_id:SOURCE_PAYMENT,learner_id:LEARNER_ID,total_allocated_ugx:6000,remaining_credit_ugx:4000,replayed:true};
+  const {handler,calls}=setup({principalValue:creditPrincipal,repoOverrides:{creditLookupResult:allocation}});
+  const result=await invoke(handler,{path:"/api/v1/finance/credits/allocations/66666666-6666-4666-8666-666666666666",headers:getHeaders});
+  assert.equal(result.statusCode,200);
+  assert.equal(result.json().allocation.learner_id,LEARNER_ID);
+  assert.equal(calls.creditLookups[0].actorStaffId,STAFF_ID);
+  assert.equal(calls.creditLookups[0].idempotencyKey,"66666666-6666-4666-8666-666666666666");
+});
+test("retained-credit status lookup is permission-gated and returns null when no request is recorded",async()=>{
+  const denied=setup();
+  const noPermission=await invoke(denied.handler,{path:"/api/v1/finance/credits/allocations/66666666-6666-4666-8666-666666666666",headers:getHeaders});
+  assert.equal(noPermission.statusCode,403);
+  assert.equal(denied.calls.creditLookups.length,0);
+  const allowed=setup({principalValue:creditPrincipal});
+  const missing=await invoke(allowed.handler,{path:"/api/v1/finance/credits/allocations/66666666-6666-4666-8666-666666666666",headers:getHeaders});
+  assert.equal(missing.statusCode,200);
+  assert.equal(missing.json().allocation,null);
 });
