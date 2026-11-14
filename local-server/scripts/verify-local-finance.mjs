@@ -41,6 +41,11 @@ try {
       has_table_privilege('cornhill_finance_api','cornhill_school.payment_receipts','SELECT') AS receipt_read,
       has_table_privilege('cornhill_finance_api','cornhill_school.payment_credit_allocation_batches','SELECT') AS credit_batch_read,
       has_table_privilege('cornhill_finance_api','cornhill_school.payment_credit_allocations','INSERT') AS credit_allocation_insert,
+      has_table_privilege('cornhill_finance_api','cornhill_school.evidence_capture_files','SELECT') AS evidence_file_read,
+      has_table_privilege('cornhill_finance_api','cornhill_school.evidence_capture_requests','INSERT') AS evidence_request_insert,
+      has_function_privilege('cornhill_finance_api','cornhill_school.create_local_evidence_request(uuid,uuid,text,text,uuid,text,bigint)','EXECUTE') AS can_create_evidence_request,
+      has_function_privilege('cornhill_finance_api','cornhill_school.register_local_evidence_file(uuid,uuid,uuid,text,text,bigint,text)','EXECUTE') AS can_register_evidence_file,
+      has_function_privilege('cornhill_finance_api','cornhill_school.review_local_evidence_request(uuid,uuid,text,text)','EXECUTE') AS can_review_evidence,
       has_sequence_privilege('cornhill_finance_api','cornhill_school.receipt_number_sequence','USAGE') AS sequence_usage,
       has_function_privilege('cornhill_finance_api',
         'cornhill_school.post_local_payment(uuid,uuid,bigint,text,uuid,jsonb,text,text,text,text,text)','EXECUTE') AS can_post,
@@ -67,6 +72,11 @@ try {
   assert.equal(a.receipt_read,false);
   assert.equal(a.credit_batch_read,false);
   assert.equal(a.credit_allocation_insert,false);
+  assert.equal(a.evidence_file_read,false);
+  assert.equal(a.evidence_request_insert,false);
+  assert.equal(a.can_create_evidence_request,true);
+  assert.equal(a.can_register_evidence_file,true);
+  assert.equal(a.can_review_evidence,true);
   assert.equal(a.sequence_usage,false);
   assert.equal(a.can_post,true);
   assert.equal(a.can_search,true);
@@ -101,6 +111,10 @@ try {
     );
     await client.query(
       "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('bursar','finance.credit_allocate',$1)",
+      [staffId]
+    );
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('bursar','finance.evidence_manage',$1)",
       [staffId]
     );
 
@@ -304,9 +318,72 @@ try {
       [staffId],'P0002');
 
 
+
+    const reviewer=await client.query(
+      "INSERT INTO cornhill_auth.staff_accounts(username,username_normalized,password_hash,account_status) VALUES('ci-evidence-reviewer','ci-evidence-reviewer','$argon2id$ci-only','active') RETURNING id"
+    );
+    const reviewerId=reviewer.rows[0].id;
+    await client.query(
+      "INSERT INTO cornhill_school.staff_profiles(staff_account_id,staff_number,legal_name,job_title) VALUES($1,'CI-REVIEWER','CI Reviewer','Director')",
+      [reviewerId]
+    );
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_assignments(staff_account_id,role_code) VALUES($1,'director')",
+      [reviewerId]
+    );
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('director','finance.evidence_review',$1)",
+      [staffId]
+    );
+
+    const evidenceRequest=await client.query(
+      "SELECT cornhill_school.create_local_evidence_request($1,$1,'Expense receipt','other',NULL,'CI expense receipt',25000) AS id",
+      [staffId]
+    );
+    const evidenceRequestId=evidenceRequest.rows[0].id;
+    const evidenceFile=await client.query(
+      "SELECT cornhill_school.register_local_evidence_file($1,$2,$3,$4,'image/png',12,'ci-receipt.png') AS id",
+      [staffId,evidenceRequestId,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','a'.repeat(64)]
+    );
+    assert.ok(evidenceFile.rows[0].id);
+    await client.query(
+      "SELECT cornhill_school.submit_local_evidence_request($1,$2)",
+      [staffId,evidenceRequestId]
+    );
+    const evidenceLookup=await client.query(
+      "SELECT cornhill_school.finance_get_evidence_request($1,$2) AS evidence",
+      [staffId,evidenceRequestId]
+    );
+    assert.equal(evidenceLookup.rows[0].evidence.status,'Submitted');
+    assert.equal(evidenceLookup.rows[0].evidence.files.length,1);
+    assert.equal(evidenceLookup.rows[0].evidence.files[0].storage_object_key,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    await expectPgError(client,'evidence_self_approval_test',
+      "SELECT cornhill_school.review_local_evidence_request($1,$2,'Approved','Self review is forbidden')",
+      [staffId,evidenceRequestId],'42501');
+    const reviewed=await client.query(
+      "SELECT cornhill_school.review_local_evidence_request($1,$2,'Approved','Independent review passed') AS status",
+      [reviewerId,evidenceRequestId]
+    );
+    assert.equal(reviewed.rows[0].status,'Approved');
+    const evidenceReview=await client.query(
+      "SELECT action,review_note FROM cornhill_school.evidence_capture_reviews WHERE request_id=$1",
+      [evidenceRequestId]
+    );
+    assert.equal(evidenceReview.rowCount,1);
+    assert.equal(evidenceReview.rows[0].action,'Approved');
+    await expectPgError(client,'evidence_file_immutable_test',
+      "UPDATE cornhill_school.evidence_capture_files SET original_file_name='changed.png' WHERE request_id=$1",
+      [evidenceRequestId],'55000');
+
     const noPermission=await client.query(
       "INSERT INTO cornhill_auth.staff_accounts(username,username_normalized,password_hash,account_status) VALUES('ci-no-finance','ci-no-finance','$argon2id$ci-only','active') RETURNING id"
     );
+    await expectPgError(client,'evidence_permission_test',
+      "SELECT cornhill_school.create_local_evidence_request($1,$2,'Other','other',NULL,'Forbidden request',NULL)",
+      [noPermission.rows[0].id,staffId],'42501');
+    await expectPgError(client,'evidence_read_permission_test',
+      "SELECT cornhill_school.finance_get_evidence_request($1,$2)",
+      [noPermission.rows[0].id,evidenceRequestId],'42501');
     await expectPgError(client,'finance_permission_test',
       "SELECT * FROM cornhill_school.post_local_payment($1,$2,1000,'cash',$3,'[]'::jsonb)",
       [noPermission.rows[0].id,learnerId,'22222222-2222-4222-8222-222222222222'],'42501');
