@@ -582,7 +582,8 @@
     }
     form.hidden = false;
     renderCreditAllocationLines();
-    if (pendingCreditSubmission && pendingCreditSubmission.learnerId === activeLearnerId) {
+    if (pendingCreditSubmission && pendingCreditSubmission.body &&
+        pendingCreditSubmission.learnerId === activeLearnerId) {
       restorePendingCreditForm();
     } else {
       updateCreditSummary();
@@ -698,15 +699,33 @@
       await loadLearner(learnerToRefresh);
       showMessage("credit-message", "Retained credit applied successfully. The original payment and receipt remain unchanged.", "success");
     } catch (error) {
-      showMessage("credit-message",
-        error.message + (pendingCreditSubmission ? " Retry will reuse the exact same request safely." : ""),
-        "error");
-      if (error.status && error.status >= 400 && error.status < 500 && error.status !== 409) {
-        pendingCreditSubmission = null;
-        savePendingCreditSubmission(null);
-        byId("credit-source-select").disabled = false;
-        byId("credit-reason").disabled = false;
-        byId("credit-allocation-button").textContent = "Apply retained credit";
+      if (error.status === 409 && pendingCreditSubmission) {
+        try {
+          const status = await request("/finance/credits/allocations/" + encodeURIComponent(pendingCreditSubmission.key));
+          if (status.allocation) {
+            pendingCreditSubmission = null;
+            savePendingCreditSubmission(null);
+            await loadLearner(activeLearnerId);
+            showMessage("credit-message", "The earlier request was already recorded. The learner account has been refreshed.", "success");
+            return;
+          }
+          pendingCreditSubmission.body = null;
+          savePendingCreditSubmission(pendingCreditSubmission);
+          showMessage("credit-message", "The server has no completed allocation for this request key. Check the source receipt, fee amounts and reason, then retry using the same key.", "error");
+        } catch {
+          showMessage("credit-message", "The allocation result is not yet confirmed. Do not start a new allocation; check the local service and retry the status check.", "error");
+        }
+      } else {
+        showMessage("credit-message",
+          error.message + (pendingCreditSubmission ? " Retry will reuse the exact same request safely." : ""),
+          "error");
+        if (error.status && error.status >= 400 && error.status < 500) {
+          pendingCreditSubmission = null;
+          savePendingCreditSubmission(null);
+          byId("credit-source-select").disabled = false;
+          byId("credit-reason").disabled = false;
+          byId("credit-allocation-button").textContent = "Apply retained credit";
+        }
       }
     } finally {
       button.disabled = false;
