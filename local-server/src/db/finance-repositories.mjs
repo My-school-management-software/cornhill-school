@@ -12,6 +12,16 @@ export function createPostgresFinanceRepositories(pool) {
   }
 
   return Object.freeze({
+    async listLocalExpenseCategories({actorStaffId}) {
+      assertUuid(actorStaffId,"Expense category actor ID");
+      const result=await pool.query("SELECT * FROM cornhill_school.finance_list_expense_categories($1::uuid)",[actorStaffId]);
+      return result.rows.map(row=>({id:row.id,code:row.category_code,name:row.category_name}));
+    },
+    async listLocalBankAccounts({actorStaffId}) {
+      assertUuid(actorStaffId,"Bank account actor ID");
+      const result=await pool.query("SELECT * FROM cornhill_school.finance_list_bank_accounts($1::uuid)",[actorStaffId]);
+      return result.rows.map(row=>({id:row.id,accountName:row.account_name,bankName:row.bank_name,last4:row.account_number_last4,openingBalanceUgx:Number(row.opening_balance_ugx)}));
+    },
     async setLocalExpenseOperatorLimit({actorStaffId,staffId,dailyLimitUgx}) {
       assertUuid(actorStaffId,"Expense limit actor ID"); assertUuid(staffId,"Expense limit staff ID");
       if(!Number.isSafeInteger(dailyLimitUgx)||dailyLimitUgx<=0) throw new TypeError("Daily expense limit must be a positive whole-UGX amount.");
