@@ -77,7 +77,7 @@ try {
     throw new Error("Expected identity and authorization constraints were not installed.");
   }
 
-  console.log("PostgreSQL schema verified: 11 tables, 17 roles, 36 permission codes, 0 role grants, rate-limit indexes, no PUBLIC schema access.");
+  console.log("PostgreSQL schema verified: 11 tables, 17 roles, 38 permission codes, 0 role grants, rate-limit indexes, no PUBLIC schema access.");
 } finally {
   await pool.end();
 }

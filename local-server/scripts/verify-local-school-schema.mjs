@@ -38,6 +38,10 @@ try {
     "class_subjects",
     "classes",
     "enrolment_periods",
+    "evidence_capture_events",
+    "evidence_capture_files",
+    "evidence_capture_requests",
+    "evidence_capture_reviews",
     "fee_catalogue",
     "fee_obligations",
     "finance_audit_events",
@@ -82,7 +86,7 @@ try {
   const permissionCount = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog"
   );
-  assert(permissionCount.rows[0]?.count === 36, "Expected 36 unique permission catalogue entries after retained-credit permissions are added.");
+  assert(permissionCount.rows[0]?.count === 38, "Expected 38 unique permission catalogue entries after evidence workflow permissions are added.");
 
   const subjects = await pool.query(
     "SELECT subject_code FROM cornhill_school.subjects ORDER BY subject_code"
