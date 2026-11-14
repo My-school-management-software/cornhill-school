@@ -150,7 +150,8 @@ No real learner, guardian, staff or finance data is to be loaded into the curren
 | 005 | Learners and admissions | IMPLEMENTED; source parity pending |
 | 006 | Academic years, terms, subjects, assessments and marks | IMPLEMENTED; source parity pending |
 | 007 | UGX fees, bursaries, payment allocations, receipts and guardian-consent notification outbox | IMPLEMENTED; source parity pending |
-| 008 | Staff, attendance and payroll foundation | IMPLEMENTED; source parity pending |
+| 008 | Staff, attendance device import, attendance adjustments and payroll foundation | IMPLEMENTED; source parity pending |
+| 009 | Attendance policy settings, work schedules, salary agreements, calendar exceptions, Director-reviewed incidents and special staff sessions | IMPLEMENTED FOUNDATION; source parity pending |
 
 The sequence is not closed. Additional numbered migrations must be added as the source inventory identifies missing tables, constraints, routines, storage metadata or local-only requirements. Never edit a migration that has already been applied; add a new forward migration.
 
