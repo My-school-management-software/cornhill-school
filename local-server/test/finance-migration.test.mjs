@@ -349,3 +349,11 @@ test("finance record history combines exact-record workflow and evidence events 
  assert.match(recordHistory,/REVOKE ALL ON FUNCTION/);
  assert.match(recordHistory,/GRANT EXECUTE ON FUNCTION .*cornhill_finance_runtime/);
 });
+
+
+const workflowPermissions=await readFile(new URL("../migrations/030_local_finance_workflow_permissions.sql",import.meta.url),"utf8");
+test("migration 030 completes the assignable expense and banking permission catalog",()=>{
+ for(const code of ["finance.expenses_request","finance.expenses_review","finance.banking_manage","finance.banking_review"])
+  assert.ok(workflowPermissions.includes("('"+code+"'"),"missing permission "+code);
+ assert.match(workflowPermissions,/ON CONFLICT\(permission_code\) DO NOTHING/);
+});
