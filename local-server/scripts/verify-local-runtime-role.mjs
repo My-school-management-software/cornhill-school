@@ -24,7 +24,7 @@ try {
   const expectsLogin = Buffer.byteLength(runtimePassword, "utf8") >= 32 && !runtimePassword.startsWith("REPLACE_WITH_");
   for (const role of roles.rows) {
     const shouldLogin = role.rolname === "cornhill_auth_api" && expectsLogin;
-    assert.equal(role.rolcanlogin, shouldLogin, role.rolname + " has an unexpected LOGIN/NOLOGIN state.");
+    assert.equal(role.rolcanlogin, shouldLogin, role.rolname === "cornhill_auth_runtime" ? "cornhill_auth_runtime must remain NOLOGIN." : "cornhill_auth_api LOGIN state must match private runtime-password provisioning.");
     assert.equal(role.rolsuper, false);
     assert.equal(role.rolcreatedb, false);
     assert.equal(role.rolcreaterole, false);
