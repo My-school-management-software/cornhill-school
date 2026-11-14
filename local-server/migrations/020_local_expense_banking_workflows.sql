@@ -310,7 +310,7 @@ BEGIN
  RETURN p_evidence;
 END $fn$;
 
-REVOKE ALL ON FUNCTION cornhill_school.finance_actor_has_permission(uuid,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION cornhill_school.finance_actor_has_permission(uuid,text) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL ON FUNCTION cornhill_school.attach_local_finance_evidence(uuid,text,uuid,uuid) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL ON FUNCTION cornhill_school.set_local_expense_operator_limit(uuid,uuid,bigint) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL ON FUNCTION cornhill_school.create_local_bank_account(uuid,text,text,text,bigint) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
