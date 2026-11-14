@@ -69,12 +69,11 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
   if(!path.startsWith("/api/v1/finance/"))return false;
   const routeTable=[
    {regex:/^\/api\/v1\/finance\/expense-categories$/,permission:"finance.expenses_request",kind:"categories",methods:["GET"]},
-   {regex:/^\/api\/v1\/finance\/bank-accounts$/,permission:"finance.banking_manage",kind:"bankAccounts",methods:["GET"]},
+   {regex:/^\/api\/v1\/finance\/bank-accounts$/,permission:"finance.banking_manage",kind:"bankAccounts",methods:["GET","POST"]},
    {regex:/^\/api\/v1\/finance\/expenses\/limits$/,permission:"finance.expenses_manage",kind:"limit"},
    {regex:/^\/api\/v1\/finance\/expenses$/,permission:"finance.expenses_request",kind:"expense"},
    {regex:/^\/api\/v1\/finance\/expenses\/([0-9a-f-]{36})\/review$/i,permission:"finance.expenses_review",kind:"expenseReview"},
    {regex:/^\/api\/v1\/finance\/expenses\/([0-9a-f-]{36})\/post$/i,permission:"finance.expenses_post",kind:"expensePost"},
-   {regex:/^\/api\/v1\/finance\/bank-accounts$/,permission:"finance.banking_manage",kind:"bankAccount",methods:["POST"]},
    {regex:/^\/api\/v1\/finance\/bank-transactions$/,permission:"finance.banking_manage",kind:"bankTransaction"},
    {regex:/^\/api\/v1\/finance\/bank-transactions\/([0-9a-f-]{36})\/review$/i,permission:"finance.banking_review",kind:"bankReview"},
    {regex:/^\/api\/v1\/finance\/bank-transactions\/([0-9a-f-]{36})\/verify$/i,permission:"finance.banking_verify",kind:"bankVerify"},
@@ -123,7 +122,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
      if(!UUID.test(match[1]))throw new InputError(400,"Expense request ID is invalid.");
      result=await financeRepository.postLocalExpense({actorStaffId,requestId:match[1]});
      break;
-    case "bankAccount":
+    case "bankAccounts":
      if(typeof body.last4!=="string"||!/^\d{4}$/.test(body.last4))throw new InputError(400,"Only the last four account digits may be supplied.");
      result=await financeRepository.createLocalBankAccount({actorStaffId,accountName:textField(body,"accountName",2,120),bankName:textField(body,"bankName",2,120),last4:body.last4,openingBalanceUgx:Number.isSafeInteger(body.openingBalanceUgx)&&body.openingBalanceUgx>=0?body.openingBalanceUgx:(()=>{throw new InputError(400,"Opening balance must be a non-negative whole-UGX amount.");})()});
      break;
