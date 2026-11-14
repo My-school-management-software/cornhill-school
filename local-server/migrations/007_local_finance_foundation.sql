@@ -239,7 +239,13 @@ DECLARE
   target_amount bigint;
   allocated_amount bigint;
 BEGIN
-  target_payment_id := CASE WHEN TG_TABLE_NAME = 'payment_records' THEN NEW.id ELSE NEW.payment_id END;
+  IF TG_OP = 'DELETE' THEN
+    target_payment_id := OLD.payment_id;
+  ELSIF TG_TABLE_NAME = 'payment_records' THEN
+    target_payment_id := NEW.id;
+  ELSE
+    target_payment_id := NEW.payment_id;
+  END IF;
   SELECT status, amount_ugx INTO target_status, target_amount
   FROM cornhill_school.payment_records WHERE id = target_payment_id;
   IF NOT FOUND OR target_status <> 'Posted' THEN
@@ -287,7 +293,7 @@ AFTER INSERT OR UPDATE OR DELETE ON cornhill_school.payment_allocations
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION cornhill_school.assert_posted_payment_allocations();
 
-CREATE SEQUENCE cornhill_school.receipt_number_sequence AS bigint START WITH 1 INCREMENT BY 1 NO CYCLE;
+
 
 CREATE TABLE cornhill_school.payment_receipts (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
