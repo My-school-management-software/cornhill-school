@@ -384,6 +384,36 @@ try {
       "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1000000, 50000, '2026-01-01', '2026-12-31', $2)",
       [staff.rows[0].id, approver.rows[0].id]
     );
+    const prepSession = await client.query(
+      "INSERT INTO cornhill_school.staff_prep_sessions (prep_date, title, start_time, end_time, class_name, approval_status, is_published, director_approved_by, director_approved_at, created_by_staff_id) VALUES (CURRENT_DATE, 'CI special session', '06:30', '07:30', 'P7', 'Approved', true, $1, now(), $1) RETURNING id",
+      [approver.rows[0].id]
+    );
+    const specialAttendance = await client.query(
+      "INSERT INTO cornhill_school.staff_scheduled_session_attendance (session_id, staff_account_id) VALUES ($1, $2) RETURNING id",
+      [prepSession.rows[0].id, staff.rows[0].id]
+    );
+    const unauthorizedStatementRejected = await expectPgError(
+      client, "special_session_statement_authority_test",
+      "UPDATE cornhill_school.staff_scheduled_session_attendance SET headteacher_statement = 'CI review statement', headteacher_statement_by = $2, headteacher_statement_at = now() WHERE id = $1",
+      [specialAttendance.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(unauthorizedStatementRejected, "An ordinary staff account cannot author the Headteacher/DOS special-session statement.");
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_assignments (staff_account_id, role_code, assigned_by) VALUES ($1, 'director_of_studies', $2)",
+      [approver.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.staff_scheduled_session_attendance SET headteacher_statement = 'CI review statement', headteacher_statement_by = $2, headteacher_statement_at = now() WHERE id = $1",
+      [specialAttendance.rows[0].id, approver.rows[0].id]
+    );
+    const authorisedStatement = await client.query(
+      "SELECT headteacher_statement, headteacher_statement_by FROM cornhill_school.staff_scheduled_session_attendance WHERE id = $1",
+      [specialAttendance.rows[0].id]
+    );
+    assert(authorisedStatement.rows[0]?.headteacher_statement === "CI review statement"
+      && authorisedStatement.rows[0]?.headteacher_statement_by === approver.rows[0].id,
+      "An active Director of Studies account should be able to author the special-session statement.");
+
     const overlappingSalaryAgreementRejected = await expectPgError(
       client, "overlapping_salary_agreement_test",
       "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1100000, 55000, '2026-06-01', '2027-01-01', $2)",
@@ -493,7 +523,7 @@ try {
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings and date-range integrity.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and special-session statement authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
