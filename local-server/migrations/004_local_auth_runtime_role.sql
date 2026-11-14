@@ -6,23 +6,27 @@
 BEGIN;
 
 DO $roles$
+DECLARE
+    runtime_role record;
+    api_role record;
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'cornhill_auth_runtime') THEN
-        EXECUTE 'CREATE ROLE cornhill_auth_runtime NOLOGIN';
+    SELECT * INTO runtime_role FROM pg_catalog.pg_roles WHERE rolname = 'cornhill_auth_runtime';
+    SELECT * INTO api_role FROM pg_catalog.pg_roles WHERE rolname = 'cornhill_auth_api';
+    IF runtime_role.rolname IS NULL OR api_role.rolname IS NULL THEN
+        RAISE EXCEPTION 'Authentication roles must be provisioned by the local PostgreSQL administrator before migration 004';
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'cornhill_auth_api') THEN
-        EXECUTE 'CREATE ROLE cornhill_auth_api NOLOGIN INHERIT';
+    IF runtime_role.rolcanlogin OR runtime_role.rolsuper OR runtime_role.rolcreatedb
+       OR runtime_role.rolcreaterole OR runtime_role.rolreplication OR runtime_role.rolbypassrls
+       OR api_role.rolcanlogin OR api_role.rolsuper OR api_role.rolcreatedb
+       OR api_role.rolcreaterole OR api_role.rolreplication OR api_role.rolbypassrls THEN
+        RAISE EXCEPTION 'Authentication roles must remain NOLOGIN and non-privileged';
+    END IF;
+    IF NOT pg_catalog.pg_has_role('cornhill_auth_api', 'cornhill_auth_runtime', 'MEMBER') THEN
+        RAISE EXCEPTION 'cornhill_auth_api must inherit membership in cornhill_auth_runtime';
     END IF;
 END
 $roles$;
 
-ALTER ROLE cornhill_auth_runtime
-    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-
-ALTER ROLE cornhill_auth_api
-    NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-
-GRANT cornhill_auth_runtime TO cornhill_auth_api;
 GRANT CONNECT ON DATABASE cornhill_local TO cornhill_auth_runtime;
 REVOKE TEMPORARY ON DATABASE cornhill_local FROM PUBLIC, cornhill_auth_runtime, cornhill_auth_api;
 
