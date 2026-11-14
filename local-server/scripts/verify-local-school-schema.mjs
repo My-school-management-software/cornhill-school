@@ -261,6 +261,20 @@ try {
     "Payroll audit events are append-only and cannot be changed or deleted"
   ), "Payroll audit records must reject updates and deletes.");
 
+  const scheduleHistoryTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'staff_schedule_assignment_history_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(scheduleHistoryTrigger.rows[0]?.installed === true,
+    "Attendance-backed schedule assignment history must be protected.");
+  const scheduleHistoryDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_staff_schedule_assignment_history()'::regprocedure) AS definition"
+  );
+  const scheduleHistorySql = scheduleHistoryDefinition.rows[0]?.definition ?? "";
+  assert(scheduleHistorySql.includes("FROM cornhill_school.attendance_days ad")
+    && scheduleHistorySql.includes("ad.work_date >= OLD.starts_on")
+    && scheduleHistorySql.includes("A schedule assignment with recorded attendance history cannot be changed or deleted"),
+    "Schedule assignment changes must be rejected when attendance exists in the original effective range.");
+
   const payrollDetailGuards = await pool.query(
     "SELECT tgname FROM pg_trigger WHERE tgname IN ('payroll_line_parent_identity_guard', 'payroll_line_item_parent_identity_guard') AND NOT tgisinternal"
   );
