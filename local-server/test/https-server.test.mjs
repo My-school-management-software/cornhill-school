@@ -75,7 +75,7 @@ test("HTTPS server source supports native Windows PFX and validates the exported
   assert.match(source, /pfxPassphrase/);
   assert.match(source, /createSecureContext\(\{ pfx, passphrase: pfxPassphrase/);
   assert.match(source, /x509\.checkHost\(expectedHostname\)/);
-  assert.match(source, /TLS PFX bundle must be stored outside the source repository/);
+  assert.match(source, /assertOutsideRepository\(pfxPath, "TLS PFX bundle"\)/);
 });
 
 test("HTTPS startup passes PFX settings from private environment variables", async () => {
