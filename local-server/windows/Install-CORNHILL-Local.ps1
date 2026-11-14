@@ -82,7 +82,12 @@ if (-not $SkipDatabase) {
     if ($null -eq $adminMatch) { Stop-WithGuidance "CORNHILL_DB_ADMIN_PASSWORD is missing from the private .env file." }
     $adminPassword = $adminMatch.Matches.Groups[1].Value
     if ($adminPassword.Length -lt 24 -or $adminPassword -notmatch "^[A-Za-z0-9_-]+$") { Stop-WithGuidance "CORNHILL_DB_ADMIN_PASSWORD in .env must be a URL-safe random password of at least 24 characters." }
-    $runtimeMatch = Select-String -Path $envPath -Pattern '^CORNHILL_DB_RUNTIME_PASSWORD=(.+)    if ($roleExistsText.Trim() -eq "1") {
+    $runtimeMatch = Select-String -Path $envPath -Pattern '^CORNHILL_DB_RUNTIME_PASSWORD=(.+)$'
+    if ($null -eq $runtimeMatch) { Stop-WithGuidance "CORNHILL_DB_RUNTIME_PASSWORD is missing from the private .env file." }
+    $runtimePassword = $runtimeMatch.Matches.Groups[1].Value
+    if ($runtimePassword.Length -lt 32 -or $runtimePassword -notmatch "^[A-Za-z0-9_-]+$") { Stop-WithGuidance "CORNHILL_DB_RUNTIME_PASSWORD must be a URL-safe random password of at least 32 characters." }
+
+    if ($roleExistsText.Trim() -eq "1") {
       $roleSql = "ALTER ROLE cornhill_local_admin WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '$adminPassword';"
     } else {
       $roleSql = "CREATE ROLE cornhill_local_admin LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '$adminPassword';"
