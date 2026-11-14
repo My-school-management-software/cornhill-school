@@ -97,3 +97,17 @@ test("Bursar retained-credit workflow loads permission-scoped sources and posts 
 test("Bursar retained-credit controls are excluded from printed receipts",()=>{
   assert.match(css,/#credit-section \{ display: none !important; \}/);
 });
+
+test("Bursar retained-credit retry survives a page refresh with its original learner, body and idempotency key",()=>{
+  assert.match(js,/PENDING_CREDIT_STORAGE/);
+  assert.match(js,/readPendingCreditSubmission/);
+  assert.match(js,/savePendingCreditSubmission\(pendingCreditSubmission\)/);
+  assert.match(js,/learnerId: activeLearnerId/);
+  assert.match(js,/restorePendingCreditForm/);
+  assert.match(js,/Retry pending credit allocation/);
+  assert.match(js,/savePendingCreditSubmission\(null\)/);
+});
+test("Bursar blocks switching learners while a retained-credit request is unresolved",()=>{
+  assert.match(js,/pendingCreditSubmission && learnerId !== pendingCreditSubmission\.learnerId/);
+  assert.match(js,/Open the same learner and retry that exact request/);
+});

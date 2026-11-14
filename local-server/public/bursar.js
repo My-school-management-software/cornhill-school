@@ -9,8 +9,8 @@
   let canReprintReceipts = false;
   let canAllocateCredits = false;
   let creditSources = [];
-  let pendingCreditSubmission = null;
   const PENDING_KEY_STORAGE = "cornhill.finance.pending-payment-key";
+  const PENDING_CREDIT_STORAGE = "cornhill.finance.pending-credit-allocation";
   function readRecoveredPaymentKey() {
     try {
       const value = sessionStorage.getItem(PENDING_KEY_STORAGE);
@@ -24,6 +24,33 @@
     } catch { /* In-memory idempotency remains active for this page session. */ }
   }
   let recoveredIdempotencyKey = readRecoveredPaymentKey();
+
+  function readPendingCreditSubmission() {
+    try {
+      const raw = sessionStorage.getItem(PENDING_CREDIT_STORAGE);
+      if (!raw) return null;
+      const value = JSON.parse(raw);
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!value || !uuid.test(value.key || "") || !uuid.test(value.learnerId || "") ||
+          !value.body || !uuid.test(value.body.sourcePaymentId || "") ||
+          typeof value.body.reason !== "string" || value.body.reason.trim().length < 5 ||
+          value.body.reason.trim().length > 300 || !Array.isArray(value.body.allocations) ||
+          value.body.allocations.length < 1 || value.body.allocations.length > 100 ||
+          value.body.allocations.some(item => !item || !uuid.test(item.feeObligationId || "") ||
+            !Number.isSafeInteger(item.amountUgx) || item.amountUgx <= 0)) {
+        sessionStorage.removeItem(PENDING_CREDIT_STORAGE);
+        return null;
+      }
+      return value;
+    } catch { return null; }
+  }
+  function savePendingCreditSubmission(value) {
+    try {
+      if (value) sessionStorage.setItem(PENDING_CREDIT_STORAGE, JSON.stringify(value));
+      else sessionStorage.removeItem(PENDING_CREDIT_STORAGE);
+    } catch { /* In-memory idempotency remains active for this page session. */ }
+  }
+  let pendingCreditSubmission = readPendingCreditSubmission();
 
   function money(value) {
     const amount = Number(value ?? 0);
@@ -163,7 +190,6 @@
     activeLearnerId = null;
     accountSnapshot = null;
     creditSources = [];
-    pendingCreditSubmission = null;
     byId("credit-section").hidden = true;
     byId("learner-panel").hidden = true;
     byId("receipt-panel").hidden = true;
@@ -217,8 +243,8 @@
   });
 
   async function loadLearner(learnerId) {
-    if (pendingSubmission || pendingCreditSubmission) {
-      showMessage("search-message", "A finance request is awaiting confirmation. Retry that exact request before switching to another learner.", "error");
+    if (pendingSubmission || (pendingCreditSubmission && learnerId !== pendingCreditSubmission.learnerId)) {
+      showMessage("search-message", "A finance request is awaiting confirmation. Open the same learner and retry that exact request before switching to another learner.", "error");
       return;
     }
     try {
@@ -495,6 +521,16 @@
     list.replaceChildren();
     select.replaceChildren();
     if (!creditSources.length) {
+      if (pendingCreditSubmission && pendingCreditSubmission.learnerId === activeLearnerId) {
+        form.hidden = false;
+        const option = document.createElement("option");
+        option.value = pendingCreditSubmission.body.sourcePaymentId;
+        option.textContent = "Pending allocation — retry original request";
+        select.append(option);
+        renderCreditAllocationLines();
+        restorePendingCreditForm();
+        return;
+      }
       form.hidden = true;
       const empty = document.createElement("p");
       empty.className = "muted";
@@ -521,8 +557,36 @@
       option.textContent = source.receiptNumber + " · Available " + money(source.remainingCreditUgx);
       select.append(option);
     }
+    if (pendingCreditSubmission && pendingCreditSubmission.learnerId === activeLearnerId &&
+        !creditSources.some(source => source.paymentId === pendingCreditSubmission.body.sourcePaymentId)) {
+      const option = document.createElement("option");
+      option.value = pendingCreditSubmission.body.sourcePaymentId;
+      option.textContent = "Pending allocation — retry original request";
+      select.append(option);
+    }
     form.hidden = false;
     renderCreditAllocationLines();
+    if (pendingCreditSubmission && pendingCreditSubmission.learnerId === activeLearnerId) {
+      restorePendingCreditForm();
+    } else {
+      updateCreditSummary();
+    }
+  }
+
+  function restorePendingCreditForm() {
+    if (!pendingCreditSubmission || pendingCreditSubmission.learnerId !== activeLearnerId) return;
+    const body = pendingCreditSubmission.body;
+    byId("credit-source-select").value = body.sourcePaymentId;
+    byId("credit-reason").value = body.reason;
+    const amounts = new Map(body.allocations.map(item => [item.feeObligationId, item.amountUgx]));
+    byId("credit-allocation-lines").querySelectorAll(".credit-allocation-amount").forEach(input => {
+      if (amounts.has(input.dataset.feeId)) input.value = String(amounts.get(input.dataset.feeId));
+      input.disabled = true;
+    });
+    byId("credit-source-select").disabled = true;
+    byId("credit-reason").disabled = true;
+    byId("credit-allocation-button").textContent = "Retry pending credit allocation";
+    showMessage("credit-message", "A previous credit request is awaiting confirmation. Retry it with the saved details and same request key; do not create a new allocation.");
     updateCreditSummary();
   }
 
@@ -579,8 +643,10 @@
       }
       pendingCreditSubmission = {
         key: crypto.randomUUID(),
+        learnerId: activeLearnerId,
         body: { sourcePaymentId: source.paymentId, allocations, reason }
       };
+      savePendingCreditSubmission(pendingCreditSubmission);
     }
     const button = byId("credit-allocation-button");
     button.disabled = true;
@@ -594,7 +660,11 @@
         idempotencyKey: pendingCreditSubmission.key
       });
       pendingCreditSubmission = null;
+      savePendingCreditSubmission(null);
       byId("credit-reason").value = "";
+      byId("credit-source-select").disabled = false;
+      byId("credit-reason").disabled = false;
+      byId("credit-allocation-button").textContent = "Apply retained credit";
       const learnerToRefresh = activeLearnerId;
       await loadLearner(learnerToRefresh);
       showMessage("credit-message", "Retained credit applied successfully. The original payment and receipt remain unchanged.", "success");
@@ -604,6 +674,10 @@
         "error");
       if (error.status && error.status >= 400 && error.status < 500 && error.status !== 409) {
         pendingCreditSubmission = null;
+        savePendingCreditSubmission(null);
+        byId("credit-source-select").disabled = false;
+        byId("credit-reason").disabled = false;
+        byId("credit-allocation-button").textContent = "Apply retained credit";
       }
     } finally {
       button.disabled = false;
