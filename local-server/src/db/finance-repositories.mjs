@@ -124,6 +124,22 @@ export function createPostgresFinanceRepositories(pool) {
         actorName:row.actor_name,occurredAt:row.occurred_at,note:row.note,details:row.details
       }));
     },
+    async listLocalFinanceRecordArchive({actorStaffId,recordType="all",status="all",search=null,limit=50,offset=0}) {
+      assertUuid(actorStaffId,"Finance archive actor ID");
+      if(!["all","expense","bank"].includes(recordType)) throw new TypeError("Finance archive record type is invalid.");
+      if(!["all","Pending","Approved","Rejected","Posted","Cancelled","Verified"].includes(status)) throw new TypeError("Finance archive status is invalid.");
+      if(search!=null&&(typeof search!=="string"||search.length>80)) throw new TypeError("Finance archive search must be 80 characters or fewer.");
+      if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0||offset>100000) throw new TypeError("Finance archive pagination is invalid.");
+      const result=await pool.query(
+        "SELECT * FROM cornhill_school.finance_list_record_archive($1::uuid,$2::text,$3::text,$4::text,$5::integer,$6::integer)",
+        [actorStaffId,recordType,status,search,limit,offset]
+      );
+      return result.rows.map(row=>({
+        recordType:row.record_type,recordId:row.record_id,reference:row.reference,title:row.title,
+        status:row.status,amountUgx:Number(row.amount_ugx),businessDate:row.business_date,
+        requestedByName:row.requested_by_name,createdAt:row.created_at,updatedAt:row.updated_at
+      }));
+    },
     async listRecordEvidenceRequests({actorStaffId,contextType,recordId}) {
       assertUuid(actorStaffId,"Evidence lookup actor ID"); assertUuid(recordId,"Finance record ID");
       if(!["expense_request","bank_transaction"].includes(contextType)) throw new TypeError("Evidence lookup context is invalid.");
