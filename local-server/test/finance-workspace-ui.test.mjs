@@ -83,3 +83,14 @@ test("finance reviewers select evidence requests from exact-record lookup instea
  assert.match(js,/Select an evidence request linked to this exact finance record/);
  assert.doesNotMatch(js,/Evidence request ID \(UUID\)/);
 });
+
+
+test("Bursar expense and bank review cards expose expandable safe-text audit history",()=>{
+ assert.match(js,/View history/);
+ assert.match(js,/\/history/);
+ assert.match(js,/finance-history-list/);
+ assert.match(js,/event[.]actorName/);
+ assert.match(js,/event[.]occurredAt/);
+ assert.match(js,/title[.]textContent/);
+ assert.match(css,/finance-history-event/);
+});
