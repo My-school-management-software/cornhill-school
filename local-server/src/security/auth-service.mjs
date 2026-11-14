@@ -95,7 +95,7 @@ function safePrincipal(account, principalType) {
       : [];
     const grantedPermissions = account.rolePermissions && typeof account.rolePermissions === "object" &&
       !Array.isArray(account.rolePermissions) ? account.rolePermissions : {};
-    principal.rolePermissions = Object.create(null);
+    principal.rolePermissions = {};
     for (const role of principal.roles) {
       const permissions = grantedPermissions[role];
       principal.rolePermissions[role] = Object.freeze(Array.isArray(permissions)
