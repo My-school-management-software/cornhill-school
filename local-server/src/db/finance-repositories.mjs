@@ -112,6 +112,18 @@ export function createPostgresFinanceRepositories(pool) {
       const result=await pool.query("SELECT cornhill_school.review_local_evidence_request($1::uuid,$2::uuid,$3::text,$4::text) AS status",[actorStaffId,requestId,action,note]);
       return result.rows[0]?.status ?? null;
     },
+    async listLocalFinanceRecordHistory({actorStaffId,contextType,recordId}) {
+      assertUuid(actorStaffId,"Finance history actor ID"); assertUuid(recordId,"Finance history record ID");
+      if(!["expense_request","bank_transaction"].includes(contextType)) throw new TypeError("Finance history context is invalid.");
+      const result=await pool.query(
+        "SELECT * FROM cornhill_school.finance_list_record_history($1::uuid,$2::text,$3::uuid)",
+        [actorStaffId,contextType,recordId]
+      );
+      return result.rows.map(row=>({
+        eventId:row.event_id,eventCode:row.event_code,actorStaffId:row.actor_staff_id,
+        actorName:row.actor_name,occurredAt:row.occurred_at,note:row.note,details:row.details
+      }));
+    },
     async listRecordEvidenceRequests({actorStaffId,contextType,recordId}) {
       assertUuid(actorStaffId,"Evidence lookup actor ID"); assertUuid(recordId,"Finance record ID");
       if(!["expense_request","bank_transaction"].includes(contextType)) throw new TypeError("Evidence lookup context is invalid.");
