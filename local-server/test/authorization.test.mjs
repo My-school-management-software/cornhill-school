@@ -70,9 +70,8 @@ test("new admissions and academic permissions are recognised but never implicit"
     assert.equal(staffHasPermission({
       principal: staff({ rolePermissions: {} }),
       permissionCode,
-      rolePermissions: { teacher: [permissionCode] },
       nowMs: NOW
-    }), false === false);
+    }), false);
   }
   assert.equal(staffHasPermission({
     principal: staff({ rolePermissions: { teacher: ["academics.terms_manage"] } }),
