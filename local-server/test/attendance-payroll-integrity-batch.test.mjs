@@ -22,37 +22,37 @@ const sql = Object.fromEntries(await Promise.all(files.map(async name => [
 test("ten connected attendance/payroll migrations are transactional and forward-only", () => {
   assert.equal(files.length, 10);
   for (const [name, source] of Object.entries(sql)) {
-    assert.match(source, /\\bBEGIN;/, name);
-    assert.match(source, /COMMIT;\\s*$/, name);
-    assert.doesNotMatch(source, /\\bDROP\\s+(TABLE|SCHEMA|COLUMN)\\b|\\bTRUNCATE\\b/i, name);
+    assert.match(source, /\bBEGIN;/, name);
+    assert.match(source, /COMMIT;\s*$/, name);
+    assert.doesNotMatch(source, /\bDROP\s+(TABLE|SCHEMA|COLUMN)\b|\bTRUNCATE\b/i, name);
   }
 });
 
 test("fingerprint mapping and device-event ingestion preserve verified staff identity", () => {
-  assert.match(sql[files[0]], /CREATE TABLE cornhill_school\\.attendance_device_staff_mappings/);
+  assert.match(sql[files[0]], /CREATE TABLE cornhill_school\.attendance_device_staff_mappings/);
   assert.match(sql[files[0]], /pg_advisory_xact_lock/);
-  assert.match(sql[files[0]], /daterange\\(existing\\.effective_from/);
+  assert.match(sql[files[0]], /daterange\(existing\.effective_from/);
   assert.match(sql[files[0]], /mapped_staff_status IS DISTINCT FROM 'active'/);
   assert.match(sql[files[0]], /Fingerprint staff mapping identity cannot be reassigned/);
   assert.match(sql[files[1]], /batch_status IS DISTINCT FROM 'Processing'/);
-  assert.match(sql[files[1]], /NEW\\.staff_account_id := mapped_staff_id/);
-  assert.match(sql[files[1]], /Africa\\/Kampala/);
+  assert.match(sql[files[1]], /NEW\.staff_account_id := mapped_staff_id/);
+  assert.match(sql[files[1]], /Africa\/Kampala/);
   assert.match(sql[files[1]], /New attendance events must begin pending independent review/);
 });
 
 test("attendance import lifecycle reconciles source, counts and retained events", () => {
   assert.match(sql[files[2]], /Attendance import batch status transition is invalid/);
   assert.match(sql[files[2]], /Completed or failed attendance import batches are immutable/);
-  assert.match(sql[files[2]], /NEW\\.rows_accepted \\+ NEW\\.rows_rejected <> NEW\\.rows_received/);
-  assert.match(sql[files[2]], /event_count <> NEW\\.rows_accepted/);
+  assert.match(sql[files[2]], /NEW\.rows_accepted \+ NEW\.rows_rejected <> NEW\.rows_received/);
+  assert.match(sql[files[2]], /event_count <> NEW\.rows_accepted/);
   assert.match(sql[files[2]], /Attendance import batches cannot be deleted/);
   assert.match(sql[files[3]], /Attendance devices with mapping or event history cannot be deleted/);
   assert.match(sql[files[3]], /Fingerprint terminal identity cannot be rewritten/);
 });
 
 test("attendance incident, salary and employment identity/history are protected", () => {
-  assert.match(sql[files[4]], /day_staff_id IS DISTINCT FROM NEW\\.staff_account_id/);
-  assert.match(sql[files[4]], /day_work_date IS DISTINCT FROM NEW\\.attendance_date/);
+  assert.match(sql[files[4]], /day_staff_id IS DISTINCT FROM NEW\.staff_account_id/);
+  assert.match(sql[files[4]], /day_work_date IS DISTINCT FROM NEW\.attendance_date/);
   assert.match(sql[files[5]], /Salary agreements require an active independent approver/);
   assert.match(sql[files[5]], /Salary terms used by reviewed or posted payroll cannot be changed/);
   assert.match(sql[files[5]], /Salary agreements are retained/);
@@ -75,5 +75,5 @@ test("attendance deductions must match staff and payroll period, and edits need 
   assert.match(sql[files[9]], /financial_details_changed/);
   assert.match(sql[files[9]], /Changing a payroll line item requires a new independent approval/);
   assert.match(sql[files[9]], /approver_status IS DISTINCT FROM 'active'/);
-  assert.match(sql[files[9]], /NEW\\.approved_at := now\\(\\)/);
+  assert.match(sql[files[9]], /NEW\.approved_at := now\(\)/);
 });
