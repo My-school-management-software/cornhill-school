@@ -112,3 +112,21 @@ test("finance record history rejects invalid context and UUID before querying",a
  await assert.rejects(()=>repo.listLocalFinanceRecordHistory({actorStaffId:ACTOR,contextType:"bank_transaction",recordId:"bad"}),/valid UUID/);
  assert.equal(calls.length,0);
 });
+
+test("finance archive repository validates filters and maps archived expense and bank records",async()=>{
+ const calls=[];const pool={async query(sql,values){calls.push({sql,values});return {rows:[{
+  record_type:"expense",record_id:RECORD,reference:"EXP-2026-ABCD1234",title:"Stationery",
+  status:"Rejected",amount_ugx:"12000",business_date:"2026-11-14",requested_by_name:"Staff Member",
+  created_at:"2026-11-14T10:00:00Z",updated_at:"2026-11-14T11:00:00Z"
+ }]};}};
+ const repo=createPostgresFinanceRepositories(pool);
+ const items=await repo.listLocalFinanceRecordArchive({actorStaffId:ACTOR,recordType:"expense",status:"Rejected",search:"stationery",limit:25,offset:5});
+ assert.deepEqual(items,[{recordType:"expense",recordId:RECORD,reference:"EXP-2026-ABCD1234",title:"Stationery",status:"Rejected",amountUgx:12000,businessDate:"2026-11-14",requestedByName:"Staff Member",createdAt:"2026-11-14T10:00:00Z",updatedAt:"2026-11-14T11:00:00Z"}]);
+ assert.match(calls[0].sql,/finance_list_record_archive/);
+ assert.deepEqual(calls[0].values,[ACTOR,"expense","Rejected","stationery",25,5]);
+ await assert.rejects(()=>repo.listLocalFinanceRecordArchive({actorStaffId:ACTOR,recordType:"unknown"}),/record type is invalid/);
+ await assert.rejects(()=>repo.listLocalFinanceRecordArchive({actorStaffId:ACTOR,status:"Unknown"}),/status is invalid/);
+ await assert.rejects(()=>repo.listLocalFinanceRecordArchive({actorStaffId:ACTOR,search:"x".repeat(81)}),/80 characters/);
+ await assert.rejects(()=>repo.listLocalFinanceRecordArchive({actorStaffId:ACTOR,limit:101}),/pagination is invalid/);
+ assert.equal(calls.length,1);
+});
