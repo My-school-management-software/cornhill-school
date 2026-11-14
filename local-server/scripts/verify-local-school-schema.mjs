@@ -578,6 +578,18 @@ try {
       "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1000000, 50000, '2026-01-01', '2026-12-31', $2)",
       [staff.rows[0].id, approver.rows[0].id]
     );
+    const overlappingSalaryAgreementRejected = await expectPgError(
+      client, "salary_agreement_overlap_test",
+      "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1100000, 55000, '2026-06-01', '2027-05-31', $2)",
+      [staff.rows[0].id, approver.rows[0].id], "23P01"
+    );
+    assert(overlappingSalaryAgreementRejected, "Active salary agreements for one staff member cannot have overlapping effective dates.");
+    const salaryAgreementReassignmentRejected = await expectPgError(
+      client, "salary_agreement_reassignment_test",
+      "UPDATE cornhill_school.staff_salary_agreements SET staff_account_id = $2 WHERE staff_account_id = $1",
+      [staff.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(salaryAgreementReassignmentRejected, "A salary agreement cannot be reassigned to another staff member.");
     const prepSession = await client.query(
       "INSERT INTO cornhill_school.staff_prep_sessions (prep_date, title, start_time, end_time, class_name, approval_status, is_published, director_approved_by, director_approved_at, created_by_staff_id) VALUES (CURRENT_DATE, 'CI special session', '06:30', '07:30', 'P7', 'Approved', true, $1, now(), $1) RETURNING id",
       [approver.rows[0].id]
