@@ -5,6 +5,8 @@ const host = process.env.CORNHILL_LOCAL_HOST ?? "127.0.0.1";
 const port = Number(process.env.CORNHILL_LOCAL_PORT ?? "4174");
 const keyPath = process.env.CORNHILL_TLS_KEY_PATH;
 const certPath = process.env.CORNHILL_TLS_CERT_PATH;
+const pfxPath = process.env.CORNHILL_TLS_PFX_PATH;
+const pfxPassphrase = process.env.CORNHILL_TLS_PFX_PASSWORD;
 
 let runtime;
 let server;
@@ -17,6 +19,8 @@ async function start() {
     expectedOrigin: process.env.CORNHILL_LOCAL_ORIGIN,
     keyPath,
     certPath,
+    pfxPath,
+    pfxPassphrase,
     host,
     port
   });
