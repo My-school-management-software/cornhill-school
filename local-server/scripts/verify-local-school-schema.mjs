@@ -894,9 +894,11 @@ try {
     ];
     for (const [checkName, assignment] of postedAttendanceBasisChecks) {
       const statement = "UPDATE cornhill_school.attendance_days SET " + assignment + " WHERE id = $1";
-      const values = checkName === "staff_account_id" || checkName === "verification_identity"
+      const values = checkName === "staff_account_id"
         ? [attendanceDay.rows[0].id, approver.rows[0].id]
-        : [attendanceDay.rows[0].id];
+        : checkName === "verification_identity"
+          ? [attendanceDay.rows[0].id, incidentLeader.rows[0].id]
+          : [attendanceDay.rows[0].id];
       const rejected = await expectPgError(
         client, "posted_attendance_basis_" + checkName,
         statement, values, "23514"
