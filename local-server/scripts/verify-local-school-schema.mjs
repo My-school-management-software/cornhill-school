@@ -551,8 +551,12 @@ try {
     assert(samePersonApprovalRejected, "Attendance adjustment cannot be approved by its requester.");
 
     const approvedAdjustment = await client.query(
-      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id, adjustment_status, approved_by_staff_id, approved_at) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Approved attendance correction', $2, 'Approved', $3, now()) RETURNING id",
-      [attendanceDay.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Approved attendance correction', $2) RETURNING id",
+      [attendanceDay.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.attendance_adjustments SET adjustment_status = 'Approved', approved_by_staff_id = $2, approved_at = now() WHERE id = $1",
+      [approvedAdjustment.rows[0].id, approver.rows[0].id]
     );
     await client.query(
       "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1000000, 50000, '2026-01-01', '2026-12-31', $2)",
