@@ -328,7 +328,7 @@ try {
       "INSERT INTO cornhill_school.payroll_runs (payroll_period_id, prepared_by_staff_id) VALUES ($1, $2) RETURNING id",
       [payrollPeriod.rows[0].id, staff.rows[0].id]
     );
-    await client.query("SET CONSTRAINTS payroll_line_item_totals_valid, payroll_item_totals_valid DEFERRED");
+    await client.query("SET CONSTRAINTS cornhill_school.payroll_line_item_totals_valid, cornhill_school.payroll_item_totals_valid DEFERRED");
     const payrollLine = await client.query(
       "INSERT INTO cornhill_school.payroll_lines (payroll_run_id, staff_account_id, base_salary_ugx, allowances_ugx, deductions_ugx) VALUES ($1, $2, 1000000, 100000, 10000) RETURNING id, gross_pay_ugx, net_pay_ugx",
       [payrollRun.rows[0].id, staff.rows[0].id]
@@ -347,7 +347,7 @@ try {
       "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, source_attendance_adjustment_id, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Deduction', 'ATTENDANCE', 'Approved attendance adjustment', 10000, $2, $3, $4, now())",
       [payrollLine.rows[0].id, approvedAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id]
     );
-    await client.query("SET CONSTRAINTS payroll_line_item_totals_valid, payroll_item_totals_valid IMMEDIATE");
+    await client.query("SET CONSTRAINTS cornhill_school.payroll_line_item_totals_valid, cornhill_school.payroll_item_totals_valid IMMEDIATE");
     assert(String(payrollLine.rows[0].gross_pay_ugx) === "1100000", "Payroll gross pay calculation is incorrect.");
     assert(String(payrollLine.rows[0].net_pay_ugx) === "1090000", "Payroll net pay calculation is incorrect.");
 
