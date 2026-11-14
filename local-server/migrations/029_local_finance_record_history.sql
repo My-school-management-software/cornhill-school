@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION cornhill_school.finance_list_record_history(
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
 AS $fn$
 BEGIN
- IF p_actor IS NULL OR p_record IS NULL OR p_context NOT IN ('expense_request','bank_transaction') THEN
+ IF p_actor IS NULL OR p_record IS NULL OR p_context IS NULL OR p_context NOT IN ('expense_request','bank_transaction') THEN
   RAISE EXCEPTION 'Finance history lookup details are invalid' USING ERRCODE='22023';
  END IF;
  IF p_context='expense_request' AND NOT (
