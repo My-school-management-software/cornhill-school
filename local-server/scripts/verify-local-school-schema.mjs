@@ -893,7 +893,8 @@ try {
       ["last_clock_out", "last_clock_out = last_clock_out + interval '1 minute'"],
       ["work_date", "work_date = work_date + 1"],
       ["staff_account_id", "staff_account_id = $2"],
-      ["verification_identity", "verified_by_staff_id = $2"]
+      ["verification_identity", "verified_by_staff_id = $2"],
+      ["verification_timestamp", "verified_at = verified_at - interval '1 minute'"]
     ];
     for (const [checkName, assignment] of postedAttendanceBasisChecks) {
       const statement = "UPDATE cornhill_school.attendance_days SET " + assignment + " WHERE id = $1";
