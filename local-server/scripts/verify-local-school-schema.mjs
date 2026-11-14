@@ -33,13 +33,20 @@ try {
     "class_subjects",
     "classes",
     "enrolment_periods",
+    "fee_catalogue",
+    "fee_obligations",
+    "finance_audit_events",
     "guardian_contacts",
     "learner_marks",
     "learners",
+    "payment_allocations",
+    "payment_notification_outbox",
+    "payment_records",
+    "payment_receipts",
     "subjects"
   ];
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
-    "Local school schema must contain exactly the twelve expected learner, admissions and academic tables.");
+    "Local school schema must contain exactly the nineteen expected learner, admissions, academic and finance tables.");
 
   const classes = await pool.query(
     "SELECT class_code, display_name, section, level_order FROM cornhill_school.classes ORDER BY level_order"
@@ -52,7 +59,7 @@ try {
   const permissionCount = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog"
   );
-  assert(permissionCount.rows[0]?.count === 23, "Expected 23 unique permission catalogue entries after admissions and academic permissions are added.");
+  assert(permissionCount.rows[0]?.count === 28, "Expected 28 unique permission catalogue entries after finance permissions are added.");
 
   const subjects = await pool.query(
     "SELECT subject_code FROM cornhill_school.subjects ORDER BY subject_code"
@@ -65,6 +72,13 @@ try {
   for (const code of ["BABY", "MIDDLE", "TOP"]) assert(subjectCounts[code] === 7, code + " must have seven nursery learning areas.");
   for (const code of ["P1", "P2", "P3"]) assert(subjectCounts[code] === 6, code + " must have six lower-primary subjects.");
   for (const code of ["P4", "P5", "P6", "P7"]) assert(subjectCounts[code] === 4, code + " must have four upper-primary subjects.");
+
+  const feeItems = await pool.query("SELECT item_code FROM cornhill_school.fee_catalogue ORDER BY item_code");
+  assert(feeItems.rows.length === 7, "Expected seven seeded fee catalogue items.");
+  const financePermissions = await pool.query(
+    "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'finance'"
+  );
+  assert(financePermissions.rows[0]?.count === 8, "Expected eight finance permission codes.");
 
   const publicAccess = await pool.query(`
     SELECT EXISTS (
@@ -123,7 +137,7 @@ try {
     assert(duplicateActivePeriodRejected, "A learner cannot have two active enrolment periods.");
 
     await client.query("ROLLBACK");
-    console.log("Local school and academic schemas verified: twelve tables, ten seeded classes, unique permanent pupil codes, unique LIN, guardian/enrolment constraints, fifteen subjects and class-specific subject mappings.");
+    console.log("Local school, academic and finance schemas verified: nineteen tables, ten classes, fifteen subjects, seven fee items, 28 permission codes, permanent pupil codes, LIN uniqueness and class-specific subject mappings.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
