@@ -83,6 +83,13 @@ function safePrincipal(account, principalType) {
         : "Guardian"
   };
 
+  if (account.session && typeof account.session === "object") {
+    principal.session = Object.freeze({
+      revokedAt: account.session.revokedAt ?? null,
+      expiresAt: account.session.expiresAt
+    });
+  }
+
   if (principalType === "staff") {
     principal.roles = Array.isArray(account.roles)
       ? [...new Set(account.roles.filter(role => STAFF_ROLES.has(role)))]
