@@ -72,33 +72,38 @@ if (-not $SkipDatabase) {
     Write-Host "Checking native PostgreSQL 17 on 127.0.0.1:5432..."
     $versionCheck = & $psql -X -h 127.0.0.1 -p 5432 -U postgres -d postgres -Atc "SELECT current_setting('server_version_num')::int >= 170000;"
     if ($LASTEXITCODE -ne 0) { Stop-WithGuidance "Could not connect as postgres. Check the password and ensure service postgresql-x64-17 is running." }
-    if ($versionCheck.Trim() -ne "t") { Stop-WithGuidance "PostgreSQL 17 or newer is required." }
+    $versionText = [string]($versionCheck -join "")
+    if ($versionText.Trim() -ne "t") { Stop-WithGuidance "PostgreSQL 17 or newer is required. The version check returned no valid result." }
+
     $exists = & $psql -X -h 127.0.0.1 -p 5432 -U postgres -d postgres -Atc "SELECT 1 FROM pg_database WHERE datname = 'cornhill_local';"
     if ($LASTEXITCODE -ne 0) { Stop-WithGuidance "Could not inspect PostgreSQL databases." }
-    if ($exists.Trim() -eq "1") { Stop-WithGuidance "Database cornhill_local already exists. Setup stopped without changing or deleting it; inspect and back it up before continuing." }
+    $existsText = [string]($exists -join "")
+    if ($existsText.Trim() -eq "1") { Stop-WithGuidance "Database cornhill_local already exists. Setup stopped without changing or deleting it; inspect and back it up before continuing." }
+
     $roleExists = & $psql -X -h 127.0.0.1 -p 5432 -U postgres -d postgres -Atc "SELECT 1 FROM pg_roles WHERE rolname = 'cornhill_local_admin';"
     if ($LASTEXITCODE -ne 0) { Stop-WithGuidance "Could not inspect PostgreSQL roles." }
-    $adminPassword = (Select-String -Path $envPath -Pattern '^CORNHILL_DB_ADMIN_PASSWORD=(.+)$').Matches.Groups[1].Value
+    $roleExistsText = [string]($roleExists -join "")
+    $adminMatch = Select-String -Path $envPath -Pattern '^CORNHILL_DB_ADMIN_PASSWORD=(.+)$'
+    if ($null -eq $adminMatch) { Stop-WithGuidance "CORNHILL_DB_ADMIN_PASSWORD is missing from the private .env file." }
+    $adminPassword = $adminMatch.Matches.Groups[1].Value
     if ($adminPassword.Length -lt 24 -or $adminPassword -notmatch "^[A-Za-z0-9_-]+$") { Stop-WithGuidance "CORNHILL_DB_ADMIN_PASSWORD in .env must be a URL-safe random password of at least 24 characters." }
-    if ($roleExists.Trim() -eq "1") {
+    if ($roleExistsText.Trim() -eq "1") {
       $roleSql = "ALTER ROLE cornhill_local_admin WITH LOGIN CREATEDB PASSWORD '$adminPassword';"
     } else {
       $roleSql = "CREATE ROLE cornhill_local_admin LOGIN CREATEDB PASSWORD '$adminPassword';"
     }
     Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c",$roleSql) "Could not create the isolated cornhill_local_admin role."
-  } finally {
-    Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
-    $postgresPassword = $null
-  }
-  $adminPassword = (Select-String -Path $envPath -Pattern '^CORNHILL_DB_ADMIN_PASSWORD=(.+)$').Matches.Groups[1].Value
-  $env:PGPASSWORD = $adminPassword
-  try {
+
     Write-Host "Creating isolated database cornhill_local..."
+    $env:PGPASSWORD = $adminPassword
     Invoke-Checked $createdb @("-h","127.0.0.1","-p","5432","-U","cornhill_local_admin","-O","cornhill_local_admin","cornhill_local") "Could not create cornhill_local. No existing database was deleted."
+
     Write-Host "Removing temporary database-creation privilege from cornhill_local_admin..."
+    $env:PGPASSWORD = $postgresPassword
     Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c","ALTER ROLE cornhill_local_admin NOCREATEDB;") "Could not remove the temporary CREATEDB privilege. Keep the database isolated and investigate before use."
   } finally {
     Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+    $postgresPassword = $null
     $adminPassword = $null
   }
   $env:CORNHILL_ALLOW_LOCAL_MIGRATIONS = "true"
