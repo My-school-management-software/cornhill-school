@@ -34,7 +34,7 @@ Do not pay until the supplier demonstrates the exact unit being sold:
 
 1. Connect the terminal to stable power. Prefer Ethernet to the office LAN when supported; use USB flash-drive export as the initial reliable fallback.
 2. Set date/time and timezone to Africa/Kampala (EAT, UTC+3). Protect the terminal administrator menu with a private password.
-3. In **Staff Attendance → Register machine staff IDs**, enter the terminal serial number and its numeric user ID, then map that ID to the correct Cornhill staff profile. Use one unique device user ID per staff member; do not rely on names for matching.
+3. In **Staff Attendance → Register machine staff IDs**, enter the terminal serial number and its numeric user ID, then map that ID to the correct active Cornhill staff profile with a non-overlapping effective date range. The local database requires a matching registered mapping before a device event can be accepted; use one unique device user ID per staff member; do not rely on names for matching.
 4. Enrol fingerprints on the terminal itself. Keep biometric templates on the device; do not upload fingerprint images or templates to Cornhill.
 5. In **Staff Attendance → Work schedules**, create the school work patterns, start/end times, grace period, break allowance and working days. Assign a schedule to each staff member.
 6. Export attendance logs from the terminal to a CSV file and upload them under **Staff Attendance → Upload attendance export**. The importer supports a staff ID, event type and either one timestamp column or separate date/time columns. Preview the records before importing.
@@ -44,14 +44,14 @@ Do not pay until the supplier demonstrates the exact unit being sold:
 
 ## 4. Cornhill software workflow already prepared
 
-- Staff-to-device user ID mapping.
+- Staff-to-device user ID mapping, backed by an effective-date identity register in the local database.
 - Work schedules and staff schedule assignments.
 - Administrator CSV preview/import workflow, including separate date/time columns and common Check In/Check Out aliases.
 - Attendance event history, daily summary and attendance correction requests.
 - Staff-facing attendance history and warning inbox.
 - Five-minute scheduled attendance check.
 - Automatic salary deductions remain OFF by default; do not enable them until the school has approved its attendance and payroll policy.
-- Raw attendance events should remain auditable; corrections must not erase original device records.
+- Raw attendance events should remain auditable; corrections must not erase original device records. Device events begin pending review and must belong to the matching processing batch. Completed/failed import batches cannot be rewritten.
 
 ## 5. Security and privacy
 

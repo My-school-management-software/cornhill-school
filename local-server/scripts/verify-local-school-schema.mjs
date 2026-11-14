@@ -33,6 +33,7 @@ try {
     "attendance_adjustments",
     "attendance_days",
     "attendance_devices",
+    "attendance_device_staff_mappings",
     "attendance_events",
     "attendance_import_batches",
     "bank_accounts",
@@ -325,6 +326,45 @@ try {
     && (payrollItemGuardDefinition.rows[0]?.definition ?? "").includes("NEW.payroll_line_id IS DISTINCT FROM OLD.payroll_line_id"),
     "Payroll detail rows must remain attached to their original payroll run and line.");
 
+  const newIntegrityTriggers = await pool.query(
+    "SELECT tgname FROM pg_trigger WHERE tgname IN ('attendance_device_staff_mapping_guard','attendance_event_import_identity_guard','attendance_import_batch_lifecycle_guard','attendance_device_identity_guard','attendance_incident_day_identity_guard','staff_salary_agreement_history_guard','staff_employment_term_history_guard','work_schedule_definition_history_guard','payroll_line_item_reapproval_guard') AND NOT tgisinternal"
+  );
+  const newIntegrityNames = new Set(newIntegrityTriggers.rows.map(row => row.tgname));
+  for (const triggerName of [
+    "attendance_device_staff_mapping_guard","attendance_event_import_identity_guard",
+    "attendance_import_batch_lifecycle_guard","attendance_device_identity_guard",
+    "attendance_incident_day_identity_guard","staff_salary_agreement_history_guard",
+    "staff_employment_term_history_guard","work_schedule_definition_history_guard",
+    "payroll_line_item_reapproval_guard"
+  ]) assert(newIntegrityNames.has(triggerName), "Missing attendance/payroll integrity trigger: " + triggerName);
+
+  const newPayrollLinkDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.validate_payroll_line_item()'::regprocedure) AS definition"
+  );
+  const newPayrollLinkSql = newPayrollLinkDefinition.rows[0]?.definition ?? "";
+  assert(newPayrollLinkSql.includes("linked_staff_account_id IS DISTINCT FROM payroll_staff_account_id")
+    && newPayrollLinkSql.includes("linked_work_date < payroll_starts_on")
+    && newPayrollLinkSql.includes("linked_work_date > payroll_ends_on"),
+    "Attendance-linked payroll items must match the payroll employee and period.");
+
+  const newDeviceEventDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_attendance_event_import_identity()'::regprocedure) AS definition"
+  );
+  const newDeviceEventSql = newDeviceEventDefinition.rows[0]?.definition ?? "";
+  assert(newDeviceEventSql.includes("device_staff_mapping_id")
+    && newDeviceEventSql.includes("batch_status IS DISTINCT FROM 'Processing'")
+    && newDeviceEventSql.includes("Africa/Kampala"),
+    "Device attendance ingestion must resolve staff IDs against the Kampala event date and active batch.");
+
+  const newBatchDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_attendance_import_batch_lifecycle()'::regprocedure) AS definition"
+  );
+  const newBatchSql = newBatchDefinition.rows[0]?.definition ?? "";
+  assert(newBatchSql.includes("Completed or failed attendance import batches are immutable")
+    && newBatchSql.includes("Final attendance import row counts must reconcile exactly")
+    && newBatchSql.includes("Accepted attendance import count must match retained attendance events"),
+    "Attendance import batches must preserve final status and reconcile accepted evidence.");
+
   const publicAccess = await pool.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace n
@@ -513,17 +553,72 @@ try {
       "INSERT INTO cornhill_school.staff_employment_terms (staff_account_id, starts_on, contract_type, salary_basis, base_salary_ugx, approved_by_staff_id) VALUES ($1, '2026-01-01', 'Permanent', 'Monthly', 1000000, $2)",
       [staff.rows[0].id, approver.rows[0].id]
     );
+    const overlappingEmploymentTermRejected = await expectPgError(
+      client, "overlapping_employment_term_test",
+      "INSERT INTO cornhill_school.staff_employment_terms (staff_account_id, starts_on, ends_on, contract_type, salary_basis, base_salary_ugx, approved_by_staff_id) VALUES ($1, '2026-06-01', '2027-05-31', 'Contract', 'Monthly', 1100000, $2)",
+      [staff.rows[0].id, approver.rows[0].id], "23P01"
+    );
+    assert(overlappingEmploymentTermRejected, "One staff member cannot have overlapping employment terms.");
+    const employmentTermReassignmentRejected = await expectPgError(
+      client, "employment_term_reassignment_test",
+      "UPDATE cornhill_school.staff_employment_terms SET staff_account_id = $2 WHERE staff_account_id = $1",
+      [staff.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(employmentTermReassignmentRejected, "Employment terms cannot be reassigned to another staff account.");
     const device = await client.query(
       "INSERT INTO cornhill_school.attendance_devices (device_code, device_name, manufacturer, model, connection_type) VALUES ('CI-USB-01', 'CI Attendance Device', 'Test Manufacturer', 'Test Model', 'USB') RETURNING id"
     );
+    const deviceMapping = await client.query(
+      "INSERT INTO cornhill_school.attendance_device_staff_mappings (device_id, device_staff_identifier, staff_account_id, effective_from, created_by_staff_id) VALUES ($1, 'STAFF-001', $2, '2026-01-01', $3) RETURNING id",
+      [device.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+    );
     const batch = await client.query(
-      "INSERT INTO cornhill_school.attendance_import_batches (device_id, source_name, source_checksum_sha256, imported_by_staff_id, rows_received, rows_accepted, rows_rejected, import_status, completed_at) VALUES ($1, 'ci-attendance.csv', repeat('b', 64), $2, 1, 1, 0, 'Completed', now()) RETURNING id",
+      "INSERT INTO cornhill_school.attendance_import_batches (device_id, source_name, source_checksum_sha256, imported_by_staff_id) VALUES ($1, 'ci-attendance.csv', repeat('b', 64), $2) RETURNING id",
       [device.rows[0].id, staff.rows[0].id]
     );
     await client.query(
-      "INSERT INTO cornhill_school.attendance_events (import_batch_id, device_id, staff_account_id, device_staff_identifier, external_event_id, event_type, occurred_at, source_type, review_status, reviewed_by_staff_id, reviewed_at) VALUES ($1, $2, $3, 'STAFF-001', 'CI-EVENT-001', 'Clock In', now(), 'Device', 'Verified', $4, now())",
-      [batch.rows[0].id, device.rows[0].id, staff.rows[0].id, approver.rows[0].id]
+      "UPDATE cornhill_school.attendance_import_batches SET import_status = 'Processing', rows_received = 1 WHERE id = $1",
+      [batch.rows[0].id]
     );
+    const unmappedDeviceEventRejected = await expectPgError(
+      client, "unmapped_device_event_test",
+      "INSERT INTO cornhill_school.attendance_events (import_batch_id, device_id, device_staff_identifier, external_event_id, event_type, occurred_at, source_type) VALUES ($1, $2, 'UNKNOWN-ID', 'CI-UNKNOWN-EVENT', 'Clock In', now(), 'Device')",
+      [batch.rows[0].id, device.rows[0].id], "23514"
+    );
+    assert(unmappedDeviceEventRejected, "Device events without a registered staff-ID mapping must be rejected.");
+    const preverifiedDeviceEventRejected = await expectPgError(
+      client, "preverified_device_event_test",
+      "INSERT INTO cornhill_school.attendance_events (import_batch_id, device_id, device_staff_identifier, external_event_id, event_type, occurred_at, source_type, review_status, reviewed_by_staff_id, reviewed_at) VALUES ($1, $2, 'STAFF-001', 'CI-PREVERIFIED-EVENT', 'Clock In', now(), 'Device', 'Verified', $3, now())",
+      [batch.rows[0].id, device.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(preverifiedDeviceEventRejected, "Imported device events must enter the system pending review.");
+    const importedEvent = await client.query(
+      "INSERT INTO cornhill_school.attendance_events (import_batch_id, device_id, staff_account_id, device_staff_identifier, external_event_id, event_type, occurred_at, source_type) VALUES ($1, $2, $3, 'STAFF-001', 'CI-EVENT-001', 'Clock In', now(), 'Device') RETURNING id, staff_account_id, device_staff_mapping_id",
+      [batch.rows[0].id, device.rows[0].id, staff.rows[0].id]
+    );
+    assert(importedEvent.rows[0]?.staff_account_id === staff.rows[0].id
+      && importedEvent.rows[0]?.device_staff_mapping_id === deviceMapping.rows[0].id,
+      "Device event ingestion must resolve and retain the mapped staff identity.");
+    await client.query(
+      "UPDATE cornhill_school.attendance_events SET review_status = 'Verified', reviewed_by_staff_id = $2, reviewed_at = NULL WHERE id = $1",
+      [importedEvent.rows[0].id, approver.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.attendance_import_batches SET rows_accepted = 1, import_status = 'Completed' WHERE id = $1",
+      [batch.rows[0].id]
+    );
+    const completedBatchMutationRejected = await expectPgError(
+      client, "completed_import_batch_mutation_test",
+      "UPDATE cornhill_school.attendance_import_batches SET rows_accepted = 0 WHERE id = $1",
+      [batch.rows[0].id], "23514"
+    );
+    assert(completedBatchMutationRejected, "Completed attendance import batches must be immutable.");
+    const deviceIdentityMutationRejected = await expectPgError(
+      client, "attendance_device_identity_mutation_test",
+      "UPDATE cornhill_school.attendance_devices SET model = 'Rewritten Model' WHERE id = $1",
+      [device.rows[0].id], "23514"
+    );
+    assert(deviceIdentityMutationRejected, "Used attendance device identity cannot be rewritten.");
     const attendanceDay = await client.query(
       "INSERT INTO cornhill_school.attendance_days (staff_account_id, work_date, first_clock_in, last_clock_out, expected_minutes, worked_minutes, attendance_status, calculation_source, verified_by_staff_id, verified_at) VALUES ($1, CURRENT_DATE, now() - interval '4 hours', now(), 480, 240, 'Half Day', 'Verified Device Events', $2, now()) RETURNING id",
       [staff.rows[0].id, approver.rows[0].id]
@@ -567,6 +662,12 @@ try {
       "INSERT INTO cornhill_auth.staff_role_assignments (staff_account_id, role_code, assigned_by) VALUES ($1, 'director_of_studies', $2), ($1, 'director', $2)",
       [incidentLeader.rows[0].id, staff.rows[0].id]
     );
+    const mismatchedIncidentDayRejected = await expectPgError(
+      client, "attendance_incident_day_identity_test",
+      "INSERT INTO cornhill_school.staff_attendance_incidents (attendance_day_id, staff_account_id, attendance_date, incident_type) VALUES ($1, $2, CURRENT_DATE + 1, 'late_clock_in')",
+      [attendanceDay.rows[0].id, staff.rows[0].id], "23514"
+    );
+    assert(mismatchedIncidentDayRejected, "An attendance incident date must match its source attendance day.");
     const incident = await client.query(
       "INSERT INTO cornhill_school.staff_attendance_incidents (attendance_day_id, staff_account_id, attendance_date, incident_type) VALUES ($1, $2, CURRENT_DATE, 'late_clock_in') RETURNING id",
       [attendanceDay.rows[0].id, staff.rows[0].id]
@@ -638,6 +739,12 @@ try {
       "UPDATE cornhill_school.attendance_adjustments SET adjustment_status = 'Approved', approved_by_staff_id = $2, approved_at = now() WHERE id = $1",
       [approvedAdjustment.rows[0].id, approver.rows[0].id]
     );
+    const selfApprovedSalaryRejected = await expectPgError(
+      client, "salary_agreement_self_approval_test",
+      "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, effective_from, approved_by_staff_id) VALUES ($1, 'Monthly', 1000000, '2026-01-01', $1)",
+      [staff.rows[0].id], "23514"
+    );
+    assert(selfApprovedSalaryRejected, "A staff member cannot approve their own salary agreement.");
     await client.query(
       "INSERT INTO cornhill_school.staff_salary_agreements (staff_account_id, salary_basis, base_salary_ugx, daily_rate_ugx, effective_from, effective_to, approved_by_staff_id) VALUES ($1, 'Monthly', 1000000, 50000, '2026-01-01', '2026-12-31', $2)",
       [staff.rows[0].id, approver.rows[0].id]
@@ -772,6 +879,12 @@ try {
     );
     assert(overlappingScheduleRejected, "A staff member cannot have overlapping attendance schedule assignments.");
 
+    const usedScheduleEditRejected = await expectPgError(
+      client, "used_schedule_definition_edit_test",
+      "UPDATE cornhill_school.staff_work_schedules SET start_time = '09:00' WHERE id = $1",
+      [workSchedule.rows[0].id], "23514"
+    );
+    assert(usedScheduleEditRejected, "Work schedule rules cannot be rewritten after attendance has been recorded against them.");
     const nextScheduleAssignment = await client.query(
       "INSERT INTO cornhill_school.staff_attendance_schedule_assignments (staff_account_id, schedule_id, starts_on, ends_on, assigned_by_staff_id) VALUES ($1, $2, '2027-01-01', NULL, $3) RETURNING id",
       [staff.rows[0].id, workSchedule.rows[0].id, approver.rows[0].id]
@@ -845,14 +958,67 @@ try {
       [payrollLine.rows[0].id, pendingAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id], "23514"
     );
     assert(pendingAttendanceDeductionRejected, "Pending attendance adjustments cannot be used in payroll.");
-    await client.query(
-      "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Allowance', 'RESPONSIBILITY', 'Approved responsibility allowance', 100000, $2, $3, now())",
+    const allowanceItem = await client.query(
+      "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Allowance', 'RESPONSIBILITY', 'Approved responsibility allowance', 100000, $2, $3, now()) RETURNING id",
       [payrollLine.rows[0].id, staff.rows[0].id, approver.rows[0].id]
     );
+    const itemEditWithoutReapprovalRejected = await expectPgError(
+      client, "payroll_item_edit_without_reapproval_test",
+      "UPDATE cornhill_school.payroll_line_items SET description = 'Edited without approval' WHERE id = $1",
+      [allowanceItem.rows[0].id], "23514"
+    );
+    assert(itemEditWithoutReapprovalRejected, "Changing payroll item details requires a fresh independent approval.");
+    await client.query(
+      "UPDATE cornhill_school.payroll_line_items SET description = 'Reapproved responsibility allowance', approved_by_staff_id = $2, approved_at = NULL WHERE id = $1",
+      [allowanceItem.rows[0].id, incidentLeader.rows[0].id]
+    );
+    const reapprovedAllowance = await client.query(
+      "SELECT approved_by_staff_id, approved_at FROM cornhill_school.payroll_line_items WHERE id = $1",
+      [allowanceItem.rows[0].id]
+    );
+    assert(reapprovedAllowance.rows[0]?.approved_by_staff_id === incidentLeader.rows[0].id
+      && reapprovedAllowance.rows[0]?.approved_at,
+      "Revised payroll items must record a new active approver and database approval time.");
     await client.query(
       "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, source_attendance_adjustment_id, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Deduction', 'ATTENDANCE', 'Approved attendance adjustment', 10000, $2, $3, $4, now())",
       [payrollLine.rows[0].id, approvedAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id]
     );
+    const otherStaffAttendanceDay = await client.query(
+      "INSERT INTO cornhill_school.attendance_days (staff_account_id, work_date, expected_minutes, worked_minutes, attendance_status, calculation_source) VALUES ($1, CURRENT_DATE, 480, 480, 'Present', 'Manual') RETURNING id",
+      [approver.rows[0].id]
+    );
+    const otherStaffAdjustment = await client.query(
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{"worked_minutes":300}'::jsonb, 'Other staff attendance correction', $2) RETURNING id",
+      [otherStaffAttendanceDay.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.attendance_adjustments SET adjustment_status = 'Approved', approved_by_staff_id = $2, approved_at = now() WHERE id = $1",
+      [otherStaffAdjustment.rows[0].id, incidentLeader.rows[0].id]
+    );
+    const crossStaffAttendancePayrollRejected = await expectPgError(
+      client, "cross_staff_attendance_payroll_link_test",
+      "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, source_attendance_adjustment_id, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Deduction', 'ATTENDANCE2', 'Cross staff adjustment', 1000, $2, $3, $4, now())",
+      [payrollLine.rows[0].id, otherStaffAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(crossStaffAttendancePayrollRejected, "An attendance adjustment cannot be charged to a different staff member.");
+    const oldAttendanceDay = await client.query(
+      "INSERT INTO cornhill_school.attendance_days (staff_account_id, work_date, expected_minutes, worked_minutes, attendance_status, calculation_source) VALUES ($1, CURRENT_DATE - 90, 480, 480, 'Present', 'Manual') RETURNING id",
+      [staff.rows[0].id]
+    );
+    const oldAttendanceAdjustment = await client.query(
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{"worked_minutes":300}'::jsonb, 'Earlier attendance correction', $2) RETURNING id",
+      [oldAttendanceDay.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.attendance_adjustments SET adjustment_status = 'Approved', approved_by_staff_id = $2, approved_at = now() WHERE id = $1",
+      [oldAttendanceAdjustment.rows[0].id, approver.rows[0].id]
+    );
+    const outOfPeriodAttendancePayrollRejected = await expectPgError(
+      client, "out_of_period_attendance_payroll_link_test",
+      "INSERT INTO cornhill_school.payroll_line_items (payroll_line_id, item_type, item_code, description, amount_ugx, source_attendance_adjustment_id, created_by_staff_id, approved_by_staff_id, approved_at) VALUES ($1, 'Deduction', 'ATTENDANCE3', 'Out of period adjustment', 1000, $2, $3, $4, now())",
+      [payrollLine.rows[0].id, oldAttendanceAdjustment.rows[0].id, staff.rows[0].id, approver.rows[0].id], "23514"
+    );
+    assert(outOfPeriodAttendancePayrollRejected, "Attendance adjustments must belong to the payroll period receiving them.");
     const payrollAdjustmentSourceRewriteRejected = await expectPgError(
       client, "payroll_adjustment_source_rewrite_test",
       "UPDATE cornhill_school.payroll_line_items SET source_attendance_adjustment_id = $2 WHERE payroll_line_id = $1 AND source_attendance_adjustment_id = $3",
@@ -899,6 +1065,13 @@ try {
       [payrollRun.rows[0].id]
     );
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
+    const postedSalaryBasisRewriteRejected = await expectPgError(
+      client, "posted_salary_agreement_rewrite_test",
+      "UPDATE cornhill_school.staff_salary_agreements SET base_salary_ugx = 1200000 WHERE staff_account_id = $1",
+      [staff.rows[0].id], "23514"
+    );
+    assert(postedSalaryBasisRewriteRejected, "Salary terms used by posted payroll cannot be rewritten.");
+
 
     const postedAttendanceBasisChecks = [
       ["expected_minutes", "expected_minutes = expected_minutes + 1"],
@@ -978,7 +1151,7 @@ try {
     assert(reversedRunDeleteRejected, "Reversed payroll history cannot be deleted.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 56 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
