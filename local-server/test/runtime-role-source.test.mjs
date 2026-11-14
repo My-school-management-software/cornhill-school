@@ -10,7 +10,7 @@ test("authentication runtime roles are administrator-provisioned and remain unpr
   assert.match(installer, /CREATE ROLE cornhill_auth_runtime NOLOGIN/);
   assert.match(installer, /CREATE ROLE cornhill_auth_api NOLOGIN INHERIT/);
   assert.match(installer, /ALTER ROLE cornhill_auth_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/);
-  assert.match(installer, /ALTER ROLE cornhill_auth_api NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/);
+  assert.match(installer, /ALTER ROLE cornhill_auth_api LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD/);
   assert.match(installer, /GRANT cornhill_auth_runtime TO cornhill_auth_api/);
   assert.match(migration, /must be provisioned by the local PostgreSQL administrator before migration 004/);
   assert.match(migration, /must remain NOLOGIN and non-privileged/);
@@ -24,7 +24,7 @@ test("runtime role migration uses column-level privileges rather than broad tabl
 test("runtime auth role cannot administer guardian links or role permissions", () => {
   assert.match(migration, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER[\s\S]*guardian_learner_access/);
 });
-test("role verifier confirms no login until secret provisioning and no superuser flags", () => {
+test("runtime permission group remains NOLOGIN; API login is enabled only with a private secret and no superuser flags", () => {
   assert.match(verifier, /rolcanlogin/);
   assert.match(verifier, /must remain NOLOGIN/);
   assert.match(verifier, /rolsuper/);
