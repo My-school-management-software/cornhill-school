@@ -17,21 +17,21 @@ From the repository's `local-server` directory, run:
 .\windows\Install-CORNHILL-Local.ps1 -RunTests
 ```
 
-It installs pinned npm dependencies, creates or preserves a private `.env`, prompts securely for the PostgreSQL `postgres` password, creates a separate `cornhill_local_admin` login and an isolated `cornhill_local` database, applies numbered local migrations and runs all four database verifiers. The administrator password is not printed or written into command history. Generated local secrets are stored only in the ignored `.env` file.
+It installs pinned npm dependencies, creates or preserves a private `.env`, prompts securely for the PostgreSQL `postgres` password, creates a separate `cornhill_local_admin` login and an isolated `cornhill_local` database, applies numbered local migrations and runs all five database verifiers. The administrator password is not printed or written into command history. Generated local secrets are stored only in the ignored `.env` file.
 
 The installer refuses to continue if a database named `cornhill_local` already exists. It will not overwrite or reset a database whose contents it has not inspected. Back up and review that database before any separate recovery procedure.
 
 ## Manual environment settings
 
-The local PostgreSQL connection uses host `127.0.0.1`, port `5432`, database `cornhill_local`, and migration user `cornhill_local_admin`. Keep `.env` private. It is excluded by `.gitignore`; never commit it or paste its contents into chat. The runtime role `cornhill_auth_api` remains NOLOGIN until API integration, HTTPS, private credential provisioning and full integration tests have passed.
+The local PostgreSQL connection uses host `127.0.0.1`, port `5432`, database `cornhill_local`, and migration user `cornhill_local_admin`. Keep `.env` private. It is excluded by `.gitignore`; never commit it or paste its contents into chat. The authentication runtime role `cornhill_auth_api` and finance runtime role `cornhill_finance_api` remain NOLOGIN. The finance API stays disabled while `CORNHILL_DB_FINANCE_RUNTIME_PASSWORD` in the private `.env` is a placeholder. Do not activate either runtime role until API integration, HTTPS, private credential provisioning and full integration tests have passed.
 
 ## Migration and verification scope
 
 The runner discovers all numbered SQL files present in `migrations`, applies them in numeric order, and records a SHA-256 checksum for each. It requires both explicit local-development flags, validates the loopback host and exact database name, and uses a PostgreSQL advisory lock. A changed already-applied migration causes a hard stop rather than a silent reapply.
 
-The currently prepared sequence is migrations 001-009: local identity/session foundation, permission catalogue, login throttling, restricted runtime role, learners/admissions, academics, UGX finance, staff/attendance/payroll, and attendance salary governance with Director-reviewed incidents and special-session records. The nine files are **not yet certified as a complete copy of the hosted CORNHILL system**. The hosted project inventory still has to be reconciled object-by-object, including all source tables/columns, constraints, indexes, policies, routines, triggers, views, storage objects, edge functions, auth behavior, integrations and application call sites. Any provider-managed feature that cannot be migrated must be documented and safely replaced rather than silently omitted.
+The currently prepared sequence is migrations 001-009: local identity/session foundation, permission catalogue, login throttling, restricted runtime role, learners/admissions, academics, UGX finance, staff/attendance/payroll, and attendance salary governance with Director-reviewed incidents and special-session records. The eleven files are **not yet certified as a complete copy of the hosted CORNHILL system**. The hosted project inventory still has to be reconciled object-by-object, including all source tables/columns, constraints, indexes, policies, routines, triggers, views, storage objects, edge functions, auth behavior, integrations and application call sites. Any provider-managed feature that cannot be migrated must be documented and safely replaced rather than silently omitted.
 
-After migration, the installer runs `npm run db:verify`, `npm run db:verify-auth`, `npm run db:verify-runtime` and `npm run db:verify-school`. A successful run proves only that the current local migrations and their checks pass. It does not prove that the full local school application, production data migration, LAN access, offline sync, backups, Android access or production security are ready.
+After migration, the installer runs `npm run db:verify`, `npm run db:verify-auth`, `npm run db:verify-runtime`, `npm run db:verify-school` and `npm run db:verify-finance`. A successful run proves only that the current local migrations and their checks pass. It does not prove that the full local school application, production data migration, LAN access, offline sync, backups, Android access or production security are ready.
 
 ## Stop and preserve data
 
@@ -53,7 +53,7 @@ Do not delete the PostgreSQL data directory or uninstall PostgreSQL as a trouble
 
 - The local Node server remains a health/status scaffold; the full school UI and API are not yet connected.
 - The HTTPS authentication server is not enabled for school use.
-- Runtime database credentials are not provisioned; runtime role remains NOLOGIN.
+- Authentication and finance runtime database credentials are not provisioned by the installer; both runtime roles remain NOLOGIN. A placeholder finance secret keeps finance HTTP routes disabled.
 - The database listens only on loopback and is not configured for LAN/Android access.
 - Offline data synchronization, production backups/restore and real-data migration remain pending.
 - Do not import real learner, guardian, staff, finance, attendance or payroll records yet.

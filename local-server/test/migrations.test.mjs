@@ -10,8 +10,8 @@ test("migration filenames sort by version and reject duplicates",()=>{
  assert.throws(()=>sortMigrationFiles(["new_migration.sql"]),/numeric-prefix/);
 });
 test("migration checksums are stable SHA-256 values",()=>{
- const checksum=migrationChecksum(validSql); assert.match(checksum,/^[0-9a-f]{64}$/);
- assert.equal(migrationChecksum(validSql),checksum); assert.notEqual(migrationChecksum(validSql+" "),checksum);
+ const checksum=migrationChecksum(validSql);assert.match(checksum,/^[0-9a-f]{64}$/);
+ assert.equal(migrationChecksum(validSql),checksum);assert.notEqual(migrationChecksum(validSql+" "),checksum);
 });
 test("runner strips outer transaction wrapper and accepts comment headers",()=>{
  assert.equal(prepareTransactionalMigration(validSql),"CREATE TABLE example (id integer);");
@@ -19,13 +19,14 @@ test("runner strips outer transaction wrapper and accepts comment headers",()=>{
  assert.equal(prepareTransactionalMigration("\uFEFF-- header\r\nBEGIN;\r\nSELECT 1;\r\nCOMMIT;"),"SELECT 1;");
  assert.throws(()=>prepareTransactionalMigration("/* unterminated\nBEGIN; SELECT 1; COMMIT;"),/BEGIN\/COMMIT/);
 });
-test("all ten migrations use valid outer transactions",async()=>{
- const dir=new URL("../migrations/",import.meta.url); const names=sortMigrationFiles(await readdir(dir));
+test("all eleven migrations use valid outer transactions",async()=>{
+ const dir=new URL("../migrations/",import.meta.url);const names=sortMigrationFiles(await readdir(dir));
  assert.deepEqual(names,[
  "001_local_identity_foundation.sql","002_local_authorization_foundation.sql","003_local_auth_rate_limit_indexes.sql",
  "004_local_auth_runtime_role.sql","005_local_learner_admissions_foundation.sql","006_local_academics_foundation.sql",
  "007_local_finance_foundation.sql","008_local_staff_attendance_payroll_foundation.sql",
- "009_local_attendance_salary_governance.sql","010_local_finance_payment_posting.sql"]);
+ "009_local_attendance_salary_governance.sql","010_local_finance_payment_posting.sql",
+ "011_local_finance_learner_lookup_api.sql"]);
  for(const name of names){const source=await readFile(new URL(name,dir),"utf8");assert.doesNotThrow(()=>prepareTransactionalMigration(source),name);}
 });
 test("runner rejects malformed or destructive SQL and ledger mismatches",()=>{

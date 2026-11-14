@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 const foundation=await readFile(new URL("../migrations/007_local_finance_foundation.sql",import.meta.url),"utf8");
 const posting=await readFile(new URL("../migrations/010_local_finance_payment_posting.sql",import.meta.url),"utf8");
+const lookup=await readFile(new URL("../migrations/011_local_finance_learner_lookup_api.sql",import.meta.url),"utf8");
 test("finance foundation has protected UGX obligations and bursary rules",()=>{
  assert.match(foundation,/CREATE TABLE cornhill_school\.fee_catalogue/);
  assert.match(foundation,/CREATE TABLE cornhill_school\.fee_obligations/);
@@ -11,13 +12,13 @@ test("finance foundation has protected UGX obligations and bursary rules",()=>{
  assert.match(foundation,/NEW\.amount_ugx <> learner_record\.bursary_fee_ugx/);
  assert.match(foundation,/currency char\(3\) NOT NULL DEFAULT 'UGX' CHECK \(currency = 'UGX'\)/);
 });
-test("finance supports MTN/Airtel, unique idempotency and payer-independent payment methods",()=>{
+test("finance supports MTN/Airtel, unique idempotency and payment methods",()=>{
  assert.match(foundation,/'cash', 'mobile_money', 'bank_transfer', 'card', 'cheque'/);
  assert.match(foundation,/mobile_money_provider IN \('MTN', 'Airtel'\)/);
  assert.match(foundation,/idempotency_key uuid NOT NULL UNIQUE/);
  assert.match(foundation,/payment_external_reference_unique/);
 });
-test("receipt snapshot and guardian SMS are immutable and consent-gated",()=>{
+test("receipt snapshots and guardian SMS are immutable and consent-gated",()=>{
  assert.match(foundation,/CREATE TABLE cornhill_school\.payment_receipts/);
  assert.match(foundation,/receipt_data_snapshot jsonb NOT NULL/);
  assert.match(foundation,/Receipt content is immutable/);
@@ -25,33 +26,36 @@ test("receipt snapshot and guardian SMS are immutable and consent-gated",()=>{
  assert.match(foundation,/gc\.phone_e164 IS NOT NULL/);
  assert.doesNotMatch(foundation,/https?:\/\/|fetch\(|sendSms|sendSMS/i);
 });
-test("finance balance view is security-invoker and permissions are not auto-granted",()=>{
+test("finance balance view is security-invoker and role grants are explicit",()=>{
  assert.match(foundation,/WITH \(security_invoker = true\)/);
  assert.match(foundation,/REVOKE ALL ON ALL TABLES IN SCHEMA cornhill_school FROM PUBLIC/);
  assert.doesNotMatch(foundation,/INSERT INTO cornhill_auth\.staff_role_permissions/);
 });
-test("new payment model reconciles allocated and unallocated sums",()=>{
+test("payment posting reconciles allocated and unallocated sums",()=>{
  assert.match(posting,/unallocated_amount_ugx bigint NOT NULL DEFAULT 0/);
  assert.ok(posting.includes("allocated+credit<>amt"));
  assert.ok(posting.includes("NEW.unallocated_amount_ugx"));
 });
-test("atomic posting checks staff permission, active learner, row locks and idempotency",()=>{
- assert.match(posting,/post_local_payment/);
- assert.match(posting,/SECURITY DEFINER/);
- assert.ok(posting.includes("finance.payments_record"));
- assert.match(posting,/pg_advisory_xact_lock/);
- assert.match(posting,/FOR UPDATE/);
- assert.ok(posting.includes("idempotency_key=p_idempotency_key"));
+test("atomic posting checks staff permission, learner, row locks and idempotency",()=>{
+ assert.match(posting,/post_local_payment/);assert.match(posting,/SECURITY DEFINER/);
+ assert.ok(posting.includes("finance.payments_record"));assert.match(posting,/pg_advisory_xact_lock/);
+ assert.match(posting,/FOR UPDATE/);assert.ok(posting.includes("idempotency_key=p_idempotency_key"));
 });
-test("receipt includes payer, collection item and retained credit",()=>{
+test("receipt snapshots include payer, collection item and unallocated credit",()=>{
  assert.ok(posting.includes("'payer_name',NEW.payer_name"));
  assert.ok(posting.includes("'collection_item',NEW.collection_item"));
  assert.ok(posting.includes("'unallocated_amount_ugx',NEW.unallocated_amount_ugx"));
 });
-test("posted payment allocations cannot be changed and API has no direct table access",()=>{
- assert.match(posting,/payment_allocation_update_guard/);
- assert.match(posting,/Allocations on non-draft payments are immutable/);
+test("finance learner lookups are permission-gated security-definer routines",()=>{
+ assert.match(lookup,/finance_search_learners/);assert.match(lookup,/finance_get_learner_account/);
+ assert.match(lookup,/SECURITY DEFINER/);assert.match(lookup,/finance\.payments_record/);
+ assert.match(lookup,/LIMIT 25/);assert.match(lookup,/fee_obligation_balances/);
+ assert.match(lookup,/REVOKE ALL ON FUNCTION cornhill_school\.finance_search_learners/);
+ assert.match(lookup,/GRANT EXECUTE ON FUNCTION cornhill_school\.finance_search_learners/);
+});
+test("finance API gets function execution but not direct access to school finance tables",()=>{
  assert.match(posting,/REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA cornhill_school/);
  assert.match(posting,/REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA cornhill_school/);
  assert.ok(posting.includes("FROM cornhill_finance_runtime,cornhill_finance_api"));
+ assert.match(lookup,/GRANT EXECUTE ON FUNCTION cornhill_school\.finance_get_learner_account/);
 });

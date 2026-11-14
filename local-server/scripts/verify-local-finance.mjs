@@ -41,7 +41,11 @@ try {
       has_table_privilege('cornhill_finance_api','cornhill_school.payment_receipts','SELECT') AS receipt_read,
       has_sequence_privilege('cornhill_finance_api','cornhill_school.receipt_number_sequence','USAGE') AS sequence_usage,
       has_function_privilege('cornhill_finance_api',
-        'cornhill_school.post_local_payment(uuid,uuid,bigint,text,uuid,jsonb,text,text,text,text,text)','EXECUTE') AS can_post
+        'cornhill_school.post_local_payment(uuid,uuid,bigint,text,uuid,jsonb,text,text,text,text,text)','EXECUTE') AS can_post,
+      has_function_privilege('cornhill_finance_api',
+        'cornhill_school.finance_search_learners(uuid,text)','EXECUTE') AS can_search,
+      has_function_privilege('cornhill_finance_api',
+        'cornhill_school.finance_get_learner_account(uuid,uuid)','EXECUTE') AS can_get_account
   `);
   const a=acl.rows[0];
   assert.equal(a.member,true);
@@ -55,6 +59,8 @@ try {
   assert.equal(a.receipt_read,false);
   assert.equal(a.sequence_usage,false);
   assert.equal(a.can_post,true);
+  assert.equal(a.can_search,true);
+  assert.equal(a.can_get_account,true);
 
   // All business data below is synthetic and rolled back as one transaction.
   const client=await pool.connect();
@@ -142,6 +148,25 @@ try {
     assert.equal(Number(receipt.rows[0].receipt_data_snapshot.unallocated_amount_ugx),10000);
     assert.equal(receipt.rows[0].receipt_data_snapshot.payer_name,'CI Parent');
     assert.equal(receipt.rows[0].receipt_data_snapshot.collection_item,'School fees');
+    const learnerSearch=await client.query(
+      "SELECT * FROM cornhill_school.finance_search_learners($1,'Finance')",
+      [staffId]
+    );
+    assert.equal(learnerSearch.rowCount,1);
+    assert.equal(learnerSearch.rows[0].learner_id,learnerId);
+    assert.equal(learnerSearch.rows[0].pupil_code,learner.rows[0].pupil_code);
+
+    const learnerAccount=await client.query(
+      "SELECT cornhill_school.finance_get_learner_account($1,$2) AS account",
+      [staffId,learnerId]
+    );
+    const account=learnerAccount.rows[0].account;
+    assert.equal(account.learner.pupil_code,learner.rows[0].pupil_code);
+    assert.equal(Number(account.totals.charged_ugx),150000);
+    assert.equal(Number(account.totals.paid_ugx),75000);
+    assert.equal(Number(account.totals.balance_ugx),75000);
+    assert.equal(account.fee_obligations.length,2);
+
     const outbox=await client.query(
       "SELECT status,destination_phone FROM cornhill_school.payment_notification_outbox WHERE payment_id=$1",
       [posted.rows[0].payment_id]
@@ -156,6 +181,10 @@ try {
     await expectPgError(client,'finance_permission_test',
       "SELECT * FROM cornhill_school.post_local_payment($1,$2,1000,'cash',$3,'[]'::jsonb)",
       [noPermission.rows[0].id,learnerId,'22222222-2222-4222-8222-222222222222'],'42501');
+    await expectPgError(client,'finance_learner_lookup_permission_test',
+      "SELECT * FROM cornhill_school.finance_search_learners($1,'Finance')",
+      [noPermission.rows[0].id],'42501');
+
 
     await expectPgError(client,'idempotency_payload_test',
       "SELECT * FROM cornhill_school.post_local_payment($1,$2,86000,'cash',$3,$4::jsonb,NULL,NULL,'School fees','CI Parent','Previous term and current term')",

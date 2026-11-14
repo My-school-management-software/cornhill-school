@@ -862,3 +862,13 @@ A SECURITY DEFINER routine performs payment posting with an active staff/employm
 A synthetic PostgreSQL verifier is added for split old-term/current-term allocations, unallocated credit, idempotent retry, negative authorization/overpayment/mutation cases, receipt snapshot and consent-gated outbox. CI and the Windows installer provision the restricted roles. **The new CI result is pending.** The new work has not been applied to the school's existing local database.
 
 **Still pending:** a secure authenticated HTTP API and finance screen; a controlled later-allocation operation for retained credit; role matrix approval; expenses and approvals; bank ledger and statement reconciliation; SMS worker; thermal-printer receipt layout; and a real-data migration rehearsal. No hosted backend or school data was changed.
+
+### Authenticated local Bursar API — Batch 16 (2026-11-14)
+
+Added migration 011 with SECURITY DEFINER learner-search and learner-fee-account read functions. Each routine independently checks active staff employment and the explicit `finance.payments_record` permission. The finance API role receives EXECUTE on these functions only, not direct finance-table access.
+
+The local HTTPS route handler now has learner-search, learner-account and payment-posting endpoints. It derives the actor staff ID only from the authenticated session, enforces the finance permission, HTTPS/Host checks, CSRF and same-origin POST requirements, plus UUID idempotency keys and strict amount/allocation input validation. Separate auth and finance pools are composed when a private finance-runtime credential is configured. A placeholder environment secret keeps finance API activation disabled by default.
+
+HTTP handler tests and PostgreSQL integration checks are added for authorization, payload boundaries, payment idempotency, learner lookup, fee balances and direct-table privilege denial. CI for Batch 16 is pending. No finance credentials are activated on the Windows school database, and no hosted resource or school record has been changed.
+
+**Still pending:** a working Bursar frontend page, secure runtime credential activation procedure, later-allocation workflow for retained credits, thermal receipts, expense approvals, bank reconciliation, SMS worker, broader accounting and full cutover parity.

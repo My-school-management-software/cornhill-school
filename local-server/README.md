@@ -8,7 +8,7 @@ This branch contains the school-controlled local backend foundation for moving C
 - Separate loopback-only HTTPS authentication server and launcher.
 - Argon2id staff/guardian authentication, secure cookies, CSRF validation, session expiry/revocation and rate limiting.
 - Explicit role permissions, staff class assignments and guardian-to-learner scope checks. Role grants remain empty by default.
-- Ten additive PostgreSQL migrations:
+- Eleven additive PostgreSQL migrations:
   1. Staff/guardian identity and session records.
   2. Permission catalog, role permissions and staff class assignments.
   3. Failed-login rate-limit indexes.
@@ -19,6 +19,7 @@ This branch contains the school-controlled local backend foundation for moving C
   8. Staff profiles, employment terms, attendance device imports, attendance summaries, approved corrections and staged payroll.
   9. Attendance policy settings, staff work schedules, dated salary agreements, calendar exceptions, reviewed attendance incidents and Director-approved special sessions.
   10. Local atomic payment posting, payer/collection details, unallocated credit, immutable receipt snapshots and restricted finance runtime permissions.
+  11. Permission-gated Bursar learner search and learner fee-account read functions, without direct finance-table grants.
 - Local schema verifiers for authentication, learners, academics, finance, attendance and payroll.
 - Windows unit-test CI and Linux/PostgreSQL 17 integration CI.
 
@@ -46,8 +47,8 @@ The status page is not a school-data application. Do not enter real learner, sta
 - No live Vercel or Supabase resources have been changed.
 - No production learner, guardian, staff, finance or payroll records have been copied.
 - The authentication HTTP handler and runtime are foundations; they are not yet wired into the health-only server or the main school application.
-- The payment-posting database routine is implemented, but no finance HTTP route or payment screen is enabled. Unallocated credit is recorded; a later credit-allocation workflow is still pending.
-- Authentication and finance runtime roles remain NOLOGIN. No runtime password has been provisioned.
+- The Bursar finance HTTP routes are implemented for learner search, learner fee-account review and payment posting. They remain disabled unless a separate finance database runtime credential is privately provisioned; the example .env leaves this setting as a placeholder. No complete Bursar page is enabled yet. Unallocated credit is recorded; later allocation remains pending.
+- Authentication and finance runtime roles remain NOLOGIN by default. No runtime password is provisioned by the installer.
 - The server and HTTPS launcher bind to loopback only. Do not change this to 0.0.0.0 or expose the service to the school LAN.
 - LAN access, Android access, offline synchronisation, backups and recovery must wait for the remaining API, deployment, security and restore tests.
 

@@ -1,57 +1,55 @@
 import { readLocalRuntimeDatabaseConfig } from "../db/runtime-config.mjs";
+import { readLocalFinanceRuntimeDatabaseConfig } from "../db/finance-runtime-config.mjs";
 import { createPostgresAuthRepositories } from "../db/auth-repositories.mjs";
+import { createPostgresFinanceRepositories } from "../db/finance-repositories.mjs";
 import { createArgon2PasswordHasher } from "./argon2-password-hasher.mjs";
 import { createAuthService } from "./auth-service.mjs";
 import { createAuthHttpHandler } from "./auth-http-handler.mjs";
+import { createFinanceHttpHandler } from "./finance-http-handler.mjs";
 
 export async function createLocalAuthRuntime({
   env = process.env,
   poolFactory,
+  financePoolFactory,
   passwordHasherFactory = createArgon2PasswordHasher
 } = {}) {
   const config = readLocalRuntimeDatabaseConfig(env);
+  const financeConfig = readLocalFinanceRuntimeDatabaseConfig(env);
   const fingerprintSecret = env.CORNHILL_AUTH_FINGERPRINT_SECRET ?? "";
   if (Buffer.byteLength(fingerprintSecret, "utf8") < 32 || fingerprintSecret.startsWith("REPLACE_WITH_")) {
     throw new TypeError("A private authentication fingerprint secret of at least 32 bytes is required.");
   }
-  if (typeof passwordHasherFactory !== "function") {
-    throw new TypeError("A password hasher factory is required.");
-  }
+  if (typeof passwordHasherFactory !== "function") throw new TypeError("A password hasher factory is required.");
 
   let pool;
+  let financePool;
   try {
-    if (poolFactory !== undefined) {
-      if (typeof poolFactory !== "function") throw new TypeError("Database pool factory must be a function.");
-      pool = await poolFactory(config);
-    } else {
-      const { Pool } = await import("pg");
-      pool = new Pool(config);
+    const { Pool } = await import("pg");
+    if (poolFactory !== undefined && typeof poolFactory !== "function") {
+      throw new TypeError("Authentication database pool factory must be a function.");
+    }
+    pool = poolFactory ? await poolFactory(config) : new Pool(config);
+    if (!pool || typeof pool.connect !== "function" || typeof pool.query !== "function" || typeof pool.end !== "function") {
+      throw new TypeError("Authentication database pool contract is incomplete.");
     }
 
-    if (!pool || typeof pool.connect !== "function" ||
-        typeof pool.query !== "function" || typeof pool.end !== "function") {
-      throw new TypeError("Database pool contract is incomplete.");
-    }
-
-    const client = await pool.connect();
-    let identity;
+    const authClient = await pool.connect();
+    let authIdentity;
     try {
-      identity = await client.query(
+      authIdentity = await authClient.query(
         "SELECT current_user AS database_user, current_database() AS database_name"
       );
     } finally {
-      client.release();
+      authClient.release();
     }
-
-    if (identity.rows[0]?.database_user !== "cornhill_auth_api" ||
-        identity.rows[0]?.database_name !== "cornhill_local") {
+    if (authIdentity.rows[0]?.database_user !== "cornhill_auth_api" ||
+        authIdentity.rows[0]?.database_name !== "cornhill_local") {
       throw new Error("Local authentication database identity check failed.");
     }
 
     const passwordHasher = await passwordHasherFactory();
     if (!passwordHasher || typeof passwordHasher.createDummyHash !== "function" ||
-        typeof passwordHasher.isArgon2idHash !== "function" ||
-        typeof passwordHasher.verify !== "function") {
+        typeof passwordHasher.isArgon2idHash !== "function" || typeof passwordHasher.verify !== "function") {
       throw new TypeError("Argon2id password hasher contract is incomplete.");
     }
     const dummyArgon2idHash = await passwordHasher.createDummyHash();
@@ -61,35 +59,71 @@ export async function createLocalAuthRuntime({
 
     const repositories = createPostgresAuthRepositories(pool);
     const authService = createAuthService({
-      ...repositories,
-      passwordHasher,
-      dummyArgon2idHash,
-      fingerprintSecret
+      ...repositories, passwordHasher, dummyArgon2idHash, fingerprintSecret
     });
-    const authHandler = createAuthHttpHandler({
-      authService,
-      expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+    const authRouteHandler = createAuthHttpHandler({
+      authService, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
     });
+
+    let routeHandler = authRouteHandler;
+    let financeEnabled = false;
+    if (financeConfig) {
+      if (financePoolFactory !== undefined && typeof financePoolFactory !== "function") {
+        throw new TypeError("Finance database pool factory must be a function.");
+      }
+      financePool = financePoolFactory ? await financePoolFactory(financeConfig) : new Pool(financeConfig);
+      if (!financePool || typeof financePool.connect !== "function" ||
+          typeof financePool.query !== "function" || typeof financePool.end !== "function") {
+        throw new TypeError("Finance database pool contract is incomplete.");
+      }
+      const financeClient = await financePool.connect();
+      let financeIdentity;
+      try {
+        financeIdentity = await financeClient.query(
+          "SELECT current_user AS database_user, current_database() AS database_name"
+        );
+      } finally {
+        financeClient.release();
+      }
+      if (financeIdentity.rows[0]?.database_user !== "cornhill_finance_api" ||
+          financeIdentity.rows[0]?.database_name !== "cornhill_local") {
+        throw new Error("Local finance database identity check failed.");
+      }
+      const financeRepository = createPostgresFinanceRepositories(financePool);
+      const financeRouteHandler = createFinanceHttpHandler({
+        authService, financeRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+      });
+      routeHandler = async (request, response) => {
+        if (await authRouteHandler(request, response)) return true;
+        return financeRouteHandler(request, response);
+      };
+      financeEnabled = true;
+    }
 
     let closed = false;
     return Object.freeze({
       authService,
-      authHandler,
+      authHandler: routeHandler,
+      financeEnabled,
       databaseUser: "cornhill_auth_api",
+      financeDatabaseUser: financeEnabled ? "cornhill_finance_api" : null,
       async close() {
         if (closed) return;
         closed = true;
-        await pool.end();
+        const errors = [];
+        for (const activePool of [financePool, pool]) {
+          if (!activePool) continue;
+          try { await activePool.end(); } catch { errors.push(true); }
+        }
+        if (errors.length) throw new Error("A local database pool could not close cleanly.");
       }
     });
   } catch {
-    if (pool && typeof pool.end === "function") {
-      try {
-        await pool.end();
-      } catch {
-        // Preserve a generic startup failure without exposing connection details.
+    for (const activePool of [financePool, pool]) {
+      if (activePool && typeof activePool.end === "function") {
+        try { await activePool.end(); } catch { /* Preserve generic startup failure. */ }
       }
     }
-    throw new Error("Local authentication runtime could not start. Check the private runtime configuration, role grants and HTTPS origin.");
+    throw new Error("Local authentication runtime could not start. Check private runtime configuration, database role grants and HTTPS origin.");
   }
 }

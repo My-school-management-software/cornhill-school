@@ -160,5 +160,56 @@ test("runtime returns the protected HTTPS auth handler without enabling a listen
     passwordHasherFactory: hasherFactory()
   });
   assert.equal(typeof runtime.authHandler, "function");
+  assert.equal(runtime.financeEnabled, false);
   await runtime.close();
+});
+
+function financePoolFixture({ user = "cornhill_finance_api", database = "cornhill_local" } = {}) {
+  const calls = { ended: 0, released: 0, config: null };
+  const pool = {
+    async connect() {
+      return {
+        async query() { return { rows: [{ database_user: user, database_name: database }] }; },
+        release() { calls.released += 1; }
+      };
+    },
+    async query() { return { rows: [], rowCount: 0 }; },
+    async end() { calls.ended += 1; }
+  };
+  return {
+    calls,
+    financePoolFactory: async config => { calls.config = config; return pool; }
+  };
+}
+
+test("runtime enables the finance API only with a separate finance-role credential", async () => {
+  const auth = poolFixture();
+  const finance = financePoolFixture();
+  const runtime = await createLocalAuthRuntime({
+    env: { ...ENV, CORNHILL_DB_FINANCE_RUNTIME_PASSWORD: "finance-runtime-password-longer-than-32-bytes" },
+    poolFactory: auth.poolFactory,
+    financePoolFactory: finance.financePoolFactory,
+    passwordHasherFactory: hasherFactory()
+  });
+  assert.equal(runtime.financeEnabled, true);
+  assert.equal(runtime.financeDatabaseUser, "cornhill_finance_api");
+  assert.equal(finance.calls.config.user, "cornhill_finance_api");
+  assert.equal(finance.calls.config.database, "cornhill_local");
+  assert.equal(finance.calls.released, 1);
+  await runtime.close();
+  assert.equal(auth.calls.ended, 1);
+  assert.equal(finance.calls.ended, 1);
+});
+
+test("runtime fails closed and closes both pools when finance connects as the wrong identity", async () => {
+  const auth = poolFixture();
+  const finance = financePoolFixture({ user: "cornhill_local_admin" });
+  await assert.rejects(createLocalAuthRuntime({
+    env: { ...ENV, CORNHILL_DB_FINANCE_RUNTIME_PASSWORD: "finance-runtime-password-longer-than-32-bytes" },
+    poolFactory: auth.poolFactory,
+    financePoolFactory: finance.financePoolFactory,
+    passwordHasherFactory: hasherFactory()
+  }), /could not start/);
+  assert.equal(auth.calls.ended, 1);
+  assert.equal(finance.calls.ended, 1);
 });
