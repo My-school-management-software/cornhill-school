@@ -883,6 +883,37 @@ try {
     );
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
+    const postedAttendanceBasisChecks = [
+      ["worked_minutes", "worked_minutes = worked_minutes + 1"],
+      ["attendance_status", "attendance_status = 'Present'"],
+      ["first_clock_in", "first_clock_in = first_clock_in - interval '1 minute'"],
+      ["last_clock_out", "last_clock_out = last_clock_out + interval '1 minute'"],
+      ["work_date", "work_date = work_date + 1"],
+      ["staff_account_id", "staff_account_id = $2"],
+      ["verification_identity", "verified_by_staff_id = $2"]
+    ];
+    for (const [checkName, assignment] of postedAttendanceBasisChecks) {
+      const statement = "UPDATE cornhill_school.attendance_days SET " + assignment + " WHERE id = $1";
+      const values = checkName === "staff_account_id" || checkName === "verification_identity"
+        ? [attendanceDay.rows[0].id, approver.rows[0].id]
+        : [attendanceDay.rows[0].id];
+      const rejected = await expectPgError(
+        client, "posted_attendance_basis_" + checkName,
+        statement, values, "23514"
+      );
+      assert(rejected, "Posted payroll must freeze attendance basis field: " + checkName);
+    }
+    await client.query(
+      "UPDATE cornhill_school.attendance_days SET notes = 'Post-payroll administrative note' WHERE id = $1",
+      [attendanceDay.rows[0].id]
+    );
+    const attendanceNoteAfterPosting = await client.query(
+      "SELECT notes FROM cornhill_school.attendance_days WHERE id = $1",
+      [attendanceDay.rows[0].id]
+    );
+    assert(attendanceNoteAfterPosting.rows[0]?.notes === "Post-payroll administrative note",
+      "Non-calculation attendance notes should remain editable after payroll posting.");
+
     const postedHeaderEditRejected = await expectPgError(
       client, "posted_payroll_header_edit_test",
       "UPDATE cornhill_school.payroll_runs SET status_reason = 'tampered posted header' WHERE id = $1",
