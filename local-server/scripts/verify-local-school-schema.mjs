@@ -127,6 +127,12 @@ try {
   );
   assert(staffPermissions.rows[0]?.count === 11, "Expected eleven staff and attendance permission codes.");
 
+  const saturdayPolicy = await pool.query(
+    "SELECT saturday_start_time::text, saturday_end_time::text FROM cornhill_school.staff_attendance_policy_settings WHERE id = true"
+  );
+  assert(saturdayPolicy.rows[0]?.saturday_start_time === "08:00:00", "Saturday attendance must start at 08:00.");
+  assert(saturdayPolicy.rows[0]?.saturday_end_time === "13:00:00", "Saturday attendance must end at 13:00.");
+
   const publicAccess = await pool.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace n
