@@ -155,10 +155,11 @@
     );
   }
 
-  async function loadOperationsLookups({canRequestExpenses,canManageBanking}) {
-    const [categories, accounts] = await Promise.all([
+  async function loadOperationsLookups({canRequestExpenses,canManageBanking,canManageExpenseLimits}) {
+    const [categories, accounts, limitStaff] = await Promise.all([
       canRequestExpenses ? request("/finance/expense-categories") : Promise.resolve({items:[]}),
-      canManageBanking ? request("/finance/bank-accounts") : Promise.resolve({items:[]})
+      canManageBanking ? request("/finance/bank-accounts") : Promise.resolve({items:[]}),
+      canManageExpenseLimits ? request("/finance/expenses/limit-staff") : Promise.resolve({items:[]})
     ]);
     const categorySelect = byId("expense-category");
     categorySelect.replaceChildren();
@@ -177,10 +178,14 @@
     }
     if (!categorySelect.options.length) categorySelect.add(new Option("No active categories available", ""));
     if (!accountSelect.options.length) accountSelect.add(new Option("Register a bank account first", ""));
+    const staffSelect=byId("expense-limit-staff");
+    staffSelect.replaceChildren();
+    for(const item of limitStaff.items||[]){const option=document.createElement("option");option.value=item.staffId;option.textContent=item.legalName+" · "+item.staffNumber+" · "+item.jobTitle+(item.limitIsActive?" · current "+money(item.dailyLimitUgx):" · no limit set");option.dataset.dailyLimit=item.limitIsActive?String(item.dailyLimitUgx):"";staffSelect.append(option);}
+    if(!staffSelect.options.length)staffSelect.add(new Option("No active staff accounts available",""));
   }
 
-  async function refreshOperationsLookups({canRequestExpenses=true,canManageBanking=true}={}) {
-    try { await loadOperationsLookups({canRequestExpenses,canManageBanking}); }
+  async function refreshOperationsLookups({canRequestExpenses=true,canManageBanking=true,canManageExpenseLimits=false}={}) {
+    try { await loadOperationsLookups({canRequestExpenses,canManageBanking,canManageExpenseLimits}); }
     catch (error) {
       showMessage("expense-request-message", "Finance lookup data could not be loaded: " + error.message, "error");
       showMessage("bank-transaction-message", "Bank accounts could not be loaded: " + error.message, "error");
@@ -301,7 +306,9 @@
     byId("credit-section").hidden = !canAllocateCredits;
     const canRequestExpenses = hasPermission(principal, "finance.expenses_request");
     const canManageBanking = hasPermission(principal, "finance.banking_manage");
-    byId("expense-banking-workspace").hidden = !(canRequestExpenses || canManageBanking);
+    const canManageExpenseLimits = hasPermission(principal, "finance.expenses_manage");
+    byId("expense-banking-workspace").hidden = !(canRequestExpenses || canManageBanking || canManageExpenseLimits);
+    byId("expense-limit-form").hidden = !canManageExpenseLimits;
     byId("expense-request-form").hidden = !canRequestExpenses;
     byId("bank-account-form").hidden = !canManageBanking;
     byId("bank-transaction-form").hidden = !canManageBanking;
@@ -312,7 +319,7 @@
     byId("finance-review-workspace").hidden=!(financeQueuePermissions.expenseReview||financeQueuePermissions.expensePost||financeQueuePermissions.bankReview||financeQueuePermissions.bankVerify);
     byId("expense-review-panel").hidden=!(financeQueuePermissions.expenseReview||financeQueuePermissions.expensePost);
     byId("bank-review-panel").hidden=!(financeQueuePermissions.bankReview||financeQueuePermissions.bankVerify);
-    if (canRequestExpenses || canManageBanking) await refreshOperationsLookups({canRequestExpenses,canManageBanking});
+    if (canRequestExpenses || canManageBanking || canManageExpenseLimits) await refreshOperationsLookups({canRequestExpenses,canManageBanking,canManageExpenseLimits});
     if (!byId("finance-review-workspace").hidden) await refreshFinanceQueues();
     byId("login-message").textContent = "";
   }
@@ -1034,6 +1041,14 @@
     } finally {
       button.disabled = false;
     }
+  });
+
+  byId("expense-limit-staff").addEventListener("change",()=>{const selected=byId("expense-limit-staff").selectedOptions[0];if(selected?.dataset.dailyLimit)byId("expense-daily-limit").value=selected.dataset.dailyLimit;});
+
+  byId("expense-limit-form").addEventListener("submit",async event=>{
+    event.preventDefault();const button=event.currentTarget.querySelector("button[type=submit]");const staffId=byId("expense-limit-staff").value;const dailyLimitUgx=Number(byId("expense-daily-limit").value);
+    if(!staffId||!Number.isSafeInteger(dailyLimitUgx)||dailyLimitUgx<=0){showMessage("expense-limit-message","Select an active staff member and enter a positive whole-UGX daily limit.","error");return;}
+    button.disabled=true;try{await request("/finance/expenses/limits",{method:"POST",body:{staffId,dailyLimitUgx}});showMessage("expense-limit-message","Daily expense limit saved. The selected staff member can now submit requests within this limit.","success");await refreshOperationsLookups({canRequestExpenses:false,canManageBanking:false,canManageExpenseLimits:true});}catch(error){showMessage("expense-limit-message",error.message,"error");}finally{button.disabled=false;}
   });
 
   byId("expense-request-form").addEventListener("submit", async event => {
