@@ -18,7 +18,7 @@ async function invoke(handler,{path,method="GET",headers={},body,encrypted=true}
  req.socket={encrypted};const res=responseFixture();const handled=await handler(req,res);return {...res,handled};
 }
 function setup({principalValue=principal,authError,repoOverrides={},storeOverrides={}}={}){
- const calls={auth:[],create:[],register:[],submit:[],review:[],get:[],find:[],put:[],getFile:[],remove:[]};
+ const calls={auth:[],create:[],register:[],submit:[],review:[],get:[],list:[],find:[],put:[],getFile:[],remove:[]};
  const authService={async authenticate(input){calls.auth.push(input);if(authError)throw authError;return principalValue;}};
  const evidenceRepository={
   async createEvidenceRequest(input){calls.create.push(input);return REQUEST;},
@@ -26,6 +26,7 @@ function setup({principalValue=principal,authError,repoOverrides={},storeOverrid
   async submitEvidenceRequest(input){calls.submit.push(input);return REQUEST;},
   async reviewEvidenceRequest(input){calls.review.push(input);return "Approved";},
   async getEvidenceRequest(input){calls.get.push(input);return {request_id:REQUEST,status:"Submitted",files:[]};},
+  async listRecordEvidenceRequests(input){calls.list.push(input);return [{requestId:REQUEST,purpose:"Expense receipt",contextLabel:"Kitchen supplies",status:"Approved",amountUgx:25000}]},
   async findEvidenceFile(input){calls.find.push(input);return {storageObjectKey:OBJECT,sha256:"a".repeat(64),contentType:"image/png",originalFileName:"slip.png"};},
   ...repoOverrides
  };
@@ -136,4 +137,22 @@ test("evidence handler enforces same-origin, HTTPS, method and bounded JSON body
  assert.equal((await invoke(handler,{path:"/api/v1/finance/evidence/requests",method:"POST",headers:postHeaders,body:"{}",encrypted:false})).statusCode,426);
  assert.equal((await invoke(handler,{path:"/api/v1/finance/evidence/requests",method:"DELETE",headers:getHeaders})).statusCode,405);
  assert.equal((await invoke(handler,{path:"/api/v1/finance/evidence/requests",method:"POST",headers:postHeaders,body:"{bad"})).statusCode,400);
+});
+
+test("evidence list requires an exact finance record and returns actor-scoped matching requests",async()=>{
+ const {handler,calls}=setup();
+ const path="/api/v1/finance/evidence/requests?contextType=expense_request&contextRecordId="+REQUEST;
+ const result=await invoke(handler,{path,headers:getHeaders});
+ assert.equal(result.statusCode,200);
+ assert.equal(result.json().items[0].requestId,REQUEST);
+ assert.deepEqual(calls.list[0],{actorStaffId:STAFF,contextType:"expense_request",recordId:REQUEST});
+ assert.equal(result.headers["Cache-Control"],"no-store");
+});
+test("evidence list rejects invalid context and denies staff without evidence permission",async()=>{
+ const {handler,calls}=setup();
+ const invalid=await invoke(handler,{path:"/api/v1/finance/evidence/requests?contextType=other&contextRecordId="+REQUEST,headers:getHeaders});
+ assert.equal(invalid.statusCode,400);assert.equal(calls.list.length,0);
+ const denied=setup({principalValue:{...principal,rolePermissions:{bursar:[]}}});
+ const response=await invoke(denied.handler,{path:"/api/v1/finance/evidence/requests?contextType=expense_request&contextRecordId="+REQUEST,headers:getHeaders});
+ assert.equal(response.statusCode,403);assert.equal(denied.calls.list.length,0);
 });
