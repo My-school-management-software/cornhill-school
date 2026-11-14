@@ -190,6 +190,20 @@ try {
   assert(guardDefinition.includes("i.amount_ugx") && guardDefinition.includes("linked_item_amount IS DISTINCT FROM NEW.approved_deduction_ugx"),
     "Special-session payroll linkage must validate the exact deduction amount.");
 
+  const attendanceAdjustmentHistoryTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'attendance_adjustment_history_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(attendanceAdjustmentHistoryTrigger.rows[0]?.installed === true,
+    "Attendance adjustment review history protection must be installed.");
+  const attendanceAdjustmentHistoryDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_attendance_adjustment_history()'::regprocedure) AS definition"
+  );
+  const adjustmentHistoryDefinition = attendanceAdjustmentHistoryDefinition.rows[0]?.definition ?? "";
+  assert(adjustmentHistoryDefinition.includes("Submitted attendance adjustment details are immutable")
+    && adjustmentHistoryDefinition.includes("An attendance adjustment decision is final and cannot be rewritten")
+    && adjustmentHistoryDefinition.includes("Attendance adjustment requests cannot be deleted"),
+    "Attendance adjustment requests and decisions must preserve immutable review history.");
+
   const incidentGuardTrigger = await pool.query(
     "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'attendance_incident_decision_guard' AND NOT tgisinternal) AS installed"
   );
@@ -438,6 +452,33 @@ try {
       "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Verify attendance import time', $2) RETURNING id",
       [attendanceDay.rows[0].id, staff.rows[0].id]
     );
+
+    const reviewedAdjustment = await client.query(
+      "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":360}'::jsonb, 'Second attendance correction review', $2) RETURNING id",
+      [attendanceDay.rows[0].id, staff.rows[0].id]
+    );
+    const adjustmentProposalRewriteRejected = await expectPgError(
+      client, "attendance_adjustment_proposal_immutable_test",
+      "UPDATE cornhill_school.attendance_adjustments SET proposed_value = '{\"worked_minutes\":420}'::jsonb WHERE id = $1",
+      [reviewedAdjustment.rows[0].id], "23514"
+    );
+    assert(adjustmentProposalRewriteRejected, "Submitted attendance correction details cannot be rewritten.");
+    await client.query(
+      "UPDATE cornhill_school.attendance_adjustments SET adjustment_status = 'Approved', approved_by_staff_id = $2, approved_at = now() WHERE id = $1",
+      [reviewedAdjustment.rows[0].id, approver.rows[0].id]
+    );
+    const adjustmentDecisionRewriteRejected = await expectPgError(
+      client, "attendance_adjustment_decision_immutable_test",
+      "UPDATE cornhill_school.attendance_adjustments SET adjustment_status = 'Rejected' WHERE id = $1",
+      [reviewedAdjustment.rows[0].id], "23514"
+    );
+    assert(adjustmentDecisionRewriteRejected, "Attendance correction decisions cannot be changed after review.");
+    const adjustmentDeleteRejected = await expectPgError(
+      client, "attendance_adjustment_delete_history_test",
+      "DELETE FROM cornhill_school.attendance_adjustments WHERE id = $1",
+      [reviewedAdjustment.rows[0].id], "23514"
+    );
+    assert(adjustmentDeleteRejected, "Attendance correction review history cannot be deleted.");
 
     const incidentLeader = await client.query(
       "INSERT INTO cornhill_auth.staff_accounts (username, username_normalized, password_hash, account_status) VALUES ('ci-incident-leader', 'ci-incident-leader', '$argon2id$ci-test', 'active') RETURNING id"
@@ -739,7 +780,7 @@ try {
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
