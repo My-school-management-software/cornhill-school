@@ -125,6 +125,7 @@ test("Bursar payment recovery persists only the actor-scoped key and learner ref
   assert.match(js,/localStorage\.setItem/);
   assert.match(js,/finance\/payments\/requests/);
   assert.match(js,/paymentLookup|status\.payment/);
-  assert.match(js,/body: value\.body/);
+  assert.match(js,/const record = \{ key: value, learnerId \}/);
+  assert.match(js,/localStorage\.setItem\(PENDING_PAYMENT_RECOVERY_STORAGE \+ suffix, JSON\.stringify\(record\)\)/);
   assert.match(js,/Re-enter the exact same payment details/);
 });
