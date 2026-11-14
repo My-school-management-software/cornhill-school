@@ -94,3 +94,12 @@ test("Bursar expense and bank review cards expose expandable safe-text audit his
  assert.match(js,/title[.]textContent/);
  assert.match(css,/finance-history-event/);
 });
+
+test("Bursar workspace exposes a permission-scoped searchable archive with record history",()=>{
+  for(const id of ["finance-archive-panel","finance-archive-form","finance-archive-search","finance-archive-type","finance-archive-status","finance-archive-results"])assert.match(html,new RegExp('id="'+id+'"'));
+  assert.match(js,/finance\/record-archive/);
+  assert.match(js,/financeArchivePermissions/);
+  assert.match(js,/View history/);
+  assert.match(js,/item[.]recordId/);
+  assert.match(js,/textContent=item[.]reference/);
+});
