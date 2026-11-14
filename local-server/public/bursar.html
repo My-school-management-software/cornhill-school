@@ -93,6 +93,25 @@
         </div>
       </section>
 
+      <section id="finance-review-workspace" class="panel operations-panel" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">CONTROLLED APPROVALS</p><h3>Expense and banking review queues</h3><p class="muted">Requests are separated from approvals. The person who submits a request cannot approve their own request.</p></div>
+          <button id="refresh-finance-queues" class="button secondary" type="button">Refresh queues</button>
+        </div>
+        <div class="operations-grid">
+          <section id="expense-review-panel" class="operation-card" hidden>
+            <h4>Expense requests</h4>
+            <div id="expense-review-queue" class="finance-review-list" aria-live="polite"><p class="muted">Loading expense requests…</p></div>
+            <p id="expense-review-message" class="form-message" role="status" aria-live="polite"></p>
+          </section>
+          <section id="bank-review-panel" class="operation-card" hidden>
+            <h4>Bank transactions</h4>
+            <div id="bank-review-queue" class="finance-review-list" aria-live="polite"><p class="muted">Loading bank transactions…</p></div>
+            <p id="bank-review-message" class="form-message" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+      </section>
+
       <section id="payment-search-panel" class="panel search-panel">
         <div class="section-heading">
           <div>
