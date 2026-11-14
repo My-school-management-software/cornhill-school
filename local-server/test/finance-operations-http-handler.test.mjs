@@ -24,7 +24,7 @@ async function invoke(handler,{path,method="POST",headers=postHeaders,body={},en
 }
 function setup({permissions=allPermissions,authError,overrides={}}={}){
  const calls=[];
- const names=["listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseLimitStaff","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence"];
+ const names=["listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseLimitStaff","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest","postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction","attachLocalFinanceEvidence","listLocalFinanceRecordHistory"];
  const financeRepository=Object.fromEntries(names.map(name=>[name,async input=>{calls.push({name,input});return RECORD;}]));
  Object.assign(financeRepository,overrides);
  const authService={async authenticate(input){if(authError)throw authError;return {...principal,rolePermissions:{bursar:permissions}};}};
@@ -191,4 +191,22 @@ test("expense limit endpoint rejects invalid staff IDs and non-positive amounts"
  const badStaff=await invoke(handler,{path:"/api/v1/finance/expenses/limits",body:{staffId:"bad",dailyLimitUgx:1000}});
  const badAmount=await invoke(handler,{path:"/api/v1/finance/expenses/limits",body:{staffId:STAFF,dailyLimitUgx:0}});
  assert.deepEqual([badStaff.statusCode,badAmount.statusCode],[400,400]);assert.equal(calls.length,0);
+});
+
+
+test("finance history endpoints return only the requested record history to authorised roles",async()=>{
+ const {handler,calls}=setup({permissions:["finance.expenses_review","finance.banking_verify"],overrides:{
+  listLocalFinanceRecordHistory:async input=>{calls.push({name:"listLocalFinanceRecordHistory",input});return [{eventCode:"expense.approved",actorName:"Reviewer"}];}
+ }});
+ const expense=await invoke(handler,{path:"/api/v1/finance/expenses/"+RECORD+"/history",method:"GET",headers:getHeaders});
+ const bank=await invoke(handler,{path:"/api/v1/finance/bank-transactions/"+RECORD+"/history",method:"GET",headers:getHeaders});
+ assert.equal(expense.statusCode,200);assert.equal(bank.statusCode,200);
+ assert.equal(expense.json().items[0].actorName,"Reviewer");
+ assert.deepEqual(calls.map(x=>x.input.contextType),["expense_request","bank_transaction"]);
+ assert.equal(calls[0].input.recordId,RECORD);
+});
+test("finance history endpoints deny unrelated roles without querying records",async()=>{
+ const {handler,calls}=setup({permissions:["finance.expenses_request"]});
+ const expense=await invoke(handler,{path:"/api/v1/finance/bank-transactions/"+RECORD+"/history",method:"GET",headers:getHeaders});
+ assert.equal(expense.statusCode,403);assert.equal(calls.length,0);
 });
