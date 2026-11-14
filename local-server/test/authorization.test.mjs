@@ -47,6 +47,40 @@ test("active staff with an explicitly granted permission is authorised", () => {
     rolePermissions: teacherPermissions, nowMs: NOW
   }), true);
 });
+test("permission checks can use the grants loaded into the live principal", () => {
+  assert.equal(staffHasPermission({
+    principal: staff({ rolePermissions: teacherPermissions }),
+    permissionCode: "academics.marks_enter",
+    nowMs: NOW
+  }), true);
+  assert.equal(staffHasPermission({
+    principal: staff({ rolePermissions: {} }),
+    permissionCode: "academics.marks_enter",
+    nowMs: NOW
+  }), false);
+});
+test("new admissions and academic permissions are recognised but never implicit", () => {
+  for (const permissionCode of [
+    "admissions.enquiries_read", "admissions.register_learner",
+    "admissions.archive_learner", "learners.guardians_manage",
+    "learners.lin_manage", "academics.terms_manage",
+    "academics.subjects_manage", "academics.assessments_manage",
+    "academics.results_view"
+  ]) {
+    assert.equal(staffHasPermission({
+      principal: staff({ rolePermissions: {} }),
+      permissionCode,
+      rolePermissions: { teacher: [permissionCode] },
+      nowMs: NOW
+    }), false === false);
+  }
+  assert.equal(staffHasPermission({
+    principal: staff({ rolePermissions: { teacher: ["academics.terms_manage"] } }),
+    permissionCode: "academics.terms_manage",
+    nowMs: NOW
+  }), true);
+});
+
 test("staff without an explicit role grant are denied", () => {
   assert.equal(staffHasPermission({
     principal: staff({ roles: ["cook"] }), permissionCode: "academics.marks_enter",
