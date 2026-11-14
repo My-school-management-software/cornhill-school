@@ -27,13 +27,17 @@ BEGIN
    JOIN cornhill_auth.staff_role_permissions rp ON rp.role_code=ra.role_code
    JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=sa.id
    WHERE sa.id=p_actor AND sa.account_status='active' AND sp.employment_status='Active'
-    AND rp.permission_code='finance.evidence_review'),
+    AND (rp.permission_code='finance.evidence_review'
+      OR (p_context='expense_request' AND rp.permission_code='finance.expenses_review')
+      OR (p_context='bank_transaction' AND rp.permission_code='finance.banking_review'))),
   EXISTS(SELECT 1 FROM cornhill_auth.staff_accounts sa
    JOIN cornhill_auth.staff_role_assignments ra ON ra.staff_account_id=sa.id
    JOIN cornhill_auth.staff_role_permissions rp ON rp.role_code=ra.role_code
    JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=sa.id
    WHERE sa.id=p_actor AND sa.account_status='active' AND sp.employment_status='Active'
-    AND rp.permission_code='finance.evidence_manage')
+    AND (rp.permission_code='finance.evidence_manage'
+      OR (p_context='expense_request' AND rp.permission_code='finance.expenses_request')
+      OR (p_context='bank_transaction' AND rp.permission_code='finance.banking_manage')))
  INTO v_can_review,v_can_manage;
  IF NOT v_can_review AND NOT v_can_manage THEN
   RAISE EXCEPTION 'Staff account lacks financial evidence lookup permission' USING ERRCODE='42501';
