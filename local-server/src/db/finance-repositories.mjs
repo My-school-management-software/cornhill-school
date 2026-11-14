@@ -112,6 +112,19 @@ export function createPostgresFinanceRepositories(pool) {
       const result=await pool.query("SELECT cornhill_school.review_local_evidence_request($1::uuid,$2::uuid,$3::text,$4::text) AS status",[actorStaffId,requestId,action,note]);
       return result.rows[0]?.status ?? null;
     },
+    async listRecordEvidenceRequests({actorStaffId,contextType,recordId}) {
+      assertUuid(actorStaffId,"Evidence lookup actor ID"); assertUuid(recordId,"Finance record ID");
+      if(!["expense_request","bank_transaction"].includes(contextType)) throw new TypeError("Evidence lookup context is invalid.");
+      const result=await pool.query(
+        "SELECT * FROM cornhill_school.finance_list_record_evidence_requests($1::uuid,$2::text,$3::uuid)",
+        [actorStaffId,contextType,recordId]
+      );
+      return result.rows.map(row=>({
+        requestId:row.request_id,purpose:row.purpose,contextLabel:row.context_label,
+        amountUgx:row.amount_ugx==null?null:Number(row.amount_ugx),status:row.status,
+        createdAt:row.created_at,assignedStaffId:row.assigned_staff_id,requestedByStaffId:row.requested_by_staff_id
+      }));
+    },
     async getEvidenceRequest({actorStaffId,requestId}) {
       assertUuid(actorStaffId,"Evidence actor ID"); assertUuid(requestId,"Evidence request ID");
       const result=await pool.query("SELECT cornhill_school.finance_get_evidence_request($1::uuid,$2::uuid) AS request",[actorStaffId,requestId]);
