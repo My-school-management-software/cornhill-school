@@ -49,21 +49,16 @@ export function createPostgresFinanceRepositories(pool) {
     async findEvidenceFile({actorStaffId,fileId}) {
       assertUuid(actorStaffId,"Evidence actor ID"); assertUuid(fileId,"Evidence file ID");
       const result=await pool.query(
-        "SELECT f.storage_object_key,f.sha256,f.content_type,f.original_file_name " +
-        "FROM cornhill_school.evidence_capture_files f " +
-        "JOIN cornhill_school.evidence_capture_requests r ON r.id=f.request_id " +
-        "WHERE f.id=$2::uuid AND (EXISTS(SELECT 1 FROM cornhill_auth.staff_role_assignments ra " +
-        "JOIN cornhill_auth.staff_role_permissions rp ON rp.role_code=ra.role_code " +
-        "WHERE ra.staff_account_id=$1::uuid AND rp.permission_code='finance.evidence_review') " +
-        "OR (EXISTS(SELECT 1 FROM cornhill_auth.staff_role_assignments ra " +
-        "JOIN cornhill_auth.staff_role_permissions rp ON rp.role_code=ra.role_code " +
-        "WHERE ra.staff_account_id=$1::uuid AND rp.permission_code='finance.evidence_manage') " +
-        "AND $1::uuid IN(r.assigned_staff_id,r.requested_by_staff_id)))",
+        "SELECT cornhill_school.finance_get_evidence_file($1::uuid,$2::uuid) AS file",
         [actorStaffId,fileId]
       );
-      const row=result.rows[0];
-      return row?{storageObjectKey:row.storage_object_key,sha256:row.sha256,contentType:row.content_type,originalFileName:row.original_file_name}:null;
+      const row=result.rows[0]?.file;
+      return row?{
+        storageObjectKey:row.storage_object_key,sha256:row.sha256,
+        contentType:row.content_type,originalFileName:row.original_file_name
+      }:null;
     },
+
     async searchLearners({ actorStaffId, search }) {
       assertUuid(actorStaffId, "Finance actor ID");
       if (typeof search !== "string") throw new TypeError("Learner search text is required.");

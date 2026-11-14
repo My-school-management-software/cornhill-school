@@ -28,6 +28,7 @@ async function start() {
 
   console.log("CORNHILL local HTTPS service is listening at " + process.env.CORNHILL_LOCAL_ORIGIN);
   console.log("Bursar finance API enabled: " + (runtime.financeEnabled ? "yes" : "no"));
+  console.log("Private financial evidence API enabled: " + (runtime.evidenceEnabled ? "yes" : "no"));
   console.log("Loopback-only. No LAN clients are accepted by this listener.");
   console.log("Press Ctrl+C to stop.");
 }

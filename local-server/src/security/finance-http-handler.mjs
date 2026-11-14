@@ -153,6 +153,7 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
     try { url = new URL(request.url ?? "/", origin); }
     catch { return false; }
     const path = url.pathname;
+    if (path.startsWith("/api/v1/finance/evidence")) return false;
     if (!path.startsWith("/api/v1/finance/")) return false;
 
     const method = String(request.method ?? "GET").toUpperCase();

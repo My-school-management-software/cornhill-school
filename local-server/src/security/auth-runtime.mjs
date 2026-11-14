@@ -6,6 +6,8 @@ import { createArgon2PasswordHasher } from "./argon2-password-hasher.mjs";
 import { createAuthService } from "./auth-service.mjs";
 import { createAuthHttpHandler } from "./auth-http-handler.mjs";
 import { createFinanceHttpHandler } from "./finance-http-handler.mjs";
+import { createEvidenceHttpHandler } from "./evidence-http-handler.mjs";
+import { createPrivateEvidenceStore } from "./private-evidence-store.mjs";
 
 export async function createLocalAuthRuntime({
   env = process.env,
@@ -23,6 +25,7 @@ export async function createLocalAuthRuntime({
 
   let pool;
   let financePool;
+  let evidenceEnabled = false;
   try {
     const { Pool } = await import("pg");
     if (poolFactory !== undefined && typeof poolFactory !== "function") {
@@ -93,9 +96,22 @@ export async function createLocalAuthRuntime({
       const financeRouteHandler = createFinanceHttpHandler({
         authService, financeRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
       });
+      const evidenceRoot = env.CORNHILL_PRIVATE_EVIDENCE_PATH;
+      let evidenceRouteHandler = null;
+      if (typeof evidenceRoot === "string" && evidenceRoot.trim()) {
+        const evidenceStore = await createPrivateEvidenceStore({ rootPath: evidenceRoot });
+        evidenceRouteHandler = createEvidenceHttpHandler({
+          authService,
+          evidenceRepository: financeRepository,
+          evidenceStore,
+          expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+        });
+        evidenceEnabled = true;
+      }
       routeHandler = async (request, response) => {
         if (await authRouteHandler(request, response)) return true;
-        return financeRouteHandler(request, response);
+        if (await financeRouteHandler(request, response)) return true;
+        return evidenceRouteHandler ? evidenceRouteHandler(request, response) : false;
       };
       financeEnabled = true;
     }
@@ -105,6 +121,7 @@ export async function createLocalAuthRuntime({
       authService,
       authHandler: routeHandler,
       financeEnabled,
+      evidenceEnabled,
       databaseUser: "cornhill_auth_api",
       financeDatabaseUser: financeEnabled ? "cornhill_finance_api" : null,
       async close() {
