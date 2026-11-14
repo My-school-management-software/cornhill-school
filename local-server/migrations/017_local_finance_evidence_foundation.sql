@@ -311,7 +311,7 @@ REVOKE ALL ON FUNCTION cornhill_school.finance_get_evidence_request(uuid,uuid)
   FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
-REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
+-- Preserve function grants established by earlier finance migrations; revoke only these new evidence functions above.
 GRANT EXECUTE ON FUNCTION cornhill_school.create_local_evidence_request(uuid,uuid,text,text,uuid,text,bigint) TO cornhill_finance_runtime;
 GRANT EXECUTE ON FUNCTION cornhill_school.register_local_evidence_file(uuid,uuid,uuid,text,text,bigint,text) TO cornhill_finance_runtime;
 GRANT EXECUTE ON FUNCTION cornhill_school.submit_local_evidence_request(uuid,uuid) TO cornhill_finance_runtime;
