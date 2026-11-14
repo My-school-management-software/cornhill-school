@@ -93,6 +93,18 @@ function safePrincipal(account, principalType) {
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
         ))]
       : [];
+    const grantedPermissions = account.rolePermissions && typeof account.rolePermissions === "object" &&
+      !Array.isArray(account.rolePermissions) ? account.rolePermissions : {};
+    principal.rolePermissions = Object.create(null);
+    for (const role of principal.roles) {
+      const permissions = grantedPermissions[role];
+      principal.rolePermissions[role] = Object.freeze(Array.isArray(permissions)
+        ? [...new Set(permissions.filter(permission =>
+            LOCAL_AUTHORIZATION_CATALOG.permissions.includes(permission)
+          ))]
+        : []);
+    }
+    Object.freeze(principal.rolePermissions);
   }
   return Object.freeze(principal);
 }
