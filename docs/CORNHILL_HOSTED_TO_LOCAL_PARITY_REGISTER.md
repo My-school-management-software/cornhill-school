@@ -767,3 +767,30 @@ Read-only review of hosted function definitions, execute ACLs, triggers and tabl
 6. Test advance recovery against multiple outstanding advances, concurrent payroll payments, partial recovery, duplicate payment attempts and reversed/corrected payroll payments.
 
 **Status:** A concrete concurrency weakness in hosted daily expense-limit enforcement and an important hosted/local attendance-deduction policy divergence have been documented. Finance remains partially reconciled, with **0/16 hosted source finance tables fully reconciled**. No database, Edge Function, production or local schema changes were made.
+
+
+### Read-only application-caller trace: expense requests and payment posting (2026-11-14)
+
+The current branch's tracked top-level application HTML files were inspected for the hosted finance RPC/table identifiers. No page or function was invoked with school business data.
+
+**Confirmed expense-request UI caller:**
+- `banking.html` loads active `expense_categories`, the latest 100 `school_expense_requests`, and finance-operator limits.
+- The expense-request form calls `db.rpc('create_school_expense_request', ...)` with date, category, amount, description, optional payee, payment method/reference and receipt reference.
+- The same page calls `set_school_finance_operator_limit` from the Admin-only limit form.
+- The page's UI disables non-Admin submissions when no enabled limit is loaded, but this is only a usability control. Server-side authorization and concurrency-safe limit enforcement remain mandatory.
+- The request UI says approval is required before paying the supplier; it then refreshes the request queue. The Admin approval/rejection controls and bank/evidence controls are on this page.
+- No direct `school_expenses` insert was found in the inspected top-level HTML pages. The known hosted evidence-review and payroll triggers remain the documented expense-posting paths. This is not proof that no other external, legacy, or uninspected caller exists.
+
+**Payment-posting caller remains unresolved:**
+- A targeted search across the tracked top-level HTML pages did not locate a call to `post_school_payment_with_allocations`, nor direct references to `school_payments` or `payment_allocations` in those pages.
+- The active Edge Function directory contains seven tracked function folders in this branch; none is named as a finance/payment posting function. This does not exclude an external worker, a dynamically assembled call, another deployed function not represented in this repository snapshot, or a different client entry point.
+- Do not infer that payment posting is unused or safe to replace. Before local finance implementation, trace the actual hosted payment-entry UI and caller, identify how the authenticated Admin identity reaches the service-role-only routine, and document retry/idempotency and error handling. If the current caller cannot be found, record the gap as BLOCKED rather than inventing a replacement flow.
+
+**Local parity actions:**
+1. Preserve the expense request -> Admin approval -> evidence capture/review -> exactly-one posted expense workflow, with actor, timestamps, reasons and append-only events.
+2. Implement the daily limit check as an atomic reservation/transaction, not a client-side pre-check or unlocked read-sum-insert. Define whether requested, approved, verified, posted or paid amounts consume the cap, and how rejection/cancellation releases reservations.
+3. Map every local expense posting route, including payroll-generated salary expenses, and enforce a unique source link plus transaction-level idempotency.
+4. Keep the payment-posting caller BLOCKED until the authenticated caller path, allocation behavior, unallocated balance behavior and retry semantics are evidenced.
+5. Re-run a repository-wide caller scan before cutover, including minified bundles, dynamically loaded modules, external integrations and all deployed Edge Function source versions.
+
+No migration was added or applied. No hosted database, financial record, Edge Function, or production deployment was changed.
