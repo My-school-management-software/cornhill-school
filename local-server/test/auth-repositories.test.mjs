@@ -15,6 +15,13 @@ test("staff repository returns role assignments and active class assignments sep
   assert.match(source, /staff_class_assignments/);
   assert.match(source, /ca\.is_active\s*=\s*true/);
 });
+test("staff account and session lookups load role grants per assigned role", () => {
+  assert.equal((source.match(/jsonb_object_agg\(grants\.role_code, grants\.permissions\)/g) || []).length, 2);
+  assert.match(source, /LEFT JOIN cornhill_auth\.staff_role_permissions rp/);
+  assert.match(source, /AS "rolePermissions"/);
+  assert.match(source, /FILTER \(WHERE rp\.permission_code IS NOT NULL\)/);
+});
+
 test("rate limiting is transaction-scoped and serializes both identifier and source keys", () => {
   assert.match(source, /pg_advisory_xact_lock/);
   assert.match(source, /lockKeys\s*=\s*\[[\s\S]*\.sort\(\)/);
