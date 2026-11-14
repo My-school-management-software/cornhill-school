@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readLocalDatabaseConfig } from "../src/db/config.mjs";
+import { readLocalFinanceRuntimeDatabaseConfig } from "../src/db/finance-runtime-config.mjs";
 
 const { Pool } = await import("pg");
 const pool = new Pool(readLocalDatabaseConfig());
@@ -21,14 +22,29 @@ try {
     WHERE rolname IN ('cornhill_finance_runtime','cornhill_finance_api')
   `);
   assert.equal(roles.rowCount, 2, "Both finance roles must exist.");
+  const financePassword = process.env.CORNHILL_DB_FINANCE_RUNTIME_PASSWORD ?? "";
+  const expectsFinanceLogin = Buffer.byteLength(financePassword, "utf8") >= 32 && !financePassword.startsWith("REPLACE_WITH_");
   for (const role of roles.rows) {
-    assert.equal(role.rolcanlogin, false, role.rolname + " must be NOLOGIN.");
+    const shouldLogin = role.rolname === "cornhill_finance_api" && expectsFinanceLogin;
+    assert.equal(role.rolcanlogin, shouldLogin, role.rolname + " LOGIN state must match private finance-runtime provisioning.");
     assert.equal(role.rolsuper, false);
     assert.equal(role.rolcreatedb, false);
     assert.equal(role.rolcreaterole, false);
     assert.equal(role.rolreplication, false);
     assert.equal(role.rolbypassrls, false);
   }
+  if (expectsFinanceLogin) {
+    const { Pool: RuntimePool } = await import("pg");
+    const runtimePool = new RuntimePool(readLocalFinanceRuntimeDatabaseConfig());
+    try {
+      const identity = await runtimePool.query("SELECT current_user AS database_user, current_database() AS database_name");
+      assert.equal(identity.rows[0]?.database_user, "cornhill_finance_api");
+      assert.equal(identity.rows[0]?.database_name, "cornhill_local");
+    } finally {
+      await runtimePool.end();
+    }
+  }
+
   const acl = await pool.query(`
     SELECT pg_has_role('cornhill_finance_api','cornhill_finance_runtime','MEMBER') AS member,
       has_database_privilege('cornhill_finance_api',current_database(),'CONNECT') AS can_connect,
