@@ -52,7 +52,7 @@ try {
   const permissionCount = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog"
   );
-  assert(permissionCount.rows[0]?.count === 24, "Expected 24 permission catalogue entries after admissions and academic permissions are added.");
+  assert(permissionCount.rows[0]?.count === 23, "Expected 23 unique permission catalogue entries after admissions and academic permissions are added.");
 
   const subjects = await pool.query(
     "SELECT subject_code FROM cornhill_school.subjects ORDER BY subject_code"
