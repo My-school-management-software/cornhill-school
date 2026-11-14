@@ -275,8 +275,6 @@ BEGIN
     WHERE sa.id=p_actor_staff_id AND sa.account_status='active'
       AND sp.employment_status='Active' AND rp.permission_code='finance.evidence_review'
   ) INTO v_can_review;
-  SELECT * INTO v_request FROM cornhill_school.evidence_capture_requests WHERE id=p_request_id;
-  IF NOT FOUND THEN RETURN NULL; END IF;
   IF NOT v_can_review AND NOT EXISTS(
     SELECT 1 FROM cornhill_auth.staff_accounts sa
     JOIN cornhill_auth.staff_role_assignments ra ON ra.staff_account_id=sa.id
@@ -285,6 +283,8 @@ BEGIN
     WHERE sa.id=p_actor_staff_id AND sa.account_status='active'
       AND sp.employment_status='Active' AND rp.permission_code='finance.evidence_manage'
   ) THEN RAISE EXCEPTION 'Staff account lacks permission to access financial evidence' USING ERRCODE='42501'; END IF;
+  SELECT * INTO v_request FROM cornhill_school.evidence_capture_requests WHERE id=p_request_id;
+  IF NOT FOUND THEN RETURN NULL; END IF;
   IF NOT v_can_review AND p_actor_staff_id NOT IN(v_request.assigned_staff_id,v_request.requested_by_staff_id) THEN
     RAISE EXCEPTION 'Evidence request is outside this staff member scope' USING ERRCODE='42501';
   END IF;
