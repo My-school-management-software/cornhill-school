@@ -156,3 +156,10 @@ test("evidence list rejects invalid context and denies staff without evidence pe
  const response=await invoke(denied.handler,{path:"/api/v1/finance/evidence/requests?contextType=expense_request&contextRecordId="+REQUEST,headers:getHeaders});
  assert.equal(response.statusCode,403);assert.equal(denied.calls.list.length,0);
 });
+
+test("finance reviewers can load matching evidence choices without evidence-upload permission",async()=>{
+ const reviewer={...principal,rolePermissions:{bursar:["finance.expenses_review"]}};
+ const {handler,calls}=setup({principalValue:reviewer});
+ const result=await invoke(handler,{path:"/api/v1/finance/evidence/requests?contextType=expense_request&contextRecordId="+REQUEST,headers:getHeaders});
+ assert.equal(result.statusCode,200);assert.equal(calls.list.length,1);
+});
