@@ -74,3 +74,12 @@ test("Bursar workspace exposes permission-gated daily expense limit administrati
  assert.match(js,/Only active staff accounts are listed/);
  assert.match(js,/Number[.]isSafeInteger\(dailyLimitUgx\)/);
 });
+
+test("finance reviewers select evidence requests from exact-record lookup instead of typing UUIDs",()=>{
+ assert.match(js,/Matching evidence request/);
+ assert.match(js,/finance\/evidence\/requests\?contextType=/);
+ assert.match(js,/contextRecordId=/);
+ assert.match(js,/candidate[.]requestId/);
+ assert.match(js,/Select an evidence request linked to this exact finance record/);
+ assert.doesNotMatch(js,/Evidence request ID \(UUID\)/);
+});
