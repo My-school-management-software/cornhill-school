@@ -9,6 +9,7 @@
     "db:verify-runtime":"node --env-file=.env scripts/verify-local-runtime-role.mjs",
     "db:verify-school":"node --env-file=.env scripts/verify-local-school-schema.mjs",
     "db:verify-finance":"node --env-file=.env scripts/verify-local-finance.mjs",
+    "db:enable-finance":"node --env-file=.env scripts/enable-local-finance-runtime.mjs",
     "start:auth":"node --env-file=.env scripts/start-local-auth.mjs"
   },
   "engines":{"node":">=22"},
