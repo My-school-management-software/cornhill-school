@@ -38,10 +38,19 @@ test("installer uses native PostgreSQL 17 tools and does not require Docker", ()
   assert.doesNotMatch(script, /docker compose/);
 });
 
-test("installer creates isolated admin and refuses to overwrite an existing database", () => {
-  assert.match(script, /cornhill_local_admin/);
-  assert.match(script, /CREATEDB/);
-  assert.match(script, /already exists/);
+test("installer provisions cluster-wide auth roles as postgres and keeps them unprivileged", () => {
+  assert.match(script, /Provisioning restricted authentication roles/);
+  assert.match(script, /CREATE ROLE cornhill_auth_runtime NOLOGIN/);
+  assert.match(script, /CREATE ROLE cornhill_auth_api NOLOGIN INHERIT/);
+  assert.match(script, /GRANT cornhill_auth_runtime TO cornhill_auth_api/);
+  assert.match(script, /NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/);
+});
+test("installer safely resumes only its own existing local database", () => {
+  assert.match(script, /pg_get_userbyid\(datdba\)/);
+  assert.match(script, /owned by cornhill_local_admin/);
+  assert.match(script, /preserving it and resuming checksum-verified migrations/);
+  assert.match(script, /-O","cornhill_local_admin"/);
+  assert.doesNotMatch(script, /already exists\. Setup stopped/);
   assert.match(script, /Read-Host .*AsSecureString/);
   assert.match(script, /Remove-Item Env:PGPASSWORD/);
 });
