@@ -320,3 +320,14 @@ test("migration 027 limits the expense-limit staff directory to authorised admin
  assert.match(sql,/REVOKE ALL ON FUNCTION cornhill_school[.]finance_list_expense_limit_staff/);
  assert.match(sql,/GRANT EXECUTE ON FUNCTION cornhill_school[.]finance_list_expense_limit_staff\(uuid\)\s+TO cornhill_finance_runtime/);
 });
+
+const recordEvidenceLookup=await readFile(new URL("../migrations/028_local_finance_record_evidence_lookup.sql",import.meta.url),"utf8");
+test("migration 028 scopes evidence lookup to the exact record, active permitted staff and attachable statuses",()=>{
+ assert.match(recordEvidenceLookup,/p_context IN \('expense_request','bank_transaction'\)/);
+ assert.match(recordEvidenceLookup,/r[.]context_type=p_context AND r[.]context_record_id=p_record/);
+ assert.match(recordEvidenceLookup,/status IN \('Pending','Submitted','Approved'\)/);
+ assert.match(recordEvidenceLookup,/v_can_review OR p_actor IN \(r[.]assigned_staff_id,r[.]requested_by_staff_id\)/);
+ assert.match(recordEvidenceLookup,/LIMIT 50/);
+ assert.match(recordEvidenceLookup,/REVOKE ALL ON FUNCTION cornhill_school[.]finance_list_record_evidence_requests/);
+ assert.match(recordEvidenceLookup,/GRANT EXECUTE ON FUNCTION cornhill_school[.]finance_list_record_evidence_requests\(uuid,text,uuid\)\s+TO cornhill_finance_runtime/);
+});
