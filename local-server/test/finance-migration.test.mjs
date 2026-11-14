@@ -262,3 +262,13 @@ test("expense and banking permission catalog includes every workflow capability"
   assert.ok(expenseBankPermissions.includes("('"+code+"'"),"missing permission "+code);
  assert.match(expenseBankPermissions,/ON CONFLICT\(permission_code\) DO NOTHING/);
 });
+
+const bankConcurrency=await readFile(new URL("../migrations/022_local_bank_balance_concurrency_guard.sql",import.meta.url),"utf8");
+test("bank withdrawals serialize on the shared bank-account row before checking posted balance",()=>{
+ assert.match(bankConcurrency,/FROM cornhill_school[.]bank_accounts[\s\S]*?FOR UPDATE/);
+ assert.match(bankConcurrency,/FROM cornhill_school[.]bank_ledger[\s\S]*?sum\(signed_amount_ugx\)/);
+ assert.ok(bankConcurrency.indexOf("FOR UPDATE")<bankConcurrency.indexOf("SELECT coalesce(sum(signed_amount_ugx)"));
+ assert.match(bankConcurrency,/Withdrawal would make the verified bank balance negative/);
+ assert.match(bankConcurrency,/GRANT EXECUTE ON FUNCTION cornhill_school[.]verify_local_bank_transaction/);
+ assert.match(bankConcurrency,/REVOKE ALL ON FUNCTION cornhill_school[.]verify_local_bank_transaction/);
+});
