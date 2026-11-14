@@ -908,3 +908,15 @@ The fee-obligation balance view now combines posted payment allocations and reta
 A permission-gated authenticated API endpoint `POST /api/v1/finance/credits/allocate` is added. The finance API database role can execute the allocation function but cannot directly read or mutate the ledger tables.
 
 **Verification plan:** synthetic PostgreSQL checks cover allocation, idempotent replay, changed-payload retry rejection, overdraw rejection, fee-balance visibility, audit evidence, unchanged original payment/receipt snapshots, no-permission rejection, and a subsequent payment over-allocation attempt. Windows unit/HTTP tests cover route authorization, actor derivation, idempotency and payload validation. CI is pending; the Windows school database remains untouched.
+
+
+### Batch 19 verification result (2026-11-14)
+
+<https://github.com/My-school-management-software/cornhill-school/actions/runs/43587494430> completed successfully on commit `6cd7b7789d5f0605f55cf4495cc0d3ef3f5fc5d2`.
+
+- Windows unit tests: **318 passed, 0 failed**.
+- PostgreSQL 17 applied migrations 001–013 and repeated migration execution verified checksums.
+- School schema inventory, 36 permission codes, 17 roles, zero automatic role grants, auth runtime least-privilege and local finance verification passed.
+- Synthetic finance checks confirmed the retained-credit ledger, reasoned audit event, same-key replay, changed-payload retry rejection, source-credit overdraw rejection, unchanged original payment and immutable receipt snapshot, updated learner fee balance, and rejection of a subsequent over-allocation through ordinary payment posting.
+
+The run used a disposable CI database and synthetic records. It did not apply migration 013 to the school's Windows database or modify hosted Supabase/Vercel resources.

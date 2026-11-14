@@ -63,3 +63,15 @@ Migration 013 introduces a separate append-only ledger for allocating the unused
 The original payment amount, unallocated amount and immutable receipt snapshot are not changed. The learner fee-balance view now includes both original payment allocations and later credit allocations. The shared posted-payment invariant checks both sources so a subsequent payment cannot overrun a balance already reduced by retained credit. A source payment with consumed credit cannot be reversed until an approved credit-release workflow exists.
 
 The authenticated finance API exposes a separate permission-gated `POST /api/v1/finance/credits/allocate` route. The database finance API role receives function execution only, not direct access to the new ledger tables. Batch 19 CI verification is pending. The migration has not been applied to the school's Windows database.
+
+
+### Batch 19 verification — 2026-11-14
+
+GitHub Actions run [43587494430](https://github.com/My-school-management-software/cornhill-school/actions/runs/43587494430) passed both jobs:
+
+- Windows unit suite: **318 passed, 0 failed**.
+- PostgreSQL 17: migrations 001–013 applied and repeat-run checksum verification passed.
+- School/auth/finance schema and least-privilege role checks passed.
+- Synthetic finance integration passed: retained credit allocated, same-key retry returned the original batch, changed-payload retry and credit overdraw were rejected, original payment and receipt snapshot remained unchanged, the fee balance reflected the credit, and a subsequent payment that would exceed the remaining fee balance was rejected.
+
+This is disposable CI verification only. Migration 013 has not been applied to the school's Windows database.
