@@ -287,7 +287,8 @@ try {
   const attendancePayrollBasisSql = attendancePayrollBasisDefinition.rows[0]?.definition ?? "";
   assert(attendancePayrollBasisSql.includes("FROM cornhill_school.attendance_adjustments aa")
     && attendancePayrollBasisSql.includes("pli.source_attendance_adjustment_id = aa.id")
-    && attendancePayrollBasisSql.includes("pr.run_status <> 'Draft'"),
+    && attendancePayrollBasisSql.includes("pr.run_status <> 'Draft'")
+    && attendancePayrollBasisSql.includes("FOR UPDATE OF pr"),
     "Attendance history must be frozen when a linked payroll run leaves draft.");
 
   const attendanceAdjustmentSingleUseIndex = await pool.query(
