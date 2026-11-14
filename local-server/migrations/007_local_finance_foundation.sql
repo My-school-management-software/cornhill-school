@@ -4,30 +4,6 @@
 BEGIN;
 
 
-CREATE FUNCTION cornhill_school.prevent_posted_allocation_delete()
-RETURNS trigger
-LANGUAGE plpgsql
-SET search_path = pg_catalog, cornhill_school
-AS $function$
-DECLARE
-  payment_status text;
-BEGIN
-  SELECT status INTO payment_status
-  FROM cornhill_school.payment_records
-  WHERE id = OLD.payment_id
-  FOR UPDATE;
-  IF payment_status IS DISTINCT FROM 'Draft' THEN
-    RAISE EXCEPTION 'Allocations for a non-draft payment cannot be removed'
-      USING ERRCODE = 'check_violation';
-  END IF;
-  RETURN OLD;
-END;
-$function$;
-
-CREATE TRIGGER payment_allocation_delete_scope
-BEFORE DELETE ON cornhill_school.payment_allocations
-FOR EACH ROW EXECUTE FUNCTION cornhill_school.prevent_posted_allocation_delete();
-
 CREATE SEQUENCE cornhill_school.receipt_number_sequence AS bigint START WITH 1 INCREMENT BY 1 NO CYCLE;
 
 CREATE TABLE cornhill_school.fee_catalogue (
@@ -175,6 +151,31 @@ CREATE TABLE cornhill_school.payment_allocations (
 
 CREATE INDEX payment_allocations_obligation_idx
   ON cornhill_school.payment_allocations (fee_obligation_id, payment_id);
+
+CREATE FUNCTION cornhill_school.prevent_posted_allocation_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, cornhill_school
+AS $function$
+DECLARE
+  payment_status text;
+BEGIN
+  SELECT status INTO payment_status
+  FROM cornhill_school.payment_records
+  WHERE id = OLD.payment_id
+  FOR UPDATE;
+  IF payment_status IS DISTINCT FROM 'Draft' THEN
+    RAISE EXCEPTION 'Allocations for a non-draft payment cannot be removed'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN OLD;
+END;
+$function$;
+
+CREATE TRIGGER payment_allocation_delete_scope
+BEFORE DELETE ON cornhill_school.payment_allocations
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.prevent_posted_allocation_delete();
+
 
 CREATE FUNCTION cornhill_school.validate_payment_allocation()
 RETURNS trigger
