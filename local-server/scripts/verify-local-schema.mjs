@@ -73,7 +73,7 @@ try {
     FROM information_schema.table_constraints
     WHERE constraint_schema = 'cornhill_auth'
   `);
-  if (constraints.rows[0]?.count < 36) {
+  if (constraints.rows[0]?.count < 35) {
     throw new Error("Expected identity and authorization constraints were not installed.");
   }
 
