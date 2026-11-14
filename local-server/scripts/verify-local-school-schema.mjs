@@ -219,6 +219,18 @@ try {
     && incidentIdentityDefinition.includes("Attendance incidents cannot be deleted"),
     "Attendance incident identity and audit history must be immutable.");
 
+  const payrollAuditAppendOnlyTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'payroll_audit_events_append_only' AND NOT tgisinternal) AS installed"
+  );
+  assert(payrollAuditAppendOnlyTrigger.rows[0]?.installed === true,
+    "Payroll audit history must be append-only.");
+  const payrollAuditAppendOnlyDefinition = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.prevent_payroll_audit_event_mutation()'::regprocedure) AS definition"
+  );
+  assert((payrollAuditAppendOnlyDefinition.rows[0]?.definition ?? "").includes(
+    "Payroll audit events are append-only and cannot be changed or deleted"
+  ), "Payroll audit records must reject updates and deletes.");
+
   const publicAccess = await pool.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace n
@@ -651,6 +663,22 @@ try {
       "INSERT INTO cornhill_school.payroll_runs (payroll_period_id, prepared_by_staff_id) VALUES ($1, $2) RETURNING id",
       [payrollPeriod.rows[0].id, staff.rows[0].id]
     );
+    const payrollAudit = await client.query(
+      "INSERT INTO cornhill_school.payroll_audit_events (payroll_run_id, actor_staff_id, event_code, reason, details) VALUES ($1, $2, 'payroll.prepared', 'CI audit immutability check', '{\"source\":\"schema-verifier\"}'::jsonb) RETURNING id",
+      [payrollRun.rows[0].id, staff.rows[0].id]
+    );
+    const payrollAuditUpdateRejected = await expectPgError(
+      client, "payroll_audit_update_immutable_test",
+      "UPDATE cornhill_school.payroll_audit_events SET reason = 'rewritten audit evidence' WHERE id = $1",
+      [payrollAudit.rows[0].id], "23514"
+    );
+    assert(payrollAuditUpdateRejected, "Payroll audit evidence cannot be rewritten.");
+    const payrollAuditDeleteRejected = await expectPgError(
+      client, "payroll_audit_delete_immutable_test",
+      "DELETE FROM cornhill_school.payroll_audit_events WHERE id = $1",
+      [payrollAudit.rows[0].id], "23514"
+    );
+    assert(payrollAuditDeleteRejected, "Payroll audit evidence cannot be deleted.");
     await client.query("SET CONSTRAINTS cornhill_school.payroll_line_item_totals_valid, cornhill_school.payroll_item_totals_valid DEFERRED");
     const payrollLine = await client.query(
       "INSERT INTO cornhill_school.payroll_lines (payroll_run_id, staff_account_id, base_salary_ugx, allowances_ugx, deductions_ugx) VALUES ($1, $2, 1000000, 100000, 10000) RETURNING id, gross_pay_ugx, net_pay_ugx",
@@ -711,7 +739,7 @@ try {
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance incident identity and audit preservation, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
