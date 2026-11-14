@@ -111,7 +111,7 @@ try {
   const financePermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'finance'"
   );
-  assert(financePermissions.rows[0]?.count === 9, "Expected nine finance permission codes.");
+  assert(financePermissions.rows[0]?.count === 11, "Expected eleven finance permission codes, including evidence controls.");
 
   const staffPermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'staff'"
