@@ -87,6 +87,18 @@ test("HTTPS startup passes PFX settings from private environment variables", asy
   assert.match(source, /pfxPassphrase/);
 });
 
+test("Windows HTTPS setup generates a trusted localhost certificate and private PFX configuration", async () => {
+  const source = await (await import("node:fs/promises")).readFile(
+    new URL("../../windows/Configure-CORNHILL-LocalHttps.ps1", import.meta.url), "utf8"
+  );
+  assert.match(source, /New-SelfSignedCertificate/);
+  assert.match(source, /Cert:\\CurrentUser\\Root/);
+  assert.match(source, /Export-PfxCertificate/);
+  assert.match(source, /CORNHILL_TLS_PFX_PASSWORD/);
+  assert.match(source, /https:\/\/localhost:4174/);
+  assert.doesNotMatch(source, /Write-Host\s+\$pfxPassword/);
+});
+
 test("HTTPS server source bounds request and header timeouts", async () => {
   const source = await (await import("node:fs/promises")).readFile(
     new URL("../src/https-server.mjs", import.meta.url), "utf8"
