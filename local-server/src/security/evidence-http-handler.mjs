@@ -94,15 +94,23 @@ export function createEvidenceHttpHandler({authService,evidenceRepository,eviden
    const isRead=Boolean(requestMatch&&method==="GET");
    const isList=Boolean(listMatch);
    const permission=(reviewMatch&&method==="POST")?"finance.evidence_review":"finance.evidence_manage";
-   if(!staffHasPermission({principal,permissionCode:isDownload||isRead||isList?"finance.evidence_manage":permission})&&
-      !(isDownload||isRead||isList?staffHasPermission({principal,permissionCode:"finance.evidence_review"}):false)){
+   if(isList){
+    const contextType=url.searchParams.get("contextType");
+    const contextRecordId=url.searchParams.get("contextRecordId");
+    if(!["expense_request","bank_transaction"].includes(contextType)||!UUID.test(contextRecordId??""))
+     throw new InputError(400,"A valid finance record context is required.");
+    const contextPermission=contextType==="expense_request"?"finance.expenses_review":"finance.banking_review";
+    const managePermission=contextType==="expense_request"?"finance.expenses_request":"finance.banking_manage";
+    const allowed=["finance.evidence_manage","finance.evidence_review",contextPermission,managePermission]
+      .some(permissionCode=>staffHasPermission({principal,permissionCode}));
+    if(!allowed){json(res,403,{error:"You do not have permission to view matching financial evidence."});return true;}
+   }else if(!staffHasPermission({principal,permissionCode:isDownload||isRead?"finance.evidence_manage":permission})&&
+      !(isDownload||isRead?staffHasPermission({principal,permissionCode:"finance.evidence_review"}):false)){
     json(res,403,{error:"You do not have permission for this evidence operation."});return true;
    }
    if(listMatch){
     const contextType=url.searchParams.get("contextType");
     const contextRecordId=url.searchParams.get("contextRecordId");
-    if(!["expense_request","bank_transaction"].includes(contextType)||!UUID.test(contextRecordId??""))
-     throw new InputError(400,"A valid finance record context is required.");
     const items=await evidenceRepository.listRecordEvidenceRequests({
      actorStaffId:principal.id,contextType,recordId:contextRecordId
     });
