@@ -638,3 +638,39 @@ This follow-up used read-only PostgreSQL catalog inspection and source retrieval
 6. Verify all privileged routines are explicitly granted only to intended roles; absence of RLS policies on server-managed enrollment/audit tables is not permission to expose them.
 
 **Status:** This tranche adds hosted constraint and selected routine behavior evidence for the finance/banking review. It does not change the previous completion count: 0/16 hosted finance tables are fully reconciled. No local migration or hosted schema/data was changed.
+
+
+### Finance posting and privilege-boundary review — payment RPC and supporting workflows (2026-11-14)
+
+Read-only review of selected hosted routine definitions and EXECUTE privileges. No routine was invoked and no financial rows were read or changed.
+
+**Payment posting routine — confirmed behavior**
+- `post_school_payment_with_allocations` is executable by `service_role`, not by `authenticated` or `anon` according to the inspected privilege checks. The routine itself still requires a non-null `auth.uid()` and `is_school_admin()`. Its actual caller must therefore be traced carefully: a bare service-role call with no end-user JWT context would fail the internal identity check. Do not weaken this check or grant direct authenticated execution merely to make the UI work; establish a trusted server call that preserves verified end-user identity.
+- The routine validates positive payment amount, payment method, learner existence, allocation JSON type, allocation ownership and available charge balance. It locks each selected charge row while calculating paid totals, which helps serialize competing allocations against the same charge.
+- It supports both explicit allocations and automatic oldest-charge-first allocation. The amount not allocated is retained in `unallocated_amount_ugx`; this confirms hosted support for partial/unallocated receipts.
+- It creates a Kampala-year receipt number and records the authenticated receiver. The routine does not accept a caller-supplied idempotency key. The local migration's idempotency-key design is an improvement but requires a stable client request key and retry tests so a network retry cannot create a second receipt.
+- Manual allocation input should be tested for duplicate charge entries, integer overflow/sum bounds and transaction rollback. Existing unique payment/charge constraints may reject duplicate charge rows, but the routine should return a safe, understandable error and leave no partial receipt.
+
+**Payment reversal and notification behavior**
+- `reverse_school_payment` is executable by `authenticated`, is not SECURITY DEFINER, verifies Admin identity, requires a reason and locks the posted payment before reversal. A trigger cancels still-pending parent SMS rows for the reversed payment. Already sent notifications cannot be recalled; delivery worker behavior and audit evidence remain to be inspected.
+- The posting routine is service-role-only while reversal is authenticated-callable. This asymmetry is intentional only if the server-side posting boundary is verified and documented; local architecture should have one consistent, explicit trust model.
+
+**Bursary review and spending-limit controls**
+- `record_school_bursary_review_event` is authenticated-callable and SECURITY DEFINER, but checks `auth.uid()` and Admin status and limits actions to `opened` or `marked_reviewed`. Repeated `marked_reviewed` events by the same actor are idempotent via a partial unique conflict target; open events can be recorded more than once.
+- `set_school_finance_operator_limit` is authenticated-callable and SECURITY DEFINER, validates Admin identity and an active Bursar/Deputy Bursar target, and validates the configured single and daily limits. It is only a configuration routine. No evidence from this routine alone proves that all expense paths enforce the limits or that daily totals are locked atomically against concurrent requests.
+
+**Evidence approval and ledger posting**
+- Expense approval requires Admin identity, locks the request, requires an active capture device, creates an evidence request and appends an approval event. Evidence approval later locks the request, marks it Verified, inserts a Posted expense with a unique request link and records a verification event. This provides a clear separation between request approval and evidence verification before ledger posting.
+- Bank withdrawal approval similarly locks the transaction, requires an active evidence device, creates a capture request and records an approval event. Evidence review changes the transaction to Verified or Evidence rejected and appends an event. The reviewed routine set did not establish the complete deposit-recording, bank balance reconciliation or final withdrawal settlement model.
+- Bursary award and enrollment activation routines use row locks and validate role/learner/employment context. Continue reviewing audit completeness and trusted caller paths before implementing local equivalents.
+
+**Required local design decisions before coding**
+1. Preserve unallocated payment balances and allow the bursar to allocate them later through a separately audited operation; never silently discard excess cash or force it onto an unrelated charge.
+2. Add a request idempotency key to the local posting contract and enforce it with a unique database constraint, while retaining the original receipt result for safe retries.
+3. Ensure the local payment endpoint derives the acting staff identity from a verified session, not from a client-supplied user ID. Restrict posting to the authorised finance/admin permission model and audit every operation.
+4. Make allocation updates transactional, row-locked and same-learner validated; define whether prior-term debt is automatically prioritised or explicitly selected, in accordance with the school's approved payment allocation policy.
+5. Enforce single-transaction and daily finance operator limits inside the same database transaction as expense posting, with concurrency-safe account/day locking and independent approval thresholds.
+6. Preserve separate expense request, approval, evidence capture, evidence verification, ledger posting and reversal/void events. Do not allow direct expense insertion to bypass required approval/evidence controls.
+7. Document the intended service-role/user-JWT boundary for every privileged RPC, with tests proving anonymous calls fail and authorised/unauthorised staff are correctly distinguished.
+
+**Status:** Additional hosted payment routine and EXECUTE privilege behavior documented. This is still partial finance reconciliation; **0/16 finance tables are fully reconciled**. Actual Edge Function/UI callers, all expense-limit enforcement paths, deposit posting, bank balances, notification delivery, and local end-to-end tests remain pending. No hosted or local database changes were made.
