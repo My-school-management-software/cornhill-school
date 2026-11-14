@@ -64,3 +64,13 @@ test("reviewers can attach matching evidence to pending and approved finance req
  assert.match(js,/if\(item[.]status==="Approved"&&kind==="expense"/);
  assert.match(js,/if\(item[.]status==="Approved"&&kind==="bank"/);
 });
+
+
+test("Bursar workspace exposes permission-gated daily expense limit administration",()=>{
+ for(const id of ["expense-limit-form","expense-limit-staff","expense-daily-limit","expense-limit-message"])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(js,/finance[.]expenses_manage/);
+ assert.match(js,/finance\/expenses\/limit-staff/);
+ assert.match(js,/finance\/expenses\/limits/);
+ assert.match(js,/Only active staff accounts are listed/);
+ assert.match(js,/Number[.]isSafeInteger\(dailyLimitUgx\)/);
+});
