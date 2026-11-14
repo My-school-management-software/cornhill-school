@@ -1,55 +1,57 @@
-# CORNHILL Local Server — Initial Scaffold
+# CORNHILL Local Server — Migration Development Scaffold
 
-This folder contains the isolated local-server foundation for the move away from hosted Vercel/Supabase dependencies.
+This branch contains the school-controlled local backend foundation for moving CORNHILL away from hosted Vercel/Supabase dependencies. It is separate from the live application and is not yet a replacement school system.
 
-## What is included
+## Included foundations
 
-- A Node.js health-only HTTP server and local status page.
-- A separate loopback-only HTTPS server and explicit `npm run start:auth` launcher; it is not started automatically.
-- Automated tests for health routes, prototype warnings, unavailable routes and rejected write methods.
-- Six additive local PostgreSQL migrations: identity/session tables, authorisation catalog and class scope, authentication rate-limit indexes, a NOLOGIN least-privilege auth API database role, isolated learner/admissions records with permanent pupil codes and LIN, and academic years/terms, class subject mappings and assessment marks.
-- A permission catalog with no default role grants.
-- Staff-to-class assignment records, guardian learner-scope checks and deny-by-default authorization helpers.
-- An Argon2id adapter pinned to `@node-rs/argon2@2.2.2`.
-- Staff/guardian authentication service, Argon2id adapter, session/CSRF tokens, secure cookie helpers, and an HTTPS-only authentication HTTP route handler.
-- A local authentication runtime factory that verifies it connects as `cornhill_auth_api`, never the database administrator.
-- PostgreSQL account, session, audit and transaction-locked login-attempt repositories.
-- PostgreSQL permission, staff class-scope and guardian approved-learner-scope repositories.
-- A disposable PostgreSQL integration verifier for concurrent login throttling, role grants, class/guardian scope and session create/revoke.
-- A database-role verifier that checks exact column-level privileges and ensures the runtime role remains NOLOGIN.
-- Loopback-only database connection configuration and an ordered checksum-tracked migration runner.
-- GitHub Actions checks for Ubuntu/PostgreSQL integration and Windows unit tests.
+- Node.js health-only server and status page.
+- Separate loopback-only HTTPS authentication server and launcher.
+- Argon2id staff/guardian authentication, secure cookies, CSRF validation, session expiry/revocation and rate limiting.
+- Explicit role permissions, staff class assignments and guardian-to-learner scope checks. Role grants remain empty by default.
+- Eight additive PostgreSQL migrations:
+  1. Staff/guardian identity and session records.
+  2. Permission catalog, role permissions and staff class assignments.
+  3. Failed-login rate-limit indexes.
+  4. Separate NOLOGIN authentication runtime group/API role with limited column grants.
+  5. Local learner/admissions records, permanent pupil codes, LIN and guardian contacts.
+  6. Academic years/terms, subject catalogue, class mappings, assessments and learner marks.
+  7. UGX fee obligations, bursary rules, payment allocations, immutable receipt snapshots and consent-based SMS outbox.
+  8. Staff profiles, employment terms, attendance device imports, attendance summaries, approved corrections and staged payroll.
+- Local schema verifiers for authentication, learners, academics, finance, attendance and payroll.
+- Windows unit-test CI and Linux/PostgreSQL 17 integration CI.
 
-Authentication routes are defined in `src/security/auth-http-handler.mjs` and are served only by the separate TLS server in `src/https-server.mjs`. The launcher refuses non-loopback bindings and checks the external certificate hostname/validity and private-key file permissions. The existing health-only HTTP server remains unchanged. The HTTPS launcher is not ready for live sign-in until all four PostgreSQL migrations, role/password provisioning, certificate trust and full integration tests are complete.
+## Validation status
 
-## Run the health-only scaffold
+GitHub Actions has successfully:
+- Run the Node test suite on Windows.
+- Applied all eight migrations to a disposable PostgreSQL 17 test database.
+- Re-applied all migrations and verified their stored checksums.
+- Verified schema, role catalogues, zero automatic role grants and PUBLIC isolation.
+- Exercised sample learner, admission, academic, finance, attendance and payroll constraints using synthetic records rolled back after testing.
 
-Use Node.js 22 or later.
+This is CI validation only. The migrations have **not** been applied to the school's Windows computer, and no real school data has been imported.
 
-From this folder:
+## Run only the health-only scaffold
+
+Use Node.js 22 or later. From this folder:
 
 1. Run `npm install`.
 2. Run `npm test`.
 3. Run `npm start`.
-4. Open http://127.0.0.1:4173 in the same computer.
-5. Press Ctrl+C to stop the server.
+4. Open http://127.0.0.1:4173 on the same computer.
+5. Press Ctrl+C to stop.
 
-The HTTP application intentionally remains health-only. Do not run `npm run start:auth` yet: the runtime DB login is deliberately disabled and the certificate/private runtime configuration has not been provisioned. When those gates pass, the separate command will serve HTTPS on loopback only.
+The status page is not a school-data application. Do not enter real learner, staff, guardian, finance or payroll information. Do not run `npm run start:auth`: the runtime database login is deliberately NOLOGIN and the local certificate/private configuration has not been provisioned.
 
-## Database migration status
+## Important safety boundaries
 
-The SQL under migrations/ is for a brand-new local PostgreSQL database only. It has not yet been executed or verified against a running PostgreSQL instance in the development environment. It must pass the disposable PostgreSQL integration workflow before it is considered executable.
+- These migrations are only for a brand-new, isolated local PostgreSQL database. Never run them against the live Supabase project.
+- No live Vercel or Supabase resources have been changed.
+- No production learner, guardian, staff, finance or payroll records have been copied.
+- The authentication HTTP handler and runtime are foundations; they are not yet wired into the health-only server or the main school application.
+- No finance, learner, academic, attendance or payroll API routes are enabled.
+- Database runtime roles remain NOLOGIN. No runtime password has been provisioned.
+- The server and HTTPS launcher bind to loopback only. Do not change this to 0.0.0.0 or expose the service to the school LAN.
+- LAN access, Android access, offline synchronisation, backups and recovery must wait for the remaining API, deployment, security and restore tests.
 
-These files are not for the live Supabase project. Do not run them against production.
-
-Migration 001 creates the isolated staff/guardian identity and session tables. Migration 002 creates the permission catalog and staff class assignments, with role permissions intentionally empty. Migration 003 adds indexes for account- and source-based failed-login throttling. Migration 004 creates a separate authentication runtime group and API role with column-level privileges only. Both roles remain NOLOGIN with no password set.
-
-See [POSTGRES_LOCAL_SETUP.md](POSTGRES_LOCAL_SETUP.md) for the isolated PostgreSQL 17 development service and safe migration procedure.
-
-## Important safety boundary
-
-This is not yet the replacement school management system. It has no enabled production login routes, learner/staff data or school workflows. The route handler and runtime factory are foundations only and are not wired to the health-only server. The home page warns users not to enter real school information.
-
-The server intentionally binds to loopback only. Do not change it to 0.0.0.0 or expose it to the school LAN. LAN operation must wait for wired authentication, role enforcement, HTTPS, backup/restore and the security acceptance tests.
-
-The existing live CORNHILL PWA remains unchanged and continues to use its existing hosted services. This scaffold does not switch, migrate or copy any production data.
+The live CORNHILL PWA remains on its current hosted backend until a separately approved migration and cutover.
