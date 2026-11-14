@@ -73,6 +73,12 @@ try {
   for (const code of ["P1", "P2", "P3"]) assert(subjectCounts[code] === 6, code + " must have six lower-primary subjects.");
   for (const code of ["P4", "P5", "P6", "P7"]) assert(subjectCounts[code] === 4, code + " must have four upper-primary subjects.");
 
+  const balanceView = await pool.query(
+    "SELECT reloptions FROM pg_class WHERE oid = 'cornhill_school.fee_obligation_balances'::regclass"
+  );
+  assert(balanceView.rows[0]?.reloptions?.includes("security_invoker=true") === true,
+    "Fee balance view must use security-invoker semantics.");
+
   const feeItems = await pool.query("SELECT item_code FROM cornhill_school.fee_catalogue ORDER BY item_code");
   assert(feeItems.rows.length === 7, "Expected seven seeded fee catalogue items.");
   const financePermissions = await pool.query(
@@ -186,6 +192,14 @@ try {
     assert(receipt.rows[0].receipt_data_snapshot.allocations.length === 2, "Receipt must show previous and current term allocations.");
     assert(receipt.rows[0].receipt_data_snapshot.allocations[0].balance_after_ugx === 0, "Previous-term debt must be reduced to zero.");
     assert(receipt.rows[0].receipt_data_snapshot.allocations[1].balance_after_ugx === 75000, "Current-term remaining balance must be shown.");
+    const currentBalance = await client.query(
+      "SELECT paid_ugx, balance_ugx FROM cornhill_school.fee_obligation_balances WHERE fee_obligation_id = $1",
+      [currentCharge.rows[0].id]
+    );
+    assert(currentBalance.rows[0]?.paid_ugx === "25000" || currentBalance.rows[0]?.paid_ugx === 25000,
+      "Fee balance view must include posted payments.");
+    assert(currentBalance.rows[0]?.balance_ugx === "75000" || currentBalance.rows[0]?.balance_ugx === 75000,
+      "Fee balance view must show the remaining amount.");
     const outbox = await client.query(
       "SELECT status, destination_phone FROM cornhill_school.payment_notification_outbox WHERE payment_id = $1",
       [payment.rows[0].id]

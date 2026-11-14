@@ -54,6 +54,13 @@ test("posting queues guardian SMS only when the guardian opted in", () => {
   assert.doesNotMatch(sql, /https?:\/\/|fetch\(|sendSms|sendSMS/i);
 });
 
+test("fee balance view is security-invoker and reports paid and outstanding amounts", () => {
+  assert.match(sql, /CREATE OR REPLACE VIEW cornhill_school\.fee_obligation_balances/);
+  assert.match(sql, /WITH \(security_invoker = true\)/);
+  assert.match(sql, /AS paid_ugx/);
+  assert.match(sql, /AS balance_ugx/);
+  assert.match(sql, /pr\.status = 'Posted'/);
+});
 test("finance permissions are catalogued but not granted to roles", () => {
   for (const permission of [
     "finance.fees_manage", "finance.bursary_manage", "finance.receipts_reprint",
