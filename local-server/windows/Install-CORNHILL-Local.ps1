@@ -91,7 +91,7 @@ if (-not $SkipDatabase) {
     Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c",$roleSql) "Could not create or secure the isolated cornhill_local_admin role."
 
     Write-Host "Provisioning restricted authentication roles with the PostgreSQL administrator..."
-    $authRoleSql = @"
+    $authRoleSql = @'
 DO $roles$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'cornhill_auth_runtime') THEN
@@ -105,7 +105,7 @@ $roles$;
 ALTER ROLE cornhill_auth_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 ALTER ROLE cornhill_auth_api NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 GRANT cornhill_auth_runtime TO cornhill_auth_api;
-"@
+'@
     Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c",$authRoleSql) "Could not provision the restricted authentication roles."
 
     $exists = & $psql -X -h 127.0.0.1 -p 5432 -U postgres -d postgres -Atc "SELECT 1 FROM pg_database WHERE datname = 'cornhill_local';"
