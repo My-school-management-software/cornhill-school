@@ -794,3 +794,29 @@ The current branch's tracked top-level application HTML files were inspected for
 5. Re-run a repository-wide caller scan before cutover, including minified bundles, dynamically loaded modules, external integrations and all deployed Edge Function source versions.
 
 No migration was added or applied. No hosted database, financial record, Edge Function, or production deployment was changed.
+
+
+### Batched finance workflow review: payment RPC generations, payroll expense posting and SMS suppression (2026-11-14)
+
+This pass reviewed the tracked payment, expense/payroll and SMS migration definitions together with the banking-page caller. No RPC was invoked and no school financial or guardian-contact rows were read or changed.
+
+**Payment RPC generations must not be confused:**
+- The earlier `post_school_payment_with_allocations` routine is explicitly deprecated and its client execution was revoked by migration `20261106202809_revoke_legacy_payment_rpc_client_access.sql`.
+- Migration `202611050001_atomic_school_payment_posting.sql` introduced `post_school_payment_complete`, a SECURITY INVOKER routine that requires an authenticated Admin. It accepts explicit allocations, collection item and payer name; serializes posting per learner with an advisory transaction lock; validates charge ownership and remaining balances; creates a Kampala-year receipt number; and returns any unallocated amount.
+- Migration `20261111185000_bursar_payment_posting_director_reversal.sql` later introduced `post_school_payment` for active finance operators. It is SECURITY DEFINER with an empty search_path and checks the active finance-operator predicate internally. It creates the receipt and automatically allocates oldest-first against learner charges, retaining any remaining unallocated amount. It does not expose the richer payer-name, collection-item or caller-supplied allocation parameters available in `post_school_payment_complete`.
+- The later migration also removes the legacy finance-operator direct INSERT policy on `school_expenses`, keeping Bursar expense entry on the request/approval/evidence workflow. It keeps payment reversal Admin-only, requires a 5–500 character reason, locks the posted receipt, and records actor/time/reason.
+- The large minified `index.html` (1.16 MB, single-line source) could not be safely searched through the available file retrieval path in this pass. Therefore the exact live UI call site and which payment RPC it invokes remain BLOCKED. Do not guess which RPC is currently used or port both as equivalent. A local payment UI must deliberately preserve the required collection item, payer details, explicit/automatic allocation, unallocated balance and Bursar-vs-Director authorization behavior.
+
+**Payroll-to-expense conversion:**
+- The original hosted payroll trigger creates a Salaries & wages expense when a payroll item transitions to Paid (or is inserted already Paid), and stores the source payroll item ID.
+- The `payroll_item_id` unique constraint prevents more than one expense row from linking to the same payroll item. The trigger raises if the Salaries & wages category is missing, so the payroll payment and expense creation are transactionally coupled.
+- The later Bursar-control migration removes direct finance-operator expense inserts; payroll-generated expenses remain a distinct system-generated path. Local parity must preserve source linkage, exactly-once creation, transaction rollback on failure, and a controlled correction/reversal path if a paid payroll item is later corrected.
+
+**Guardian payment SMS lifecycle:**
+- The SMS outbox migration creates one outbox row per payment (unique payment ID), with a snapshot of learner, destination phone and message body, status, provider, provider message ID, attempt count, last error and sent timestamp. The table is Admin-readable; ordinary authenticated users do not receive direct write privileges.
+- Queueing is trigger-based on payment insertion, but the trigger only queues when the inserted payment is already Posted and the guardian has opted in with a phone number. Confirm actual payment status defaults and trigger timing before assuming every posted receipt is queued.
+- The reversal migration changes only linked `Pending` outbox rows to `Cancelled`. It does not recall messages already claimed, in flight, marked Sent or delivered by a provider.
+- The reviewed schema still lacks an explicit worker lease/claim token, lease expiry, next-attempt time, per-attempt event history and provider delivery-receipt timestamp. No dedicated SMS sender was identified among the seven tracked function folders. An external worker remains possible but unverified.
+- Local parity requires an atomic claim/lease protocol, bounded retry/backoff, idempotent provider requests, attempt audit, terminal/dead-letter handling, pre-send revalidation of guardian link/phone/consent, and race-safe cancellation when a receipt is reversed. A local Sent state must not be presented as provider-confirmed delivery without a delivery receipt.
+
+**Batch disposition:** these findings add implementation requirements, not new local schema. The current local migration 007 remains a finance foundation only; it is not yet a full replacement for the hosted payment, expense, payroll, bank and SMS workflows. No migration was added or applied.
