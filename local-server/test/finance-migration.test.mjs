@@ -124,3 +124,33 @@ test("payment recovery is actor-scoped, permission-gated and returns the origina
  assert.match(paymentRecovery,/GRANT EXECUTE ON FUNCTION/);
  assert.doesNotMatch(paymentRecovery,/UPDATE cornhill_school[.]payment_receipts/);
 });
+
+
+const evidence=await readFile(new URL("../migrations/017_local_finance_evidence_foundation.sql",import.meta.url),"utf8");
+test("private evidence metadata enforces opaque keys, integrity hashes and upload size limits",()=>{
+ assert.match(evidence,/storage_object_key uuid NOT NULL UNIQUE/);
+ assert.match(evidence,/sha256 char\(64\) NOT NULL CHECK/);
+ assert.match(evidence,/size_bytes BETWEEN 1 AND 15728640/);
+ assert.match(evidence,/content_type IN \('image/jpeg','image/png','image/webp','application\/pdf'\)/);
+ assert.match(evidence,/finance\.evidence_manage/);
+ assert.match(evidence,/finance\.evidence_review/);
+});
+test("evidence requests require active assigned staff and immutable file history",()=>{
+ assert.match(evidence,/employment_status='Active'/);
+ assert.match(evidence,/prevent_evidence_history_mutation/);
+ assert.match(evidence,/BEFORE UPDATE OR DELETE ON cornhill_school\.evidence_capture_files/);
+ assert.match(evidence,/BEFORE UPDATE OR DELETE ON cornhill_school\.evidence_capture_reviews/);
+ assert.match(evidence,/BEFORE UPDATE OR DELETE ON cornhill_school\.evidence_capture_events/);
+});
+test("evidence review enforces separation of duties and request expiry",()=>{
+ assert.match(evidence,/v_request\.requested_by_staff_id=p_actor_staff_id/);
+ assert.match(evidence,/uploaded_by_staff_id=p_actor_staff_id/);
+ assert.match(evidence,/v_request\.expires_at<=now\(\)/);
+ assert.match(evidence,/Needs clearer photo/);
+});
+test("finance API receives only evidence workflow function execution, not table grants",()=>{
+ assert.match(evidence,/REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api/);
+ assert.match(evidence,/GRANT EXECUTE ON FUNCTION cornhill_school\.register_local_evidence_file/);
+ assert.match(evidence,/GRANT EXECUTE ON FUNCTION cornhill_school\.review_local_evidence_request/);
+ assert.doesNotMatch(evidence,/GRANT SELECT, INSERT|GRANT ALL ON TABLE/);
+});
