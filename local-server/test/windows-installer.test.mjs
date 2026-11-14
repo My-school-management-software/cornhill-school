@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const script = await readFile(new URL("../../windows/Install-CORNHILL-Local.ps1", import.meta.url), "utf8");
+const script = await readFile(new URL("../windows/Install-CORNHILL-Local.ps1", import.meta.url), "utf8");
 
 test("Windows installer checks supported Windows and Node versions before setup", () => {
   assert.match(script, /Win32_OperatingSystem/);
