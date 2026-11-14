@@ -47,7 +47,12 @@ if (-not (Test-Path $envPath)) {
   Set-Content -Path $envPath -Value $envText -NoNewline
   Write-Host "Existing .env preserved; database port set to native PostgreSQL port 5432."
 }
-Write-Host "Installing pinned Node dependencies..."
+$lockPath = Join-Path $root "package-lock.json"
+if (-not (Test-Path $lockPath)) {
+  Write-Host "No npm lockfile is present yet; generating a lockfile from the exact package versions..."
+  Invoke-Checked "npm" @("install","--package-lock-only","--ignore-scripts","--no-audit","--no-fund") "Could not generate the local npm lockfile."
+}
+Write-Host "Installing Node dependencies from the generated or existing lockfile..."
 Invoke-Checked "npm" @("ci","--no-audit","--no-fund") "npm dependency installation failed."
 if ($RunTests) {
   Write-Host "Running local Windows tests..."
