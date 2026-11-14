@@ -4,6 +4,7 @@ import { X509Certificate } from "node:crypto";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getFullSchoolReadiness } from "./full-school-readiness.mjs";
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(MODULE_DIR, "../..");
@@ -185,6 +186,15 @@ export async function createCornhillHttpsServer({
         return;
       }
 
+      if (path === "/api/v1/readiness") {
+        if (method !== "GET" && method !== "HEAD") {
+          response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD", "Content-Length": 0 });
+          response.end();
+          return;
+        }
+        sendJson(response, 200, getFullSchoolReadiness(), method);
+        return;
+      }
       if (path === "/api/v1/health") {
         if (method !== "GET" && method !== "HEAD") {
           response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD", "Content-Length": 0 });
@@ -197,7 +207,8 @@ export async function createCornhillHttpsServer({
           transport: "https",
           bind: "loopback-only",
           financeApiEnabled: financeApiEnabled === true,
-          fullSchoolManagementEnabled: false
+          fullSchoolManagementEnabled: getFullSchoolReadiness().enabled,
+          fullSchoolReadiness: getFullSchoolReadiness().status
         }, method);
         return;
       }
