@@ -64,7 +64,7 @@ export function createEvidenceHttpHandler({authService,evidenceRepository,eviden
  let origin;try{origin=new URL(expectedOrigin);}catch{throw new TypeError("Evidence API origin must be a valid HTTPS origin.");}
  if(origin.protocol!=="https:"||origin.origin!==expectedOrigin||origin.pathname!=="/"||origin.username||origin.password||origin.search||origin.hash)
   throw new TypeError("Evidence API origin must be an exact HTTPS origin.");
- for(const method of ["createEvidenceRequest","registerEvidenceFile","submitEvidenceRequest","reviewEvidenceRequest","getEvidenceRequest","findEvidenceFile"])
+ for(const method of ["createEvidenceRequest","registerEvidenceFile","submitEvidenceRequest","reviewEvidenceRequest","getEvidenceRequest","listRecordEvidenceRequests","findEvidenceFile"])
   if(!evidenceRepository||typeof evidenceRepository[method]!=="function")throw new TypeError("A complete evidence repository is required.");
  for(const method of ["put","get","remove"])if(!evidenceStore||typeof evidenceStore[method]!=="function")throw new TypeError("A private evidence store is required.");
 
@@ -84,6 +84,7 @@ export function createEvidenceHttpHandler({authService,evidenceRepository,eviden
    });
    if(principal.principalType!=="staff"){json(res,403,{error:"Staff access is required."});return true;}
    const create=path===base+"/requests"&&method==="POST";
+   const listMatch=path===base+"/requests"&&method==="GET";
    const fileMatch=path.match(new RegExp("^"+base+"/requests/([0-9a-f-]{36})/files$","i"));
    const submitMatch=path.match(new RegExp("^"+base+"/requests/([0-9a-f-]{36})/submit$","i"));
    const reviewMatch=path.match(new RegExp("^"+base+"/requests/([0-9a-f-]{36})/review$","i"));
@@ -91,10 +92,21 @@ export function createEvidenceHttpHandler({authService,evidenceRepository,eviden
    const downloadMatch=path.match(new RegExp("^"+base+"/files/([0-9a-f-]{36})/download$","i"));
    const isDownload=Boolean(downloadMatch&&method==="GET");
    const isRead=Boolean(requestMatch&&method==="GET");
+   const isList=Boolean(listMatch);
    const permission=(reviewMatch&&method==="POST")?"finance.evidence_review":"finance.evidence_manage";
-   if(!staffHasPermission({principal,permissionCode:isDownload||isRead?"finance.evidence_manage":permission})&&
-      !(isDownload||isRead?staffHasPermission({principal,permissionCode:"finance.evidence_review"}):false)){
+   if(!staffHasPermission({principal,permissionCode:isDownload||isRead||isList?"finance.evidence_manage":permission})&&
+      !(isDownload||isRead||isList?staffHasPermission({principal,permissionCode:"finance.evidence_review"}):false)){
     json(res,403,{error:"You do not have permission for this evidence operation."});return true;
+   }
+   if(listMatch){
+    const contextType=url.searchParams.get("contextType");
+    const contextRecordId=url.searchParams.get("contextRecordId");
+    if(!["expense_request","bank_transaction"].includes(contextType)||!UUID.test(contextRecordId??""))
+     throw new InputError(400,"A valid finance record context is required.");
+    const items=await evidenceRepository.listRecordEvidenceRequests({
+     actorStaffId:principal.id,contextType,recordId:contextRecordId
+    });
+    json(res,200,{items});return true;
    }
    if(create){
     const body=await readJson(req);
