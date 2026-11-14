@@ -61,7 +61,7 @@ function safeDownloadName(name){
 }
 export function createEvidenceHttpHandler({authService,evidenceRepository,evidenceStore,expectedOrigin}={}){
  if(!authService||typeof authService.authenticate!=="function")throw new TypeError("A local authentication service is required.");
- for(const method of ["createEvidenceRequest","registerEvidenceFile","submitEvidenceRequest","reviewEvidenceRequest","getEvidenceRequest"])
+ for(const method of ["createEvidenceRequest","registerEvidenceFile","submitEvidenceRequest","reviewEvidenceRequest","getEvidenceRequest","findEvidenceFile"])
   if(!evidenceRepository||typeof evidenceRepository[method]!=="function")throw new TypeError("A complete evidence repository is required.");
  for(const method of ["put","get","remove"])if(!evidenceStore||typeof evidenceStore[method]!=="function")throw new TypeError("A private evidence store is required.");
  let origin;try{origin=new URL(expectedOrigin);}catch{throw new TypeError("Evidence API origin must be a valid HTTPS origin.");}

@@ -155,3 +155,15 @@ test("finance API receives only evidence workflow function execution, not table 
  assert.doesNotMatch(evidence,/GRANT SELECT, INSERT|GRANT ALL ON TABLE/);
  assert.doesNotMatch(evidence,/REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA cornhill_school/);
 });
+
+const evidenceFileLookup=await readFile(new URL("../migrations/018_local_finance_evidence_file_lookup.sql",import.meta.url),"utf8");
+test("evidence file lookup is security-definer, actor-scoped and never grants table access",()=>{
+ assert.match(evidenceFileLookup,/finance_get_evidence_file/);
+ assert.match(evidenceFileLookup,/SECURITY DEFINER/);
+ assert.match(evidenceFileLookup,/finance[.]evidence_review/);
+ assert.match(evidenceFileLookup,/finance[.]evidence_manage/);
+ assert.match(evidenceFileLookup,/assigned_staff_id,v_file[.]requested_by_staff_id/);
+ assert.match(evidenceFileLookup,/REVOKE ALL ON FUNCTION/);
+ assert.match(evidenceFileLookup,/GRANT EXECUTE ON FUNCTION/);
+ assert.doesNotMatch(evidenceFileLookup,/GRANT SELECT|GRANT ALL ON TABLE/);
+});

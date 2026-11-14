@@ -62,7 +62,7 @@ export async function secureWindowsEvidenceDirectory(rootPath, {
       typeof domain !== "string" || !domain.trim()) {
     throw new TypeError("Windows evidence storage requires a resolvable service-account identity.");
   }
-  const identity = domain + "\\\\" + username;
+  const identity = domain + "\\" + username;
   try {
     await run("icacls", [
       rootPath, "/inheritance:r", "/grant:r",
