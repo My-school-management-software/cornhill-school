@@ -235,15 +235,34 @@
       }
       if(item.status==="Pending"||item.status==="Approved"){
         if(kind==="expense"?financeQueuePermissions.expenseReview:financeQueuePermissions.bankReview){
-          const evidence=document.createElement("input");evidence.type="text";evidence.maxLength=36;evidence.pattern="[0-9a-fA-F-]{36}";evidence.placeholder="Evidence request ID (UUID)";evidence.value=item.evidenceRequestId||"";
-          evidence.setAttribute("aria-label","Evidence request ID");
-          controls.append(evidence);
-          controls.append(queueButton(item.evidenceRequestId?"Update evidence link":"Attach evidence",()=>{
-            if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(evidence.value.trim())){
-              showMessage(messageId,"Enter a valid evidence request ID.","error");return;
+          const evidence=document.createElement("select");
+          evidence.setAttribute("aria-label","Matching evidence request");
+          const choose=document.createElement("option");choose.value="";choose.textContent="Loading matching evidence requests…";evidence.append(choose);
+          const attach=queueButton(item.evidenceRequestId?"Update evidence link":"Attach evidence",()=>{
+            if(!evidence.value){showMessage(messageId,"Select an evidence request linked to this exact finance record.","error");return;}
+            runFinanceQueueAction(messageId,async()=>{await request(prefix+id+"/evidence",{method:"POST",body:{evidenceRequestId:evidence.value}});});
+          },true);
+          controls.append(evidence,attach);
+          const contextType=kind==="expense"?"expense_request":"bank_transaction";
+          const lookup="/finance/evidence/requests?contextType="+encodeURIComponent(contextType)+"&contextRecordId="+encodeURIComponent(id);
+          request(lookup).then(data=>{
+            evidence.replaceChildren();
+            const placeholder=document.createElement("option");placeholder.value="";
+            placeholder.textContent=data.items?.length?"Choose matching evidence request":"No matching evidence requests found";
+            evidence.append(placeholder);
+            for(const candidate of data.items||[]){
+              const option=document.createElement("option");option.value=candidate.requestId;
+              const amount=candidate.amountUgx==null?"":" · "+money(candidate.amountUgx);
+              option.textContent=candidate.purpose+" · "+candidate.contextLabel+" · "+candidate.status+amount;
+              option.selected=candidate.requestId===item.evidenceRequestId;
+              evidence.append(option);
             }
-            runFinanceQueueAction(messageId,async()=>{await request(prefix+id+"/evidence",{method:"POST",body:{evidenceRequestId:evidence.value.trim()}});});
-          }));
+            attach.disabled=!(data.items||[]).length;
+          }).catch(error=>{
+            evidence.replaceChildren();const failed=document.createElement("option");failed.value="";
+            failed.textContent="Evidence requests could not be loaded";evidence.append(failed);
+            showMessage(messageId,"Matching evidence lookup failed: "+error.message,"error");
+          });
         }
         if(item.status==="Approved"&&kind==="expense"&&financeQueuePermissions.expensePost){
           controls.append(queueButton("Post expense",()=>runFinanceQueueAction(messageId,async()=>{
