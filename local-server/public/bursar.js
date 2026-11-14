@@ -140,9 +140,12 @@
 
   function permissionGranted(principal) {
     if (!principal || principal.principalType !== "staff") return false;
+    const allowed = ["finance.payments_record","finance.expenses_request","finance.expenses_manage",
+      "finance.expenses_review","finance.expenses_post","finance.banking_manage",
+      "finance.banking_review","finance.banking_verify"];
     return (principal.roles || []).some(role =>
       Array.isArray(principal.rolePermissions?.[role]) &&
-      principal.rolePermissions[role].includes("finance.payments_record")
+      allowed.some(permission => principal.rolePermissions[role].includes(permission))
     );
   }
 
@@ -199,6 +202,10 @@
     }
     byId("login-panel").hidden = true;
     byId("workspace").hidden = false;
+    const canRecordPayments = hasPermission(principal, "finance.payments_record");
+    byId("payment-search-panel").hidden = !canRecordPayments;
+    byId("learner-panel").hidden = true;
+    byId("receipt-panel").hidden = true;
     currentStaffId = principal.id;
     recoveredPaymentRequest = readRecoveredPaymentKey(currentStaffId);
     recoveredIdempotencyKey = recoveredPaymentRequest?.key || null;
