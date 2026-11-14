@@ -228,8 +228,43 @@ BEGIN
  RETURN v_id;
 END $fn$;
 
+
+CREATE OR REPLACE FUNCTION cornhill_school.attach_local_finance_evidence(
+ p_actor uuid,p_context text,p_record uuid,p_evidence uuid
+) RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
+AS $fn$
+DECLARE v_requester uuid; v_status text;
+BEGIN
+ IF p_context NOT IN ('expense_request','bank_transaction') OR p_record IS NULL OR p_evidence IS NULL THEN
+  RAISE EXCEPTION 'Evidence attachment details are invalid' USING ERRCODE='22023';
+ END IF;
+ IF NOT cornhill_school.finance_actor_has_permission(p_actor,
+   CASE p_context WHEN 'expense_request' THEN 'finance.expenses_request' ELSE 'finance.banking_manage' END) THEN
+  RAISE EXCEPTION 'Staff account lacks permission to attach financial evidence' USING ERRCODE='42501';
+ END IF;
+ SELECT requested_by_staff_id INTO v_requester
+ FROM cornhill_school.evidence_capture_requests
+ WHERE id=p_evidence AND context_type=p_context AND context_record_id=p_record
+ FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Evidence request does not match this financial record' USING ERRCODE='23514'; END IF;
+ SELECT status INTO v_status FROM cornhill_school.evidence_capture_requests WHERE id=p_evidence;
+ IF v_status NOT IN ('Pending','Submitted','Approved') THEN
+  RAISE EXCEPTION 'Evidence request is not attachable' USING ERRCODE='23514';
+ END IF;
+ IF p_context='expense_request' THEN
+  UPDATE cornhill_school.expense_requests SET evidence_request_id=p_evidence,updated_at=now()
+   WHERE id=p_record AND requested_by_staff_id=p_actor AND status='Pending';
+ ELSE
+  UPDATE cornhill_school.bank_transactions SET evidence_request_id=p_evidence,updated_at=now()
+   WHERE id=p_record AND requested_by_staff_id=p_actor AND status IN ('Pending','Approved');
+ END IF;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Financial record is not owned by this actor or is no longer attachable' USING ERRCODE='42501'; END IF;
+ RETURN p_evidence;
+END $fn$;
+
 REVOKE ALL ON FUNCTION cornhill_school.finance_actor_has_permission(uuid,text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION cornhill_school.create_local_expense_request(uuid,text,uuid,text,bigint) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
+REVOKE ALL ON FUNCTION cornhill_school.attach_local_finance_evidence(uuid,text,uuid,uuid) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;\nREVOKE ALL ON FUNCTION cornhill_school.create_local_expense_request(uuid,text,uuid,text,bigint) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL ON FUNCTION cornhill_school.review_local_expense_request(uuid,uuid,text,text) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL ON FUNCTION cornhill_school.post_local_expense(uuid,uuid) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL ON FUNCTION cornhill_school.create_local_bank_transaction(uuid,uuid,text,bigint,text,text) FROM PUBLIC,cornhill_auth_runtime,cornhill_auth_api,cornhill_finance_runtime,cornhill_finance_api;
@@ -241,6 +276,6 @@ GRANT EXECUTE ON FUNCTION cornhill_school.create_local_expense_request(uuid,text
  cornhill_school.create_local_bank_transaction(uuid,uuid,text,bigint,text,text),
  cornhill_school.review_local_bank_transaction(uuid,uuid,text,text),
  cornhill_school.verify_local_bank_transaction(uuid,uuid)
- TO cornhill_finance_runtime;
+ cornhill_school.attach_local_finance_evidence(uuid,text,uuid,uuid)\n TO cornhill_finance_runtime;
 
 COMMIT;
