@@ -884,3 +884,16 @@ HTTPS static content is served from an exact allow-list with same-origin-only sc
 Migration 012 adds a receipt reprint routine that requires the independent `finance.receipts_reprint` permission, validates the exact receipt number and a 5–300 character reason, locks the receipt/payment rows and requires an issued Posted or Reversed payment. It updates only reprint-action metadata and inserts a `receipt.reprinted` finance audit event inside one transaction. This audit record logs the authorized reprint action, not confirmation that a physical printer successfully printed. The receipt content snapshot remains immutable. Reprinting a reversed payment returns its historical receipt with the reversed state clearly marked.
 
 A new authenticated HTTPS POST route and a permission-gated Bursar reprint form send the reason to the server. The actor ID is derived from the authenticated staff session. PostgreSQL integration checks and HTTP/UI tests are added for permission, reason, print count, unchanged receipt snapshot and audit event. Batch 18 CI is pending. No real school database or hosted system was changed.
+
+
+### Batch 18 verification update (2026-11-14 10:03 UTC)
+
+The latest branch head `2cee4c499999128a1692a32ac9c21dcbef972e83` passed GitHub Actions run [43583397029](https://github.com/My-school-management-software/cornhill-school/actions/runs/43583397029). Both jobs succeeded:
+
+- `windows-unit`: **314 tests passed, 0 failed**.
+- `local-backend`: PostgreSQL 17 applied migrations 001–012, repeated migration execution verified checksums, school/academic/finance/staff/attendance/payroll schema verification passed, and finance integration verification passed.
+- Migration 012 receipt reprint integration checks passed, including independent permission, reason validation, missing receipt, immutable receipt snapshot and audit behavior.
+
+This is CI verification against a disposable PostgreSQL database, not application to the school's Windows database. No live Supabase/Vercel resource or real school record was changed.
+
+**Next local finance gap:** controlled later allocation of retained unallocated learner credit, with a separate append-only allocation ledger, permission checks, obligation-balance locking, idempotent retries and audit evidence. It must not rewrite the original posted payment or immutable receipt snapshot.

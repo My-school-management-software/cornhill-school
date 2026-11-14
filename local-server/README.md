@@ -26,7 +26,7 @@ This branch contains the school-controlled local backend foundation for moving C
 
 ## Validation status
 
-CI passed on 2026-11-14 through Batch 17: Windows unit tests, PostgreSQL 17 migrations 001–011, migration repeat/checksum verification, schema/auth checks, atomic split-payment workflow, and Bursar screen/HTTPS asset checks. Batch 18 adds audited receipt reprinting and is pending its next CI run.
+CI passed on 2026-11-14 through Batch 18: **314 Windows unit tests passed (0 failed)**; PostgreSQL 17 successfully applied migrations 001–012, re-ran them with checksum verification, and passed the local school/academic/finance/staff/attendance/payroll schema checks plus finance integration checks. Batch 18 receipt reprinting passed its PostgreSQL integration and HTTP/UI checks. Latest verified branch commit: `2cee4c499999128a1692a32ac9c21dcbef972e83`.
 
 This is CI validation only. The migrations have **not** been applied to the school's Windows computer, and no real school data has been imported.
 
@@ -48,7 +48,7 @@ The status page on port 4173 is not a school-data application. The separate HTTP
 - No live Vercel or Supabase resources have been changed.
 - No production learner, guardian, staff, finance or payroll records have been copied.
 - The authenticated HTTPS runtime composes the auth and finance handlers and can serve the local Bursar page. It remains separate from the health-only HTTP scaffold and the hosted main school application.
-- The Bursar screen is served at `/` or `/bursar` by the separate HTTPS service. It includes staff sign-in, learner search, term-by-term fee balances, optional previous-term allocations, UGX payment entry, idempotent posting, printable receipt preview and permission-gated audited reprinting with a reason. The audit logs a requested reprint action, not a printer-success signal. Its finance HTTP routes remain disabled unless a separate finance database runtime credential is privately provisioned; the example `.env` leaves this setting as a placeholder. Unallocated credit is recorded, but later allocation remains pending.
+- The Bursar screen is served at `/` or `/bursar` by the separate HTTPS service. It includes staff sign-in, learner search, term-by-term fee balances, optional previous-term allocations, UGX payment entry, idempotent posting, printable receipt preview and permission-gated audited reprinting with a reason. The audit logs a requested reprint action, not a printer-success signal. Its finance HTTP routes remain disabled unless a separate finance database runtime credential is privately provisioned; the example `.env` leaves this setting as a placeholder. Unallocated credit is recorded, but later allocation remains pending. A separate credit-allocation workflow has not yet been implemented.
 - Authentication and finance runtime roles remain NOLOGIN by default. No runtime password is provisioned by the installer.
 - The server and HTTPS launcher bind to loopback only. Do not change this to 0.0.0.0 or expose the service to the school LAN.
 - LAN access, Android access, offline synchronisation, backups, recovery, thermal-printer hardware compatibility and the full school-wide UI remain pending. The Bursar print view is not yet verified on a physical thermal printer.
