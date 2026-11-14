@@ -45,6 +45,26 @@ The current discovery snapshot records:
 
 Counts are discovery facts, not proof that every object has been extracted. Re-run metadata inventory and reconcile changes immediately before data export and cutover.
 
+
+### Read-only Edge Function and Auth security review (2026-11-14)
+
+Selected active Edge Function source was retrieved for static review. No function was deployed, changed, invoked with business data, or otherwise modified.
+
+| Function reviewed | Observed control | Remaining review |
+|---|---|---|
+| `parent-portal-api` | JWT gateway verification is disabled, but the handler implements its own opaque bearer-session check: 256-bit random token, SHA-256 token-hash lookup, expiry/revocation checks, and active guardian-contact-to-learner linkage. CORS is restricted to named/approved Vercel origins. | Review every action branch, PIN/OTP verification and throttling, session creation/revocation, response field allow-lists, staff-only branches, and report/fee gating. Confirm no learner can be selected outside the linked guardian session. |
+| `staff-access-code` | JWT gateway verification is disabled, but source contains its own Director-session verification, IP-derived HMAC rate-limit call, and a 429 response when the rate-limit check fails. | Review all role/title authorization, access-code lifecycle, session issuance, reset flows, and audit coverage. Confirm rate-limit secret configuration and fail-closed behavior. |
+| `class-teacher-code` | JWT verification enabled; source verifies the caller's authenticated user and requires the Admin role before creating/resetting class teacher accounts. | Review account enumeration, password/code handling, class assignment uniqueness, transaction/partial-failure behavior and audit events. |
+
+The other selected functions (`google-drive-backup`, `bursar-account-web`, and `r2-storage-gateway`) were retrieved for review, but this pass did not complete a full line-by-line authorization assessment. Their JWT settings alone do not establish whether they are secure or insecure.
+
+**Supabase Security Advisor snapshot (read-only):**
+- Advisor reported that leaked-password protection is disabled. This is a hardening recommendation for the hosted Auth configuration; no setting was changed.
+- Advisor reported that authenticated users can execute numerous SECURITY DEFINER routines through RPC. This includes privileged business operations such as payment posting, learner promotion and report-card workflow functions. These are not automatically vulnerabilities, but each routine must be checked for internal role/scope checks, fixed search_path, ownership, input validation, and least-privilege EXECUTE grants. Do not blindly revoke execution or switch all routines to SECURITY INVOKER; that could break intended workflows.
+- Advisor recommendations are a review queue, not proof that an exploit has occurred.
+
+**Local parity rule:** reproduce the intended business authorization in explicit local server routes and role/resource/scope checks. Do not expose service-role credentials, generic RPC execution, or arbitrary-table CRUD to browsers. Keep parent access strictly limited to the learner(s) linked to the verified guardian session.
+
 ### Read-only metadata audit update (2026-11-14)
 
 A second metadata-only pass was run against the hosted project. No learner, guardian, staff, payment, message or other business rows were selected.
