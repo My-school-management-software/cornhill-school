@@ -9,6 +9,39 @@ This is an isolated local migration/rehearsal database. It is not the live schoo
 - PostgreSQL 17 Windows installation with Command Line Tools (`psql.exe` and `createdb.exe`) at `C:\Program Files\PostgreSQL\17\bin`.
 - PostgreSQL service `postgresql-x64-17` running on localhost port 5432.
 
+## First PC visit — staged setup
+
+Clone the exact development branch on the Windows computer (Git for Windows is required):
+
+```powershell
+git clone --branch feat/local-first-self-hosted-migration-20261113 https://github.com/My-school-management-software/cornhill-school.git
+cd .\cornhill-school\local-server
+```
+
+Install Node.js 22 or newer and PostgreSQL 17 for Windows, including **Command Line Tools**. In PowerShell, confirm:
+
+```powershell
+node --version
+npm --version
+Get-Service postgresql-x64-17
+& 'C:\Program Files\PostgreSQL\17\bin\psql.exe' --version
+```
+
+The Node version must be 22 or newer, and the PostgreSQL service must be running. Then run the safe first stage:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass -Force
+.\windows\Install-CORNHILL-Local.ps1 -SkipDatabase -RunTests
+```
+
+This stage installs pinned Node dependencies, creates the ignored private `.env` file if absent, and runs the Windows test suite. **It does not create a database or apply migrations.** Once those checks pass and PostgreSQL 17 is installed and running, run the installer again:
+
+```powershell
+.\windows\Install-CORNHILL-Local.ps1 -RunTests
+```
+
+That second stage asks for the local PostgreSQL administrator password, creates or resumes only the isolated `cornhill_local` database, applies migrations 001–073 and runs the five database verifiers. Never paste the PostgreSQL password or `.env` contents into chat. If any command fails, stop and share only the error text with passwords, tokens and private paths removed.
+
 ## Windows installer
 
 From the repository's `local-server` directory, run:
@@ -29,7 +62,7 @@ The local PostgreSQL connection uses host `127.0.0.1`, port `5432`, database `co
 
 The runner discovers all numbered SQL files present in `migrations`, applies them in numeric order, and records a SHA-256 checksum for each. It requires both explicit local-development flags, validates the loopback host and exact database name, and uses a PostgreSQL advisory lock. A changed already-applied migration causes a hard stop rather than a silent reapply.
 
-The current numbered sequence is migrations 001-031. It includes local identity/session and authorization, learners/admissions, academics, UGX finance and payment posting/recovery, staff attendance/payroll governance, and the private financial evidence metadata/review foundation with actor-scoped file lookup, expense and bank ledgers, approval queues, evidence controls, concurrency guards and permission-scoped active-staff lookup for expense-limit administration, and exact-record evidence request lookup for finance reviewers, and permission-scoped expense/bank/evidence event history, and the complete assignable finance workflow permission catalog, plus a searchable permission-scoped archive of expense and bank records. The current migration and PostgreSQL CI checks do not certify full parity with the hosted school system. These migrations are **not yet certified as a complete copy of the hosted CORNHILL system**. The hosted project inventory still has to be reconciled object-by-object, including all source tables/columns, constraints, indexes, policies, routines, triggers, views, storage objects, edge functions, auth behavior, integrations and application call sites. Any provider-managed feature that cannot be migrated must be documented and safely replaced rather than silently omitted.
+The current numbered sequence is migrations 001-073. It includes local identity/session and authorization, learners/admissions, academics, UGX finance and payment posting/recovery, staff attendance/payroll governance, leave requests and balances, attendance reviews and reporting, and payroll disbursement controls. It includes local identity/session and authorization, learners/admissions, academics, UGX finance and payment posting/recovery, staff attendance/payroll governance, and the private financial evidence metadata/review foundation with actor-scoped file lookup, expense and bank ledgers, approval queues, evidence controls, concurrency guards and permission-scoped active-staff lookup for expense-limit administration, and exact-record evidence request lookup for finance reviewers, and permission-scoped expense/bank/evidence event history, and the complete assignable finance workflow permission catalog, plus a searchable permission-scoped archive of expense and bank records. The current migration and PostgreSQL CI checks do not certify full parity with the hosted school system. These migrations are **not yet certified as a complete copy of the hosted CORNHILL system**. The hosted project inventory still has to be reconciled object-by-object, including all source tables/columns, constraints, indexes, policies, routines, triggers, views, storage objects, edge functions, auth behavior, integrations and application call sites. Any provider-managed feature that cannot be migrated must be documented and safely replaced rather than silently omitted.
 
 After migration, the installer runs `npm run db:verify`, `npm run db:verify-auth`, `npm run db:verify-runtime`, `npm run db:verify-school` and `npm run db:verify-finance`. A successful run proves only that the current local migrations and their checks pass. It does not prove that the full local school application, production data migration, LAN access, offline sync, backups, Android access or production security are ready.
 
