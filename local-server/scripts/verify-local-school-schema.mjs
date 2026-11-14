@@ -205,6 +205,20 @@ try {
     && incidentGuardDefinition.includes("Only an active Director may decide an attendance incident"),
     "Ordinary attendance incidents must enforce active leadership authority and immutable review records.");
 
+  const incidentIdentityTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'attendance_incident_identity_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(incidentIdentityTrigger.rows[0]?.installed === true,
+    "Attendance incident identity and audit protection must be installed.");
+  const incidentIdentityResult = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_attendance_incident_identity()'::regprocedure) AS definition"
+  );
+  const incidentIdentityDefinition = incidentIdentityResult.rows[0]?.definition ?? "";
+  assert(incidentIdentityDefinition.includes("NEW.staff_account_id IS DISTINCT FROM OLD.staff_account_id")
+    && incidentIdentityDefinition.includes("NEW.attendance_date IS DISTINCT FROM OLD.attendance_date")
+    && incidentIdentityDefinition.includes("Attendance incidents cannot be deleted"),
+    "Attendance incident identity and audit history must be immutable.");
+
   const publicAccess = await pool.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace n
@@ -458,6 +472,24 @@ try {
       && approvedIncident.rows[0]?.director_decision === "excused"
       && approvedIncident.rows[0]?.director_decision_by === incidentLeader.rows[0].id,
       "An active Director should be able to excuse an attendance incident after the review window.");
+    const incidentStaffChangeRejected = await expectPgError(
+      client, "attendance_incident_staff_identity_test",
+      "UPDATE cornhill_school.staff_attendance_incidents SET staff_account_id = $2 WHERE id = $1",
+      [incident.rows[0].id, incidentLeader.rows[0].id], "23514"
+    );
+    assert(incidentStaffChangeRejected, "Attendance incident staff identity cannot be reassigned.");
+    const incidentDateChangeRejected = await expectPgError(
+      client, "attendance_incident_date_identity_test",
+      "UPDATE cornhill_school.staff_attendance_incidents SET attendance_date = CURRENT_DATE + 1 WHERE id = $1",
+      [incident.rows[0].id], "23514"
+    );
+    assert(incidentDateChangeRejected, "Attendance incident date cannot be rewritten.");
+    const incidentDeleteRejected = await expectPgError(
+      client, "attendance_incident_delete_audit_test",
+      "DELETE FROM cornhill_school.staff_attendance_incidents WHERE id = $1",
+      [incident.rows[0].id], "23514"
+    );
+    assert(incidentDeleteRejected, "Attendance incident review history cannot be deleted.");
     const samePersonApprovalRejected = await expectPgError(
       client, "attendance_adjustment_self_approval_test",
       "INSERT INTO cornhill_school.attendance_adjustments (attendance_day_id, adjustment_type, proposed_value, reason, requested_by_staff_id, adjustment_status, approved_by_staff_id, approved_at) VALUES ($1, 'Worked Minutes', '{\"worked_minutes\":300}'::jsonb, 'Self approval should fail', $2, 'Approved', $2, now())",
@@ -679,7 +711,7 @@ try {
     assert(postedPayroll.rows[0]?.run_status === "Posted", "Payroll should post only after approval.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 55 tables, ten classes, fifteen subjects, seven fee items, 43 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance incident identity and audit preservation, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
