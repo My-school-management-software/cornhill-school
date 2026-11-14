@@ -32,7 +32,7 @@ ALTER TABLE cornhill_school.staff_scheduled_session_attendance
       AND director_decision_at IS NOT NULL AND approved_deduction_ugx > 0)
   );
 
-CREATE FUNCTION cornhill_school.guard_special_session_review()
+CREATE UNIQUE INDEX special_session_payroll_item_unique\n  ON cornhill_school.staff_scheduled_session_attendance(payroll_line_item_id)\n  WHERE payroll_line_item_id IS NOT NULL;\n\nCREATE FUNCTION cornhill_school.guard_special_session_review()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = pg_catalog, cornhill_school
@@ -42,7 +42,7 @@ DECLARE
   daily_rate bigint;
   deductions_enabled boolean;
   linked_item_type text;
-  linked_item_staff uuid;
+  linked_item_staff uuid;\n  linked_item_amount bigint;
 BEGIN
   IF TG_OP = 'INSERT' THEN
     NEW.review_deadline_at := now() + interval '120 minutes';
@@ -121,8 +121,8 @@ BEGIN
 
     IF NEW.director_decision <> 'deduct'
        OR linked_item_type IS DISTINCT FROM 'Deduction'
-       OR linked_item_staff IS DISTINCT FROM NEW.staff_account_id THEN
-      RAISE EXCEPTION 'Special-session payroll linkage must reference a deduction item for the same staff member'
+       OR linked_item_staff IS DISTINCT FROM NEW.staff_account_id\n       OR linked_item_amount IS DISTINCT FROM NEW.approved_deduction_ugx THEN
+      RAISE EXCEPTION 'Special-session payroll linkage must reference a matching deduction item for the same staff member'
         USING ERRCODE = 'check_violation';
     END IF;
   END IF;
