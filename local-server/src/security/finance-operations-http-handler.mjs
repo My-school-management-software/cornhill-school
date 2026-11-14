@@ -53,7 +53,7 @@ function mapError(error){
 export function createFinanceOperationsHttpHandler({authService,financeRepository,expectedOrigin}={}){
  if(!authService||typeof authService.authenticate!=="function")throw new TypeError("A local authentication service is required.");
  const methods=[
-  "listLocalExpenseCategories","listLocalBankAccounts","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest",
+  "listLocalExpenseCategories","listLocalBankAccounts","listLocalExpenseReviewQueue","listLocalBankReviewQueue","setLocalExpenseOperatorLimit","createLocalBankAccount","createLocalExpenseRequest","reviewLocalExpenseRequest",
   "postLocalExpense","createLocalBankTransaction","reviewLocalBankTransaction","verifyLocalBankTransaction",
   "attachLocalFinanceEvidence"
  ];
@@ -69,6 +69,8 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
   if(!path.startsWith("/api/v1/finance/"))return false;
   const routeTable=[
    {regex:/^\/api\/v1\/finance\/expense-categories$/,permission:"finance.expenses_request",kind:"categories",methods:["GET"]},
+   {regex:/^\/api\/v1\/finance\/expense-review-queue$/,permission:null,kind:"expenseQueue",methods:["GET"]},
+   {regex:/^\/api\/v1\/finance\/bank-review-queue$/,permission:null,kind:"bankQueue",methods:["GET"]},
    {regex:/^\/api\/v1\/finance\/bank-accounts$/,permission:"finance.banking_manage",kind:"bankAccounts",methods:["GET","POST"]},
    {regex:/^\/api\/v1\/finance\/expenses\/limits$/,permission:"finance.expenses_manage",kind:"limit"},
    {regex:/^\/api\/v1\/finance\/expenses$/,permission:"finance.expenses_request",kind:"expense"},
@@ -92,11 +94,12 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
    const csrfHeader=request.headers["x-cornhill-csrf"];
    const principal=await authService.authenticate({sessionToken,method,csrfToken:typeof csrfHeader==="string"?csrfHeader:undefined});
    const {route,match}=matched;
-   const permission=route.kind==="evidence"?(match[1].toLowerCase()==="expenses"?"finance.expenses_request":"finance.banking_manage"):route.permission;
-   if(!staffHasPermission({principal,permissionCode:permission})){send(response,403,{error:"You do not have permission for this finance operation."});return true;}
+   const permission=route.kind==="evidence"?(match[1].toLowerCase()==="expenses"?"finance.expenses_request":"finance.banking_manage"):route.kind==="expenseQueue"?(staffHasPermission({principal,permissionCode:"finance.expenses_review"})?"finance.expenses_review":"finance.expenses_post"):route.kind==="bankQueue"?(staffHasPermission({principal,permissionCode:"finance.banking_review"})?"finance.banking_review":"finance.banking_verify"):route.permission;
+   const permitted=route.kind==="expenseQueue"?(staffHasPermission({principal,permissionCode:"finance.expenses_review"})||staffHasPermission({principal,permissionCode:"finance.expenses_post"})):route.kind==="bankQueue"?(staffHasPermission({principal,permissionCode:"finance.banking_review"})||staffHasPermission({principal,permissionCode:"finance.banking_verify"})):staffHasPermission({principal,permissionCode:permission});
+   if(!permitted){send(response,403,{error:"You do not have permission for this finance operation."});return true;}
    const actorStaffId=principal.id;
    if(method==="GET"){
-    const result=route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):await financeRepository.listLocalBankAccounts({actorStaffId});
+    const result=route.kind==="categories"?await financeRepository.listLocalExpenseCategories({actorStaffId}):route.kind==="bankAccounts"?await financeRepository.listLocalBankAccounts({actorStaffId}):route.kind==="expenseQueue"?await financeRepository.listLocalExpenseReviewQueue({actorStaffId}):await financeRepository.listLocalBankReviewQueue({actorStaffId});
     send(response,200,{items:result});return true;
    }
    const body=await readBody(request);
