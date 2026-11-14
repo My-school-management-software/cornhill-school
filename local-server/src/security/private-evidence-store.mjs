@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import { lstat, mkdir, open, realpath, rm } from "node:fs/promises";
+import { chmod, lstat, mkdir, open, realpath, rm } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,6 +57,10 @@ export async function createPrivateEvidenceStore({ rootPath, repositoryRoot = RE
     throw new TypeError("Private evidence storage must be outside the source repository.");
   }
   await mkdir(requestedRoot, { recursive: true, mode: 0o700 });
+  const requestedStats = await lstat(requestedRoot);
+  if (!requestedStats.isDirectory() || requestedStats.isSymbolicLink()) {
+    throw new TypeError("Private evidence storage root must be a real directory, not a symbolic link.");
+  }
   const root = await realpath(requestedRoot);
   if (isWithin(repoRoot, root)) {
     throw new TypeError("Resolved private evidence storage must be outside the source repository.");
@@ -64,6 +68,13 @@ export async function createPrivateEvidenceStore({ rootPath, repositoryRoot = RE
   const rootStat = await lstat(root);
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
     throw new TypeError("Private evidence storage root must be a real directory.");
+  }
+  if (process.platform !== "win32") {
+    await chmod(root, 0o700);
+    const securedStats = await lstat(root);
+    if ((securedStats.mode & 0o077) !== 0) {
+      throw new TypeError("Private evidence storage directory permissions are too broad.");
+    }
   }
 
   function objectPath(objectKey) {
