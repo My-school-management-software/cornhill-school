@@ -40,6 +40,7 @@ test("installer uses native PostgreSQL 17 tools and does not require Docker", ()
 
 test("installer provisions cluster-wide auth roles as postgres and keeps them unprivileged", () => {
   assert.match(script, /Provisioning restricted authentication roles/);
+  assert.match(script, /\$authRoleSql = @\'/);
   assert.match(script, /CREATE ROLE cornhill_auth_runtime NOLOGIN/);
   assert.match(script, /CREATE ROLE cornhill_auth_api NOLOGIN INHERIT/);
   assert.match(script, /GRANT cornhill_auth_runtime TO cornhill_auth_api/);
