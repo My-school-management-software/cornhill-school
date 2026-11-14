@@ -63,6 +63,7 @@ try {
     "staff_profiles",
     "staff_salary_agreements",
     "staff_scheduled_session_attendance",
+    "staff_work_schedules",
     "subjects"
   ];
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
