@@ -10,11 +10,12 @@ AS $function$
 DECLARE
   historical_attendance_exists boolean;
 BEGIN
-  IF TG_OP = 'UPDATE'
-     AND ROW(NEW.staff_account_id, NEW.schedule_id, NEW.starts_on, NEW.ends_on, NEW.saturday_required)
-         IS NOT DISTINCT FROM
-         ROW(OLD.staff_account_id, OLD.schedule_id, OLD.starts_on, OLD.ends_on, OLD.saturday_required) THEN
-    RETURN NEW;
+  IF TG_OP = 'UPDATE' THEN
+    IF ROW(NEW.staff_account_id, NEW.schedule_id, NEW.starts_on, NEW.ends_on, NEW.saturday_required)
+       IS NOT DISTINCT FROM
+       ROW(OLD.staff_account_id, OLD.schedule_id, OLD.starts_on, OLD.ends_on, OLD.saturday_required) THEN
+      RETURN NEW;
+    END IF;
   END IF;
 
   PERFORM pg_advisory_xact_lock(
@@ -27,6 +28,14 @@ BEGIN
     WHERE ad.staff_account_id = OLD.staff_account_id
       AND ad.work_date >= OLD.starts_on
       AND (OLD.ends_on IS NULL OR ad.work_date <= OLD.ends_on)
+  ) OR (
+    TG_OP = 'UPDATE' AND EXISTS (
+      SELECT 1
+      FROM cornhill_school.attendance_days ad
+      WHERE ad.staff_account_id = NEW.staff_account_id
+        AND ad.work_date >= NEW.starts_on
+        AND (NEW.ends_on IS NULL OR ad.work_date <= NEW.ends_on)
+    )
   ) INTO historical_attendance_exists;
 
   IF historical_attendance_exists THEN
