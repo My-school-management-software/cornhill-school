@@ -208,7 +208,7 @@
       const card=document.createElement("article");card.className="finance-review-item";
       const heading=document.createElement("strong");
       heading.textContent=kind==="expense"?(item.requestNumber+" · "+item.categoryName):(item.bankName+" · "+item.accountName+" · •••• "+item.last4);
-      const details=document.createElement("p");details.textContent=money(item.amountUgx)+" · "+item.status+" · "+(kind==="expense"?item.expenseDate:item.transactionDate);
+      const details=document.createElement("p");details.textContent=money(item.amountUgx)+" · "+(kind==="expense"?"Expense":item.transactionType)+" · "+item.status+" · "+(kind==="expense"?item.expenseDate:item.transactionDate);
       const description=document.createElement("p");description.textContent=item.description;
       card.append(heading,details,description);
       if(item.externalReference){const reference=document.createElement("p");reference.className="muted";reference.textContent="Reference: "+item.externalReference;card.append(reference);}
