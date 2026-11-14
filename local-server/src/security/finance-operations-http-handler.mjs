@@ -108,6 +108,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
      });
      break;
     case "expenseReview":
+     if(!["Approved","Rejected"].includes(body.decision))throw new InputError(400,"Choose Approved or Rejected.");
      if(!UUID.test(match[1]))throw new InputError(400,"Expense request ID is invalid.");
      result=await financeRepository.reviewLocalExpenseRequest({actorStaffId,requestId:match[1],decision:body.decision,note:body.note==null?null:textField(body,"note",body.decision==="Rejected"?5:0,500)});
      break;
@@ -125,6 +126,7 @@ export function createFinanceOperationsHttpHandler({authService,financeRepositor
      result=await financeRepository.createLocalBankTransaction({actorStaffId,accountId:body.accountId,transactionType:body.transactionType,amountUgx:amountField(body,"amountUgx"),description:textField(body,"description",5,500),externalReference:body.externalReference==null?null:textField(body,"externalReference",1,120)});
      break;
     case "bankReview":
+     if(!["Approved","Rejected"].includes(body.decision))throw new InputError(400,"Choose Approved or Rejected.");
      if(!UUID.test(match[1]))throw new InputError(400,"Bank transaction ID is invalid.");
      result=await financeRepository.reviewLocalBankTransaction({actorStaffId,transactionId:match[1],decision:body.decision,note:body.note==null?null:textField(body,"note",body.decision==="Rejected"?5:0,500)});
      break;
