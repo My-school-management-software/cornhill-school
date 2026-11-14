@@ -40,7 +40,7 @@ test("payroll link must be a deduction for the same staff member", () => {
   assert.match(sql, /linked_item_staff IS DISTINCT FROM NEW\.staff_account_id/);
 });
 
-test("decided special-session attendance cannot be overwritten", () => {
+  assert.match(sql, /linked_item_amount/);\n  assert.match(sql, /special_session_payroll_item_unique/);\n\ntest("decided special-session attendance cannot be overwritten", () => {
   assert.match(sql, /OLD\.director_decision IS NOT NULL/);
   assert.match(sql, /audited correction workflow/);
 });
