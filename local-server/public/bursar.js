@@ -227,7 +227,7 @@
           runFinanceQueueAction(messageId,async()=>{await request(prefix+id+"/review",{method:"POST",body:{decision:"Rejected",note:note.value.trim()}});});
         }));
       }
-      if(item.status==="Approved"){
+      if(item.status==="Pending"||item.status==="Approved"){
         if(kind==="expense"?financeQueuePermissions.expenseReview:financeQueuePermissions.bankReview){
           const evidence=document.createElement("input");evidence.type="text";evidence.maxLength=36;evidence.pattern="[0-9a-fA-F-]{36}";evidence.placeholder="Evidence request ID (UUID)";evidence.value=item.evidenceRequestId||"";
           evidence.setAttribute("aria-label","Evidence request ID");
@@ -239,12 +239,12 @@
             runFinanceQueueAction(messageId,async()=>{await request(prefix+id+"/evidence",{method:"POST",body:{evidenceRequestId:evidence.value.trim()}});});
           }));
         }
-        if(kind==="expense"&&financeQueuePermissions.expensePost){
+        if(item.status==="Approved"&&kind==="expense"&&financeQueuePermissions.expensePost){
           controls.append(queueButton("Post expense",()=>runFinanceQueueAction(messageId,async()=>{
             await request(prefix+id+"/post",{method:"POST",body:{}});
           })));
         }
-        if(kind==="bank"&&financeQueuePermissions.bankVerify){
+        if(item.status==="Approved"&&kind==="bank"&&financeQueuePermissions.bankVerify){
           controls.append(queueButton("Verify transaction",()=>runFinanceQueueAction(messageId,async()=>{
             await request(prefix+id+"/verify",{method:"POST",body:{}});
           })));
