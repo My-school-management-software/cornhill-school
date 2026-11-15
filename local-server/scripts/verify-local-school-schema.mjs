@@ -175,6 +175,7 @@ try {
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.attendance_days','attendance_status','SELECT') AS attendance_read, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.staff_attendance_incidents','headteacher_statement','UPDATE') AS statement_update, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.staff_attendance_incidents','director_decision','UPDATE') AS decision_update, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.staff_salary_agreements','daily_rate_ugx','SELECT') AS decision_daily_rate_read, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.staff_attendance_incidents','attendance_date','UPDATE') AS incident_identity_update, " +
     "has_table_privilege('cornhill_auth_runtime','cornhill_school.staff_attendance_incidents','DELETE') AS incident_delete"
   );
@@ -182,6 +183,7 @@ try {
     && leadershipPrivileges.rows[0]?.attendance_read === true
     && leadershipPrivileges.rows[0]?.statement_update === true
     && leadershipPrivileges.rows[0]?.decision_update === true
+    && leadershipPrivileges.rows[0]?.decision_daily_rate_read === true
     && leadershipPrivileges.rows[0]?.incident_identity_update === false
     && leadershipPrivileges.rows[0]?.incident_delete === false,
     "Staff leadership runtime grants must be limited to scoped reads and approved review columns.");

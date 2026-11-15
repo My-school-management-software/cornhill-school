@@ -33,4 +33,9 @@ GRANT SELECT (id, prep_date, title, start_time, end_time, class_name, notes,
   approval_status, is_published, director_approved_by, director_approved_at, created_at)
   ON cornhill_school.staff_prep_sessions TO cornhill_auth_runtime;
 
+-- The existing decision trigger checks the contractual daily rate before accepting a deduction.
+-- Only the fields used by that trigger are readable; the staff API never returns salary agreements.
+GRANT SELECT (staff_account_id, daily_rate_ugx, effective_from, effective_to, is_active, created_at)
+  ON cornhill_school.staff_salary_agreements TO cornhill_auth_runtime;
+
 COMMIT;
