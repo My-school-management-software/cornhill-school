@@ -11,7 +11,7 @@
   });
 
   function setServiceState(message, healthy) {
-    $("service-state").textContent = message;
+    $("service-message").textContent = message;
     $("service-state").classList.toggle("online", healthy === true);
     $("service-state").classList.toggle("offline", healthy === false);
   }
