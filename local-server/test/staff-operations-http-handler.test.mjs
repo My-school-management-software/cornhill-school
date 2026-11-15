@@ -24,11 +24,14 @@ function makeResponse(){
   return {status:null,headers:null,body:null,writeHead(status,headers){this.status=status;this.headers=headers;},end(body){this.body=body?.toString()??"";}};
 }
 function setup(permissions,overrides={}){
-  const calls={auth:[],workspace:[],leave:[]};
+  const calls={auth:[],workspace:[],leave:[],attendance:[],payroll:[],payrollVerify:[]};
   const authService={async authenticate(input){calls.auth.push(input);return principal(permissions);}};
   const repository={
     async getWorkspace(input){calls.workspace.push(input);return {capabilities:{attendance:input.includeAttendance,ownLeave:input.includeOwnLeave,leaveReview:input.includeLeaveReview,allLeaveBalances:input.includeAllLeaveBalances,payroll:input.includePayroll}};},
-    async submitLeaveRequest(input){calls.leave.push(input);return {id:"22222222-2222-4222-8222-222222222222",...input,status:"Submitted"};}
+    async submitLeaveRequest(input){calls.leave.push(input);return {id:"22222222-2222-4222-8222-222222222222",...input,status:"Submitted"};},
+    async recordAttendanceReview(input){calls.attendance.push(input);return {id:"33333333-3333-4333-8333-333333333333",...input};},
+    async recordPayrollDisbursement(input){calls.payroll.push(input);return {id:"44444444-4444-4444-8444-444444444444",...input};},
+    async verifyPayrollDisbursement(input){calls.payrollVerify.push(input);return {id:"44444444-4444-4444-8444-444444444444",...input};}
   };
   return {handler:createStaffOperationsHttpHandler({authService,repository,expectedOrigin:ORIGIN,...overrides}),calls};
 }
@@ -39,8 +42,8 @@ test("workspace exposes only sections supported by explicitly granted permission
   const handled=await handler(makeRequest(),res);
   assert.equal(handled,true);assert.equal(res.status,200);
   assert.deepEqual(calls.workspace[0],{
-    staffId:STAFF_ID,includeAttendance:true,includeOwnLeave:true,
-    includeLeaveReview:true,includeAllLeaveBalances:false,includePayroll:true
+    staffId:STAFF_ID,includeAttendance:true,includeAttendanceReview:false,includeOwnLeave:true,
+    includeLeaveReview:true,includeAllLeaveBalances:false,includePayroll:true,includePayrollRecord:false,includePayrollVerify:false
   });
 });
 
