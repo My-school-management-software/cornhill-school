@@ -82,6 +82,36 @@ function parseAssessmentInput(body) {
     assessmentType: body.assessmentType, assessmentDate, maxScore
   };
 }
+function isDate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+function parseAcademicYear(body) {
+  if (typeof body.yearLabel !== "string" || !/^\d{4}(?:[/-]\d{4})?$/.test(body.yearLabel.trim())) {
+    throw new InputError("Academic year must use YYYY or YYYY/YYYY format.");
+  }
+  if (!isDate(body.startsOn) || !isDate(body.endsOn) || body.endsOn < body.startsOn) {
+    throw new InputError("Academic year dates are invalid or the end date is before the start date.");
+  }
+  const status = body.status ?? "Planned";
+  if (!["Planned", "Active"].includes(status)) throw new InputError("Academic year status must be Planned or Active.");
+  return { yearLabel: body.yearLabel.trim(), startsOn: body.startsOn, endsOn: body.endsOn, status };
+}
+function parseAcademicTerm(body) {
+  if (!isLocalUuid(body.academicYearId)) throw new InputError("Choose a valid academic year.");
+  if (!Number.isInteger(body.termNumber) || body.termNumber < 1 || body.termNumber > 3) {
+    throw new InputError("Term number must be 1, 2 or 3.");
+  }
+  const termName = shortText(body.termName, 80, "Term name");
+  if (!isDate(body.startsOn) || !isDate(body.endsOn) || body.endsOn < body.startsOn) {
+    throw new InputError("Academic term dates are invalid or the end date is before the start date.");
+  }
+  const status = body.status ?? "Planned";
+  if (!["Planned", "Active"].includes(status)) throw new InputError("Academic term status must be Planned or Active.");
+  return { academicYearId: body.academicYearId, termNumber: body.termNumber, termName, startsOn: body.startsOn, endsOn: body.endsOn, status };
+}
 function parseMarks(body) {
   if (!isLocalUuid(body.assessmentId) || !isLocalUuid(body.classId) ||
       !Array.isArray(body.marks) || body.marks.length < 1 ||
@@ -123,6 +153,8 @@ function requireClassScope(principal, classId) {
 export function createAcademicsHttpHandler({ authService, academicsRepository, expectedOrigin } = {}) {
   if (!authService || typeof authService.authenticate !== "function" ||
       !academicsRepository || typeof academicsRepository.listWorkspace !== "function" ||
+      typeof academicsRepository.createAcademicYear !== "function" ||
+      typeof academicsRepository.createAcademicTerm !== "function" ||
       typeof academicsRepository.getAssessment !== "function" ||
       typeof academicsRepository.getAssessmentMarks !== "function" ||
       typeof academicsRepository.createAssessment !== "function" ||
@@ -143,12 +175,15 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
     const marksMatch = url.pathname.match(/^\/api\/v1\/academics\/assessments\/([0-9a-f-]{36})\/marks$/i);
     const statusMatch = url.pathname.match(/^\/api\/v1\/academics\/assessments\/([0-9a-f-]{36})\/status$/i);
     const isWorkspace = url.pathname === "/api/v1/academics/workspace";
+    const isYears = url.pathname === "/api/v1/academics/years";
+    const isTerms = url.pathname === "/api/v1/academics/terms";
     const isAssessments = url.pathname === "/api/v1/academics/assessments";
     const isMarks = url.pathname === "/api/v1/academics/marks";
-    if (!isWorkspace && !isAssessments && !isMarks && !marksMatch && !statusMatch) return false;
+    if (!isWorkspace && !isYears && !isTerms && !isAssessments && !isMarks && !marksMatch && !statusMatch) return false;
 
     const method = String(request.method ?? "GET").toUpperCase();
     const allowed = isWorkspace || marksMatch ? ["GET", "HEAD"] :
+      isYears || isTerms ? ["POST"] :
       isAssessments ? ["GET", "HEAD", "POST"] :
       isMarks ? ["POST"] : ["PATCH"];
     if (!allowed.includes(method)) {
@@ -173,6 +208,23 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
         sessionToken: readSessionTokenFromCookieHeader(request.headers.cookie),
         method, csrfToken
       });
+
+      if (isYears || isTerms) {
+        requireAcademicPermission(principal, ["academics.terms_manage"]);
+        const body = await readJson(request);
+        if (isYears) {
+          const year = await academicsRepository.createAcademicYear({
+            ...parseAcademicYear(body), staffId: principal.id
+          });
+          send(response, 201, { year });
+        } else {
+          const term = await academicsRepository.createAcademicTerm({
+            ...parseAcademicTerm(body), staffId: principal.id
+          });
+          send(response, 201, { term });
+        }
+        return true;
+      }
 
       if (isWorkspace || isAssessments) {
         requireAcademicPermission(principal, [

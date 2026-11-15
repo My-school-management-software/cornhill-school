@@ -11,6 +11,33 @@
 <div class="selectors"><label>Class<select id="class-select"><option value="">Choose permitted class</option></select></label><label>Academic term<select id="term-select"><option value="">Choose term</option></select></label><label>Assessment<select id="assessment-select"><option value="">Choose assessment</option></select></label></div>
 <div class="assessment-actions"><span id="assessment-status" class="pill">No assessment selected</span><div id="workflow-actions" class="actions"></div></div>
 </section>
+<section id="period-setup" class="panel" hidden>
+  <div class="section-head"><div><h2>Academic year and term setup</h2><p class="muted">Create the school calendar before assessments are entered. Periods are recorded with the responsible staff account.</p></div><span class="pill">Academic administration</span></div>
+  <div class="period-grid">
+    <form id="create-year-form" class="period-form">
+      <h3>Create academic year</h3>
+      <label>Year label<input name="yearLabel" required pattern="[0-9]{4}([/-][0-9]{4})?" maxlength="9" placeholder="2026 or 2026/2027"></label>
+      <label>Start date<input name="startsOn" type="date" required></label>
+      <label>End date<input name="endsOn" type="date" required></label>
+      <label>Status<select name="status"><option value="Planned">Planned</option><option value="Active">Active</option></select></label>
+      <button type="submit">Save academic year</button>
+    </form>
+    <form id="create-term-form" class="period-form">
+      <h3>Create term</h3>
+      <label>Academic year<select name="academicYearId" id="period-year-select" required><option value="">Choose academic year</option></select></label>
+      <label>Term number<select name="termNumber"><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
+      <label>Term name<input name="termName" required minlength="2" maxlength="80" value="Term 1"></label>
+      <label>Start date<input name="startsOn" type="date" required></label>
+      <label>End date<input name="endsOn" type="date" required></label>
+      <label>Status<select name="status"><option value="Planned">Planned</option><option value="Active">Active</option></select></label>
+      <button type="submit">Save academic term</button>
+    </form>
+  </div>
+  <div class="period-tables">
+    <div><h3>Academic years</h3><div id="years-list" class="period-list">No academic years created.</div></div>
+    <div><h3>Terms</h3><div id="terms-list" class="period-list">No terms created.</div></div>
+  </div>
+</section>
 <section id="create-panel" class="panel" hidden><h2>Create assessment</h2><form id="create-form" class="create-grid">
 <label>Assessment name<input name="assessmentName" required minlength="2" maxlength="100" placeholder="e.g. End of Term 1 Examination"></label>
 <label>Type<select name="assessmentType"><option>Beginning of Term</option><option>Mid Term</option><option selected>End of Term</option><option>Continuous Assessment</option><option>Mock</option><option>Practice</option></select></label>

@@ -38,3 +38,12 @@ test("runtime receives only column-scoped academic write permissions", () => {
   assert.match(sql, /REVOKE ALL ON TABLE cornhill_school\.academic_audit_events FROM PUBLIC/);
   assert.doesNotMatch(sql, /GRANT .* TO PUBLIC/i);
 });
+test("academic period setup migration adds immutable audit and constrained term setup grants", async () => {
+  const setupSql = await readFile(new URL("../migrations/078_local_academic_period_setup.sql", import.meta.url), "utf8");
+  assert.match(setupSql, /academic_period_audit_events/);
+  assert.match(setupSql, /academic_period_audit_events_append_only/);
+  assert.match(setupSql, /academic_term_year_dates_guard/);
+  assert.match(setupSql, /GRANT INSERT \(year_label,starts_on,ends_on,status,created_by_staff_id\)/);
+  assert.match(setupSql, /GRANT INSERT \(academic_year_id,term_number,term_name,starts_on,ends_on,status,created_by_staff_id\)/);
+  assert.doesNotMatch(setupSql, /GRANT .* TO PUBLIC/i);
+});

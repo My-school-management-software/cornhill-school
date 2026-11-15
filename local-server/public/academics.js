@@ -2,7 +2,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 let principal = null;
-let workspace = { classes: [], terms: [], assessments: [] };
+let workspace = { classes: [], years: [], terms: [], assessments: [] };
 let selected = null;
 const csrf = () => {
   const prefix = "__Host-cornhill_csrf=";
@@ -63,16 +63,46 @@ async function loadWorkspace() {
   setOptions($("class-select"), "Choose permitted class", workspace.classes,
     item => item.displayName + (item.stream ? " · " + item.stream : ""));
   if (selected?.classId && workspace.classes.some(item => item.id === selected.classId)) $("class-select").value = selected.classId;
+  setOptions($("period-year-select"), "Choose academic year", workspace.years,
+    item => item.yearLabel + " · " + item.status);
+  renderPeriods();
   setOptions($("term-select"), "Choose academic term", workspace.terms,
     item => item.academicYear + " · " + item.termName + " (" + item.status + ")");
   const active = workspace.terms.find(item => item.status === "Active");
   if (active) $("term-select").value = active.id;
   renderAssessments();
+  $("period-setup").hidden = !can("academics.terms_manage");
   $("create-panel").hidden = !can("academics.assessments_manage");
   const hasAccess = can("academics.results_view") || can("academics.marks_enter") || can("academics.assessments_manage");
   $("access-label").textContent = hasAccess ? "Authorised academic access" : "Read-only / no access";
   $("access-label").hidden = !hasAccess;
-  notice("Academic workspace loaded. " + workspace.classes.length + " permitted class(es), " + workspace.terms.length + " term(s).");
+  notice("Academic workspace loaded. " + workspace.classes.length + " permitted class(es), " +
+    workspace.years.length + " year(s), " + workspace.terms.length + " term(s).");
+}
+function renderPeriods() {
+  const yearHost = $("years-list");
+  const termHost = $("terms-list");
+  yearHost.replaceChildren();
+  termHost.replaceChildren();
+  if (!workspace.years.length) yearHost.textContent = "No academic years created.";
+  else for (const year of workspace.years) {
+    const item = document.createElement("div");
+    item.className = "period-item";
+    item.textContent = year.yearLabel + " · " + year.startsOn + " to " + year.endsOn + " · " + year.status;
+    yearHost.append(item);
+  }
+  if (!workspace.terms.length) termHost.textContent = "No terms created.";
+  else for (const term of workspace.terms) {
+    const item = document.createElement("div");
+    item.className = "period-item";
+    item.textContent = term.academicYear + " · " + term.termName + " · " + term.startsOn + " to " + term.endsOn + " · " + term.status;
+    termHost.append(item);
+  }
+  const yearSelect = $("period-year-select");
+  if (yearSelect && !yearSelect.value) {
+    const activeYear = workspace.years.find(year => year.status === "Active");
+    if (activeYear) yearSelect.value = activeYear.id;
+  }
 }
 function appendCell(row, value) {
   const cell = document.createElement("td");
@@ -204,6 +234,35 @@ async function saveMarks() {
   notice(result.savedCount + " mark(s) saved. Audit history was recorded.");
   await loadSelectedAssessment();
 }
+$("create-year-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  try {
+    await api("/academics/years", {
+      method: "POST",
+      body: { yearLabel: form.get("yearLabel"), startsOn: form.get("startsOn"),
+        endsOn: form.get("endsOn"), status: form.get("status") }
+    });
+    event.currentTarget.reset();
+    await loadWorkspace();
+    notice("Academic year created and recorded in the audit history.");
+  } catch (error) { notice(error.message, true); }
+});
+$("create-term-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  try {
+    await api("/academics/terms", {
+      method: "POST",
+      body: { academicYearId: form.get("academicYearId"), termNumber: Number(form.get("termNumber")),
+        termName: form.get("termName"), startsOn: form.get("startsOn"),
+        endsOn: form.get("endsOn"), status: form.get("status") }
+    });
+    event.currentTarget.reset();
+    await loadWorkspace();
+    notice("Academic term created and recorded in the audit history.");
+  } catch (error) { notice(error.message, true); }
+});
 $("login-form").addEventListener("submit", async event => {
   event.preventDefault();
   try {

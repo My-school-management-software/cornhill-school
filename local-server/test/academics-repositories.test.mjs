@@ -30,12 +30,14 @@ test("workspace queries enforce supplied class scope and return class, term and 
   const pool = fixturePool({
     queryResults: [
       { rows: [{ id: CLASS, classCode: "P1", displayName: "P.1", subjects: [] }] },
+      { rows: [{ id: TERM, yearLabel: "2026", startsOn: "2026-01-01", endsOn: "2026-12-31", status: "Active" }] },
       { rows: [{ id: TERM, termNumber: 1, termName: "Term 1", academicYear: "2026" }] },
       { rows: [] }
     ]
   });
   const data = await createPostgresAcademicsRepository(pool).listWorkspace({ classIds: [CLASS] });
   assert.equal(data.classes[0].id, CLASS);
+  assert.equal(data.years[0].yearLabel, "2026");
   assert.equal(data.terms[0].academicYear, "2026");
   assert.match(pool.calls[0].sql, /c\.id = ANY\(\$1::uuid\[\]\)/);
   assert.deepEqual(pool.calls[0].values, [[CLASS], null]);
@@ -55,6 +57,43 @@ test("assessment mark register uses historical enrolment on the assessment date"
   assert.equal(data.learners[0].marks[0].subjectName, "English");
   assert.match(pool.calls[2].sql, /FROM cornhill_school\.enrolment_periods ep/);
   assert.deepEqual(pool.calls[2].values, [CLASS, "2026-06-15"]);
+});
+
+test("academic year creation is attributed to the authenticated staff account", async () => {
+  const pool = fixturePool({ queryResults: [{ rows: [{
+    id: ID, yearLabel: "2026", startsOn: "2026-01-01", endsOn: "2026-12-31", status: "Active"
+  }], rowCount: 1 }] });
+  const result = await createPostgresAcademicsRepository(pool).createAcademicYear({
+    yearLabel: "2026", startsOn: "2026-01-01", endsOn: "2026-12-31", status: "Active", staffId: TERM
+  });
+  assert.equal(result.yearLabel, "2026");
+  assert.match(pool.calls[0].sql, /created_by_staff_id/);
+  assert.deepEqual(pool.calls[0].values, ["2026", "2026-01-01", "2026-12-31", "Active", TERM]);
+});
+
+test("academic term insert validates selected year date boundaries", async () => {
+  const pool = fixturePool({ queryResults: [{ rows: [{
+    id: SUBJECT, academicYearId: ID, termNumber: 1, termName: "Term 1",
+    startsOn: "2026-01-01", endsOn: "2026-04-30", status: "Active"
+  }], rowCount: 1 }] });
+  const result = await createPostgresAcademicsRepository(pool).createAcademicTerm({
+    academicYearId: ID, termNumber: 1, termName: "Term 1",
+    startsOn: "2026-01-01", endsOn: "2026-04-30", status: "Active", staffId: TERM
+  });
+  assert.equal(result.termName, "Term 1");
+  assert.match(pool.calls[0].sql, /y\.starts_on/);
+  assert.match(pool.calls[0].sql, /created_by_staff_id/);
+});
+
+test("academic term creation rejects out-of-year date ranges", async () => {
+  const pool = fixturePool({ queryResults: [{ rows: [], rowCount: 0 }] });
+  await assert.rejects(
+    createPostgresAcademicsRepository(pool).createAcademicTerm({
+      academicYearId: ID, termNumber: 1, termName: "Term 1",
+      startsOn: "2025-12-15", endsOn: "2026-04-30", status: "Planned", staffId: TERM
+    }),
+    /within the selected academic year/
+  );
 });
 
 test("mark saving locks the assessment and commits all rows in one transaction", async () => {

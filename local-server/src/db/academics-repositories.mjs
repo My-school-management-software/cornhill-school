@@ -82,6 +82,13 @@ export function createPostgresAcademicsRepository(pool) {
         [classIds, classId]
       );
 
+      const yearsResult = await pool.query(
+        "SELECT id::text AS id, year_label AS \"yearLabel\", starts_on::text AS \"startsOn\", " +
+        "ends_on::text AS \"endsOn\", status " +
+        "FROM cornhill_school.academic_years WHERE status <> 'Archived' " +
+        "ORDER BY starts_on DESC LIMIT 30"
+      );
+
       const termsResult = await pool.query(
         "SELECT t.id::text AS id, t.term_number AS \"termNumber\", t.term_name AS \"termName\", " +
         "t.starts_on::text AS \"startsOn\", t.ends_on::text AS \"endsOn\", t.status, " +
@@ -110,6 +117,7 @@ export function createPostgresAcademicsRepository(pool) {
       );
 
       return {
+        years: yearsResult.rows,
         classes: classesResult.rows.map(row => ({
           id: row.id, classCode: row.classCode, displayName: row.displayName,
           section: row.section, levelOrder: row.levelOrder, stream: row.stream,
@@ -165,6 +173,38 @@ export function createPostgresAcademicsRepository(pool) {
         }))
       }));
       return { assessment, subjects, learners };
+    },
+
+    async createAcademicYear(input) {
+      const result = await pool.query(
+        "INSERT INTO cornhill_school.academic_years " +
+        "(year_label, starts_on, ends_on, status, created_by_staff_id) " +
+        "VALUES ($1, $2::date, $3::date, $4, $5::uuid) " +
+        "RETURNING id::text AS id, year_label AS \"yearLabel\", starts_on::text AS \"startsOn\", " +
+        "ends_on::text AS \"endsOn\", status",
+        [input.yearLabel, input.startsOn, input.endsOn, input.status, input.staffId]
+      );
+      return result.rows[0];
+    },
+
+    async createAcademicTerm(input) {
+      const result = await pool.query(
+        "INSERT INTO cornhill_school.academic_terms " +
+        "(academic_year_id, term_number, term_name, starts_on, ends_on, status, created_by_staff_id) " +
+        "SELECT y.id, $2, $3, $4::date, $5::date, $6, $7::uuid " +
+        "FROM cornhill_school.academic_years y " +
+        "WHERE y.id = $1::uuid AND $4::date >= y.starts_on AND $5::date <= y.ends_on " +
+        "AND ($6 <> 'Active' OR y.status = 'Active') " +
+        "RETURNING id::text AS id, academic_year_id::text AS \"academicYearId\", " +
+        "term_number AS \"termNumber\", term_name AS \"termName\", " +
+        "starts_on::text AS \"startsOn\", ends_on::text AS \"endsOn\", status",
+        [input.academicYearId, input.termNumber, input.termName, input.startsOn,
+          input.endsOn, input.status, input.staffId]
+      );
+      if (result.rowCount !== 1) {
+        throw conflict("Academic term dates must be within the selected academic year, and an active term requires an active year.");
+      }
+      return result.rows[0];
     },
 
     async createAssessment(input) {

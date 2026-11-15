@@ -26,6 +26,8 @@ function setup({ principal = teacher, overrides = {} } = {}) {
     async listWorkspace(input) { calls.workspace++; calls.workspaceInput = input; return { classes: [], terms: [], assessments: [] }; },
     async getAssessment() { return { id: ASSESSMENT_ID, classId: CLASS_ID, status: "Open", maxScore: 100 }; },
     async getAssessmentMarks() { calls.marks++; return { assessment: { id: ASSESSMENT_ID, classId: CLASS_ID, status: "Open" }, subjects: [], learners: [] }; },
+    async createAcademicYear(input) { calls.createdYear = input; return { id: TERM, ...input }; },
+    async createAcademicTerm(input) { calls.createdTerm = input; return { id: ASSESSMENT_ID, ...input }; },
     async createAssessment(input) { calls.created = input; return { id: ASSESSMENT_ID, ...input }; },
     async transitionAssessment(input) { calls.transitions++; return { status: input.nextStatus }; },
     async saveMarks(input) { calls.saved++; calls.savedInput = input; return { savedCount: input.marks.length }; },
@@ -134,4 +136,40 @@ test("assessment status changes are permission checked and delegated to reposito
   });
   assert.equal(result.statusCode, 200);
   assert.equal(calls.transitions, 1);
+});
+test("only an authorised academic administrator can create a school year", async () => {
+  const admin = { ...teacher, roles: ["director_of_studies"], classIds: [],
+    rolePermissions: { director_of_studies: ["academics.terms_manage"] } };
+  const { handler, calls } = setup({ principal: admin });
+  const body = { yearLabel: "2026/2027", startsOn: "2026-09-01", endsOn: "2027-08-31", status: "Active" };
+  const result = await invoke(handler, { path: "/api/v1/academics/years", method: "POST", body });
+  assert.equal(result.statusCode, 201);
+  assert.equal(calls.createdYear.staffId, STAFF_ID);
+  assert.equal(calls.createdYear.yearLabel, "2026/2027");
+});
+test("teacher cannot create a year and invalid calendar dates are rejected", async () => {
+  const teacherSetup = setup();
+  const denied = await invoke(teacherSetup.handler, { path: "/api/v1/academics/years", method: "POST",
+    body: { yearLabel: "2026", startsOn: "2026-01-01", endsOn: "2026-12-31" } });
+  assert.equal(denied.statusCode, 403);
+  const admin = { ...teacher, roles: ["director_of_studies"], classIds: [],
+    rolePermissions: { director_of_studies: ["academics.terms_manage"] } };
+  const setupAdmin = setup({ principal: admin });
+  const invalid = await invoke(setupAdmin.handler, { path: "/api/v1/academics/years", method: "POST",
+    body: { yearLabel: "2026", startsOn: "2026-02-30", endsOn: "2026-12-31" } });
+  assert.equal(invalid.statusCode, 400);
+});
+test("academic terms require management permission and valid dates and year identifiers", async () => {
+  const admin = { ...teacher, roles: ["headteacher"], classIds: [],
+    rolePermissions: { headteacher: ["academics.terms_manage"] } };
+  const { handler, calls } = setup({ principal: admin });
+  const invalid = await invoke(handler, { path: "/api/v1/academics/terms", method: "POST",
+    body: { academicYearId: "invalid", termNumber: 4, termName: "T", startsOn: "2026-01-01", endsOn: "2026-04-30" } });
+  assert.equal(invalid.statusCode, 400);
+  assert.equal(calls.createdTerm, undefined);
+  const valid = await invoke(handler, { path: "/api/v1/academics/terms", method: "POST",
+    body: { academicYearId: ASSESSMENT_ID, termNumber: 1, termName: "Term 1",
+      startsOn: "2026-01-01", endsOn: "2026-04-30", status: "Active" } });
+  assert.equal(valid.statusCode, 201);
+  assert.equal(calls.createdTerm.staffId, STAFF_ID);
 });
