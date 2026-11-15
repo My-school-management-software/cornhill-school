@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#153a36">
+  <title>CORNHILL | Attendance Devices & Imports</title>
+  <link rel="stylesheet" href="/attendance-import.css">
+  <script src="/attendance-import.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/app" aria-label="Workspace home">C</a>
+  <div><p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p><h1>Attendance Devices & Imports</h1></div>
+  <span class="secure">LOCAL · AUDITED IMPORTS</span>
+</header>
+<main class="layout">
+  <nav class="nav"><a href="/app">Workspace home</a><a href="/staff-operations">Staff Operations</a><a href="/leadership">Leadership</a></nav>
+  <div id="notice" class="notice" role="status" aria-live="polite">Connecting to the local attendance service…</div>
+
+  <section id="login" class="panel narrow" hidden>
+    <p class="eyebrow">SECURE STAFF ACCESS</p><h2>Sign in</h2>
+    <p class="muted">Attendance device setup and imports require the explicit staff.attendance_import permission.</p>
+    <form id="login-form">
+      <label>Staff username<input id="username" autocomplete="username" required minlength="3" maxlength="120"></label>
+      <label>Password<input id="password" type="password" autocomplete="current-password" required maxlength="1024"></label>
+      <button type="submit">Sign in securely</button>
+    </form>
+  </section>
+
+  <section id="app" hidden>
+    <div class="welcome panel">
+      <div><p class="eyebrow">ATTENDANCE DATA GOVERNANCE</p><h2 id="staff-name">Staff member</h2><p id="staff-roles" class="muted"></p></div>
+      <div class="actions"><button id="refresh" class="secondary" type="button">Refresh records</button><button id="logout" class="secondary" type="button">Sign out</button></div>
+    </div>
+
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">TERMINAL REGISTER</p><h2>Attendance devices</h2><p class="muted">Register the school's terminal before importing its exported records. Device identity is retained once attendance history exists.</p></div><span class="pill">USB · LAN · CSV</span></div>
+      <form id="device-form" class="grid-form">
+        <label>Device code<input name="deviceCode" required maxlength="32" pattern="[A-Z0-9_-]{2,32}" placeholder="e.g. ATTENDANCE-01"></label>
+        <label>Device name<input name="deviceName" required maxlength="100" placeholder="Main office attendance terminal"></label>
+        <label>Connection type<select name="connectionType" required><option>USB</option><option>LAN</option><option>Manual Import</option></select></label>
+        <label>Manufacturer<input name="manufacturer" maxlength="100"></label>
+        <label>Model<input name="model" maxlength="100" placeholder="Enter after the terminal is selected"></label>
+        <label>Serial number<input name="serialNumber" maxlength="100"></label>
+        <label class="wide">Physical location<input name="deviceLocation" maxlength="160" placeholder="Main office"></label>
+        <div class="form-action wide"><button type="submit">Register device</button><span class="muted">New devices begin as Planned. Activate only after identity and staff mappings are checked.</span></div>
+      </form>
+      <div class="table-wrap"><table><thead><tr><th>Code</th><th>Device</th><th>Connection</th><th>Model / Serial</th><th>Status</th><th>Last import</th><th>Actions</th></tr></thead><tbody id="device-rows"></tbody></table></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">STAFF IDENTITY MAPPING</p><h2>Map terminal identifiers to school staff</h2><p class="muted">The same terminal ID can be reused only with non-overlapping effective dates. Historical mappings are retained and cannot be reassigned.</p></div></div>
+      <form id="mapping-form" class="grid-form">
+        <label>Attendance device<select name="deviceId" id="mapping-device" required><option value="">Choose device</option></select></label>
+        <label>School staff member<select name="staffId" id="mapping-staff" required><option value="">Choose active staff member</option></select></label>
+        <label>Terminal staff identifier<input name="deviceStaffIdentifier" required maxlength="80" placeholder="Identifier stored in the fingerprint terminal"></label>
+        <label>Effective from<input name="effectiveFrom" type="date" required></label>
+        <div class="form-action wide"><button type="submit">Save staff mapping</button><span class="muted">The staff member must have an active school staff account.</span></div>
+      </form>
+      <div class="table-wrap"><table><thead><tr><th>Device identifier</th><th>School staff</th><th>Effective from</th><th>Effective to</th><th>Status</th><th>Action</th></tr></thead><tbody id="mapping-rows"></tbody></table></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">SOURCE FILE IMPORT</p><h2>Import terminal attendance CSV</h2><p class="muted">This is a vendor-neutral file import. It does not claim to read a USB device live; export the terminal's CSV file first. Only event records are imported, not fingerprint images or templates.</p></div><span class="pill">Max 2 MB · 5,000 rows</span></div>
+      <form id="import-form" class="grid-form">
+        <label>Active device<select name="deviceId" id="import-device" required><option value="">Choose an active device</option></select></label>
+        <label>CSV file<input id="csv-file" type="file" accept=".csv,text/csv" required></label>
+        <label>Staff identifier column<input name="staffIdentifier" required maxlength="100" placeholder="e.g. User ID"></label>
+        <label>Event date/time column<input name="occurredAt" required maxlength="100" placeholder="e.g. Punch Time"></label>
+        <label>Event type column (optional)<input name="eventType" maxlength="100" placeholder="e.g. State"></label>
+        <label>Event ID column (optional)<input name="externalEventId" maxlength="100" placeholder="e.g. Record ID"></label>
+        <div class="form-action wide"><button id="import-submit" type="submit">Validate and import CSV</button><span id="import-message" class="muted" role="status">Local time without a timezone is interpreted as Uganda time (UTC+03:00). ISO timestamps with an explicit timezone are also accepted.</span></div>
+      </form>
+      <div id="import-result" class="result" hidden aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">IMMUTABLE IMPORT HISTORY</p><h2>Recent import batches</h2><p class="muted">Each source file is identified by SHA-256. Reimporting the same file is blocked; individual rejected rows retain a hash and reason, not the raw CSV content.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Started</th><th>Device</th><th>Source file</th><th>Received</th><th>Accepted</th><th>Rejected</th><th>Status</th><th>Details</th></tr></thead><tbody id="import-rows"></tbody></table></div>
+      <div id="rejection-result" class="rejection-result" hidden></div>
+    </section>
+
+    <aside class="safety-note">
+      <strong>Important processing boundary:</strong> imported events start Pending and do not automatically create or modify a staff attendance day, salary, absence decision or payroll deduction. Device-specific direct USB synchronisation, event verification and attendance-day calculation still require their own tested integration and the exact terminal model/export specification.
+    </aside>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#153a36"><title>CORNHILL | Leadership & Staff</title><link rel="stylesheet" href="/leadership.css"><script src="/leadership.js" defer></script></head>
+<body>
+<header class="top"><a class="brand" href="/school">C</a><div><p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p><h1>Leadership & Staff Office</h1></div><span class="secure">LOCAL · SECURE STAFF ACCESS</span></header>
+<main class="layout">
+<div id="notice" class="notice" role="status" aria-live="polite">Checking staff leadership service…</div>
+<section id="login" class="panel narrow" hidden><p class="eyebrow">STAFF ACCOUNT</p><h2>Sign in</h2><form id="login-form"><label>Username<input id="username" autocomplete="username" required minlength="3"></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><button>Sign in</button></form></section>
+<section id="app" hidden>
+<div class="welcome"><div><p class="eyebrow">STAFF GOVERNANCE</p><h2 id="staff-name">Staff member</h2><p id="staff-roles" class="muted"></p></div><div class="actions"><a class="button secondary" href="/app">Workspace home</a><a class="button secondary" href="/staff-operations">Staff Operations</a><a class="button secondary" href="/attendance-import">Attendance Imports</a><a class="button secondary" href="/school">School office</a><a id="bursar-link" class="button secondary" href="/bursar" hidden>Bursar & Finance</a><button id="reload" class="secondary">Refresh</button><button id="logout" class="secondary">Sign out</button></div></div>
+<section id="attendance-panel" class="panel" hidden><div class="section-head"><div><h2>Today's staff attendance</h2><p class="muted">Records shown from verified local attendance-day entries.</p></div><span id="attendance-date" class="pill"></span></div>
+<div class="stats"><article><span>Active staff</span><strong id="staff-total">—</strong></article><article><span>Present</span><strong id="staff-present">—</strong></article><article><span>Late</span><strong id="staff-late">—</strong></article><article><span>Absent</span><strong id="staff-absent">—</strong></article></div>
+<div class="table-wrap"><table><thead><tr><th>Staff</th><th>Position</th><th>First clock-in</th><th>Last clock-out</th><th>Status</th><th>Worked minutes</th><th>Verification</th></tr></thead><tbody id="attendance-rows"></tbody></table></div></section>
+<section id="staff-panel" class="panel" hidden><div class="section-head"><div><h2>Staff directory</h2><p class="muted">Employment profiles available to staff with profile-management authority.</p></div><span id="staff-count" class="pill"></span></div>
+<div class="table-wrap"><table><thead><tr><th>Staff number</th><th>Name</th><th>Job title</th><th>Department</th><th>Status</th><th>Hired</th></tr></thead><tbody id="staff-rows"></tbody></table></div></section>
+<section id="incidents-panel" class="panel" hidden><div class="section-head"><div><h2>Attendance incident review</h2><p class="muted">Headteacher/DOS statements and Director decisions are separate, recorded actions. The database enforces the review window and role authority.</p></div><span id="incident-count" class="pill"></span></div>
+<div id="incidents-list" class="incident-list"></div></section>
+<section id="sessions-panel" class="panel" hidden><div class="section-head"><div><h2>Special staff preparation sessions</h2><p class="muted">Upcoming published and draft session information.</p></div></div><div id="sessions-list" class="session-list"></div></section>
+<section id="guardian-access-panel" class="panel" hidden>
+  <div class="section-head"><div><h2>Parent & Guardian Access</h2><p class="muted">Issue a one-time PIN and approve access only for a registered guardian contact. This section requires the separate high-risk guardians.access_approve permission.</p></div><button id="guardian-refresh" class="secondary" type="button">Refresh contacts</button></div>
+  <div id="guardian-credential" class="guardian-credential" hidden>
+    <div><strong>One-time guardian PIN</strong><p class="muted">Share this PIN privately with the guardian. It is shown once and is not stored in readable form.</p><code id="guardian-pin" class="guardian-pin"></code></div>
+    <div class="guardian-credential-actions"><button id="copy-guardian-pin" type="button">Copy PIN</button><button id="dismiss-guardian-pin" class="secondary" type="button">Dismiss</button></div>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>Learner</th><th>Pupil code</th><th>Guardian</th><th>Phone</th><th>Account</th><th>Link</th><th>Action</th></tr></thead><tbody id="guardian-contact-rows"><tr><td colspan="7">Loading approved guardian contacts…</td></tr></tbody></table></div>
+</section>
+<section id="admin-panel" class="panel" hidden>
+  <div class="section-head"><div><h2>Director · Staff accounts and role permissions</h2><p class="muted">Create staff login accounts and configure access by role. The Director role and backup/role-management permissions remain protected.</p></div><span class="pill">Director authority only</span></div>
+  <div class="admin-grid">
+    <form id="staff-account-form" class="admin-form">
+      <h3>Create staff account</h3>
+      <label>Staff number<input name="staffNumber" required maxlength="30" pattern="[A-Z0-9_-]{2,30}" placeholder="e.g. TCH-001"></label>
+      <label>Full legal name<input name="legalName" required minlength="2" maxlength="160"></label>
+      <label>Preferred name<input name="preferredName" maxlength="160"></label>
+      <label>Job title<input name="jobTitle" required minlength="2" maxlength="100" placeholder="Class Teacher"></label>
+      <label>Department<input name="department" maxlength="100"></label>
+      <label>Username<input name="username" required minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,63}" autocomplete="off"></label>
+      <label>Email<input name="email" type="email" maxlength="254"></label>
+      <label>Phone (+256...)<input name="phoneE164" inputmode="tel" pattern="\+256[0-9]{9}" placeholder="+2567XXXXXXXX"></label>
+      <label>Login role<select name="roleCode" id="new-staff-role" required><option value="">Choose role</option></select></label>
+      <label>Hire date<input name="hiredOn" type="date" required></label>
+      <label>Initial password<input name="password" type="password" required minlength="14" maxlength="128" autocomplete="new-password"></label>
+      <button type="submit">Create staff account</button>
+      <p class="form-note">Password is hashed with Argon2id and never shown again. Share it privately with the staff member.</p>
+    </form>
+    <div class="admin-form">
+      <h3>Configure role permissions</h3>
+      <label>Staff role<select id="permission-role"><option value="">Choose role</option></select></label>
+      <div id="permission-list" class="permission-list"><div class="empty">Choose a role to view its permissions.</div></div>
+      <button id="save-role-permissions" type="button">Save role permissions</button>
+      <p class="form-note">High-risk access is explicitly identified. Director-only permissions cannot be delegated.</p>
+    </div>
+  </div>
+  <h3 class="admin-subtitle">Staff login accounts</h3>
+  <div class="table-wrap"><table><thead><tr><th>Staff no.</th><th>Name</th><th>Username</th><th>Job title</th><th>Role(s)</th><th>Account</th><th>Employment</th></tr></thead><tbody id="account-rows"></tbody></table></div>
+</section>
+</section></main>
+</body></html>

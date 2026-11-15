@@ -1,0 +1,30 @@
+name: cornhill-local
+
+services:
+  database:
+    image: postgres:17
+    container_name: cornhill-local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${CORNHILL_DB_NAME:?Set CORNHILL_DB_NAME in local-server/.env}
+      POSTGRES_USER: ${CORNHILL_DB_ADMIN_USER:?Set CORNHILL_DB_ADMIN_USER in local-server/.env}
+      POSTGRES_PASSWORD: ${CORNHILL_DB_ADMIN_PASSWORD:?Set a strong CORNHILL_DB_ADMIN_PASSWORD in local-server/.env}
+      TZ: Africa/Kampala
+      PGTZ: Africa/Kampala
+    ports:
+      # Loopback only: not reachable directly from other school computers.
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - cornhill_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  cornhill_pgdata:
+    name: cornhill-local-postgres-data

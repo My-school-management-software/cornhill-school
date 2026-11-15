@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14532d">
+  <title>CORNHILL · Local Backend Prototype</title>
+  <style>
+    :root{font-family:system-ui,Segoe UI,sans-serif;color:#183526;background:#f3f7f3}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}
+    main{width:min(680px,100%);background:#fff;border:1px solid #dce8df;border-radius:18px;padding:clamp(22px,5vw,40px);box-shadow:0 16px 50px #173d2412}
+    .badge{display:inline-block;border-radius:999px;padding:7px 12px;background:#e9f4eb;color:#14532d;font-size:12px;font-weight:800}
+    h1{font-size:clamp(27px,5vw,40px);margin:16px 0 8px;color:#14532d}
+    p{line-height:1.65;color:#52665a}
+    .warning{margin:20px 0;padding:16px;border-radius:12px;background:#fff6e8;border:1px solid #f0d5a5;color:#74420c}
+    .warning strong{display:block;margin-bottom:5px}
+    a{display:inline-block;margin-top:10px;padding:11px 16px;border-radius:9px;background:#14532d;color:#fff;text-decoration:none;font-weight:750}
+    small{display:block;margin-top:22px;color:#718076}
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">LOCAL SERVER · TEST SCAFFOLD</span>
+    <h1>CORNHILL local backend</h1>
+    <p>The first local server component is running on this computer. This page checks that the local Node.js server can start and respond.</p>
+    <div class="warning">
+      <strong>Prototype only — not the school management system.</strong>
+      No database, staff login, learner records, finance, attendance, reports or parent portal are connected. Do not enter real school information here.
+    </div>
+    <p>The server is currently restricted to this computer (127.0.0.1). It is not open to other school computers or phones.</p>
+    <a href="/api/v1/health">Check local server health</a>
+    <small>CORNHILL Nursery and Primary School · Local migration workbench</small>
+  </main>
+</body>
+</html>

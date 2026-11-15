@@ -1,0 +1,28 @@
+# Local environment secrets
+.env
+.env.*
+!.env.example
+
+# Local PostgreSQL exports and backups
+*.sql
+*.dump
+*.backup
+backups/
+
+# Runtime logs and temporary files
+*.log
+.tmp/
+
+# TLS key material and private certificate bundles
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# Generated local npm lockfiles are not part of this lockfile-free desktop install.
+package-lock.json
+
+# Temporary local diagnostic scratch file; never commit machine-specific checks.
+scripts/check-director-account.mjs
