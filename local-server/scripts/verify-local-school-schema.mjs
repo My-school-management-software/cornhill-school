@@ -102,12 +102,14 @@ try {
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.assessments','status','UPDATE') AS assessment_status_update, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.assessments','assessment_name','UPDATE') AS assessment_name_update, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.learner_marks','score','INSERT') AS marks_insert, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.enrolment_periods','class_id','SELECT') AS enrolment_class_read, " +
     "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_audit_events','INSERT') AS audit_insert"
   );
   assert(academicPrivileges.rows[0]?.term_read === true
     && academicPrivileges.rows[0]?.assessment_status_update === true
     && academicPrivileges.rows[0]?.assessment_name_update === false
     && academicPrivileges.rows[0]?.marks_insert === true
+    && academicPrivileges.rows[0]?.enrolment_class_read === true
     && academicPrivileges.rows[0]?.audit_insert === false,
     "Academic API database privileges must remain narrowly scoped.");
   const academicGuardSql = await pool.query(
@@ -115,7 +117,7 @@ try {
   );
   const academicGuardDefinition = academicGuardSql.rows[0]?.definition ?? "";
   assert(academicGuardDefinition.includes("Marks can only be entered while an assessment is open")
-    && academicGuardDefinition.includes("Learner is not currently enrolled in the assessment class"),
+    && academicGuardDefinition.includes("Learner was not enrolled in the assessment class on the assessment date"),
     "Database mark guard must enforce assessment and learner class scope.");
 
   const classes = await pool.query(

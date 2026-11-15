@@ -26,7 +26,8 @@ function assessmentShape(row) {
     maxScore: Number(row.maxScore),
     status: row.status,
     lockedAt: row.lockedAt,
-    publishedAt: row.publishedAt
+    publishedAt: row.publishedAt,
+    effectiveDate: row.effectiveDate
   };
 }
 
@@ -44,7 +45,8 @@ export function createPostgresAcademicsRepository(pool) {
       "t.term_name AS \"termName\", y.year_label AS \"academicYear\", " +
       "a.assessment_name AS \"assessmentName\", a.assessment_type AS \"assessmentType\", " +
       "a.assessment_date::text AS \"assessmentDate\", a.max_score::text AS \"maxScore\", " +
-      "a.status, a.locked_at AS \"lockedAt\", a.published_at AS \"publishedAt\" " +
+      "a.status, a.locked_at AS \"lockedAt\", a.published_at AS \"publishedAt\", " +
+      "COALESCE(a.assessment_date, a.created_at::date)::text AS \"effectiveDate\" " +
       "FROM cornhill_school.assessments a " +
       "JOIN cornhill_school.classes c ON c.id = a.class_id " +
       "JOIN cornhill_school.academic_terms t ON t.id = a.academic_term_id " +
@@ -132,11 +134,14 @@ export function createPostgresAcademicsRepository(pool) {
           [assessment.classId]
         ),
         pool.query(
-          "SELECT id::text AS id, pupil_code AS \"pupilCode\", lin, first_name AS \"firstName\", " +
-          "middle_name AS \"middleName\", last_name AS \"lastName\" " +
-          "FROM cornhill_school.learners WHERE class_id = $1::uuid AND status = 'Active' " +
-          "ORDER BY last_name, first_name, pupil_code LIMIT 500",
-          [assessment.classId]
+          "SELECT DISTINCT l.id::text AS id, l.pupil_code AS \"pupilCode\", l.lin, " +
+          "l.first_name AS \"firstName\", l.middle_name AS \"middleName\", l.last_name AS \"lastName\" " +
+          "FROM cornhill_school.enrolment_periods ep " +
+          "JOIN cornhill_school.learners l ON l.id = ep.learner_id " +
+          "WHERE ep.class_id = $1::uuid AND ep.admission_date <= $2::date " +
+          "AND (ep.exit_date IS NULL OR ep.exit_date >= $2::date) " +
+          "ORDER BY l.last_name, l.first_name, l.pupil_code LIMIT 500",
+          [assessment.classId, assessment.effectiveDate]
         ),
         pool.query(
           "SELECT learner_id::text AS \"learnerId\", subject_id::text AS \"subjectId\", " +

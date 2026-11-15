@@ -139,8 +139,8 @@ AS $function$
 DECLARE
   assessment_status text;
   assessment_max_score numeric(7,2);
-  learner_class_id uuid;
-  learner_status text;
+  assessment_reference_date date;
+  learner_enrolment_exists boolean;
 BEGIN
   IF TG_OP = 'UPDATE' AND (
     NEW.assessment_id IS DISTINCT FROM OLD.assessment_id
@@ -154,12 +154,11 @@ BEGIN
       USING ERRCODE = 'check_violation';
   END IF;
 
-  SELECT a.status, a.max_score, l.class_id, l.status
-    INTO assessment_status, assessment_max_score, learner_class_id, learner_status
+  SELECT a.status, a.max_score, COALESCE(a.assessment_date, a.created_at::date)
+    INTO assessment_status, assessment_max_score, assessment_reference_date
   FROM cornhill_school.assessments a
-  JOIN cornhill_school.learners l ON l.id = NEW.learner_id
   WHERE a.id = NEW.assessment_id
-  FOR KEY SHARE OF a, l;
+  FOR KEY SHARE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Assessment or learner does not exist'
@@ -169,12 +168,15 @@ BEGIN
     RAISE EXCEPTION 'Marks can only be entered while an assessment is open'
       USING ERRCODE = 'check_violation';
   END IF;
-  IF learner_class_id IS DISTINCT FROM NEW.class_id THEN
-    RAISE EXCEPTION 'Learner is not currently enrolled in the assessment class'
-      USING ERRCODE = 'check_violation';
-  END IF;
-  IF learner_status IS DISTINCT FROM 'Active' THEN
-    RAISE EXCEPTION 'Marks cannot be entered for an inactive learner'
+  SELECT EXISTS (
+    SELECT 1 FROM cornhill_school.enrolment_periods ep
+    WHERE ep.learner_id = NEW.learner_id
+      AND ep.class_id = NEW.class_id
+      AND ep.admission_date <= assessment_reference_date
+      AND (ep.exit_date IS NULL OR ep.exit_date >= assessment_reference_date)
+  ) INTO learner_enrolment_exists;
+  IF learner_enrolment_exists IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'Learner was not enrolled in the assessment class on the assessment date'
       USING ERRCODE = 'check_violation';
   END IF;
   IF NEW.max_score IS DISTINCT FROM assessment_max_score THEN
@@ -194,6 +196,9 @@ REVOKE ALL ON FUNCTION cornhill_school.record_academic_audit_event() FROM PUBLIC
 REVOKE ALL ON FUNCTION cornhill_school.prevent_academic_audit_mutation() FROM PUBLIC;
 REVOKE ALL ON FUNCTION cornhill_school.guard_assessment_lifecycle() FROM PUBLIC;
 REVOKE ALL ON FUNCTION cornhill_school.guard_learner_mark_scope() FROM PUBLIC;
+
+GRANT SELECT (id, learner_id, admission_date, exit_date, class_id)
+  ON cornhill_school.enrolment_periods TO cornhill_auth_runtime;
 
 GRANT SELECT ON
   cornhill_school.academic_years,

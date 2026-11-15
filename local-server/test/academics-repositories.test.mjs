@@ -45,10 +45,10 @@ test("workspace queries enforce supplied class scope and return class, term and 
   assert.deepEqual(pool.calls[0].values, [[CLASS], null]);
 });
 
-test("assessment mark register joins current-class learners to the class subject list", async () => {
+test("assessment mark register uses historical enrolment on the assessment date", async () => {
   const pool = fixturePool({
     queryResults: [
-      { rows: [{ id: ID, classId: CLASS, className: "P.1", assessmentName: "Mid Term", maxScore: "100", status: "Open" }] },
+      { rows: [{ id: ID, classId: CLASS, className: "P.1", assessmentName: "Mid Term", maxScore: "100", status: "Open", effectiveDate: "2026-06-15" }] },
       { rows: [{ id: SUBJECT, subjectCode: "ENGLISH", subjectName: "English" }] },
       { rows: [{ id: ID, pupilCode: "CH-2026-000001", firstName: "Ada", lastName: "Lovelace" }] },
       { rows: [{ learnerId: ID, subjectId: SUBJECT, score: "82", maxScore: "100", comment: null }] }
@@ -57,7 +57,8 @@ test("assessment mark register joins current-class learners to the class subject
   const data = await createPostgresAcademicsRepository(pool).getAssessmentMarks(ID);
   assert.equal(data.learners[0].marks[0].score, 82);
   assert.equal(data.learners[0].marks[0].subjectName, "English");
-  assert.match(pool.calls[2].sql, /status = 'Active'/);
+  assert.match(pool.calls[2].sql, /FROM cornhill_school\.enrolment_periods ep/);
+  assert.deepEqual(pool.calls[2].values, [CLASS, "2026-06-15"]);
 });
 
 test("mark saving locks the assessment and commits all rows in one transaction", async () => {

@@ -4,6 +4,7 @@ import { Readable } from "node:stream";
 import { createOpaqueSessionSecrets } from "../src/security/session-tokens.mjs";
 import { SESSION_COOKIE_NAME } from "../src/security/session-cookies.mjs";
 import { createAcademicsHttpHandler } from "../src/security/academics-http-handler.mjs";
+import { CsrfValidationError } from "../src/security/auth-service.mjs";
 
 const ORIGIN = "https://cornhill.local";
 const CLASS_ID = "22222222-2222-4222-8222-222222222222";
@@ -32,7 +33,7 @@ function setup({ principal = teacher, overrides = {} } = {}) {
   };
   const handler = createAcademicsHttpHandler({
     expectedOrigin: ORIGIN,
-    authService: { async authenticate() { calls.auth++; if (!principal) throw new Error("anonymous"); return principal; } },
+    authService: { async authenticate({ method, csrfToken } = {}) { calls.auth++; if (!principal) throw new Error("anonymous"); if (method !== "GET" && method !== "HEAD" && csrfToken !== secrets.csrfToken) throw new CsrfValidationError(); return principal; } },
     academicsRepository: repository
   });
   return { handler, calls };
@@ -96,7 +97,13 @@ test("teacher marks save requires valid CSRF and a bounded mark list", async () 
     headers: { "x-cornhill-csrf": "invalid" },
     body: { assessmentId: ASSESSMENT_ID, classId: CLASS_ID, marks: [{ learnerId: STAFF_ID, subjectId: ASSESSMENT_ID, score: 20 }] }
   });
-  assert.equal(missingCsrf.statusCode, 200);
+  assert.equal(missingCsrf.statusCode, 403);
+  assert.equal(calls.saved, 0);
+  const validCsrf = await invoke(handler, {
+    path: "/api/v1/academics/marks", method: "POST",
+    body: { assessmentId: ASSESSMENT_ID, classId: CLASS_ID, marks: [{ learnerId: STAFF_ID, subjectId: ASSESSMENT_ID, score: 20 }] }
+  });
+  assert.equal(validCsrf.statusCode, 200);
   assert.equal(calls.saved, 1);
 });
 test("mark list rejects duplicate learner-subject combinations and excessive batches", async () => {
