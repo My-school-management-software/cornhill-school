@@ -13,13 +13,18 @@ test("PostgreSQL integration verifier checks all eleven identity and authorizati
   ]) assert.ok(source.includes(table));
 });
 
-test("PostgreSQL integration verifier checks seeded roles, permission catalog and empty grants", () => {
+test("PostgreSQL integration verifier checks seeded roles, protected Director grants and audited delegation", () => {
   assert.ok(source.includes("roles.rows[0]?.count !== 17"));
   assert.ok(source.includes("SELECT permission_code FROM cornhill_auth.permission_catalog ORDER BY permission_code"));
   assert.ok(source.includes("permissionCatalog.rows.length !== 50"));
   assert.ok(source.includes("permissionCatalog.rows.map(row => row.permission_code).join"));
 
-  assert.ok(source.includes("roleGrants.rows[0]?.count !== 0"));
+  assert.ok(source.includes("Only one active Director account is permitted."));
+  assert.ok(source.includes("invalid_delegated"));
+  assert.ok(source.includes("The initial Director must retain the complete protected permission catalogue."));
+  assert.ok(source.includes("set_staff_role_permissions"));
+  assert.ok(source.includes("has_function_privilege"));
+  assert.ok(source.includes("Director-controlled role grants"));
   assert.ok(source.includes("a.grantee = 0"));
   assert.ok(source.includes("PUBLIC unexpectedly has access"));
 });

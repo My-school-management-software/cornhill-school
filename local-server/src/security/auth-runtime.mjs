@@ -13,6 +13,8 @@ import { createAdmissionsHttpHandler } from "./admissions-http-handler.mjs";
 import { createAcademicsHttpHandler } from "./academics-http-handler.mjs";
 import { createPostgresStaffLeadershipRepository } from "../db/staff-leadership-repositories.mjs";
 import { createStaffLeadershipHttpHandler } from "./staff-leadership-http-handler.mjs";
+import { createPostgresStaffAdministrationRepository } from "../db/staff-administration-repositories.mjs";
+import { createStaffAdministrationHttpHandler } from "./staff-administration-http-handler.mjs";
 import { createFinanceHttpHandler } from "./finance-http-handler.mjs";
 import { createFinanceOperationsHttpHandler } from "./finance-operations-http-handler.mjs";
 import { createEvidenceHttpHandler } from "./evidence-http-handler.mjs";
@@ -85,6 +87,11 @@ export async function createLocalAuthRuntime({
     const leadershipRouteHandler = createStaffLeadershipHttpHandler({
       authService, repository: staffLeadershipRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
     });
+    const staffAdministrationRepository = createPostgresStaffAdministrationRepository(pool);
+    const staffAdministrationRouteHandler = createStaffAdministrationHttpHandler({
+      authService, repository: staffAdministrationRepository, passwordHasher,
+      expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+    });
     const schoolCatalogRouteHandler = createSchoolCatalogHttpHandler({
       authService, schoolRepository: schoolCatalogRepository,
       expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
@@ -95,6 +102,7 @@ export async function createLocalAuthRuntime({
       if (await schoolCatalogRouteHandler(request, response)) return true;
       if (await admissionsRouteHandler(request, response)) return true;
       if (await academicsRouteHandler(request, response)) return true;
+      if (await staffAdministrationRouteHandler(request, response)) return true;
       return leadershipRouteHandler(request, response);
     };
     let financeEnabled = false;
@@ -144,6 +152,7 @@ export async function createLocalAuthRuntime({
         if (await schoolCatalogRouteHandler(request, response)) return true;
         if (await admissionsRouteHandler(request, response)) return true;
         if (await academicsRouteHandler(request, response)) return true;
+        if (await staffAdministrationRouteHandler(request, response)) return true;
         if (await leadershipRouteHandler(request, response)) return true;
         if (await financeOperationsRouteHandler(request, response)) return true;
         if (await financeRouteHandler(request, response)) return true;

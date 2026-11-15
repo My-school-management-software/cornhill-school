@@ -39,9 +39,57 @@ try {
     );
   }
 
-  const roleGrants = await pool.query("SELECT count(*)::int AS count FROM cornhill_auth.staff_role_permissions");
-  if (roleGrants.rows[0]?.count !== 0) {
-    throw new Error("Role permissions must remain empty until the school approves a permission matrix.");
+  const activeDirectors = await pool.query(
+    "SELECT count(*)::int AS count FROM cornhill_auth.staff_accounts a " +
+    "JOIN cornhill_auth.staff_role_assignments ra ON ra.staff_account_id = a.id " +
+    "WHERE ra.role_code = 'director' AND a.account_status = 'active'"
+  );
+  if (activeDirectors.rows[0]?.count > 1) {
+    throw new Error("Only one active Director account is permitted.");
+  }
+  const roleGrants = await pool.query(
+    "SELECT rp.role_code, count(*)::int AS count, " +
+    "count(*) FILTER (WHERE rp.role_code <> 'director' AND " +
+    "(grantor.id IS NULL OR grantor.account_status <> 'active' OR director_role.staff_account_id IS NULL " +
+    "OR rp.permission_code IN ('system.roles_manage','system.backups_manage')))::int AS invalid_delegated " +
+    "FROM cornhill_auth.staff_role_permissions rp " +
+    "LEFT JOIN cornhill_auth.staff_accounts grantor ON grantor.id = rp.granted_by_staff_id " +
+    "LEFT JOIN cornhill_auth.staff_role_assignments director_role " +
+    "ON director_role.staff_account_id = grantor.id AND director_role.role_code = 'director' " +
+    "GROUP BY rp.role_code ORDER BY rp.role_code"
+  );
+  const directorGrant = roleGrants.rows.find(row => row.role_code === 'director');
+  const delegatedGrants = roleGrants.rows.filter(row => row.role_code !== 'director');
+  if (activeDirectors.rows[0]?.count === 0 && roleGrants.rows.length > 0) {
+    throw new Error("Role grants exist without an active Director account.");
+  }
+  if (activeDirectors.rows[0]?.count === 1 &&
+      directorGrant?.count !== permissionCatalog.rows.length) {
+    throw new Error("The initial Director must retain the complete protected permission catalogue.");
+  }
+  if (delegatedGrants.some(row => row.invalid_delegated > 0)) {
+    throw new Error("Delegated role permissions must be granted by an active Director and exclude Director-reserved capabilities.");
+  }
+  const staffAdminFunctions = await pool.query(
+    "SELECT p.proname, p.prosecdef, p.proconfig, " +
+    "has_function_privilege('cornhill_auth_runtime', p.oid, 'EXECUTE') AS runtime_execute " +
+    "FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace " +
+    "WHERE n.nspname = 'cornhill_auth' AND p.proname IN " +
+    "('assert_director_role_manager','set_staff_role_permissions','create_staff_account')"
+  );
+  const adminFunctions = new Map(staffAdminFunctions.rows.map(row => [row.proname, row]));
+  for (const functionName of ['assert_director_role_manager','set_staff_role_permissions','create_staff_account']) {
+    const row = adminFunctions.get(functionName);
+    if (!row || row.prosecdef !== true ||
+        !Array.isArray(row.proconfig) ||
+        !row.proconfig.some(setting => setting.startsWith('search_path='))) {
+      throw new Error("Director staff administration security function is missing SECURITY DEFINER or a fixed search_path: " + functionName);
+    }
+  }
+  if (adminFunctions.get('set_staff_role_permissions')?.runtime_execute !== true ||
+      adminFunctions.get('create_staff_account')?.runtime_execute !== true ||
+      adminFunctions.get('assert_director_role_manager')?.runtime_execute !== false) {
+    throw new Error("Director administration function EXECUTE grants are not least-privilege.");
   }
 
   const publicAccess = await pool.query(`
@@ -81,7 +129,7 @@ try {
     throw new Error("Expected identity and authorization constraints were not installed.");
   }
 
-  console.log("PostgreSQL schema verified: 11 tables, 17 roles, 50 permission codes, 0 role grants, rate-limit indexes, no PUBLIC schema access.");
+  console.log("PostgreSQL schema verified: 11 tables, 17 roles, 50 permission codes, Director-controlled role grants, protected account functions, rate-limit indexes and no PUBLIC schema access.");
 } finally {
   await pool.end();
 }

@@ -15,5 +15,35 @@
 <section id="incidents-panel" class="panel" hidden><div class="section-head"><div><h2>Attendance incident review</h2><p class="muted">Headteacher/DOS statements and Director decisions are separate, recorded actions. The database enforces the review window and role authority.</p></div><span id="incident-count" class="pill"></span></div>
 <div id="incidents-list" class="incident-list"></div></section>
 <section id="sessions-panel" class="panel" hidden><div class="section-head"><div><h2>Special staff preparation sessions</h2><p class="muted">Upcoming published and draft session information.</p></div></div><div id="sessions-list" class="session-list"></div></section>
+<section id="admin-panel" class="panel" hidden>
+  <div class="section-head"><div><h2>Director · Staff accounts and role permissions</h2><p class="muted">Create staff login accounts and configure access by role. The Director role and backup/role-management permissions remain protected.</p></div><span class="pill">Director authority only</span></div>
+  <div class="admin-grid">
+    <form id="staff-account-form" class="admin-form">
+      <h3>Create staff account</h3>
+      <label>Staff number<input name="staffNumber" required maxlength="30" pattern="[A-Z0-9_-]{2,30}" placeholder="e.g. TCH-001"></label>
+      <label>Full legal name<input name="legalName" required minlength="2" maxlength="160"></label>
+      <label>Preferred name<input name="preferredName" maxlength="160"></label>
+      <label>Job title<input name="jobTitle" required minlength="2" maxlength="100" placeholder="Class Teacher"></label>
+      <label>Department<input name="department" maxlength="100"></label>
+      <label>Username<input name="username" required minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,63}" autocomplete="off"></label>
+      <label>Email<input name="email" type="email" maxlength="254"></label>
+      <label>Phone (+256...)<input name="phoneE164" inputmode="tel" pattern="\+256[0-9]{9}" placeholder="+2567XXXXXXXX"></label>
+      <label>Login role<select name="roleCode" id="new-staff-role" required><option value="">Choose role</option></select></label>
+      <label>Hire date<input name="hiredOn" type="date" required></label>
+      <label>Initial password<input name="password" type="password" required minlength="14" maxlength="128" autocomplete="new-password"></label>
+      <button type="submit">Create staff account</button>
+      <p class="form-note">Password is hashed with Argon2id and never shown again. Share it privately with the staff member.</p>
+    </form>
+    <div class="admin-form">
+      <h3>Configure role permissions</h3>
+      <label>Staff role<select id="permission-role"><option value="">Choose role</option></select></label>
+      <div id="permission-list" class="permission-list"><div class="empty">Choose a role to view its permissions.</div></div>
+      <button id="save-role-permissions" type="button">Save role permissions</button>
+      <p class="form-note">High-risk access is explicitly identified. Director-only permissions cannot be delegated.</p>
+    </div>
+  </div>
+  <h3 class="admin-subtitle">Staff login accounts</h3>
+  <div class="table-wrap"><table><thead><tr><th>Staff no.</th><th>Name</th><th>Username</th><th>Job title</th><th>Role(s)</th><th>Account</th><th>Employment</th></tr></thead><tbody id="account-rows"></tbody></table></div>
+</section>
 </section></main>
 </body></html>
