@@ -3,6 +3,14 @@
 -- No roles receive permissions automatically; role grants remain Director-controlled.
 BEGIN;
 
+GRANT SELECT (id, staff_account_id, work_date)
+  ON cornhill_school.attendance_days TO cornhill_auth_runtime;
+
+GRANT SELECT (
+  attendance_day_id, review_status, review_note, reviewed_by_staff_id, reviewed_at, created_at
+)
+ON cornhill_school.attendance_day_review_events TO cornhill_auth_runtime;
+
 GRANT SELECT ON
   cornhill_school.attendance_monthly_summary,
   cornhill_school.attendance_day_review_queue,
