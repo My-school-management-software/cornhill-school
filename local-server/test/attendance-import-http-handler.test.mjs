@@ -10,7 +10,7 @@ const BATCH_ID="44444444-4444-4444-8444-444444444444";
 const ORIGIN="https://localhost:4174";
 const permission="staff.attendance_import";
 function principal(permissions=[permission]){
- return {principalType:"staff",id:STAFF_ID,accountStatus:"active",roles:["director"],rolePermissions:{director:permissions}};
+ return {principalType:"staff",id:STAFF_ID,accountStatus:"active",roles:["director"],rolePermissions:{director:permissions},session:{revokedAt:null,expiresAt:Date.now()+60_000}};
 }
 function request({method="GET",path="/api/v1/staff/attendance/devices",body,encrypted=true,origin=ORIGIN,host="localhost:4174",headers={}}={}){
  return {method,url:path,headers:{host,origin,"content-type":"application/json","x-cornhill-csrf":"test-csrf",cookie:"",...headers},socket:{encrypted},async *[Symbol.asyncIterator](){if(body!==undefined)yield Buffer.from(JSON.stringify(body));}};
@@ -56,10 +56,11 @@ test("denies staff without the explicit attendance import permission",async()=>{
 });
 
 test("denies guardian principals even if their payload contains the permission code",async()=>{
- const {handler}=setup({overrides:{}}); 
- const guardianAuth={async authenticate(){return {principalType:"guardian",id:STAFF_ID,rolePermissions:{director:[permission]}};}};
- const guarded=createAttendanceImportHttpHandler({authService:guardianAuth,repository:{listDevices:async()=>[],listStaffOptions:async()=>[],listMappings:async()=>[],createDevice:async()=>{},setDeviceStatus:async()=>{},createMapping:async()=>{},closeMapping:async()=>{},listImports:async()=>[],listRejections:async()=>[],importCsv:async()=>{}},expectedOrigin:ORIGIN});
- const res=response();await guarded(request(),res);assert.equal(res.status,403);assert.equal(calls.repository.length,0);
+ const repositoryCalls=[];
+ const repository={listDevices:async()=>{repositoryCalls.push("listDevices");return [];},listStaffOptions:async()=>[],listMappings:async()=>[],createDevice:async()=>{},setDeviceStatus:async()=>{},createMapping:async()=>{},closeMapping:async()=>{},listImports:async()=>[],listRejections:async()=>[],importCsv:async()=>{}};
+ const guardianAuth={async authenticate(){return {principalType:"guardian",id:STAFF_ID,roles:["director"],rolePermissions:{director:[permission]},session:{revokedAt:null,expiresAt:Date.now()+60_000}};}};
+ const guarded=createAttendanceImportHttpHandler({authService:guardianAuth,repository,expectedOrigin:ORIGIN});
+ const res=response();await guarded(request(),res);assert.equal(res.status,403);assert.equal(repositoryCalls.length,0);
 });
 
 test("requires encrypted HTTPS and the exact local origin for GET and writes",async()=>{
@@ -109,7 +110,7 @@ test("imports CSV only for a valid device path and binds uploader to session ide
 test("rejects invalid UUIDs, unsafe filenames and malformed column selections",async()=>{
  const {handler,calls}=setup();
  const cases=[
-  {path:"/api/v1/staff/attendance/devices/not-a-uuid/imports",body:csvBody},
+  {path:"/api/v1/staff/attendance/devices/000000000000000000000000000000000000/imports",body:csvBody},
   {path:"/api/v1/staff/attendance/devices/"+DEVICE_ID+"/imports",body:{...csvBody,sourceName:"../secret.csv"}},
   {path:"/api/v1/staff/attendance/devices/"+DEVICE_ID+"/imports",body:{...csvBody,columns:{staffIdentifier:"",occurredAt:"Punch Time"}}}
  ];
