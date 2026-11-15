@@ -35,6 +35,25 @@ export function createPostgresSchoolCatalogRepository(pool) {
         stream: row.stream,
         subjects: Array.isArray(row.subjects) ? row.subjects : []
       }));
+    },
+
+    async listLearners({ classId = null, search = null } = {}) {
+      const result = await pool.query(
+        "SELECT l.id::text AS id, l.pupil_code AS \"pupilCode\", l.lin, " +
+        "l.first_name AS \"firstName\", l.middle_name AS \"middleName\", " +
+        "l.last_name AS \"lastName\", l.gender, l.date_of_birth AS \"dateOfBirth\", " +
+        "l.class_id::text AS \"classId\", c.display_name AS \"className\", " +
+        "l.admission_date AS \"admissionDate\", l.status " +
+        "FROM cornhill_school.learners l " +
+        "LEFT JOIN cornhill_school.classes c ON c.id = l.class_id " +
+        "WHERE l.status <> 'Archived' " +
+        "AND ($1::uuid IS NULL OR l.class_id = $1::uuid) " +
+        "AND ($2::text IS NULL OR l.pupil_code = $2 OR l.lin = $2 " +
+        "OR lower(concat_ws(' ', l.first_name, l.middle_name, l.last_name)) LIKE '%' || lower($2) || '%') " +
+        "ORDER BY l.last_name, l.first_name, l.pupil_code LIMIT 500",
+        [classId, search]
+      );
+      return result.rows;
     }
   });
 }
