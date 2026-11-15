@@ -108,3 +108,31 @@ test("HTTPS server source bounds request and header timeouts", async () => {
   assert.match(source, /server\.keepAliveTimeout\s*=\s*5_000/);
   assert.match(source, /server\.maxHeadersCount\s*=\s*50/);
 });
+
+test("local HTTPS server exposes only the explicit school workspace assets", async () => {
+  const source = await (await import("node:fs/promises")).readFile(
+    new URL("../src/https-server.mjs", import.meta.url), "utf8"
+  );
+  for (const route of ["/school", "/school.html", "/school.js", "/school.css"]) {
+    assert.ok(source.includes('["' + route + '"'), "missing explicit static route " + route);
+  }
+  assert.match(source, /school\.html/);
+  assert.match(source, /school\.js/);
+  assert.match(source, /school\.css/);
+});
+
+test("school workspace calls only authenticated local school APIs", async () => {
+  const source = await (await import("node:fs/promises")).readFile(
+    new URL("../public/school.js", import.meta.url), "utf8"
+  );
+  assert.match(source, /\/auth\/staff\/login/);
+  assert.match(source, /\/auth\/session/);
+  assert.match(source, /\/school\/catalog/);
+  assert.match(source, /\/school\/learners/);
+  assert.match(source, /\/school\/admissions/);
+  assert.match(source, /X-Cornhill-CSRF/);
+  assert.match(source, /admissions\.register_learner/);
+  assert.match(source, /learners\.lin_manage/);
+  assert.match(source, /learners\.guardians_manage/);
+  assert.match(source, /credentials:"same-origin"/);
+});
