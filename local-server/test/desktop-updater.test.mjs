@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 const script=await readFile(new URL("../windows/Update-CORNHILL-Desktop.ps1",import.meta.url),"utf8");
 test("desktop updater fetches the approved branch using fast-forward only and protects uncommitted work",()=>{
- assert.match(script,/git fetch.*origin/);
- assert.match(script,/git merge.*--ff-only/);
+ assert.match(script,/Invoke-Checked "git" @\("fetch","origin"/);
+ assert.match(script,/Invoke-Checked "git" @\("merge","--ff-only"/);
  assert.match(script,/git status --porcelain/);
  assert.match(script,/uncommitted changes/);
 });
