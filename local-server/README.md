@@ -88,3 +88,12 @@ GitHub Actions run [43587983581](https://github.com/My-school-management-softwar
 - Authenticated API, UI asset, permission, source listing and finance integration checks passed.
 
 This is disposable CI verification only. Migration 014 has not been applied to the school's Windows database.
+
+
+### Batch 21 — local workspace launcher (2026-11-15)
+
+- Added a same-origin /app launcher to the local HTTPS application. It links to the locally served School Office, Academics, Bursar and Leadership workspaces.
+- The launcher reads /api/v1/health and /api/v1/readiness rather than assuming that a module or the full application is ready. Finance navigation remains disabled unless the local HTTPS health response confirms that its protected finance API runtime is enabled.
+- The launcher identifies the remaining full-application, API-parity, hosted-dependency, offline-sync and multi-device acceptance blockers. It does not proxy or publish the hosted PWA pages, Supabase client, credentials or external service URLs.
+- Added navigation back to the launcher from each local workspace and automated source-level tests for the new asset routes, local-only status requests, conditional finance navigation, pending-release warnings and responsive layout.
+- This batch is a local navigation and integration-observability improvement. It does NOT complete full frontend migration, remaining API parity, hosted-service replacement, offline synchronisation, LAN access or Android acceptance. The readiness gate must remain blocked.
