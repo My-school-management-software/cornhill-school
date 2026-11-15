@@ -129,3 +129,17 @@ test("Bursar payment recovery persists only the actor-scoped key and learner ref
   assert.match(js,/localStorage\.setItem\(PENDING_PAYMENT_RECOVERY_STORAGE \+ suffix, JSON\.stringify\(record\)\)/);
   assert.match(js,/Re-enter the exact same payment details/);
 });
+
+test("Bursar desk links the authenticated school, academic and staff workspaces",async()=>{
+ assert.match(html,/class="workspace-shortcuts"/);
+ for(const href of ["/school","/academics","/leadership"])assert.ok(html.includes('href="'+href+'"'));
+ const schoolHtml=await readFile(new URL("../public/school.html",import.meta.url),"utf8");
+ const schoolJs=await readFile(new URL("../public/school.js",import.meta.url),"utf8");
+ const leadershipHtml=await readFile(new URL("../public/leadership.html",import.meta.url),"utf8");
+ const leadershipJs=await readFile(new URL("../public/leadership.js",import.meta.url),"utf8");
+ assert.match(schoolHtml,/id="bursar-link"[^>]*hidden/);
+ assert.match(schoolJs,/finance[.]payments_record/);
+ assert.match(schoolJs,/\$\("bursar-link"\)[.]hidden=!/);
+ assert.match(leadershipHtml,/id="bursar-link"[^>]*hidden/);
+ assert.match(leadershipJs,/finance[.]payments_record/);
+});

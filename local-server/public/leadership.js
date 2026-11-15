@@ -187,6 +187,7 @@ async function start(){
   $("login").hidden=true;$("app").hidden=false;
   $("staff-name").textContent=principal.displayName||"Staff member";
   $("staff-roles").textContent=(principal.roles||[]).join(" · ");
+  $("bursar-link").hidden=!["finance.payments_record","finance.expenses_request","finance.expenses_manage","finance.expenses_review","finance.expenses_post","finance.banking_manage","finance.banking_review","finance.banking_verify"].some(can);
   try{await loadWorkspace();}catch(error){notice(error.message,true);}
 }
 $("login-form").addEventListener("submit",async event=>{

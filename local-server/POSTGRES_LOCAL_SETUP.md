@@ -91,3 +91,19 @@ Do not delete the PostgreSQL data directory or uninstall PostgreSQL as a trouble
 - Offline data synchronization, production backups/restore and real-data migration remain pending.
 - Do not import real learner, guardian, staff, finance, attendance or payroll records yet.
 - Do not disable the hosted CORNHILL service until feature parity, data reconciliation, security, backup/restore and acceptance testing pass and the school explicitly approves cutover.
+
+
+## One-batch desktop update (existing installation)
+
+After the first local database foundation has been installed, use the integrated desktop updater from the repository's `local-server` directory:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass -Force
+.\windows\Update-CORNHILL-Desktop.ps1
+```
+
+The updater checks that the correct development branch is active and the source working tree is clean, downloads updates using fast-forward-only Git, installs pinned dependencies, runs the Windows test suite, applies only unapplied checksum-verified local migrations, and runs database/authentication/school/finance verification. It preserves the existing `cornhill_local` database and stops rather than overwriting local source edits or switching to a remote database.
+
+The update links the School Office, Bursar Desk, Academics and Staff/Leadership workspaces. It checks whether the initial Director account is already configured; when it is not, the updater offers the one-time hidden-password Director setup. If trusted localhost HTTPS has not yet been configured, it offers to create the local certificate. Add `-Launch` to open the local server window and browser after the checks pass.
+
+After the update is complete, the local service can be started from `local-server` using `npm run start:auth`, then opened at `https://localhost:4174`. The server remains loopback-only; this batch does not enable LAN access, multi-device synchronization or offline sync.

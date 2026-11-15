@@ -15,7 +15,8 @@
     "db:verify-finance": "node --env-file=.env scripts/verify-local-finance.mjs",
     "db:enable-finance": "node --env-file=.env scripts/enable-local-finance-runtime.mjs",
     "start:auth": "node --env-file=.env scripts/start-local-auth.mjs",
-    "setup:director": "node --env-file=.env scripts/setup-director.mjs"
+    "setup:director": "node --env-file=.env scripts/setup-director.mjs",
+    "db:director-status": "node --env-file=.env scripts/director-bootstrap-status.mjs"
   },
   "engines": {
     "node": ">=22"
