@@ -37,3 +37,19 @@ test("school catalogue repository normalises missing subject arrays", async () =
 test("school catalogue repository rejects an invalid pool", () => {
   assert.throws(() => createPostgresSchoolCatalogRepository({}), /PostgreSQL query pool/);
 });
+
+test("learner roster repository uses parameterised class and search filters", async () => {
+  let captured;
+  const pool = { async query(sql, params) {
+    captured = { sql, params };
+    return { rows: [{ id: "learner-id", pupilCode: "CH-2026-000001", lin: "LIN-1", firstName: "A", lastName: "B", status: "Active" }] };
+  }};
+  const rows = await createPostgresSchoolCatalogRepository(pool).listLearners({
+    classId: "11111111-1111-4111-8111-111111111111", search: "CH-2026"
+  });
+  assert.equal(rows[0].pupilCode, "CH-2026-000001");
+  assert.deepEqual(captured.params, ["11111111-1111-4111-8111-111111111111", "CH-2026"]);
+  assert.match(captured.sql, /l\.status <> 'Archived'/);
+  assert.match(captured.sql, /LIMIT 500/);
+  assert.doesNotMatch(captured.sql, /INSERT|UPDATE|DELETE/i);
+});
