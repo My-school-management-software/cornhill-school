@@ -139,7 +139,7 @@ try {
   const permissionCount = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog"
   );
-  assert(permissionCount.rows[0]?.count === 51, "Expected 51 unique permission catalogue entries, including the audited attendance import capability.");
+  assert(permissionCount.rows[0]?.count === 50, "Expected 50 unique permission catalogue entries, including attendance import.");
 
   const subjects = await pool.query(
     "SELECT subject_code FROM cornhill_school.subjects ORDER BY subject_code"
@@ -169,7 +169,7 @@ try {
   const staffPermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE permission_code LIKE 'staff.%'"
   );
-  assert(staffPermissions.rows[0]?.count === 19, "Expected nineteen staff, leave, attendance and payroll permission codes, including attendance import.");
+  assert(staffPermissions.rows[0]?.count === 18, "Expected eighteen staff, leave, attendance and payroll permission codes, including attendance import.");
 
   const attendanceImportPermission = await pool.query(
     "SELECT category, high_risk FROM cornhill_auth.permission_catalog WHERE permission_code = 'staff.attendance_import'"
@@ -1356,7 +1356,7 @@ try {
     assert(reversedRunDeleteRejected, "Reversed payroll history cannot be deleted.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 63 tables, ten classes, fifteen subjects, seven fee items, 51 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 63 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
