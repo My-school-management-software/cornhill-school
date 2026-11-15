@@ -46,7 +46,7 @@ function Stop-ExistingLocalAuthService([string]$LocalServerRoot) {
     Stop-WithGuidance "Port 4174 is occupied by a process that is not positively identified as the CORNHILL local authentication server. Nothing was stopped."
   }
 
-  $expectedPath = [System.IO.Path]::GetFullPath($LocalServerRoot).TrimEnd("\","/")
+  $expectedPath = [System.IO.Path]::GetFullPath($LocalServerRoot).TrimEnd([char[]]@([char]92,[char]47))
   $ancestorId = [int]$listener.ParentProcessId
   $verifiedLauncher = $false
   for ($depth = 0; $depth -lt 10 -and $ancestorId -gt 0; $depth++) {
