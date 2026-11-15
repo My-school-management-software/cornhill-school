@@ -112,6 +112,7 @@ const PUBLIC_ASSETS = new Map([
   ["/app.html", { file: new URL("../public/app.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/app.js", { file: new URL("../public/app.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
   ["/app.css", { file: new URL("../public/app.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/sw.js", { file: new URL("../public/sw.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
   ["/school", { file: new URL("../public/school.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/school.html", { file: new URL("../public/school.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/school.js", { file: new URL("../public/school.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
