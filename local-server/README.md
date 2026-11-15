@@ -97,3 +97,11 @@ This is disposable CI verification only. Migration 014 has not been applied to t
 - The launcher identifies the remaining full-application, API-parity, hosted-dependency, offline-sync and multi-device acceptance blockers. It does not proxy or publish the hosted PWA pages, Supabase client, credentials or external service URLs.
 - Added navigation back to the launcher from each local workspace and automated source-level tests for the new asset routes, local-only status requests, conditional finance navigation, pending-release warnings and responsive layout.
 - This batch is a local navigation and integration-observability improvement. It does NOT complete full frontend migration, remaining API parity, hosted-service replacement, offline synchronisation, LAN access or Android acceptance. The readiness gate must remain blocked.
+
+
+### Batch 22 — safe desktop service refresh (2026-11-15)
+
+- The Windows desktop updater now checks port 4174 before launching. When an existing listener is found, it stops only the Node process whose command and PowerShell/npm parent path positively match this CORNHILL local server.
+- The updater sends a graceful SIGINT and confirms that port 4174 has been released before starting the updated service. Unknown listeners, multiple owners, mismatched launchers and timeout conditions fail closed; the updater never kills an unidentified process or starts a duplicate server.
+- The `-Launch` option now opens the local workspace launcher at https://localhost:4174/app after the updated service starts.
+- Added updater regression tests for listener identity, parent-path verification, graceful stop ordering, unknown-process safety and the launcher destination.
