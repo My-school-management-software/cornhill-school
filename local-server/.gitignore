@@ -20,3 +20,9 @@ backups/
 *.pfx
 *.crt
 *.cer
+
+# Generated local npm lockfiles are not part of this lockfile-free desktop install.
+package-lock.json
+
+# Temporary local diagnostic scratch file; never commit machine-specific checks.
+scripts/check-director-account.mjs
