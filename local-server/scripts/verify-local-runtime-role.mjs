@@ -125,7 +125,12 @@ try {
       has_column_privilege('cornhill_auth_api', 'cornhill_school.payroll_disbursements', 'disbursement_status', 'UPDATE') AS payroll_status_update,
       has_column_privilege('cornhill_auth_api', 'cornhill_school.payroll_disbursements', 'verified_by_staff_id', 'UPDATE') AS payroll_verifier_update,
       has_column_privilege('cornhill_auth_api', 'cornhill_school.payroll_disbursements', 'amount_ugx', 'UPDATE') AS payroll_amount_update,
-      has_table_privilege('cornhill_auth_api', 'cornhill_school.payroll_disbursements', 'DELETE') AS payroll_delete
+      has_table_privilege('cornhill_auth_api', 'cornhill_school.payroll_disbursements', 'DELETE') AS payroll_delete,
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.attendance_days', 'work_date', 'UPDATE') AS attendance_day_identity_update,
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.payroll_runs', 'run_status', 'UPDATE') AS payroll_run_status_update,
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.payroll_lines', 'net_pay_ugx', 'UPDATE') AS payroll_line_net_update,
+      has_function_privilege('cornhill_auth_api', 'cornhill_school.lock_attendance_day_identity_for_review(uuid)', 'EXECUTE') AS attendance_lock_execute,
+      has_function_privilege('cornhill_auth_api', 'cornhill_school.lock_payroll_line_for_disbursement(uuid)', 'EXECUTE') AS payroll_lock_execute
   `);
   assert.equal(staffActionGrants.rows[0]?.attendance_review_insert, true);
   assert.equal(staffActionGrants.rows[0]?.attendance_review_status_insert, true);
@@ -137,6 +142,11 @@ try {
   assert.equal(staffActionGrants.rows[0]?.payroll_verifier_update, true);
   assert.equal(staffActionGrants.rows[0]?.payroll_amount_update, false);
   assert.equal(staffActionGrants.rows[0]?.payroll_delete, false);
+  assert.equal(staffActionGrants.rows[0]?.attendance_day_identity_update, false);
+  assert.equal(staffActionGrants.rows[0]?.payroll_run_status_update, false);
+  assert.equal(staffActionGrants.rows[0]?.payroll_line_net_update, false);
+  assert.equal(staffActionGrants.rows[0]?.attendance_lock_execute, true);
+  assert.equal(staffActionGrants.rows[0]?.payroll_lock_execute, true);
 
   console.log("Authentication database role verified: restricted runtime group is NOLOGIN; API login is enabled only with a private runtime password; least-privilege grants verified.");
 } finally {
