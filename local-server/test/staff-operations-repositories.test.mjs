@@ -38,6 +38,17 @@ test("personal and all-staff leave balances are returned in separate collections
   assert.deepEqual(result.leave.allBalances,[{staffNumber:"TCH-001"}]);
 });
 
+
+test("payroll run summary groups the period start date used for ordering",async()=>{
+  let payrollSql="";
+  const pool={
+    async query(sql){if(sql.includes("FROM cornhill_school.payroll_runs pr"))payrollSql=sql;return {rows:[]};},
+    async connect(){throw new Error("not used");}
+  };
+  await createPostgresStaffOperationsRepository(pool).getWorkspace({includePayroll:true});
+  assert.match(payrollSql,/GROUP BY pr\\.id,pp\\.period_code,pp\\.starts_on ORDER BY pp\\.starts_on DESC/);
+});
+
 test("leave submission creates a draft and submits it in one database transaction",async()=>{
   const calls=[];
   const client={
