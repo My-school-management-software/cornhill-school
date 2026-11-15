@@ -159,5 +159,6 @@ test("maps expired authentication, CSRF and service failures to safe responses",
 test("requires the exact HTTPS origin at handler construction",()=>{
  const {handler}=setup();
  assert.equal(typeof handler,"function");
- assert.throws(()=>createAttendanceImportHttpHandler({authService:{authenticate(){}},repository:{},expectedOrigin:"http://localhost:4174"}),/HTTPS origin/);
+ const repository={listDevices(){},listStaffOptions(){},listMappings(){},createDevice(){},setDeviceStatus(){},createMapping(){},closeMapping(){},listImports(){},listRejections(){},importCsv(){}};
+ assert.throws(()=>createAttendanceImportHttpHandler({authService:{authenticate(){}},repository,expectedOrigin:"http://localhost:4174"}),/HTTPS origin/);
 });
