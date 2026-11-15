@@ -6,6 +6,7 @@ const html = await readFile(new URL("../public/app.html", import.meta.url), "utf
 const script = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../public/app.css", import.meta.url), "utf8");
 const httpsServer = await readFile(new URL("../src/https-server.mjs", import.meta.url), "utf8");
+const serviceWorker = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
 
 test("local app launcher provides links to the four currently integrated workspaces", () => {
   for (const route of ["/school", "/academics", "/bursar", "/leadership", "/staff-operations", "/attendance-import"]) {
@@ -61,4 +62,28 @@ test("local HTTPS server exposes the launcher only through an explicit same-orig
   for (const route of ["/app", "/app.html", "/app.js", "/app.css"]) {
     assert.ok(httpsServer.includes('["' + route + '"'), "missing local launcher route " + route);
   }
+});
+
+
+test("launcher registers the offline shell only in secure browser contexts", () => {
+  assert.match(script, /navigator\.serviceWorker\.register\("\/sw\.js"/);
+  assert.match(script, /window\.isSecureContext/);
+});
+
+test("offline worker caches only an explicit public static asset allowlist", () => {
+  assert.match(serviceWorker, /const STATIC_ASSETS = new Set\(/);
+  assert.match(serviceWorker, /if \(url\.pathname\.startsWith\("\/api\/"\)\) return/);
+  assert.match(serviceWorker, /if \(!STATIC_ASSETS\.has\(url\.pathname\)\) return/);
+  assert.match(serviceWorker, /request\.method !== "GET"/);
+  assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
+  assert.match(serviceWorker, /cornhill-public-shell-v1/);
+  assert.match(serviceWorker, /cache\.addAll\(\[\.\.\.STATIC_ASSETS\]\)/);
+});
+
+test("offline worker allowlist includes every local workspace shell and never stores API paths", () => {
+  for (const route of ["/", "/app", "/school", "/academics", "/bursar", "/leadership", "/staff-operations", "/attendance-import", "/guardian"]) {
+    assert.ok(serviceWorker.includes('"' + route + '"'), "missing offline shell route " + route);
+  }
+  assert.doesNotMatch(serviceWorker, /STATIC_ASSETS[^;]*\/api\//s);
+  assert.match(httpsServer, /\["\/sw\.js"/);
 });
