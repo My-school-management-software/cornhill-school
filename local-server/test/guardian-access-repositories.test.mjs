@@ -50,21 +50,45 @@ test("new guardian account, learner approval and audit event commit atomically",
   assert.equal(accountInsert.params[2], "$argon2id$hash");
 });
 
-test("active existing guardian account cannot have its PIN replaced without confirmation", async () => {
+test("active existing guardian account can approve a sibling learner without changing its PIN", async () => {
   const calls = [];
   const client = {
-    async query(sql) {
-      calls.push(sql);
-      if (/FROM cornhill_school\.guardian_contacts/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
-      if (/FROM cornhill_auth\.guardian_accounts WHERE/.test(sql)) return { rows: [{ id: ACCOUNT, account_status: "active" }] };
-      return { rows: [] };
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+      if (/FROM cornhill_school\\.guardian_contacts/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
+      if (/FROM cornhill_auth\\.guardian_accounts WHERE/.test(sql)) return { rows: [{ id: ACCOUNT, account_status: "active" }] };
+      return { rows: [], rowCount: 1 };
     },
-    release() {}
+    release() { calls.push({ released: true }); }
   };
   const repository = createPostgresGuardianAccessRepository({ query: async()=>({rows:[]}), connect: async()=>client });
-  await assert.rejects(repository.issuePin({ contactId: CONTACT, actorStaffId: STAFF, pinHash: "$argon2id$hash" }), error => error.code === "CORNHILL_GUARDIAN_CONFLICT");
-  assert.equal(calls.includes("ROLLBACK"), true);
-  assert.equal(calls.some(sql => /UPDATE cornhill_auth\.guardian_accounts/.test(sql)), false);
+  const result = await repository.issuePin({ contactId: CONTACT, actorStaffId: STAFF, pinHash: "$argon2id$unused" });
+  assert.equal(result.pinIssued, false);
+  assert.equal(result.replacedExistingPin, false);
+  assert.equal(calls.some(item => /UPDATE cornhill_auth\\.guardian_accounts/.test(item.sql || "")), false);
+  assert.equal(calls.some(item => /INSERT INTO cornhill_auth\\.guardian_learner_access/.test(item.sql || "")), true);
+  assert.equal(calls.some(item => /security_audit_events/.test(item.sql || "")), true);
+  assert.equal(calls.some(item => item.sql === "COMMIT"), true);
+});
+
+test("replacing an active guardian PIN requires confirmation and records the reissue", async () => {
+  const calls = [];
+  const client = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+      if (/FROM cornhill_school\\.guardian_contacts/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
+      if (/FROM cornhill_auth\\.guardian_accounts WHERE/.test(sql)) return { rows: [{ id: ACCOUNT, account_status: "active" }] };
+      return { rows: [], rowCount: 1 };
+    },
+    release() { calls.push({ released: true }); }
+  };
+  const repository = createPostgresGuardianAccessRepository({ query: async()=>({rows:[]}), connect: async()=>client });
+  const result = await repository.issuePin({ contactId: CONTACT, actorStaffId: STAFF, pinHash: "$argon2id$new-hash", replaceExisting: true });
+  assert.equal(result.pinIssued, true);
+  assert.equal(result.replacedExistingPin, true);
+  const update = calls.find(item => /UPDATE cornhill_auth\\.guardian_accounts/.test(item.sql || ""));
+  assert.deepEqual(update.params, [ACCOUNT, "$argon2id$new-hash"]);
+  assert.equal(calls.some(item => item.sql === "COMMIT"), true);
 });
 
 test("disabled guardian accounts are not silently reactivated", async () => {
