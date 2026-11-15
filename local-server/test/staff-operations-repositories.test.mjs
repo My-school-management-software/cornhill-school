@@ -46,7 +46,7 @@ test("payroll run summary groups the period start date used for ordering",async(
     async connect(){throw new Error("not used");}
   };
   await createPostgresStaffOperationsRepository(pool).getWorkspace({includePayroll:true});
-  assert.match(payrollSql,/GROUP BY pr\\.id,pp\\.period_code,pp\\.starts_on ORDER BY pp\\.starts_on DESC/);
+  assert.match(payrollSql,/GROUP BY pr\.id,pp\.period_code,pp\.starts_on ORDER BY pp\.starts_on DESC/);
 });
 
 test("leave submission creates a draft and submits it in one database transaction",async()=>{
