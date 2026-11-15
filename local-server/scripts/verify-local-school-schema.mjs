@@ -39,6 +39,7 @@ try {
     "attendance_devices",
     "attendance_events",
     "attendance_import_batches",
+    "attendance_import_rejections",
     "bank_accounts",
     "bank_ledger",
     "bank_transaction_events",
@@ -392,13 +393,14 @@ try {
     "Payroll detail rows must remain attached to their original payroll run and line.");
 
   const newIntegrityTriggers = await pool.query(
-    "SELECT tgname FROM pg_trigger WHERE tgname IN ('attendance_device_staff_mapping_guard','attendance_event_import_identity_guard','attendance_import_batch_lifecycle_guard','attendance_device_identity_guard','attendance_incident_day_identity_guard','staff_salary_agreement_history_guard','staff_employment_term_history_guard','work_schedule_definition_history_guard','payroll_line_item_reapproval_guard') AND NOT tgisinternal"
+    "SELECT tgname FROM pg_trigger WHERE tgname IN ('attendance_device_staff_mapping_guard','attendance_event_import_identity_guard','attendance_import_batch_lifecycle_guard','attendance_device_identity_guard','attendance_incident_day_identity_guard','attendance_import_rejection_append_only','attendance_import_rejection_count_guard','staff_salary_agreement_history_guard','staff_employment_term_history_guard','work_schedule_definition_history_guard','payroll_line_item_reapproval_guard') AND NOT tgisinternal"
   );
   const newIntegrityNames = new Set(newIntegrityTriggers.rows.map(row => row.tgname));
   for (const triggerName of [
     "attendance_device_staff_mapping_guard","attendance_event_import_identity_guard",
     "attendance_import_batch_lifecycle_guard","attendance_device_identity_guard",
-    "attendance_incident_day_identity_guard","staff_salary_agreement_history_guard",
+    "attendance_incident_day_identity_guard","attendance_import_rejection_append_only",
+    "attendance_import_rejection_count_guard","staff_salary_agreement_history_guard",
     "staff_employment_term_history_guard","work_schedule_definition_history_guard",
     "payroll_line_item_reapproval_guard"
   ]) assert(newIntegrityNames.has(triggerName), "Missing attendance/payroll integrity trigger: " + triggerName);
@@ -1346,7 +1348,7 @@ try {
     assert(reversedRunDeleteRejected, "Reversed payroll history cannot be deleted.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 62 tables, ten classes, fifteen subjects, seven fee items, 49 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 63 tables, ten classes, fifteen subjects, seven fee items, 49 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

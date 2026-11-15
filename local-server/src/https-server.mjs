@@ -127,7 +127,11 @@ const PUBLIC_ASSETS = new Map([
   ["/staff-operations", { file: new URL("../public/staff-operations.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/staff-operations.html", { file: new URL("../public/staff-operations.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/staff-operations.js", { file: new URL("../public/staff-operations.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
-  ["/staff-operations.css", { file: new URL("../public/staff-operations.css", import.meta.url), type: "text/css; charset=utf-8" }]
+  ["/staff-operations.css", { file: new URL("../public/staff-operations.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/attendance-import", { file: new URL("../public/attendance-import.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/attendance-import.html", { file: new URL("../public/attendance-import.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/attendance-import.js", { file: new URL("../public/attendance-import.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/attendance-import.css", { file: new URL("../public/attendance-import.css", import.meta.url), type: "text/css; charset=utf-8" }]
 ]);
 
 const STATIC_CONTENT_SECURITY_POLICY =

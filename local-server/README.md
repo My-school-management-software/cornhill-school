@@ -117,3 +117,15 @@ This is disposable CI verification only. Migration 014 has not been applied to t
 - Added migration 081 with narrow read-column grants and the minimum INSERT/status-only UPDATE rights for a leave request. No role permission grants are assigned automatically; the Director must review and assign role permissions.
 - Added automated tests for migration privilege boundaries, SQL query scoping, transaction commit/rollback, permission checks, request validation, runtime composition, static routes and UI output escaping.
 - Migration 081 has not yet been applied to the school's Windows PostgreSQL database. The attendance device import workflow, live fingerprint integration, leave approvals/balance posting, payroll preparation/review/approval/posting and full offline/multi-device acceptance remain separate work.
+
+
+### Batch 24 — attendance device registry and audited CSV import (2026-11-15)
+
+- Added the local Attendance Devices & Imports workspace at `/attendance-import`, linked from Staff Operations.
+- Authorised staff with the explicit `staff.attendance_import` permission can register USB/LAN/manual-import terminals, activate or retire devices, map terminal staff identifiers to school staff with effective dates, import exported CSV attendance events, review batch history and inspect rejected rows.
+- CSV imports accept up to 2 MB and 5,000 rows. The uploader maps the terminal's staff-ID and event-time columns; optional event-type and terminal-event-ID columns are supported. Naive local timestamps are interpreted as Uganda time (UTC+03:00); explicit ISO-8601 timezone timestamps are validated.
+- The import repository records a SHA-256 checksum for the source file, hashes rejected source rows, prevents duplicate source/event identifiers, and keeps rejection evidence append-only. Accepted events remain Pending review and do not automatically create attendance-day decisions, salary calculations or payroll deductions.
+- The migration adds an append-only rejected-row evidence table and final batch/rejection-count reconciliation guards. No role receives the import permission automatically; the Director must explicitly delegate it.
+- USB in this batch means importing a CSV exported from a USB-connected terminal. It is not a live USB driver, fingerprint reader integration or biometric-template storage. The exact terminal model and export format must be selected and validated before device-specific integration.
+- Automated coverage includes CSV parsing and timezone validation, row-level rejection, route permissions, guardian isolation, HTTPS/CSRF/origin enforcement, runtime wiring, static assets, and Windows/Linux Node test runs plus PostgreSQL migration/schema verification.
+- This batch does not complete direct fingerprint capture, attendance-day reconciliation, payroll effects, Android/LAN access, offline synchronisation or the overall application readiness gate.
