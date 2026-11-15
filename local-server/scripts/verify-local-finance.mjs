@@ -348,7 +348,7 @@ try {
       [reviewerId]
     );
     await client.query(
-      "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('director','finance.evidence_review',$1)",
+      "INSERT INTO cornhill_auth.staff_role_permissions(role_code,permission_code,granted_by_staff_id) VALUES('director','finance.evidence_review',$1) ON CONFLICT (role_code,permission_code) DO NOTHING",
       [staffId]
     );
 
