@@ -127,5 +127,5 @@ if ($Launch) {
   $command = "Set-Location -LiteralPath '" + $localServerRoot.Replace("'","''") + "'; npm run start:auth"
   Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoProfile","-NoExit","-Command",$command)
   Start-Sleep -Seconds 3
-  Start-Process "https://localhost:4174"
+  Start-Process "https://localhost:4174/leadership"
 }
