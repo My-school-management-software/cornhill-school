@@ -2,28 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createPostgresAcademicsRepository } from "../src/db/academics-repositories.mjs";
 
-function fixturePool({ queryResults = [], errors = {} } = {}) {
+function fixturePool({ queryResults = [], failMarkInsert = false, markInsertError = new Error("mark insert failed") } = {}) {
   const calls = [];
   let resultIndex = 0;
+  async function execute(sql, values = [], transaction = false) {
+    calls.push({ sql, values, transaction });
+    if (sql === "ROLLBACK" || sql === "COMMIT" || sql === "BEGIN") return { rows: [], rowCount: 0 };
+    if (failMarkInsert && sql.startsWith("INSERT INTO cornhill_school.learner_marks ")) throw markInsertError;
+    return queryResults[resultIndex++] || { rows: [], rowCount: 0 };
+  }
   const client = {
-    async query(sql, values = []) {
-      calls.push({ sql, values, transaction: true });
-      if (sql === "ROLLBACK" || sql === "COMMIT" || sql === "BEGIN") return { rows: [], rowCount: 0 };
-      if (errors[sql]) throw errors[sql];
-      return queryResults[resultIndex++] || { rows: [], rowCount: 0 };
-    },
+    query(sql, values) { return execute(sql, values, true); },
     release() { calls.push({ release: true }); }
   };
-  const pool = {
+  return {
     calls,
-    async query(sql, values = []) {
-      calls.push({ sql, values, transaction: false });
-      if (errors[sql]) throw errors[sql];
-      return queryResults[resultIndex++] || { rows: [], rowCount: 0 };
-    },
+    query(sql, values) { return execute(sql, values, false); },
     async connect() { return client; }
   };
-  return pool;
 }
 const ID = "11111111-1111-4111-8111-111111111111";
 const CLASS = "22222222-2222-4222-8222-222222222222";
@@ -80,15 +76,10 @@ test("mark saving locks the assessment and commits all rows in one transaction",
 
 test("mark saving rolls back as a unit when any row fails", async () => {
   const error = new Error("constraint");
-  const pool = fixturePool({ queryResults: [
-    { rows: [{ classId: CLASS, maxScore: "100", status: "Open" }], rowCount: 1 }
-  ], errors: { "INSERT INTO cornhill_school.learner_marks " +
-    "(assessment_id, learner_id, class_id, subject_id, score, max_score, teacher_comment, " +
-    "entered_by_staff_id, updated_by_staff_id) " +
-    "VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8::uuid, $8::uuid) " +
-    "ON CONFLICT (assessment_id, learner_id, subject_id) DO UPDATE SET " +
-    "score = EXCLUDED.score, max_score = EXCLUDED.max_score, teacher_comment = EXCLUDED.teacher_comment, " +
-    "updated_by_staff_id = EXCLUDED.updated_by_staff_id, updated_at = now()": error } });
+  const pool = fixturePool({
+    queryResults: [{ rows: [{ classId: CLASS, maxScore: "100", status: "Open" }], rowCount: 1 }],
+    failMarkInsert: true, markInsertError: error
+  });
   await assert.rejects(
     createPostgresAcademicsRepository(pool).saveMarks({
       assessmentId: ID, classId: CLASS, staffId: TERM,
@@ -97,4 +88,5 @@ test("mark saving rolls back as a unit when any row fails", async () => {
     /constraint/
   );
   assert.ok(pool.calls.some(call => call.sql === "ROLLBACK"));
+  assert.equal(pool.calls.at(-1).release, true);
 });

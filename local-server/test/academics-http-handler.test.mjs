@@ -39,7 +39,7 @@ function setup({ principal = teacher, overrides = {} } = {}) {
   return { handler, calls };
 }
 async function invoke(handler, { path = "/api/v1/academics/workspace", method = "GET", body, headers = {}, encrypted = true } = {}) {
-  const req = Readable.from(body === undefined ? [] : [JSON.stringify(body)]);
+  const req = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body), "utf8")]);
   req.url = path; req.method = method;
   req.headers = { host: "cornhill.local", cookie: SESSION_COOKIE_NAME + "=" + secrets.sessionToken, ...headers };
   if (method !== "GET" && method !== "HEAD") {
