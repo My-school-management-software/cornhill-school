@@ -87,7 +87,7 @@ async function loadWorkspace(){
   if(caps.attendance)renderAttendance(result.attendance||{});
   if(caps.ownLeave||caps.leaveReview||caps.allLeaveBalances)renderLeave({
     ...(result.leave||{}),
-    allBalances:caps.allLeaveBalances?(result.leave?.balances||[]):undefined
+    allBalances:caps.allLeaveBalances?(result.leave?.allBalances||[]):undefined
   });
   if(caps.payroll)renderPayroll(result.payroll||{});
   const enabled=Object.values(caps).filter(Boolean).length;
