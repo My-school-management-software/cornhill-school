@@ -157,7 +157,7 @@ export function createAttendanceImportHttpHandler({authService,repository,expect
       else if(error instanceof AuthenticationServiceError)send(response,503,{error:"Authentication is temporarily unavailable."});
       else if(error?.code==="P0002")send(response,404,{error:error.message});
       else if(error?.code==="DEVICE_NOT_ACTIVE")send(response,409,{error:error.message});
-      else if(error?.code==="ATTENDANCE_IMPORT_DUPLICATE"||error?.code==="23505"||error?.code==="23514"||error?.code==="23P01")send(response,409,{error:error.message||"The attendance record conflicts with existing device data."});
+      else if(error?.code==="ATTENDANCE_IMPORT_DUPLICATE"||error?.code==="23505"||error?.code==="23514"||error?.code==="23503"||error?.code==="23P01")send(response,409,{error:error.message||"The attendance record conflicts with existing device data."});
       else send(response,503,{error:"The attendance device request could not be completed."});
     }
     return true;
