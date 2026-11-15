@@ -35,7 +35,7 @@ function setup({ staff = principal(), authenticateError = null, repositoryError 
   const calls = { auth: [], list: 0, issue: [] };
   const repository = {
     async listContacts() { calls.list += 1; if (repositoryError) throw repositoryError; return [{ contactId: CONTACT_ID, guardianName: "Guardian", phoneLastFour: "0001" }]; },
-    async issuePin(input) { calls.issue.push(input); if (repositoryError) throw repositoryError; return { learner: { pupilCode: "CH-2026-000001" }, guardian: { guardianName: "Guardian", phoneLastFour: "0001" }, replacedExistingPin: false }; }
+    async issuePin(input) { calls.issue.push(input); if (repositoryError) throw repositoryError; return { learner: { pupilCode: "CH-2026-000001" }, guardian: { guardianName: "Guardian", phoneLastFour: "0001" }, replacedExistingPin: false, pinIssued: true }; }
   };
   const authService = { async authenticate(input) { calls.auth.push(input); if (authenticateError) throw authenticateError; return staff; } };
   const passwordHasher = {
