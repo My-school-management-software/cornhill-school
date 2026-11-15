@@ -72,7 +72,7 @@ function renderImports(items){
     if(Number(b.rowsRejected)>0){
       const button=document.createElement("button");button.type="button";button.className="status-button";button.textContent="View rejections";
       button.addEventListener("click",()=>showRejections(b.id,b.sourceName));td.append(button);
-    }else cell(td,"");
+    }else td.textContent="—";
     body.append(tr);
   }
 }
