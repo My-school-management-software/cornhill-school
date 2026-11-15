@@ -17,6 +17,11 @@ test("leave request submission is limited to its required columns and status tra
   assert.doesNotMatch(sql,/GRANT (?:ALL|INSERT, UPDATE|UPDATE, INSERT)[\s\S]{0,120}staff_leave_requests/i);
 });
 
+test("attendance review view receives the minimal underlying columns it needs",()=>{
+  assert.match(sql,/GRANT SELECT \(id, staff_account_id, work_date\)\s*ON cornhill_school\.attendance_days/);
+  assert.match(sql,/ON cornhill_school\.attendance_day_review_events TO cornhill_auth_runtime/);
+});
+
 test("staff-wide payroll and leave reads use explicit column grants, not blanket schema access",()=>{
   assert.match(sql,/GRANT SELECT \([\s\S]*net_pay_ugx[\s\S]*\)\s*ON cornhill_school\.payroll_lines/);
   assert.match(sql,/GRANT SELECT \([\s\S]*disbursement_status[\s\S]*\)\s*ON cornhill_school\.payroll_disbursements/);
