@@ -43,7 +43,7 @@ export async function runDirectorRuntimeCredentialCheck() {
   }
   console.log("\nCORNHILL — Director runtime credential diagnostic");
   console.log("Uses the same restricted database role as the live login service.");
-  console.log("Does not create a login attempt, session, or audit event. Password stays local.\\n");
+  console.log("Does not create a login attempt, session, or audit event. Password stays local.\n");
   const username = await askLine("Director username: ");
   const normalized = username.normalize("NFKC").trim().toLocaleLowerCase("en-US");
   if (normalized.length < 3 || normalized.length > 120) throw new Error("Username is invalid.");
