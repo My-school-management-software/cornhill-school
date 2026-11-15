@@ -5,6 +5,7 @@ on:
     branches:
       - feat/local-first-self-hosted-migration-20261113
       - feat/full-school-integration-readiness-20261115
+      - feat/cornhill-integration-batch-20261115
   pull_request:
     branches:
       - main
