@@ -2,11 +2,13 @@ import { readLocalRuntimeDatabaseConfig } from "../db/runtime-config.mjs";
 import { readLocalFinanceRuntimeDatabaseConfig } from "../db/finance-runtime-config.mjs";
 import { createPostgresAuthRepositories } from "../db/auth-repositories.mjs";
 import { createPostgresSchoolCatalogRepository } from "../db/school-catalog-repositories.mjs";
+import { createPostgresAdmissionsRepository } from "../db/admissions-repositories.mjs";
 import { createPostgresFinanceRepositories } from "../db/finance-repositories.mjs";
 import { createArgon2PasswordHasher } from "./argon2-password-hasher.mjs";
 import { createAuthService } from "./auth-service.mjs";
 import { createAuthHttpHandler } from "./auth-http-handler.mjs";
 import { createSchoolCatalogHttpHandler } from "./school-catalog-http-handler.mjs";
+import { createAdmissionsHttpHandler } from "./admissions-http-handler.mjs";
 import { createFinanceHttpHandler } from "./finance-http-handler.mjs";
 import { createFinanceOperationsHttpHandler } from "./finance-operations-http-handler.mjs";
 import { createEvidenceHttpHandler } from "./evidence-http-handler.mjs";
@@ -71,6 +73,8 @@ export async function createLocalAuthRuntime({
       authService, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
     });
     const schoolCatalogRepository = createPostgresSchoolCatalogRepository(pool);
+    const admissionsRepository = createPostgresAdmissionsRepository(pool);
+    const admissionsRouteHandler = createAdmissionsHttpHandler({ authService, admissionsRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN });
     const schoolCatalogRouteHandler = createSchoolCatalogHttpHandler({
       authService, schoolRepository: schoolCatalogRepository,
       expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
@@ -78,7 +82,8 @@ export async function createLocalAuthRuntime({
 
     let routeHandler = async (request, response) => {
       if (await authRouteHandler(request, response)) return true;
-      return schoolCatalogRouteHandler(request, response);
+      if (await schoolCatalogRouteHandler(request, response)) return true;
+      return admissionsRouteHandler(request, response);
     };
     let financeEnabled = false;
     if (financeConfig) {
@@ -125,6 +130,7 @@ export async function createLocalAuthRuntime({
       routeHandler = async (request, response) => {
         if (await authRouteHandler(request, response)) return true;
         if (await schoolCatalogRouteHandler(request, response)) return true;
+        if (await admissionsRouteHandler(request, response)) return true;
         if (await financeOperationsRouteHandler(request, response)) return true;
         if (await financeRouteHandler(request, response)) return true;
         return evidenceRouteHandler ? evidenceRouteHandler(request, response) : false;
