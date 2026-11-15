@@ -129,6 +129,7 @@ ALTER ROLE cornhill_finance_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE 
 ALTER ROLE cornhill_finance_api __FINANCE_LOGIN_MODE__ INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS __FINANCE_PASSWORD_CLAUSE__;
 GRANT cornhill_finance_runtime TO cornhill_finance_api;
 '@
+    $financeRoleSql = $financeRoleSql.Replace("__FINANCE_LOGIN_MODE__", $financeLoginMode).Replace("__FINANCE_PASSWORD_CLAUSE__", $financePasswordClause)
     Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c",$financeRoleSql) "Could not provision restricted finance roles."
 
     $exists = & $psql -X -h 127.0.0.1 -p 5432 -U postgres -d postgres -Atc "SELECT 1 FROM pg_database WHERE datname = 'cornhill_local';"
