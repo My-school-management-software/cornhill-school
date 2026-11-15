@@ -2,6 +2,15 @@
   "use strict";
 
   const $ = id => document.getElementById(id);
+
+  function registerOfflineShell() {
+    if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+    }, { once: true });
+  }
+
+  registerOfflineShell();
   const BLOCKER_LABELS = Object.freeze({
     frontend_not_integrated: "Complete school application is not yet integrated.",
     school_api_parity_incomplete: "Some school module APIs still need local PostgreSQL integration.",
