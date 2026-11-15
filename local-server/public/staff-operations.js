@@ -131,11 +131,15 @@ $("leave-form").addEventListener("submit",async event=>{
 });
 (async()=>{
   try{
-    const session=await api("/auth/session");principal=session.principal;showApp();await loadWorkspace();
-  }catch(error){
+    const session=await api("/auth/session");
+    principal=session.principal;
+    showApp();
+    try{await loadWorkspace();}
+    catch(error){notice(error.message,true);}
+  }catch{
+    $("app").hidden=true;
     $("login").hidden=false;
-    if(error.message&&error.message.includes("permissions"))notice(error.message,true);
-    else notice("Local Staff Operations service connected. Sign in with your staff account.");
+    notice("Local Staff Operations service connected. Sign in with your staff account.");
   }
 })();
 })();
