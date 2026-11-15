@@ -4,6 +4,7 @@ const $ = id => document.getElementById(id);
 let principal = null;
 let workspace = null;
 let administration = null;
+let guardianContacts = [];
 const csrf = () => {
   const prefix = "__Host-cornhill_csrf=";
   const value = document.cookie.split(";").map(v => v.trim()).find(v => v.startsWith(prefix));
@@ -28,6 +29,85 @@ function can(code) {
 function notice(message, bad = false) { $("notice").textContent = message; $("notice").className = "notice" + (bad ? " error" : ""); }
 function cell(row, value) { const td=document.createElement("td");td.textContent=value ?? "—";row.append(td);return td; }
 function empty(host, message) { host.replaceChildren();const div=document.createElement("div");div.className="empty";div.textContent=message;host.append(div); }
+function renderGuardianContacts() {
+  const host = $("guardian-contact-rows");
+  host.replaceChildren();
+  if (!guardianContacts.length) {
+    const row = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 7;
+    td.textContent = "No active guardian contacts with registered phone numbers were found.";
+    row.append(td);
+    host.append(row);
+    return;
+  }
+  for (const contact of guardianContacts) {
+    const row = document.createElement("tr");
+    cell(row, contact.learnerName);
+    cell(row, contact.pupilCode);
+    cell(row, contact.guardianName);
+    cell(row, contact.phoneLastFour ? "Ending " + contact.phoneLastFour : "Not recorded");
+    cell(row, contact.accountExists ? contact.accountStatus : "No account");
+    cell(row, contact.accessStatus === "approved" ? "Approved" : contact.accessStatus === "revoked" ? "Revoked" : "Not linked");
+    const actionCell = document.createElement("td");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.guardianIssue = contact.contactId;
+    const blocked = contact.accountExists && ["suspended", "disabled"].includes(contact.accountStatus);
+    button.disabled = blocked;
+    button.className = blocked ? "secondary" : "small-action";
+    if (blocked) button.textContent = "Account blocked";
+    else if (contact.accountExists && contact.accountStatus === "active" && contact.accessStatus === "approved") button.textContent = "Replace PIN";
+    else if (contact.accountExists && contact.accountStatus === "active") button.textContent = "Approve access";
+    else button.textContent = "Issue PIN & approve";
+    actionCell.append(button);
+    row.append(actionCell);
+    host.append(row);
+  }
+}
+
+async function loadGuardianContacts() {
+  const result = await api("/guardian/access/contacts");
+  guardianContacts = Array.isArray(result.contacts) ? result.contacts : [];
+  renderGuardianContacts();
+}
+
+async function issueOrApproveGuardian(contactId) {
+  const contact = guardianContacts.find(item => item.contactId === contactId);
+  if (!contact) return;
+  const replaceExisting = contact.accountExists &&
+    contact.accountStatus === "active" && contact.accessStatus === "approved";
+  if (replaceExisting && !window.confirm(
+    "Replace the existing PIN for " + contact.guardianName +
+    "? The previous PIN will stop working for all learners linked to this guardian account."
+  )) return;
+  const button = [...document.querySelectorAll("[data-guardian-issue]")].find(item => item.dataset.guardianIssue === contactId);
+  if (button) button.disabled = true;
+  try {
+    const result = await api("/guardian/access/issue-pin", {
+      method: "POST",
+      body: { contactId, replaceExisting }
+    });
+    if (result.pin) {
+      $("guardian-pin").textContent = result.pin;
+      $("guardian-credential").hidden = false;
+      notice(
+        "Guardian access approved for " + (result.learner?.pupilCode || contact.pupilCode) +
+        ". The one-time PIN is displayed below."
+      );
+    } else {
+      $("guardian-credential").hidden = true;
+      $("guardian-pin").textContent = "";
+      notice("Guardian access approved for " + (result.learner?.pupilCode || contact.pupilCode) +
+        ". The existing guardian PIN was not changed.");
+    }
+    await loadGuardianContacts();
+  } catch (error) {
+    notice(error.message || "Guardian access could not be updated.", true);
+    if (button) button.disabled = false;
+  }
+}
+
 function renderAttendance() {
   const data=workspace.attendance||[], summary=workspace.summary||{};
   $("attendance-panel").hidden=false;
@@ -178,6 +258,9 @@ async function loadWorkspace(){
   if(can("staff.profile_manage"))renderStaff();
   if(can("staff.attendance_statement_submit")||can("staff.attendance_incident_decide"))renderIncidents();
   if(can("staff.prep_session_manage"))renderSessions();
+  const guardianManager = can("guardians.access_approve");
+  $("guardian-access-panel").hidden = !guardianManager;
+  if (guardianManager) await loadGuardianContacts();
   const directorManager=principal.roles?.includes("director")&&can("system.roles_manage");
   $("admin-panel").hidden=!directorManager;
   if(directorManager)await loadAdministrationWorkspace();
@@ -203,6 +286,27 @@ $("logout").addEventListener("click",async()=>{
 });
 $("reload").addEventListener("click",async()=>{try{await loadWorkspace();}catch(error){notice(error.message,true);}});
 $("permission-role").addEventListener("change",renderPermissionEditor);
+$("guardian-refresh").addEventListener("click", async () => {
+  try { await loadGuardianContacts(); notice("Guardian contacts refreshed."); }
+  catch (error) { notice(error.message, true); }
+});
+$("guardian-contact-rows").addEventListener("click", async event => {
+  const button = event.target.closest("[data-guardian-issue]");
+  if (button && !button.disabled) await issueOrApproveGuardian(button.dataset.guardianIssue);
+});
+$("dismiss-guardian-pin").addEventListener("click", () => {
+  $("guardian-pin").textContent = "";
+  $("guardian-credential").hidden = true;
+});
+$("copy-guardian-pin").addEventListener("click", async () => {
+  const value = $("guardian-pin").textContent;
+  if (!value) return;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard access is unavailable in this browser.");
+    await navigator.clipboard.writeText(value);
+    notice("PIN copied. Share it privately with the guardian.");
+  } catch (error) { notice(error.message, true); }
+});
 $("save-role-permissions").addEventListener("click",async()=>{
   const roleCode=$("permission-role").value;
   if(!roleCode){notice("Choose a staff role first.",true);return;}

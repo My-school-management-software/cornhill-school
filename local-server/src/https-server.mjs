@@ -131,7 +131,11 @@ const PUBLIC_ASSETS = new Map([
   ["/attendance-import", { file: new URL("../public/attendance-import.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/attendance-import.html", { file: new URL("../public/attendance-import.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/attendance-import.js", { file: new URL("../public/attendance-import.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
-  ["/attendance-import.css", { file: new URL("../public/attendance-import.css", import.meta.url), type: "text/css; charset=utf-8" }]
+  ["/attendance-import.css", { file: new URL("../public/attendance-import.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/guardian", { file: new URL("../public/guardian.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/guardian.html", { file: new URL("../public/guardian.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/guardian.js", { file: new URL("../public/guardian.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/guardian.css", { file: new URL("../public/guardian.css", import.meta.url), type: "text/css; charset=utf-8" }]
 ]);
 
 const STATIC_CONTENT_SECURITY_POLICY =
