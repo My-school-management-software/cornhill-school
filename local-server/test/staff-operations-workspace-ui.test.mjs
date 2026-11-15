@@ -27,6 +27,15 @@ test("leave review queue clearly separates viewing from approval and payroll doe
   assert.match(html,/does not initiate bank or mobile-money transfers/i);
 });
 
+
+test("Staff Operations browser script parses and references existing page elements",()=>{
+  assert.doesNotThrow(()=>new Function(js));
+  const ids=new Set([...html.matchAll(/\\bid="([^"]+)"/g)].map(match=>match[1]));
+  for(const match of js.matchAll(/\\$\\("([^"]+)"\\)/g)){
+    assert.ok(ids.has(match[1]),"missing page element: "+match[1]);
+  }
+});
+
 test("local HTTPS server explicitly serves all Staff Operations assets",()=>{
   for(const route of ["/staff-operations","/staff-operations.html","/staff-operations.js","/staff-operations.css"])assert.ok(server.includes('["'+route+'"'));
 });
