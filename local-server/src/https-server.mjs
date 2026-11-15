@@ -107,7 +107,11 @@ const PUBLIC_ASSETS = new Map([
   ["/bursar", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/bursar.html", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/bursar.js", { file: new URL("../public/bursar.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
-  ["/bursar.css", { file: new URL("../public/bursar.css", import.meta.url), type: "text/css; charset=utf-8" }]
+  ["/bursar.css", { file: new URL("../public/bursar.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/school", { file: new URL("../public/school.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/school.html", { file: new URL("../public/school.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/school.js", { file: new URL("../public/school.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/school.css", { file: new URL("../public/school.css", import.meta.url), type: "text/css; charset=utf-8" }]
 ]);
 
 const STATIC_CONTENT_SECURITY_POLICY =
