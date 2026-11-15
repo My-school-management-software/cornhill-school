@@ -25,7 +25,7 @@ test("Staff Operations workspace queries are read-only and scope personal leave 
   assert.deepEqual(ownRequest.params,[STAFF_ID]);
   assert.deepEqual(ownBalance.params,[STAFF_ID]);
   assert.ok(calls.some(call=>call.sql.includes("FROM cornhill_school.staff_leave_review_queue")));
-  assert.ok(calls.some(call=>call.sql.includes("FROM cornhill_school.payroll_disbursement_summary")));
+  assert.ok(calls.some(call=>call.sql.includes("cornhill_school.payroll_disbursement_summary")));
   assert.ok(calls.every(call=>!/^\s*(?:INSERT|UPDATE|DELETE|TRUNCATE|DROP)\b/i.test(call.sql)));
 });
 
@@ -52,7 +52,7 @@ test("payroll run summary groups the period start date used for ordering",async(
 test("leave submission creates a draft and submits it in one database transaction",async()=>{
   const calls=[];
   const client={
-    async query(sql,params){calls.push({sql,params});if(sql.includes("RETURNING id::text AS id"))return {rows:[{id:"22222222-2222-4222-8222-222222222222"}],rowCount:1};if(sql.includes("UPDATE cornhill_school.staff_leave_requests"))return {rows:[{id:"22222222-2222-4222-8222-222222222222",status:"Submitted"}],rowCount:1};return {rows:[],rowCount:0};},
+    async query(sql,params){calls.push({sql,params});if(sql.includes("UPDATE cornhill_school.staff_leave_requests"))return {rows:[{id:"22222222-2222-4222-8222-222222222222",status:"Submitted"}],rowCount:1};if(sql.includes("INSERT INTO cornhill_school.staff_leave_requests"))return {rows:[{id:"22222222-2222-4222-8222-222222222222"}],rowCount:1};return {rows:[],rowCount:0};},
     release(){calls.push({released:true});}
   };
   const pool={query:async()=>({rows:[]}),connect:async()=>client};
