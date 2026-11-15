@@ -131,10 +131,10 @@ This is disposable CI verification only. Migration 014 has not been applied to t
 - This batch does not complete direct fingerprint capture, attendance-day reconciliation, payroll effects, Android/LAN access, offline synchronisation or the overall application readiness gate.
 
 
-### Batch 25 — Director-controlled attendance import permission (2026-11-15)
+### Batch 25 — verify Director-controlled attendance import access (2026-11-15)
 
-- Added additive migration 083 to register `staff.attendance_import` in the permission catalogue as a high-risk staff capability.
-- The migration does not grant the permission to the Director, Bursar, teachers or any other role automatically. The Director can explicitly assign it to selected staff roles through Leadership → role permissions.
-- Extended the school-schema verifier to require the new catalogue record, category and high-risk flag, and to verify the updated catalogue totals.
+- Confirmed `staff.attendance_import` is already seeded as a high-risk staff permission by migration 008; no extra database migration is required.
+- Added an explicit verifier check for the permission code, `staff` category and high-risk flag while retaining the existing 50-permission catalogue count.
+- Confirmed no role receives the permission automatically. The Director can explicitly assign it to selected staff roles through Leadership → role permissions.
 - Updated the single-run Windows desktop updater to report Attendance Devices & Imports as part of the installation release and explain that staff access requires Director delegation.
-- The attendance workspace can now be enabled by an explicit role grant after migration 083 is installed. This does not change attendance records or biometric data.
+- The attendance workspace can be enabled by an explicit role grant after the existing update is installed. This does not change attendance records or biometric data.
