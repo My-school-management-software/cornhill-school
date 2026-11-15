@@ -65,19 +65,13 @@ export function createPostgresGuardianAccessRepository(pool) {
         await client.query("BEGIN");
         const contactResult = await client.query(`
           SELECT
-            gc.learner_id AS "learnerId",
-            gc.guardian_name AS "guardianName",
-            gc.phone_e164 AS phone,
-            right(gc.phone_e164, 4) AS "phoneLastFour",
-            l.pupil_code AS "pupilCode",
-            concat_ws(' ', l.first_name, NULLIF(l.middle_name, ''), l.last_name) AS "learnerName"
-          FROM cornhill_school.guardian_contacts gc
-          INNER JOIN cornhill_school.learners l ON l.id = gc.learner_id
-          WHERE gc.id = $1::uuid
-            AND gc.is_active = true
-            AND gc.phone_e164 IS NOT NULL
-            AND l.status <> 'Archived'
-          FOR UPDATE OF gc
+            learner_id AS "learnerId",
+            guardian_name AS "guardianName",
+            phone_e164 AS phone,
+            phone_last_four AS "phoneLastFour",
+            pupil_code AS "pupilCode",
+            learner_name AS "learnerName"
+          FROM cornhill_school.lock_active_guardian_contact_for_access($1::uuid)
         `, [contactId]);
         const contact = contactResult.rows[0];
         if (!contact) throw notFound();
