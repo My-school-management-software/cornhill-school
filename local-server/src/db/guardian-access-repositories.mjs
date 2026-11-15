@@ -92,8 +92,11 @@ export function createPostgresGuardianAccessRepository(pool) {
         if (account && ["suspended", "disabled"].includes(account.account_status)) {
           throw conflict("This guardian account is suspended or disabled. It must be reviewed separately before access can be issued.");
         }
+        let pinIssued = true;
         if (account?.account_status === "active" && replaceExisting !== true) {
-          throw conflict("An active guardian account already exists. Confirm PIN replacement before continuing.");
+          // A guardian who already has an active account can be linked to an
+          // additional learner without changing credentials used for siblings.
+          pinIssued = false;
         }
 
         if (!account) {
@@ -108,7 +111,7 @@ export function createPostgresGuardianAccessRepository(pool) {
           if (!account) {
             throw conflict("The guardian account changed during issuance. Refresh the guardian contact list and try again.");
           }
-        } else {
+        } else if (pinIssued) {
           await client.query(`
             UPDATE cornhill_auth.guardian_accounts
             SET pin_hash = $2,
@@ -150,7 +153,8 @@ export function createPostgresGuardianAccessRepository(pool) {
           learner: Object.freeze({ pupilCode: contact.pupilCode, learnerName: contact.learnerName }),
           guardian: Object.freeze({ guardianName: contact.guardianName, phoneLastFour: contact.phoneLastFour }),
           pinIssuedAt: new Date().toISOString(),
-          replacedExistingPin
+          replacedExistingPin,
+          pinIssued
         });
       } catch (error) {
         try { await client.query("ROLLBACK"); } catch {}
