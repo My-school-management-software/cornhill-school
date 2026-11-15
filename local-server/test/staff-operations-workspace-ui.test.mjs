@@ -30,8 +30,8 @@ test("leave review queue clearly separates viewing from approval and payroll doe
 
 test("Staff Operations browser script parses and references existing page elements",()=>{
   assert.doesNotThrow(()=>new Function(js));
-  const ids=new Set([...html.matchAll(/\\bid="([^"]+)"/g)].map(match=>match[1]));
-  for(const match of js.matchAll(/\\$\\("([^"]+)"\\)/g)){
+  const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
+  for(const match of js.matchAll(/\$\("([^"]+)"\)/g)){
     assert.ok(ids.has(match[1]),"missing page element: "+match[1]);
   }
 });
