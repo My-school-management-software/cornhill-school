@@ -8,7 +8,7 @@ export function createPostgresGuardianPortalRepository(pool) {
   return Object.freeze({
     async listApprovedLearners(guardianAccountId) {
       if (typeof guardianAccountId !== "string" || !UUID_PATTERN.test(guardianAccountId)) {
-        throw new TypeError("A valid guardian account identifier is required.");
+        throw new TypeError("A valid guardian account UUID is required.");
       }
       const result = await pool.query(`
         SELECT
