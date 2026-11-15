@@ -105,7 +105,7 @@ test("catalogue returns a generic error if the repository fails", async () => {
 test("learner roster is limited to an explicitly assigned class for class teachers", async () => {
   const teacher = { ...staff, roles: ["class_teacher"], rolePermissions: { class_teacher: ["learners.read"] } };
   const {handler,calls}=setup({principal:teacher,rows:[{pupilCode:"CH-2026-000001"}]});
-  const denied=await invoke(handler,{headers:{host:"cornhill.local",cookie}});
+  const denied=await invoke(handler,{headers:{host:"cornhill.local",cookie},path:"/api/v1/school/learners"});
   assert.equal(denied.statusCode,403);
   assert.equal(calls.repository,0);
   const allowed=await invoke(handler,{headers:{host:"cornhill.local",cookie},path:"/api/v1/school/learners?classId="+CLASS_ID+"&search=CH-2026"});
