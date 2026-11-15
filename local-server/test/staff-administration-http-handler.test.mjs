@@ -65,7 +65,7 @@ test("invalid, duplicate and Director-reserved permissions are rejected",async()
   assert.equal(res.statusCode,400);
  }
  const protectedRole=await invoke(handler,{path:"/api/v1/security/roles/director/permissions",method:"POST",body:{permissionCodes:[]}});
- assert.equal(protectedRole.statusCode,409);assert.equal(calls.permissions,3);
+ assert.equal(protectedRole.statusCode,403);assert.equal(calls.permissions,3);
 });
 test("new staff credentials are Argon2id-hashed before repository insertion",async()=>{
  const {handler,calls}=setup();

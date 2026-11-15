@@ -103,6 +103,7 @@ export function createStaffAdministrationHttpHandler({authService,repository,pas
       requireDirectorManager(principal);
       if(isWorkspace){send(response,200,await repository.getAdministrationWorkspace());return true;}
       if(permissionMatch){
+        if(permissionMatch[1]==="director")throw new InputError("The Director role is protected and cannot be edited.",403);
         const permissionCodes=parseRolePermissions(await readJson(request));
         const result=await repository.setRolePermissions({actorStaffId:principal.id,roleCode:permissionMatch[1],permissionCodes});
         send(response,200,{result});return true;
