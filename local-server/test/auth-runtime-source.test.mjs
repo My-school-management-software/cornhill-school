@@ -30,3 +30,9 @@ test("auth runtime wires the read-only school catalogue through the restricted a
   assert.match(source, /schoolCatalogRouteHandler/);
   assert.match(source, /if \(await schoolCatalogRouteHandler\(request, response\)\) return true/);
 });
+
+test("auth runtime wires admissions through the restricted authentication pool", () => {
+  assert.match(source, /createPostgresAdmissionsRepository/);
+  assert.match(source, /createAdmissionsHttpHandler/);
+  assert.match(source, /admissionsRouteHandler/);
+});
