@@ -112,7 +112,7 @@ test("repository failures return a generic service error", async () => {
   const res = responseRecorder();
   await handler(request(), res);
   assert.equal(res.status, 503);
-  assert.doesNotMatch(res.body, /private database detail/);
+  assert.doesNotMatch(String(res.body), /private database detail/);
 });
 
 test("constructor rejects a non-HTTPS origin", () => {
