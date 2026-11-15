@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#153a36">
+  <title>CORNHILL | Staff Operations</title>
+  <link rel="stylesheet" href="/staff-operations.css">
+  <script src="/staff-operations.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/app" aria-label="Workspace home">C</a>
+  <div><p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p><h1>Staff Operations</h1></div>
+  <span class="secure">LOCAL · PERMISSION-SCOPED</span>
+</header>
+<main class="layout">
+  <nav class="nav"><a href="/app">Workspace home</a><a href="/leadership">Leadership & Staff</a><a href="/attendance-import">Attendance Devices & Imports</a></nav>
+  <div id="notice" class="notice" role="status" aria-live="polite">Connecting to the local staff service…</div>
+
+  <section id="login" class="panel narrow" hidden>
+    <p class="eyebrow">SECURE STAFF ACCESS</p><h2>Sign in</h2>
+    <p class="muted">Use your existing CORNHILL staff account. Access is checked against the permissions assigned to your role.</p>
+    <form id="login-form">
+      <label>Staff username<input id="username" autocomplete="username" required minlength="3" maxlength="120"></label>
+      <label>Password<input id="password" type="password" autocomplete="current-password" required maxlength="1024"></label>
+      <button type="submit">Sign in securely</button>
+    </form>
+  </section>
+
+  <section id="app" hidden>
+    <div class="welcome panel">
+      <div><p class="eyebrow">STAFF WORKSPACE</p><h2 id="staff-name">Staff member</h2><p id="staff-roles" class="muted"></p></div>
+      <div class="actions"><button id="refresh" class="secondary" type="button">Refresh records</button><button id="logout" class="secondary" type="button">Sign out</button></div>
+    </div>
+
+    <section id="attendance-panel" class="panel" hidden>
+      <div class="section-head"><div><p class="eyebrow">ATTENDANCE</p><h2>Staff attendance overview</h2><p class="muted">Recent daily records, monthly totals and independent review history.</p></div><span class="pill">Last 30 days</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Staff number</th><th>Name</th><th>Position</th><th>Status</th><th>First clock-in</th><th>Last clock-out</th><th>Worked minutes</th><th>Source</th><th>Verification</th><th>Review action</th></tr></thead><tbody id="attendance-rows"></tbody></table></div>
+      <h3 class="subheading">Monthly attendance summary</h3>
+      <div class="table-wrap"><table><thead><tr><th>Month</th><th>Staff</th><th>Name</th><th>Recorded</th><th>Present</th><th>Late</th><th>Absent</th><th>Half days</th><th>Leave</th><th>Worked minutes</th></tr></thead><tbody id="monthly-rows"></tbody></table></div>
+      <h3 class="subheading">Daily review history</h3>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Staff number</th><th>Name</th><th>Review</th><th>Note</th><th>Reviewed at</th></tr></thead><tbody id="attendance-review-rows"></tbody></table></div>
+    </section>
+
+    <section id="attendance-governance-panel" class="panel" hidden>
+      <div class="section-head"><div><p class="eyebrow">ATTENDANCE & SALARY GOVERNANCE</p><h2>Attendance rules and incident review</h2><p class="muted">Policy, staff schedules, school calendar exceptions, leadership statements and Director decisions.</p></div><span class="pill">120-minute review</span></div>
+      <p id="attendance-policy-summary" class="muted">Loading approved attendance policy…</p>
+      <h3 class="subheading">Current staff schedule assignments</h3>
+      <div class="table-wrap"><table><thead><tr><th>Staff number</th><th>Name</th><th>Schedule</th><th>Weekday hours</th><th>Saturday</th><th>Effective dates</th></tr></thead><tbody id="schedule-assignment-rows"></tbody></table></div>
+      <h3 class="subheading">Calendar exceptions</h3>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Working day</th><th>Note</th></tr></thead><tbody id="calendar-exception-rows"></tbody></table></div>
+      <h3 class="subheading">Attendance incident review register</h3>
+      <p class="muted">Incidents do not deduct salary automatically. The review window, required Headteacher/DOS statement, Director authority and salary daily-rate ceiling are enforced by database rules.</p>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Staff</th><th>Incident</th><th>Status</th><th>Deadline</th><th>Headteacher/DOS statement</th><th>Director decision</th><th>Approved UGX</th><th>Review note</th></tr></thead><tbody id="attendance-incident-rows"></tbody></table></div>
+      <h3 class="subheading">Evening preps, morning sessions and Saturday studies</h3>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Session</th><th>Class</th><th>Time</th><th>Approval</th><th>Published</th><th>Assigned staff</th><th>Clocked in</th></tr></thead><tbody id="prep-session-rows"></tbody></table></div>
+      <h3 class="subheading">Special-session attendance</h3>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Session</th><th>Staff</th><th>Clock in</th><th>Clock out</th></tr></thead><tbody id="prep-attendance-rows"></tbody></table></div>
+    </section>
+
+    <section id="leave-panel" class="panel" hidden>
+      <div class="section-head"><div><p class="eyebrow">STAFF LEAVE</p><h2>My leave requests and balances</h2><p class="muted">Leave requests are submitted for independent review. Balance entries are recorded separately.</p></div></div>
+      <form id="leave-form" class="leave-form" hidden>
+        <h3>Submit a leave request</h3>
+        <label>Leave type<select name="leaveType" required><option value="">Choose leave type</option><option>Annual</option><option>Sick</option><option>Maternity</option><option>Paternity</option><option>Compassionate</option><option>Unpaid</option><option>Study</option><option>Other</option></select></label>
+        <label>Start date<input name="startsOn" type="date" required></label>
+        <label>End date<input name="endsOn" type="date" required></label>
+        <label>Requested days<input name="requestedDays" type="number" min="0.01" max="366" step="0.01" required></label>
+        <label class="reason-field">Reason<textarea name="reason" minlength="8" maxlength="1200" required></textarea></label>
+        <div class="form-action"><button type="submit">Submit leave request</button><span id="leave-message" class="muted" role="status"></span></div>
+      </form>
+      <h3 class="subheading">My requests</h3>
+      <div class="table-wrap"><table><thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th><th>Submitted</th><th>Review note</th></tr></thead><tbody id="leave-rows"></tbody></table></div>
+      <h3 class="subheading">My available balances</h3>
+      <div class="table-wrap"><table><thead><tr><th>Leave type</th><th>Available days</th></tr></thead><tbody id="leave-balance-rows"></tbody></table></div>
+    </section>
+
+    <section id="leave-review-panel" class="panel" hidden>
+      <div class="section-head"><div><p class="eyebrow">LEADERSHIP REVIEW</p><h2>Submitted leave requests</h2><p class="muted">Authorised reviewers can approve or reject submitted requests. Leave-balance usage remains a separate controlled action.</p></div><span id="leave-review-count" class="pill"></span></div>
+      <div class="table-wrap"><table><thead><tr><th>Staff number</th><th>Name</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Submitted</th><th>Review action</th></tr></thead><tbody id="leave-review-rows"></tbody></table></div>
+    </section>
+
+    <section id="all-leave-balances-panel" class="panel" hidden>
+      <div class="section-head"><div><p class="eyebrow">LEAVE BALANCE ADMINISTRATION</p><h2>Staff leave balances</h2><p class="muted">Balances come from the append-only leave ledger.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Staff number</th><th>Name</th><th>Leave type</th><th>Available days</th></tr></thead><tbody id="all-leave-balance-rows"></tbody></table></div>
+    </section>
+
+    <section id="payroll-panel" class="panel" hidden>
+      <div class="section-head"><div><p class="eyebrow">PAYROLL</p><h2>Payroll periods and runs</h2><p class="muted">Local payroll summaries and recorded disbursement evidence. This page does not initiate bank or mobile-money transfers.</p></div><span class="pill">UGX</span></div>
+      <form id="payroll-record-form" class="leave-form" hidden>
+        <h3>Record a payroll payment already made</h3>
+        <label class="reason-field">Staff payroll line<select id="payroll-line-id" name="payrollLineId" required></select></label>
+        <label>Amount (UGX)<input name="amountUgx" type="number" min="1" max="1000000000" step="1" required></label>
+        <label>Payment method<select name="paymentMethod" required><option value="">Choose method</option><option>Cash</option><option>Bank Transfer</option><option>Mobile Money</option></select></label>
+        <label>Bank/mobile reference<input name="externalReference" maxlength="120" autocomplete="off"></label>
+        <label>Payment date and time<input name="paidAt" type="datetime-local" required></label>
+        <div class="form-action"><button type="submit">Record payment evidence</button><span id="payroll-record-message" class="muted" role="status"></span></div>
+        <p class="muted reason-field">This records a payment that has already occurred. It does not send money or initiate a bank/mobile-money transfer. Every entry remains pending independent verification.</p>
+      </form>
+      <h3 class="subheading">Payroll payment evidence register</h3>
+      <div class="table-wrap"><table><thead><tr><th>Period</th><th>Staff number</th><th>Name</th><th>Method</th><th>Reference</th><th>Amount</th><th>Paid at</th><th>Status</th><th>Verified at</th><th>Verification action</th></tr></thead><tbody id="payroll-disbursement-rows"></tbody></table></div>
+      <h3 class="subheading">Payroll periods</h3>
+      <div class="table-wrap"><table><thead><tr><th>Period</th><th>Start</th><th>End</th><th>Payment date</th><th>Status</th></tr></thead><tbody id="payroll-period-rows"></tbody></table></div>
+      <h3 class="subheading">Payroll runs and disbursement summary</h3>
+      <div class="table-wrap"><table><thead><tr><th>Period</th><th>Run status</th><th>Staff</th><th>Gross pay</th><th>Net pay</th><th>Verified paid</th><th>Pending verification</th><th>Remaining</th><th>Posted</th></tr></thead><tbody id="payroll-run-rows"></tbody></table></div>
+      <h3 class="subheading">Staff payroll lines</h3>
+      <div class="table-wrap"><table><thead><tr><th>Period</th><th>Staff number</th><th>Name</th><th>Base salary</th><th>Allowances</th><th>Deductions</th><th>Gross pay</th><th>Net pay</th></tr></thead><tbody id="payroll-line-rows"></tbody></table></div>
+      <h3 class="subheading">Approved salary agreements</h3>
+      <div class="table-wrap"><table><thead><tr><th>Staff</th><th>Basis</th><th>Base salary UGX</th><th>Daily rate UGX</th><th>Effective from</th><th>Effective to</th><th>Status</th></tr></thead><tbody id="salary-agreement-rows"></tbody></table></div>
+      <h3 class="subheading">Itemised allowances and deductions</h3>
+      <div class="table-wrap"><table><thead><tr><th>Period</th><th>Staff</th><th>Type</th><th>Code</th><th>Description</th><th>Amount UGX</th><th>Attendance source</th><th>Approved at</th></tr></thead><tbody id="payroll-line-item-rows"></tbody></table></div>
+    </section>
+  </section>
+</main>
+</body>
+</html>

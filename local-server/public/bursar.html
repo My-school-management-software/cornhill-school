@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#153a36">
+  <title>CORNHILL | Bursar Desk</title>
+  <meta name="description" content="Secure local Bursar payment entry for CORNHILL NURSERY AND PRIMARY SCHOOL.">
+  <link rel="stylesheet" href="/bursar.css">
+  <script src="/bursar.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark" aria-hidden="true">C</div>
+    <div class="brand-copy">
+      <p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p>
+      <h1>Bursar Desk</h1>
+    </div>
+    <span class="environment-tag">LOCAL FINANCE · UGX</span>
+  </header>
+  <nav class="workspace-shortcuts" aria-label="CORNHILL workspaces">
+    <a href="/app">Workspace home</a>
+    <a href="/school">School Office</a>
+    <a href="/academics">Teaching & Academics</a>
+    <a href="/leadership">Staff & Leadership</a>
+  </nav>
+
+  <main class="page-shell">
+    <div id="service-state" class="notice" role="status" aria-live="polite">Checking local finance service…</div>
+
+    <section id="finance-disabled" class="panel empty-state" hidden>
+      <h2>Finance service is not activated</h2>
+      <p>The Bursar screen is installed, but the protected finance database role is still disabled. No payment can be recorded from this page yet.</p>
+      <p class="muted">The system administrator must complete the approved local database credential and security checks before enabling this module.</p>
+    </section>
+
+    <section id="login-panel" class="panel login-panel" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">STAFF ACCESS</p>
+          <h2>Sign in to Finance</h2>
+          <p class="muted">Use your school staff account. Finance access is controlled by your assigned role permissions.</p>
+        </div>
+      </div>
+      <form id="login-form" class="form-grid compact">
+        <label class="field">
+          <span>Staff username</span>
+          <input id="username" name="username" type="text" required minlength="3" maxlength="120" autocomplete="username">
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="password" name="password" type="password" required maxlength="1024" autocomplete="current-password">
+        </label>
+        <button class="button primary" type="submit">Sign in securely</button>
+      </form>
+      <p id="login-message" class="form-message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="workspace" hidden>
+      <div class="workspace-bar">
+        <div>
+          <p class="eyebrow">PAYMENT ENTRY</p>
+          <h2>Finance operations</h2>
+          <p id="staff-label" class="muted"></p>
+        </div>
+        <button id="logout-button" class="button secondary" type="button">Sign out</button>
+      </div>
+
+      <section id="expense-banking-workspace" class="panel operations-panel" hidden>
+        <div class="section-heading"><div><p class="eyebrow">SCHOOL OPERATIONS</p><h3>Expenses and bank transactions</h3><p class="muted">Requests are subject to independent review, evidence checks and posting controls.</p></div></div>
+        <div class="operations-grid">
+          <form id="expense-limit-form" class="operation-card" hidden>
+            <h4>Set daily expense limits</h4>
+            <p class="muted">Only active staff accounts are listed. Limits apply to expense requests submitted by the selected staff member.</p>
+            <label class="field"><span>Staff member</span><select id="expense-limit-staff" required></select></label>
+            <label class="field"><span>Daily limit (UGX)</span><input id="expense-daily-limit" type="number" min="1" step="1" inputmode="numeric" required></label>
+            <button class="button secondary" type="submit">Save daily limit</button>
+            <p id="expense-limit-message" class="form-message" role="status" aria-live="polite"></p>
+          </form>
+          <form id="expense-request-form" class="operation-card" hidden>
+            <h4>Submit an expense request</h4>
+            <label class="field"><span>Expense category</span><select id="expense-category" required></select></label>
+            <label class="field"><span>Description</span><input id="expense-description" minlength="5" maxlength="500" required></label>
+            <label class="field"><span>Amount (UGX)</span><input id="expense-amount" type="number" min="1" step="1" inputmode="numeric" required></label>
+            <button class="button primary" type="submit">Submit expense request</button>
+            <p id="expense-request-message" class="form-message" role="status" aria-live="polite"></p>
+          </form>
+          <form id="bank-account-form" class="operation-card" hidden>
+            <h4>Register a school bank account</h4>
+            <label class="field"><span>Account display name</span><input id="bank-account-name" minlength="2" maxlength="120" required></label>
+            <label class="field"><span>Bank name</span><input id="bank-name" minlength="2" maxlength="120" required></label>
+            <label class="field"><span>Account number — last four digits only</span><input id="bank-last4" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required></label>
+            <label class="field"><span>Opening balance (UGX)</span><input id="bank-opening-balance" type="number" min="0" step="1" value="0" required></label>
+            <button class="button secondary" type="submit">Save bank account</button>
+            <p id="bank-account-message" class="form-message" role="status" aria-live="polite"></p>
+          </form>
+          <form id="bank-transaction-form" class="operation-card" hidden>
+            <h4>Record a bank deposit or withdrawal</h4>
+            <label class="field"><span>Bank account</span><select id="bank-account-select" required></select></label>
+            <label class="field"><span>Transaction type</span><select id="bank-transaction-type"><option>Deposit</option><option>Withdrawal</option></select></label>
+            <label class="field"><span>Amount (UGX)</span><input id="bank-transaction-amount" type="number" min="1" step="1" required></label>
+            <label class="field"><span>Description</span><input id="bank-transaction-description" minlength="5" maxlength="500" required></label>
+            <label class="field"><span>External reference (optional)</span><input id="bank-transaction-reference" maxlength="120"></label>
+            <button class="button primary" type="submit">Submit bank transaction</button>
+            <p id="bank-transaction-message" class="form-message" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+
+      <section id="finance-review-workspace" class="panel operations-panel" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">CONTROLLED APPROVALS</p><h3>Expense and banking review queues</h3><p class="muted">Requests are separated from approvals. The person who submits a request cannot approve their own request.</p></div>
+          <button id="refresh-finance-queues" class="button secondary" type="button">Refresh queues</button>
+        </div>
+        <div class="operations-grid">
+          <section id="expense-review-panel" class="operation-card" hidden>
+            <h4>Expense requests</h4>
+            <div id="expense-review-queue" class="finance-review-list" aria-live="polite"><p class="muted">Loading expense requests…</p></div>
+            <p id="expense-review-message" class="form-message" role="status" aria-live="polite"></p>
+          </section>
+          <section id="bank-review-panel" class="operation-card" hidden>
+            <h4>Bank transactions</h4>
+            <div id="bank-review-queue" class="finance-review-list" aria-live="polite"><p class="muted">Loading bank transactions…</p></div>
+            <p id="bank-review-message" class="form-message" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+      </section>
+
+      <section id="finance-archive-panel" class="panel operations-panel" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">FINANCE RECORDS</p><h3>Historical expense and bank archive</h3><p class="muted">Search submitted, approved, rejected, posted and verified records. Access is limited by your finance permissions.</p></div>
+        </div>
+        <form id="finance-archive-form" class="search-form">
+          <label class="field grow"><span>Search reference, description, category or bank account</span><input id="finance-archive-search" type="search" maxlength="80" placeholder="Enter a reference or keyword"></label>
+          <label class="field"><span>Record type</span><select id="finance-archive-type"><option value="all">All records</option><option value="expense">Expenses</option><option value="bank">Bank transactions</option></select></label>
+          <label class="field"><span>Status</span><select id="finance-archive-status"><option value="all">All statuses</option><option>Pending</option><option>Approved</option><option>Rejected</option><option>Posted</option><option>Cancelled</option><option>Verified</option></select></label>
+          <button class="button primary" type="submit">Search archive</button>
+        </form>
+        <p id="finance-archive-message" class="form-message" role="status" aria-live="polite"></p>
+        <div id="finance-archive-results" class="finance-review-list" aria-live="polite"><p class="muted">Search the archive to view historical records.</p></div>
+        <div class="archive-pagination" aria-label="Finance archive pages"><button id="finance-archive-previous" class="button secondary" type="button" disabled>Previous</button><span id="finance-archive-page" class="muted" aria-live="polite">Page 1</span><button id="finance-archive-next" class="button secondary" type="button" disabled>Next</button></div>
+      </section>
+
+      <section id="payment-search-panel" class="panel search-panel">
+        <div class="section-heading">
+          <div>
+            <h3>Find a learner</h3>
+            <p class="muted">Search by permanent pupil code or learner name.</p>
+          </div>
+        </div>
+        <form id="search-form" class="search-form">
+          <label class="field grow">
+            <span>Pupil code or learner name</span>
+            <input id="learner-search" type="search" minlength="2" maxlength="80" placeholder="Enter pupil code or name" autocomplete="off" required>
+          </label>
+          <button class="button primary" type="submit">Search</button>
+        </form>
+        <div id="search-message" class="form-message" role="status" aria-live="polite"></div>
+        <div id="search-results" class="result-list" aria-label="Learner search results"></div>
+      </section>
+
+      <section id="learner-panel" class="panel learner-panel" hidden>
+        <div class="learner-heading">
+          <div>
+            <p class="eyebrow">LEARNER FINANCE ACCOUNT</p>
+            <h3 id="learner-name"></h3>
+            <p id="learner-meta" class="muted"></p>
+          </div>
+          <span id="bursary-badge" class="badge" hidden>BURSARY</span>
+        </div>
+
+        <div class="totals-grid">
+          <div class="total-card"><span>Total charged</span><strong id="total-charged">UGX 0</strong></div>
+          <div class="total-card"><span>Total paid</span><strong id="total-paid">UGX 0</strong></div>
+          <div class="total-card balance-card"><span>Outstanding balance</span><strong id="total-balance">UGX 0</strong></div>
+        </div>
+
+        <div class="balance-heading">
+          <div>
+            <h4>Fee balances by term</h4>
+            <p class="muted">Previous-term balances are optional. Select the balances this payment should cover.</p>
+          </div>
+        </div>
+        <div id="fee-obligations" class="fee-list"></div>
+
+        <section id="credit-section" class="credit-section" hidden>
+          <div class="balance-heading">
+            <div>
+              <h4>Retained learner credit</h4>
+              <p class="muted">Apply unused credit from an earlier receipt to this learner's outstanding fee balances. The original receipt will remain unchanged.</p>
+            </div>
+          </div>
+          <div id="credit-sources" class="credit-source-list" aria-live="polite"></div>
+          <form id="credit-allocation-form" class="credit-allocation-form" hidden>
+            <label class="field">
+              <span>Receipt containing retained credit</span>
+              <select id="credit-source-select" required></select>
+            </label>
+            <div>
+              <h5>Choose outstanding fee balances</h5>
+              <div id="credit-allocation-lines" class="credit-allocation-lines"></div>
+            </div>
+            <label class="field">
+              <span>Reason for applying credit</span>
+              <input id="credit-reason" type="text" minlength="5" maxlength="300" placeholder="Apply retained credit to current term" required>
+            </label>
+            <div class="credit-summary">
+              <span>Selected allocation total</span>
+              <strong id="credit-allocation-total">UGX 0</strong>
+              <span>Credit remaining after this allocation</span>
+              <strong id="credit-remaining-total">UGX 0</strong>
+            </div>
+            <button id="credit-allocation-button" class="button secondary" type="submit">Apply retained credit</button>
+          </form>
+          <p id="credit-message" class="form-message" role="status" aria-live="polite"></p>
+        </section>
+
+        <form id="payment-form" class="payment-form">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">RECEIVE PAYMENT</p>
+              <h4>Payment details</h4>
+            </div>
+          </div>
+          <div class="form-grid">
+            <label class="field">
+              <span>Amount received (UGX)</span>
+              <input id="amount-received" type="number" inputmode="numeric" min="1" step="1" required>
+            </label>
+            <label class="field">
+              <span>Payment method</span>
+              <select id="payment-method" required>
+                <option value="cash">Cash</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="bank_transfer">Bank transfer</option>
+                <option value="card">Card</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </label>
+            <label id="provider-field" class="field" hidden>
+              <span>Mobile money provider</span>
+              <select id="mobile-provider">
+                <option value="MTN">MTN</option>
+                <option value="Airtel">Airtel</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Payer name (optional)</span>
+              <input id="payer-name" type="text" maxlength="140" autocomplete="off">
+            </label>
+            <label class="field">
+              <span>Collection item</span>
+              <select id="collection-item">
+                <option value="School fees">School fees</option>
+                <option value="Bursary fees">Bursary fees</option>
+                <option value="Boarding">Boarding</option>
+                <option value="Breakfast">Breakfast</option>
+                <option value="Lunch">Lunch</option>
+                <option value="Top Class graduation">Top Class graduation</option>
+                <option value="Other school payment">Other school payment</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>External payment reference (optional)</span>
+              <input id="external-reference" type="text" maxlength="120" autocomplete="off">
+            </label>
+            <label class="field full-width">
+              <span>Notes (optional)</span>
+              <textarea id="payment-notes" rows="2" maxlength="1000"></textarea>
+            </label>
+          </div>
+
+          <div class="allocation-summary" aria-live="polite">
+            <div><span>Allocated to fee balances</span><strong id="allocated-total">UGX 0</strong></div>
+            <div><span>Remaining as unallocated learner credit</span><strong id="unallocated-total">UGX 0</strong></div>
+          </div>
+          <p id="allocation-message" class="form-message" role="status" aria-live="polite">Choose which term balances this payment should cover.</p>
+          <div class="form-actions">
+            <button id="post-payment-button" class="button primary" type="submit">Record payment and issue receipt</button>
+          </div>
+          <p id="pending-note" class="form-message" role="status" aria-live="polite" hidden></p>
+          <p id="payment-message" class="form-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section id="receipt-panel" class="panel receipt-panel" hidden>
+        <div class="receipt-toolbar">
+          <div><p class="eyebrow">PAYMENT CONFIRMED</p><h3>Receipt issued</h3></div>
+          <button id="print-receipt" class="button secondary" type="button">Print receipt</button>
+        </div>
+        <div id="receipt-content" class="receipt-paper"></div>
+        <p class="muted print-hint">Use the browser print dialog and select your connected receipt or thermal printer.</p>
+
+      </section>
+
+                    <section id="reprint-panel" class="panel reprint-panel" hidden>
+                <h4>Reprint an existing receipt</h4>
+                <p class="muted">Each reprint needs an authorised receipt permission and a recorded reason.</p>
+                <form id="reprint-form" class="reprint-form">
+                  <label class="field">
+                    <span>Receipt number</span>
+                    <input id="reprint-number" type="text" inputmode="text" maxlength="15" pattern="CR-[0-9]{4}-[0-9]{7}" placeholder="CR-2026-0000001" required>
+                  </label>
+                  <label class="field">
+                    <span>Reason for reprint</span>
+                    <input id="reprint-reason" type="text" minlength="5" maxlength="300" placeholder="Parent requested another copy" required>
+                  </label>
+                  <button id="reprint-button" class="button secondary" type="submit">Record reprint and open receipt</button>
+                </form>
+                <p id="reprint-message" class="form-message" role="status" aria-live="polite"></p>
+              </section>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>CORNHILL local finance</span>
+    <span>Protected staff workspace · Uganda Shillings (UGX)</span>
+  </footer>
+</body>
+</html>

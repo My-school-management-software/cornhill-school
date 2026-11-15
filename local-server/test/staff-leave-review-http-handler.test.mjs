@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createStaffLeaveReviewHttpHandler } from "../src/security/staff-leave-review-http-handler.mjs";
+const ID="11111111-1111-4111-8111-111111111111",REQUEST="22222222-2222-4222-8222-222222222222",ORIGIN="https://localhost:4174";
+function response(){return{writeHead(status,headers){this.status=status;this.headers=headers;},end(body){this.body=body?.toString()??"";}};}
+function req({permission=true,decision="Approved",note="Reviewed",origin=ORIGIN,encrypted=true}={}){return{method:"POST",url:"/api/v1/staff/leave/requests/"+REQUEST+"/review",headers:{host:"localhost:4174",origin,"content-type":"application/json","x-cornhill-csrf":"csrf"},socket:{encrypted},async *[Symbol.asyncIterator](){yield Buffer.from(JSON.stringify({decision,note}));}};}
+function setup(permission=true){const calls=[];return{calls,handler:createStaffLeaveReviewHttpHandler({expectedOrigin:ORIGIN,authService:{async authenticate(){return{principalType:"staff",id:ID,accountStatus:"active",roles:["director"],rolePermissions:{director:permission?["staff.leave_review"]:[]},session:{expiresAt:Date.now()+60000,revokedAt:null}};}},repository:{async reviewRequest(input){calls.push(input);return{id:REQUEST,status:input.decision};}}})};}
+test("permitted independent staff reviewer records a decision using session identity",async()=>{const{handler,calls}=setup(),res=response();await handler(req(),res);assert.equal(res.status,200);assert.equal(calls[0].reviewerStaffId,ID);assert.equal(calls[0].decision,"Approved");});
+test("missing leave-review permission is denied",async()=>{const{handler,calls}=setup(false),res=response();await handler(req(),res);assert.equal(res.status,403);assert.equal(calls.length,0);});
+test("rejections require a meaningful note",async()=>{const{handler,calls}=setup(),res=response();await handler(req({decision:"Rejected",note:"no"}),res);assert.equal(res.status,400);assert.equal(calls.length,0);});
+test("mutations require exact HTTPS origin",async()=>{const{handler}=setup();const a=response();await handler(req({encrypted:false}),a);assert.equal(a.status,426);const b=response();await handler(req({origin:"https://wrong.invalid"}),b);assert.equal(b.status,421);});

@@ -1,0 +1,264 @@
+import { createServer as createHttpsServer } from "node:https";
+import { createSecureContext } from "node:tls";
+import { X509Certificate } from "node:crypto";
+import { readFile, realpath, stat } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+import { getFullSchoolReadiness } from "./full-school-readiness.mjs";
+
+const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
+const REPOSITORY_ROOT = resolve(MODULE_DIR, "../..");
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
+const SECURITY_HEADERS = Object.freeze({
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "X-Frame-Options": "DENY",
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+  "Strict-Transport-Security": "max-age=86400"
+});
+
+function assertLoopbackHost(host) {
+  if (!LOOPBACK_HOSTS.has(host)) {
+    throw new TypeError("Local authentication HTTPS server must bind to loopback only.");
+  }
+}
+
+function assertPort(port) {
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    throw new TypeError("Local authentication HTTPS port must be between 1024 and 65535.");
+  }
+}
+
+function assertHandler(handler) {
+  if (typeof handler !== "function") {
+    throw new TypeError("An HTTPS authentication route handler is required.");
+  }
+}
+
+function assertOutsideRepository(filePath, label) {
+  if (typeof filePath !== "string" || filePath.length === 0 || !isAbsolute(filePath)) {
+    throw new TypeError(label + " must be an absolute path.");
+  }
+  const target = resolve(filePath);
+  const relativePath = relative(REPOSITORY_ROOT, target);
+  const insideRepository = relativePath === "" ||
+    (!relativePath.startsWith(".." + sep) && relativePath !== ".." && !isAbsolute(relativePath));
+  if (insideRepository) {
+    throw new TypeError(label + " must be stored outside the source repository.");
+  }
+}
+
+async function readTlsMaterial({ keyPath, certPath, pfxPath, pfxPassphrase, expectedHostname }) {
+  assertOutsideRepository(certPath, "TLS certificate");
+  const actualCertPath = await realpath(certPath);
+  assertOutsideRepository(actualCertPath, "TLS certificate");
+  const cert = await readFile(actualCertPath);
+  const x509 = new X509Certificate(cert);
+  if (!x509.checkHost(expectedHostname)) {
+    throw new Error("TLS certificate does not match the configured local HTTPS hostname.");
+  }
+  const now = Date.now();
+  if (Date.parse(x509.validFrom) > now || Date.parse(x509.validTo) <= now) {
+    throw new Error("TLS certificate is not currently valid.");
+  }
+
+  if (pfxPath) {
+    assertOutsideRepository(pfxPath, "TLS PFX bundle");
+    if (typeof pfxPassphrase !== "string" || pfxPassphrase.length < 12) {
+      throw new TypeError("TLS PFX passphrase must contain at least 12 characters.");
+    }
+    const actualPfxPath = await realpath(pfxPath);
+    assertOutsideRepository(actualPfxPath, "TLS PFX bundle");
+    const pfxStats = await stat(actualPfxPath);
+    const pfx = await readFile(actualPfxPath);
+    if (process.platform !== "win32" && (pfxStats.mode & 0o077) !== 0) {
+      throw new Error("TLS PFX file permissions are too broad.");
+    }
+    createSecureContext({ pfx, passphrase: pfxPassphrase, minVersion: "TLSv1.2", maxVersion: "TLSv1.3" });
+    return { pfx, passphrase: pfxPassphrase };
+  }
+
+  assertOutsideRepository(keyPath, "TLS private key");
+  const actualKeyPath = await realpath(keyPath);
+  assertOutsideRepository(actualKeyPath, "TLS private key");
+  const keyStats = await stat(actualKeyPath);
+  const key = await readFile(actualKeyPath);
+  if (process.platform !== "win32" && (keyStats.mode & 0o077) !== 0) {
+    throw new Error("TLS private key file permissions are too broad.");
+  }
+  createSecureContext({ key, cert, minVersion: "TLSv1.2", maxVersion: "TLSv1.3" });
+  return { key, cert };
+}
+
+function sendJson(response, statusCode, payload, method = "GET") {
+  const body = Buffer.from(JSON.stringify(payload), "utf8");
+  response.writeHead(statusCode, {
+    ...SECURITY_HEADERS,
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": body.length
+  });
+  response.end(method === "HEAD" ? undefined : body);
+}
+
+const PUBLIC_ASSETS = new Map([
+  ["/", { file: new URL("../public/app.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/bursar", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/bursar.html", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/bursar.js", { file: new URL("../public/bursar.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/bursar.css", { file: new URL("../public/bursar.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/app", { file: new URL("../public/app.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/app.html", { file: new URL("../public/app.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/app.js", { file: new URL("../public/app.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/app.css", { file: new URL("../public/app.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/school", { file: new URL("../public/school.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/school.html", { file: new URL("../public/school.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/school.js", { file: new URL("../public/school.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/school.css", { file: new URL("../public/school.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/academics", { file: new URL("../public/academics.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/academics.html", { file: new URL("../public/academics.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/academics.js", { file: new URL("../public/academics.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/academics.css", { file: new URL("../public/academics.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/leadership", { file: new URL("../public/leadership.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/leadership.html", { file: new URL("../public/leadership.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/leadership.js", { file: new URL("../public/leadership.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/leadership.css", { file: new URL("../public/leadership.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/staff-operations", { file: new URL("../public/staff-operations.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/staff-operations.html", { file: new URL("../public/staff-operations.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/staff-operations.js", { file: new URL("../public/staff-operations.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/staff-operations.css", { file: new URL("../public/staff-operations.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/attendance-import", { file: new URL("../public/attendance-import.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/attendance-import.html", { file: new URL("../public/attendance-import.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/attendance-import.js", { file: new URL("../public/attendance-import.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/attendance-import.css", { file: new URL("../public/attendance-import.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/guardian", { file: new URL("../public/guardian.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/guardian.html", { file: new URL("../public/guardian.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/guardian.js", { file: new URL("../public/guardian.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/guardian.css", { file: new URL("../public/guardian.css", import.meta.url), type: "text/css; charset=utf-8" }]
+]);
+
+const STATIC_CONTENT_SECURITY_POLICY =
+  "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; " +
+  "img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; " +
+  "form-action 'self'; frame-ancestors 'none'";
+
+async function servePublicAsset(request, response, path) {
+  const asset = PUBLIC_ASSETS.get(path);
+  if (!asset) return false;
+  const method = String(request.method ?? "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") {
+    response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD", "Content-Length": 0 });
+    response.end();
+    return true;
+  }
+  const body = await readFile(asset.file);
+  response.writeHead(200, {
+    ...SECURITY_HEADERS,
+    "Content-Security-Policy": STATIC_CONTENT_SECURITY_POLICY,
+    "Content-Type": asset.type,
+    "Content-Length": body.length
+  });
+  response.end(method === "HEAD" ? undefined : body);
+  return true;
+}
+
+export async function createCornhillHttpsServer({
+  authHandler,
+  expectedOrigin,
+  keyPath,
+  certPath,
+  pfxPath,
+  pfxPassphrase,
+  host = "127.0.0.1",
+  port = 4174,
+  financeApiEnabled = false
+} = {}) {
+  assertHandler(authHandler);
+  assertLoopbackHost(host);
+  assertPort(port);
+
+  let origin;
+  try {
+    origin = new URL(expectedOrigin);
+  } catch {
+    throw new TypeError("Expected local HTTPS origin must be a valid HTTPS URL.");
+  }
+  if (origin.protocol !== "https:" || origin.origin !== expectedOrigin ||
+      origin.username || origin.password || origin.pathname !== "/" ||
+      origin.search || origin.hash) {
+    throw new TypeError("Expected local HTTPS origin must be an exact HTTPS origin.");
+  }
+
+  const tls = await readTlsMaterial({
+    keyPath,
+    certPath,
+    pfxPath,
+    pfxPassphrase,
+    expectedHostname: origin.hostname
+  });
+
+  const server = createHttpsServer({
+    ...tls,
+    minVersion: "TLSv1.2",
+    maxVersion: "TLSv1.3",
+    requestCert: false,
+    rejectUnauthorized: true
+  }, (request, response) => {
+    void (async () => {
+      const path = new URL(request.url ?? "/", expectedOrigin).pathname;
+      const method = String(request.method ?? "GET").toUpperCase();
+
+      if (request.headers.host !== origin.host) {
+        sendJson(response, 421, { error: "Request host is not authorised." }, method);
+        return;
+      }
+
+      if (path === "/api/v1/readiness") {
+        if (method !== "GET" && method !== "HEAD") {
+          response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD", "Content-Length": 0 });
+          response.end();
+          return;
+        }
+        sendJson(response, 200, getFullSchoolReadiness(), method);
+        return;
+      }
+      if (path === "/api/v1/health") {
+        if (method !== "GET" && method !== "HEAD") {
+          response.writeHead(405, { ...SECURITY_HEADERS, Allow: "GET, HEAD", "Content-Length": 0 });
+          response.end();
+          return;
+        }
+        sendJson(response, 200, {
+          status: "ok",
+          service: "cornhill-local-api",
+          transport: "https",
+          bind: "loopback-only",
+          financeApiEnabled: financeApiEnabled === true,
+          fullSchoolManagementEnabled: getFullSchoolReadiness().enabled,
+          fullSchoolReadiness: getFullSchoolReadiness().status
+        }, method);
+        return;
+      }
+
+      if (await servePublicAsset(request, response, path)) return;
+
+      const handled = await authHandler(request, response);
+      if (handled) return;
+      sendJson(response, 404, { error: "Local API route not found." }, method);
+    })().catch(() => {
+      if (response.headersSent) {
+        response.destroy();
+      } else {
+        sendJson(response, 503, { error: "Local API service is temporarily unavailable." });
+      }
+    });
+  });
+
+  server.requestTimeout = 15_000;
+  server.headersTimeout = 10_000;
+  server.keepAliveTimeout = 5_000;
+  server.timeout = 30_000;
+  server.maxHeadersCount = 50;
+  return server;
+}
