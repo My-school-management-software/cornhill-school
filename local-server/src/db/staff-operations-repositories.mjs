@@ -33,18 +33,25 @@ export function createPostgresStaffOperationsRepository(pool) {
       includeLeaveReview = false,
       includeAllLeaveBalances = false,
       includeAttendanceReview = false,
+      includeAttendanceGovernance = false,
+      includeSalaryAgreements = false,
       includePayroll = false,
       includePayrollRecord = false,
       includePayrollVerify = false
     } = {}) {
       if (includeOwnLeave || includeAllLeaveBalances) assertUuid(staffId, "Staff ID");
       const result = {
-        attendance: { recentDays: [], monthly: [], reviewQueue: [] },
+        attendance: { recentDays: [], monthly: [], reviewQueue: [], governance: {
+          policy: null, calendarExceptions: [], schedules: [], scheduleAssignments: [],
+          incidents: [], prepSessions: [], prepAttendance: []
+        } },
         leave: { ownRequests: [], balances: [], allBalances: [], reviewQueue: [] },
-        payroll: { periods: [], runs: [], lines: [], disbursements: [] },
+        payroll: { periods: [], runs: [], lines: [], lineItems: [], salaryAgreements: [], disbursements: [] },
         capabilities: {
           attendance: includeAttendance,
           attendanceReview: includeAttendanceReview,
+          attendanceGovernance: includeAttendanceGovernance,
+          salaryAgreements: includeSalaryAgreements,
           ownLeave: includeOwnLeave,
           leaveReview: includeLeaveReview,
           allLeaveBalances: includeAllLeaveBalances,
@@ -94,6 +101,68 @@ export function createPostgresStaffOperationsRepository(pool) {
         ).then(rows => { result.attendance.reviewQueue = rows.rows; }));
       }
 
+
+      if (includeAttendanceGovernance) {
+        jobs.push(pool.query(
+          "SELECT review_window_minutes AS \"reviewWindowMinutes\",sunday_paid_rest_day AS \"sundayPaidRestDay\", " +
+          "saturday_start_time::text AS \"saturdayStartTime\",saturday_end_time::text AS \"saturdayEndTime\", " +
+          "prep_enabled AS \"prepEnabled\",prep_deduction_ugx::text AS \"prepDeductionUgx\", " +
+          "updated_at AS \"updatedAt\" FROM cornhill_school.staff_attendance_policy_settings WHERE id=true"
+        ).then(rows => { result.attendance.governance.policy = rows.rows[0] ?? null; }));
+        jobs.push(pool.query(
+          "SELECT attendance_date::text AS \"date\",exception_type AS type,is_working_day AS \"isWorkingDay\",note " +
+          "FROM cornhill_school.staff_attendance_calendar_exceptions " +
+          "WHERE attendance_date BETWEEN CURRENT_DATE-interval '90 days' AND CURRENT_DATE+interval '180 days' " +
+          "ORDER BY attendance_date LIMIT 400"
+        ).then(rows => { result.attendance.governance.calendarExceptions = rows.rows; }));
+        jobs.push(pool.query(
+          "SELECT schedule_code AS \"scheduleCode\",schedule_name AS \"scheduleName\", " +
+          "start_time::text AS \"startTime\",end_time::text AS \"endTime\", " +
+          "saturday_start_time::text AS \"saturdayStartTime\",saturday_end_time::text AS \"saturdayEndTime\", " +
+          "grace_minutes AS \"graceMinutes\",weekdays,is_active AS \"isActive\" " +
+          "FROM cornhill_school.staff_work_schedules ORDER BY is_active DESC,schedule_name LIMIT 100"
+        ).then(rows => { result.attendance.governance.schedules = rows.rows; }));
+        jobs.push(pool.query(
+          "SELECT sp.staff_number AS \"staffNumber\",COALESCE(sp.preferred_name,sp.legal_name) AS \"staffName\", " +
+          "ws.schedule_code AS \"scheduleCode\",ws.schedule_name AS \"scheduleName\", " +
+          "a.starts_on::text AS \"startsOn\",a.ends_on::text AS \"endsOn\",a.saturday_required AS \"saturdayRequired\" " +
+          "FROM cornhill_school.staff_attendance_schedule_assignments a " +
+          "JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=a.staff_account_id " +
+          "JOIN cornhill_school.staff_work_schedules ws ON ws.id=a.schedule_id " +
+          "WHERE a.starts_on<=CURRENT_DATE AND (a.ends_on IS NULL OR a.ends_on>=CURRENT_DATE) " +
+          "ORDER BY sp.legal_name LIMIT 300"
+        ).then(rows => { result.attendance.governance.scheduleAssignments = rows.rows; }));
+        jobs.push(pool.query(
+          "SELECT i.id::text AS id,i.attendance_date::text AS \"attendanceDate\", " +
+          "sp.staff_number AS \"staffNumber\",COALESCE(sp.preferred_name,sp.legal_name) AS \"staffName\", " +
+          "i.incident_type AS \"incidentType\",i.status,i.detected_at AS \"detectedAt\", " +
+          "i.review_deadline_at AS \"reviewDeadlineAt\",i.headteacher_statement AS \"headteacherStatement\", " +
+          "i.director_decision AS \"directorDecision\",i.approved_deduction_ugx::text AS \"approvedDeductionUgx\",i.review_note AS \"reviewNote\" " +
+          "FROM cornhill_school.staff_attendance_incidents i " +
+          "JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=i.staff_account_id " +
+          "WHERE i.attendance_date>=CURRENT_DATE-interval '90 days' OR i.director_decision IS NULL " +
+          "ORDER BY i.attendance_date DESC,sp.legal_name LIMIT 500"
+        ).then(rows => { result.attendance.governance.incidents = rows.rows; }));
+        jobs.push(pool.query(
+          "SELECT s.id::text AS id,s.prep_date::text AS \"prepDate\",s.title,s.start_time::text AS \"startTime\", " +
+          "s.end_time::text AS \"endTime\",s.class_name AS \"className\",s.approval_status AS status,s.is_published AS \"isPublished\", " +
+          "(SELECT count(*)::int FROM cornhill_school.staff_prep_assignments a WHERE a.prep_session_id=s.id) AS \"assignedStaffCount\", " +
+          "(SELECT count(*)::int FROM cornhill_school.staff_scheduled_session_attendance a WHERE a.session_id=s.id AND a.clock_in_at IS NOT NULL) AS \"clockedInCount\" " +
+          "FROM cornhill_school.staff_prep_sessions s " +
+          "WHERE s.prep_date BETWEEN CURRENT_DATE-interval '90 days' AND CURRENT_DATE+interval '180 days' " +
+          "ORDER BY s.prep_date DESC,s.start_time LIMIT 300"
+        ).then(rows => { result.attendance.governance.prepSessions = rows.rows; }));
+        jobs.push(pool.query(
+          "SELECT s.prep_date::text AS \"prepDate\",s.title,sp.staff_number AS \"staffNumber\", " +
+          "COALESCE(sp.preferred_name,sp.legal_name) AS \"staffName\",a.clock_in_at AS \"clockInAt\", " +
+          "a.clock_out_at AS \"clockOutAt\" FROM cornhill_school.staff_scheduled_session_attendance a " +
+          "JOIN cornhill_school.staff_prep_sessions s ON s.id=a.session_id " +
+          "JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=a.staff_account_id " +
+          "WHERE s.prep_date BETWEEN CURRENT_DATE-interval '90 days' AND CURRENT_DATE+interval '180 days' " +
+          "ORDER BY s.prep_date DESC,s.start_time,sp.legal_name LIMIT 500"
+        ).then(rows => { result.attendance.governance.prepAttendance = rows.rows; }));
+      }
+
       if (includeOwnLeave) {
         jobs.push(pool.query(
           "SELECT id::text AS id,leave_type AS \"leaveType\",starts_on::text AS \"startsOn\", " +
@@ -130,6 +199,19 @@ export function createPostgresStaffOperationsRepository(pool) {
           "ends_on::text AS \"endsOn\",requested_days::text AS \"requestedDays\",reason,submitted_at AS \"submittedAt\" " +
           "FROM cornhill_school.staff_leave_review_queue ORDER BY submitted_at,legal_name LIMIT 200"
         ).then(rows => { result.leave.reviewQueue = rows.rows; }));
+      }
+
+
+      if (includeSalaryAgreements) {
+        jobs.push(pool.query(
+          "SELECT sp.staff_number AS \"staffNumber\",COALESCE(sp.preferred_name,sp.legal_name) AS \"staffName\", " +
+          "a.salary_basis AS \"salaryBasis\",a.base_salary_ugx::text AS \"baseSalaryUgx\", " +
+          "a.daily_rate_ugx::text AS \"dailyRateUgx\",a.effective_from::text AS \"effectiveFrom\", " +
+          "a.effective_to::text AS \"effectiveTo\",a.is_active AS \"isActive\",a.created_at AS \"createdAt\" " +
+          "FROM cornhill_school.staff_salary_agreements a " +
+          "JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=a.staff_account_id " +
+          "ORDER BY sp.legal_name,a.effective_from DESC LIMIT 500"
+        ).then(rows => { result.payroll.salaryAgreements = rows.rows; }));
       }
 
       if (includePayroll) {
@@ -174,6 +256,20 @@ export function createPostgresStaffOperationsRepository(pool) {
           "JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=pl.staff_account_id " +
           "ORDER BY pd.paid_at DESC LIMIT 500"
         ).then(rows => { result.payroll.disbursements = rows.rows; }));
+
+        jobs.push(pool.query(
+          "SELECT i.id::text AS id,pp.period_code AS \"periodCode\",sp.staff_number AS \"staffNumber\", " +
+          "COALESCE(sp.preferred_name,sp.legal_name) AS \"staffName\",i.item_type AS \"itemType\", " +
+          "i.item_code AS \"itemCode\",i.description,i.amount_ugx::text AS \"amountUgx\", " +
+          "i.source_attendance_adjustment_id::text AS \"attendanceAdjustmentId\",i.approved_at AS \"approvedAt\" " +
+          "FROM cornhill_school.payroll_line_items i " +
+          "JOIN cornhill_school.payroll_lines pl ON pl.id=i.payroll_line_id " +
+          "JOIN cornhill_school.payroll_runs pr ON pr.id=pl.payroll_run_id " +
+          "JOIN cornhill_school.payroll_periods pp ON pp.id=pr.payroll_period_id " +
+          "JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=pl.staff_account_id " +
+          "WHERE pp.starts_on>=CURRENT_DATE-interval '6 months' " +
+          "ORDER BY pp.starts_on DESC,sp.legal_name,i.created_at LIMIT 1000"
+        ).then(rows => { result.payroll.lineItems = rows.rows; }));
 
         jobs.push(pool.query(
           "SELECT pl.id::text AS id,pp.period_code AS \"periodCode\",sp.staff_number AS \"staffNumber\", " +

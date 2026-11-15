@@ -130,7 +130,9 @@ export function createStaffOperationsHttpHandler({authService,repository,expecte
         "staff.attendance_manage","staff.attendance_review",
         "staff.leave_manage","staff.leave_review","staff.leave_balance_manage",
         "staff.payroll_read","staff.payroll_manage",
-        "staff.payroll_disbursements_manage","staff.payroll_disbursements_verify"
+        "staff.payroll_disbursements_manage","staff.payroll_disbursements_verify",
+        "staff.attendance_policy_manage","staff.attendance_incident_decide",
+        "staff.prep_session_manage","staff.payroll_approve"
       ];
       requireAny(principal,permissions);
       const leaveManage=has(principal,"staff.leave_manage");
@@ -138,6 +140,10 @@ export function createStaffOperationsHttpHandler({authService,repository,expecte
         staffId:principal.id,
         includeAttendance:has(principal,"staff.attendance_manage")||has(principal,"staff.attendance_review"),
         includeAttendanceReview:has(principal,"staff.attendance_review"),
+        includeAttendanceGovernance:[
+          "staff.attendance_manage","staff.attendance_policy_manage","staff.attendance_incident_decide","staff.prep_session_manage"
+        ].some(permission=>has(principal,permission)),
+        includeSalaryAgreements:has(principal,"staff.payroll_read")||has(principal,"staff.payroll_manage")||has(principal,"staff.payroll_approve"),
         includeOwnLeave:leaveManage,
         includeLeaveReview:has(principal,"staff.leave_review"),
         includeAllLeaveBalances:has(principal,"staff.leave_balance_manage"),

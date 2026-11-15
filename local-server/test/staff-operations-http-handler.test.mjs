@@ -80,6 +80,13 @@ test("invalid leave values are rejected before the repository is called",async()
   assert.equal(res.status,400);assert.equal(calls.leave.length,0);
 });
 
+test("attendance and salary governance are requested only for their specific leadership permissions",async()=>{
+  const {handler,calls}=setup(["staff.attendance_policy_manage","staff.payroll_approve"]),res=makeResponse();
+  await handler(makeRequest({method:"GET",path:"/api/v1/staff/operations/workspace"}),res);
+  assert.equal(res.status,200);
+  assert.equal(calls.workspace[0].includeAttendanceGovernance,true);
+  assert.equal(calls.workspace[0].includeSalaryAgreements,true);
+});
 test("mutations require HTTPS and the exact local origin",async()=>{
   const {handler}=setup(["staff.leave_manage"]);
   const insecure=makeResponse();

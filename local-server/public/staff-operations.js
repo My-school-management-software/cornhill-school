@@ -23,6 +23,7 @@ function dateOnly(value){if(!value)return "—";const d=new Date(value+"T00:00:0
 function rows(body,items,columns,draw,message){body.replaceChildren();if(!items.length){empty(body,columns,message);return;}for(const item of items){const tr=document.createElement("tr");draw(tr,item);body.append(tr);}}
 function showPanels(caps){
   $("attendance-panel").hidden=!caps.attendance;
+  $("attendance-governance-panel").hidden=!caps.attendanceGovernance;
   $("leave-panel").hidden=!caps.ownLeave;
   $("leave-review-panel").hidden=!caps.leaveReview;
   $("all-leave-balances-panel").hidden=!caps.allLeaveBalances;
@@ -98,6 +99,35 @@ function renderLeave(data){
     cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.leaveType);cell(tr,x.availableDays);
   },"No staff leave balances have been recorded.");
 }
+function renderAttendanceGovernance(data){
+  const policy=data.policy||{};
+  $("attendance-policy-summary").textContent=policy
+    ? "Review window: "+policy.reviewWindowMinutes+" minutes · Sunday paid rest day: "+(policy.sundayPaidRestDay?"Yes":"No")+
+      " · Saturday: "+policy.saturdayStartTime+"–"+policy.saturdayEndTime+
+      " · Prep enabled: "+(policy.prepEnabled?"Yes":"No")+" · Prep deduction setting: "+money(policy.prepDeductionUgx)
+    : "No attendance policy settings have been recorded.";
+  rows($("schedule-assignment-rows"),data.scheduleAssignments||[],6,(tr,x)=>{
+    cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.scheduleCode+" · "+x.scheduleName);
+    cell(tr,x.startTime+"–"+x.endTime);cell(tr,x.saturdayRequired?"Required":"Not required");
+    cell(tr,dateOnly(x.startsOn)+(x.endsOn?" to "+dateOnly(x.endsOn):" · ongoing"));
+  },"No active staff schedule assignments.");
+  rows($("calendar-exception-rows"),data.calendarExceptions||[],4,(tr,x)=>{
+    cell(tr,dateOnly(x.date));cell(tr,x.type);cell(tr,x.isWorkingDay?"Working":"Closed");cell(tr,x.note);
+  },"No calendar exceptions in the selected date range.");
+  rows($("attendance-incident-rows"),data.incidents||[],9,(tr,x)=>{
+    cell(tr,dateOnly(x.attendanceDate));cell(tr,x.staffNumber+" · "+x.staffName);cell(tr,x.incidentType);
+    cell(tr,x.status);cell(tr,dateTime(x.reviewDeadlineAt));cell(tr,x.headteacherStatement);
+    cell(tr,x.directorDecision||"Pending");cell(tr,money(x.approvedDeductionUgx));cell(tr,x.reviewNote);
+  },"No attendance incidents are awaiting or recently completed review.");
+  rows($("prep-session-rows"),data.prepSessions||[],8,(tr,x)=>{
+    cell(tr,dateOnly(x.prepDate));cell(tr,x.title);cell(tr,x.className);cell(tr,x.startTime+"–"+x.endTime);
+    cell(tr,x.status);cell(tr,x.isPublished?"Published":"Not published");cell(tr,x.assignedStaffCount);cell(tr,x.clockedInCount);
+  },"No special staff sessions in the selected date range.");
+  rows($("prep-attendance-rows"),data.prepAttendance||[],5,(tr,x)=>{
+    cell(tr,dateOnly(x.prepDate));cell(tr,x.title);cell(tr,x.staffNumber+" · "+x.staffName);
+    cell(tr,dateTime(x.clockInAt));cell(tr,dateTime(x.clockOutAt));
+  },"No special-session attendance has been recorded.");
+}
 function renderPayroll(data,caps={}){
   const lineSelect=$("payroll-line-id");
   if(lineSelect){
@@ -145,6 +175,14 @@ function renderPayroll(data,caps={}){
     cell(tr,money(x.pendingVerificationUgx));cell(tr,money(x.remainingUnallocatedUgx));
     cell(tr,dateTime(x.postedAt));
   },"No payroll runs have been prepared.");
+  rows($("salary-agreement-rows"),data.salaryAgreements||[],7,(tr,x)=>{
+    cell(tr,x.staffNumber+" · "+x.staffName);cell(tr,x.salaryBasis);cell(tr,money(x.baseSalaryUgx));
+    cell(tr,money(x.dailyRateUgx));cell(tr,dateOnly(x.effectiveFrom));cell(tr,dateOnly(x.effectiveTo));cell(tr,x.isActive?"Active":"Inactive");
+  },"No salary agreements have been recorded.");
+  rows($("payroll-line-item-rows"),data.lineItems||[],8,(tr,x)=>{
+    cell(tr,x.periodCode);cell(tr,x.staffNumber+" · "+x.staffName);cell(tr,x.itemType);cell(tr,x.itemCode);
+    cell(tr,x.description);cell(tr,money(x.amountUgx));cell(tr,x.attendanceAdjustmentId||"—");cell(tr,dateTime(x.approvedAt));
+  },"No itemised payroll allowances or deductions have been recorded.");
   rows($("payroll-line-rows"),data.lines||[],8,(tr,x)=>{
     cell(tr,x.periodCode);cell(tr,x.staffNumber);cell(tr,x.staffName);
     cell(tr,money(x.baseSalaryUgx));cell(tr,money(x.allowancesUgx));
@@ -157,6 +195,7 @@ async function loadWorkspace(){
   const caps=result.capabilities||{};
   showPanels(caps);
   if(caps.attendance)renderAttendance(result.attendance||{},caps.attendanceReview);
+  if(caps.attendanceGovernance)renderAttendanceGovernance(result.attendance?.governance||{});
   if(caps.ownLeave||caps.leaveReview||caps.allLeaveBalances)renderLeave({
     ...(result.leave||{}),
     allBalances:caps.allLeaveBalances?(result.leave?.allBalances||[]):undefined

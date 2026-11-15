@@ -49,6 +49,21 @@ test("payroll run summary groups the period start date used for ordering",async(
   assert.match(payrollSql,/GROUP BY pr\.id,pp\.period_code,pp\.starts_on ORDER BY pp\.starts_on DESC/);
 });
 
+test("attendance and salary governance read models are capability-gated and read-only",async()=>{
+  const calls=[];
+  const pool={async query(sql,params){calls.push({sql,params});return {rows:[]};},async connect(){throw new Error("not used");}};
+  const result=await createPostgresStaffOperationsRepository(pool).getWorkspace({
+    includeAttendanceGovernance:true,includeSalaryAgreements:true,includePayroll:true
+  });
+  for(const table of ["staff_attendance_policy_settings","staff_attendance_calendar_exceptions","staff_work_schedules",
+    "staff_attendance_schedule_assignments","staff_attendance_incidents","staff_prep_sessions",
+    "staff_scheduled_session_attendance","staff_salary_agreements","payroll_line_items"]){
+    assert.ok(calls.some(x=>x.sql.includes(table)),"Missing read query for "+table);
+  }
+  assert.ok(calls.every(x=>!/^\\s*(?:INSERT|UPDATE|DELETE|TRUNCATE|DROP)\\b/i.test(x.sql)));
+  assert.equal(result.attendance.governance.incidents.length,0);
+  assert.equal(result.payroll.salaryAgreements.length,0);
+});
 test("leave submission creates a draft and submits it in one database transaction",async()=>{
   const calls=[];
   const client={
