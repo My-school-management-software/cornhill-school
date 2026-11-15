@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#153a36">
+  <meta name="description" content="Local CORNHILL school management workspace launcher.">
+  <title>CORNHILL | Local Workspace</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand-mark" href="/app" aria-label="CORNHILL workspace home">C</a>
+    <div class="brand-copy">
+      <p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p>
+      <h1>School Management Workspace</h1>
+    </div>
+    <span class="environment-tag">LOCAL · PRIVATE NETWORK PREVIEW</span>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">LOCAL APPLICATION HUB</p>
+        <h2>One place to open the school workspaces</h2>
+        <p class="intro">Open the locally connected school modules below. Each workspace keeps its own sign-in, permissions and records controls.</p>
+      </div>
+      <div class="hero-status" id="service-state" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        Checking local services…
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <div><p class="eyebrow">CONNECTED WORKSPACES</p><h2>Available locally</h2></div>
+        <span class="section-note">Sign-in is required inside each workspace.</span>
+      </div>
+      <div class="module-grid">
+        <article class="module-card">
+          <div class="module-icon" aria-hidden="true">S</div>
+          <div class="module-copy"><span class="module-status connected">Local UI + API routes</span><h3>School Office</h3><p>Learner register, class catalogue, learner search and admissions with permanent pupil codes.</p></div>
+          <a class="module-link" href="/school">Open School Office <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="module-card">
+          <div class="module-icon" aria-hidden="true">A</div>
+          <div class="module-copy"><span class="module-status connected">Local UI + API routes</span><h3>Teaching & Academics</h3><p>Academic years and terms, class access, assessments, marks entry and results workflows.</p></div>
+          <a class="module-link" href="/academics">Open Academics <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="module-card">
+          <div class="module-icon" aria-hidden="true">F</div>
+          <div class="module-copy"><span class="module-status conditional" id="finance-status">Checking finance runtime</span><h3>Bursar & Finance</h3><p>Fee accounts, UGX payment entry, previous-balance allocations, receipts, expenses and banking workflows.</p><p class="module-warning" id="finance-warning" hidden></p></div>
+          <a class="module-link" id="finance-link" href="/bursar">Open Bursar Desk <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="module-card">
+          <div class="module-icon" aria-hidden="true">L</div>
+          <div class="module-copy"><span class="module-status connected">Local UI + API routes</span><h3>Leadership & Staff</h3><p>Staff directory, individual staff accounts, role permissions, attendance review and leadership controls.</p></div>
+          <a class="module-link" href="/leadership">Open Leadership <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <div><p class="eyebrow">INTEGRATION PROGRAMME</p><h2>Still being connected</h2></div>
+        <span class="section-note">These are not presented as operational modules yet.</span>
+      </div>
+      <div class="pending-grid">
+        <article class="pending-card"><span class="module-status pending">Integration pending</span><h3>Full school application</h3><p>Unify the remaining hosted application screens and local workflows without exposing hosted credentials or mixing live and local records.</p></article>
+        <article class="pending-card"><span class="module-status pending">API parity pending</span><h3>Attendance & payroll</h3><p>Connect the remaining staff attendance, leave, salary and payroll operations to their protected local repositories.</p></article>
+        <article class="pending-card"><span class="module-status pending">Migration pending</span><h3>Hosted dependencies</h3><p>Replace each remaining hosted dependency and verify its local equivalent before any cutover.</p></article>
+        <article class="pending-card"><span class="module-status pending">Acceptance pending</span><h3>Offline & multi-device</h3><p>Complete offline queue safety, synchronisation, conflict recovery, Windows network access and Android acceptance.</p></article>
+      </div>
+    </section>
+
+    <section class="readiness-panel" aria-labelledby="readiness-title">
+      <div class="readiness-heading">
+        <div><p class="eyebrow">RELEASE GATE</p><h2 id="readiness-title">Full-school readiness</h2><p id="readiness-summary" class="muted">Checking the five release conditions…</p></div>
+        <button id="refresh-status" class="refresh-button" type="button">Refresh status</button>
+      </div>
+      <ul id="readiness-list" class="readiness-list"><li>Checking integration evidence…</li></ul>
+      <p class="safety-note">This launcher is a navigation hub, not a release certificate. Do not enter production school records until all release conditions and operational acceptance tests pass.</p>
+    </section>
+
+    <footer class="footer">
+      <span>CORNHILL · Local-first development</span>
+      <span id="server-detail">Service details will appear after the health check.</span>
+    </footer>
+  </main>
+</body>
+</html>
