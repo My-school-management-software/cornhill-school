@@ -17,7 +17,8 @@
     "start:auth": "node --env-file=.env scripts/start-local-auth.mjs",
     "setup:director": "node --env-file=.env scripts/setup-director.mjs",
     "db:director-status": "node --env-file=.env scripts/director-bootstrap-status.mjs",
-    "verify:director-credential": "node --env-file=.env scripts/verify-director-credential.mjs"
+    "verify:director-credential": "node --env-file=.env scripts/verify-director-credential.mjs",
+    "verify:director-runtime-credential": "node --env-file=.env scripts/verify-director-runtime-credential.mjs"
   },
   "engines": {
     "node": ">=22"
