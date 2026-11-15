@@ -15,6 +15,14 @@
 <section id="incidents-panel" class="panel" hidden><div class="section-head"><div><h2>Attendance incident review</h2><p class="muted">Headteacher/DOS statements and Director decisions are separate, recorded actions. The database enforces the review window and role authority.</p></div><span id="incident-count" class="pill"></span></div>
 <div id="incidents-list" class="incident-list"></div></section>
 <section id="sessions-panel" class="panel" hidden><div class="section-head"><div><h2>Special staff preparation sessions</h2><p class="muted">Upcoming published and draft session information.</p></div></div><div id="sessions-list" class="session-list"></div></section>
+<section id="guardian-access-panel" class="panel" hidden>
+  <div class="section-head"><div><h2>Parent & Guardian Access</h2><p class="muted">Issue a one-time PIN and approve access only for a registered guardian contact. This section requires the separate high-risk guardians.access_approve permission.</p></div><button id="guardian-refresh" class="secondary" type="button">Refresh contacts</button></div>
+  <div id="guardian-credential" class="guardian-credential" hidden>
+    <div><strong>One-time guardian PIN</strong><p class="muted">Share this PIN privately with the guardian. It is shown once and is not stored in readable form.</p><code id="guardian-pin" class="guardian-pin"></code></div>
+    <div class="guardian-credential-actions"><button id="copy-guardian-pin" type="button">Copy PIN</button><button id="dismiss-guardian-pin" class="secondary" type="button">Dismiss</button></div>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>Learner</th><th>Pupil code</th><th>Guardian</th><th>Phone</th><th>Account</th><th>Link</th><th>Action</th></tr></thead><tbody id="guardian-contact-rows"><tr><td colspan="7">Loading approved guardian contacts…</td></tr></tbody></table></div>
+</section>
 <section id="admin-panel" class="panel" hidden>
   <div class="section-head"><div><h2>Director · Staff accounts and role permissions</h2><p class="muted">Create staff login accounts and configure access by role. The Director role and backup/role-management permissions remain protected.</p></div><span class="pill">Director authority only</span></div>
   <div class="admin-grid">
