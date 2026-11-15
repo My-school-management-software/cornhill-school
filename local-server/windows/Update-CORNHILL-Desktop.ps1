@@ -53,11 +53,8 @@ Invoke-Checked "git" @("merge","--ff-only","origin/$Branch") "The local branch c
 Set-Location $localServerRoot
 $nodeMajor = [int]((node --version).Trim().TrimStart("v").Split(".")[0])
 if ($nodeMajor -lt 22) { Stop-WithGuidance "Node.js 22 or newer is required." }
-if (-not (Test-Path (Join-Path $localServerRoot "package-lock.json"))) {
-  Stop-WithGuidance "The pinned package-lock.json is missing. Restore the tracked lockfile before updating."
-}
-Write-Host "Installing the exact pinned application dependencies..."
-Invoke-Checked "npm" @("ci","--no-audit","--no-fund") "Node dependency installation failed."
+Write-Host "Installing the dependency versions pinned in package.json..."
+Invoke-Checked "npm" @("install","--no-package-lock","--no-audit","--no-fund") "Node dependency installation failed."
 if (-not $SkipTests) {
   Write-Host "Running the complete combined Windows test suite..."
   Invoke-Checked "npm" @("test") "The Windows test suite failed. Database migrations were not started."
