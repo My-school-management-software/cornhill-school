@@ -81,7 +81,7 @@ async function issueOrApproveGuardian(contactId) {
     "Replace the existing PIN for " + contact.guardianName +
     "? The previous PIN will stop working for all learners linked to this guardian account."
   )) return;
-  const button = document.querySelector('[data-guardian-issue="' + CSS.escape(contactId) + '"]');
+  const button = [...document.querySelectorAll("[data-guardian-issue]")].find(item => item.dataset.guardianIssue === contactId);
   if (button) button.disabled = true;
   try {
     const result = await api("/guardian/access/issue-pin", {
