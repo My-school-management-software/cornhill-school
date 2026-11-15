@@ -28,8 +28,8 @@ function isCalendarDate(value){
   return parsed.getUTCFullYear()===year&&parsed.getUTCMonth()===month-1&&parsed.getUTCDate()===day;
 }
 function validate(body,actorStaffId){
-  const classId=body.classId;
-  if(!isLocalUuid(classId))throw new InputError("Select a valid class.");
+  const classId=body.classId==null||body.classId===""?null:body.classId;
+  if(classId!==null&&!isLocalUuid(classId))throw new InputError("Select a valid class.");
   const firstName=text(body.firstName,80,"First name"),lastName=text(body.lastName,80,"Last name");
   const middleName=text(body.middleName,80,"Middle name",false);
   if(!["Male","Female"].includes(body.gender))throw new InputError("Select Male or Female.");
@@ -81,7 +81,7 @@ export function createAdmissionsHttpHandler({authService,admissionsRepository,ex
       if(body.lin&&!staffHasPermission({principal,permissionCode:"learners.lin_manage"}))throw new AuthorizationError();
       if(body.guardian&&!staffHasPermission({principal,permissionCode:"learners.guardians_manage"}))throw new AuthorizationError();
       const scoped=new Set(["teacher","class_teacher","upper_primary_teacher","lower_primary_teacher","nursery_head"]);
-      if(principal.roles.some(role=>scoped.has(role))&&!staffHasClassAssignment({principal,classId:body.classId}))throw new AuthorizationError();
+      if(principal.roles.some(role=>scoped.has(role))&&(!body.classId||!staffHasClassAssignment({principal,classId:body.classId})))throw new AuthorizationError();
       const learner=await admissionsRepository.registerLearner(body);
       send(response,201,{learner});
     }catch(error){
