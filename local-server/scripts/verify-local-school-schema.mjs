@@ -565,7 +565,7 @@ try {
     const admittedLearnerState = await client.query(
       "SELECT l.pupil_code, l.class_id, l.is_bursary, l.bursary_fee_ugx, e.class_id AS enrolment_class_id, e.admission_date, a.event_code " +
       "FROM cornhill_school.learners l " +
-      "JOIN cornhill_school.enrolment_periods e ON e.learner_id = l.id AND e.ended_on IS NULL " +
+      "JOIN cornhill_school.enrolment_periods e ON e.learner_id = l.id AND e.status = 'Active' " +
       "JOIN cornhill_school.admission_events a ON a.learner_id = l.id " +
       "WHERE l.id = $1",
       [admittedLearner.id]
