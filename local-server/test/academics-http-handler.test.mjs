@@ -44,8 +44,8 @@ async function invoke(handler, { path = "/api/v1/academics/workspace", method = 
   req.headers = { host: "cornhill.local", cookie: SESSION_COOKIE_NAME + "=" + secrets.sessionToken, ...headers };
   if (method !== "GET" && method !== "HEAD") {
     req.headers.origin = ORIGIN;
-    req.headers["content-type"] = "application/json";
-    req.headers["x-cornhill-csrf"] = secrets.csrfToken;
+    req.headers["content-type"] ??= "application/json";
+    req.headers["x-cornhill-csrf"] ??= secrets.csrfToken;
   }
   req.socket = { encrypted };
   const res = response();
