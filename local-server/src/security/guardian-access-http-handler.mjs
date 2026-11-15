@@ -139,7 +139,7 @@ export function createGuardianAccessHttpHandler({
         pinHash,
         replaceExisting: body.replaceExisting === true
       });
-      send(response, 201, { ...issued, pin });
+      send(response, 201, issued.pinIssued ? { ...issued, pin } : issued);
     } catch (error) {
       if (error instanceof InputError) send(response, error.status, { error: error.message });
       else if (error instanceof AuthenticationError) send(response, 401, { error: "A valid staff session is required." });
