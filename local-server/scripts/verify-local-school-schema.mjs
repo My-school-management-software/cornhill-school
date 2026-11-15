@@ -92,7 +92,7 @@ try {
     "Local school table inventory mismatch. Expected: " + JSON.stringify(expected) + "; actual: " + JSON.stringify(tables.rows.map(row => row.table_name)));
 
   const academicTriggers = await pool.query(
-    "SELECT tgname FROM pg_trigger WHERE tgname IN ('academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard') AND NOT tgisinternal"
+    "SELECT tgname FROM pg_trigger WHERE tgname IN ('academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard') AND NOT tgisinternal"
   );
   const academicTriggerNames = new Set(academicTriggers.rows.map(row => row.tgname));
   for (const name of ['academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard']) {
