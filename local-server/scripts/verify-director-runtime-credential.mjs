@@ -22,15 +22,15 @@ function askHidden(prompt) {
   return new Promise((resolve, reject) => {
     let value = "";
     const finish = error => {
-      input.off("data", onData); input.setRawMode(false); input.pause(); output.write("\\n");
+      input.off("data", onData); input.setRawMode(false); input.pause(); output.write("\n");
       if (error) reject(error); else resolve(value);
     };
     const onData = chunk => {
       for (const char of chunk.toString("utf8")) {
-        if (char === "\\u0003") return finish(new Error("Check cancelled."));
-        if (char === "\\r" || char === "\\n") return finish();
-        if (char === "\\u007f" || char === "\\b") { value = value.slice(0, -1); output.write("\\b \\b"); }
-        else if (char >= " " && char !== "\\u007f") { value += char; output.write("*"); }
+        if (char === "\u0003") return finish(new Error("Check cancelled."));
+        if (char === "\r" || char === "\n") return finish();
+        if (char === "\u007f" || char === "\b") { value = value.slice(0, -1); output.write("\b \b"); }
+        else if (char >= " " && char !== "\u007f") { value += char; output.write("*"); }
       }
     };
     input.on("data", onData);
@@ -41,7 +41,7 @@ export async function runDirectorRuntimeCredentialCheck() {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error("Run this check from an interactive PowerShell or terminal window.");
   }
-  console.log("\\nCORNHILL — Director runtime credential diagnostic");
+  console.log("\nCORNHILL — Director runtime credential diagnostic");
   console.log("Uses the same restricted database role as the live login service.");
   console.log("Does not create a login attempt, session, or audit event. Password stays local.\\n");
   const username = await askLine("Director username: ");
@@ -74,7 +74,7 @@ export async function runDirectorRuntimeCredentialCheck() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   runDirectorRuntimeCredentialCheck().catch(error => {
-    console.error("\\nDirector runtime diagnostic stopped: " + error.message);
+    console.error("\nDirector runtime diagnostic stopped: " + error.message);
     process.exitCode = 1;
   });
 }
