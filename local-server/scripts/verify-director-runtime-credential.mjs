@@ -51,8 +51,13 @@ export async function runDirectorRuntimeCredentialCheck() {
   const pool = new Pool(readLocalRuntimeDatabaseConfig(process.env));
   try {
     const identity = await pool.query("SELECT current_user AS db_user, current_database() AS db_name");
-    console.log("Runtime database identity: " +
-      (identity.rows[0]?.db_user === "cornhill_auth_api" && identity.rows[0]?.db_name === "cornhill_local" ? "PASS" : "FAIL"));
+    const runtimeIdentityMatches =
+      identity.rows[0]?.db_user === "cornhill_auth_api" &&
+      identity.rows[0]?.db_name === "cornhill_local";
+    console.log("Runtime database identity: " + (runtimeIdentityMatches ? "PASS" : "FAIL"));
+    if (!runtimeIdentityMatches) {
+      throw new Error("The configured connection is not the expected restricted CORNHILL runtime database role; no account lookup was attempted.");
+    }
     const repositories = createPostgresAuthRepositories(pool);
     const account = await repositories.accountRepository.findStaffByUsername(normalized);
     console.log("Account lookup through live-login repository: " + (account ? "FOUND" : "NOT FOUND"));
