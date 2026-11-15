@@ -44,6 +44,11 @@ try {
       const identity = await runtimePool.query("SELECT current_user AS database_user, current_database() AS database_name");
       assert.equal(identity.rows[0]?.database_user, "cornhill_auth_api");
       assert.equal(identity.rows[0]?.database_name, "cornhill_local");
+      const lockProbe = await runtimePool.query(
+        "SELECT count(*)::integer AS row_count FROM cornhill_school.lock_active_guardian_contact_for_access($1::uuid)",
+        ["00000000-0000-0000-0000-000000000001"]
+      );
+      assert.equal(lockProbe.rows[0]?.row_count, 0, "Guardian lock function must be callable by the runtime role.");
     } finally {
       await runtimePool.end();
     }
@@ -67,6 +72,9 @@ try {
       has_column_privilege('cornhill_auth_api', 'cornhill_auth.login_attempts', 'succeeded', 'UPDATE') AS attempt_complete,
       has_column_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events', 'event_code', 'INSERT') AS audit_insert,
       has_table_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events', 'SELECT') AS audit_read,
+      has_function_privilege('cornhill_auth_api', 'cornhill_school.lock_active_guardian_contact_for_access(uuid)', 'EXECUTE') AS guardian_contact_lock_execute,
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.guardian_contacts', 'is_active', 'UPDATE') AS guardian_contact_update,
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.learners', 'status', 'UPDATE') AS guardian_learner_update,
       has_sequence_privilege('cornhill_auth_api', 'cornhill_auth.security_audit_events_id_seq', 'USAGE') AS audit_sequence_usage
   `);
 
@@ -88,6 +96,9 @@ try {
   assert.equal(result.audit_insert, true);
   assert.equal(result.audit_read, false);
   assert.equal(result.audit_sequence_usage, true);
+  assert.equal(result.guardian_contact_lock_execute, true);
+  assert.equal(result.guardian_contact_update, false);
+  assert.equal(result.guardian_learner_update, false);
 
   console.log("Authentication database role verified: restricted runtime group is NOLOGIN; API login is enabled only with a private runtime password; least-privilege grants verified.");
 } finally {

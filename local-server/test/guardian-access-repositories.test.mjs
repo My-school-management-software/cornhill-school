@@ -28,7 +28,7 @@ test("new guardian account, learner approval and audit event commit atomically",
   const client = {
     async query(sql, params = []) {
       calls.push({ sql, params });
-      if (/FROM cornhill_school\.guardian_contacts/.test(sql)) {
+      if (/lock_active_guardian_contact_for_access/.test(sql)) {
         return { rows: [{ learnerId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
       }
       if (/FROM cornhill_auth\.guardian_accounts WHERE/.test(sql)) return { rows: [] };
@@ -55,7 +55,7 @@ test("active existing guardian account can approve a sibling learner without cha
   const client = {
     async query(sql, params = []) {
       calls.push({ sql, params });
-      if (/FROM cornhill_school\.guardian_contacts/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
+      if (/lock_active_guardian_contact_for_access/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
       if (/FROM cornhill_auth\.guardian_accounts WHERE/.test(sql)) return { rows: [{ id: ACCOUNT, account_status: "active" }] };
       return { rows: [], rowCount: 1 };
     },
@@ -76,7 +76,7 @@ test("replacing an active guardian PIN requires confirmation and records the rei
   const client = {
     async query(sql, params = []) {
       calls.push({ sql, params });
-      if (/FROM cornhill_school\.guardian_contacts/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
+      if (/lock_active_guardian_contact_for_access/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
       if (/FROM cornhill_auth\.guardian_accounts WHERE/.test(sql)) return { rows: [{ id: ACCOUNT, account_status: "active" }] };
       return { rows: [], rowCount: 1 };
     },
@@ -94,7 +94,7 @@ test("replacing an active guardian PIN requires confirmation and records the rei
 test("disabled guardian accounts are not silently reactivated", async () => {
   const client = {
     async query(sql) {
-      if (/FROM cornhill_school\.guardian_contacts/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
+      if (/lock_active_guardian_contact_for_access/.test(sql)) return { rows: [{ learnerId: CONTACT, guardianName: "Guardian", phone: "+256700000001", phoneLastFour: "0001", pupilCode: "CH-2026-000001", learnerName: "Learner" }] };
       if (/FROM cornhill_auth\.guardian_accounts WHERE/.test(sql)) return { rows: [{ id: ACCOUNT, account_status: "disabled" }] };
       return { rows: [] };
     },
