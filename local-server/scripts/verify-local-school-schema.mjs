@@ -1,4 +1,5 @@
 import { readLocalDatabaseConfig } from "../src/db/config.mjs";
+import { createPostgresAdmissionsRepository } from "../src/db/admissions-repositories.mjs";
 
 const { Pool } = await import("pg");
 const pool = new Pool(readLocalDatabaseConfig());
@@ -516,6 +517,67 @@ try {
     const staff = await client.query(
       "INSERT INTO cornhill_auth.staff_accounts (username, username_normalized, password_hash, account_status) VALUES ('ci-finance', 'ci-finance', '$argon2id$ci-test', 'active') RETURNING id"
     );
+
+    // Exercise the real admissions repository against PostgreSQL while keeping
+    // the verifier's outer transaction rollback-safe. Repository transaction
+    // boundaries are mapped to a savepoint on this same database connection.
+    const admissionsSavepoint = "admissions_repository_integration";
+    const admissionsRepository = createPostgresAdmissionsRepository({
+      async connect() {
+        return {
+          async query(sql, values) {
+            if (sql === "BEGIN") return client.query("SAVEPOINT " + admissionsSavepoint);
+            if (sql === "COMMIT") return client.query("RELEASE SAVEPOINT " + admissionsSavepoint);
+            if (sql === "ROLLBACK") {
+              await client.query("ROLLBACK TO SAVEPOINT " + admissionsSavepoint);
+              return client.query("RELEASE SAVEPOINT " + admissionsSavepoint);
+            }
+            return client.query(sql, values);
+          },
+          release() {}
+        };
+      }
+    });
+    const admittedLearner = await admissionsRepository.registerLearner({
+      actorStaffId: staff.rows[0].id,
+      classId: null,
+      firstName: "CI Repository",
+      middleName: null,
+      lastName: "Provisional",
+      gender: "Female",
+      dateOfBirth: null,
+      lin: null,
+      admissionDate: "2026-11-15",
+      learnerType: "Day",
+      previousSchool: null,
+      p7IndexNumber: null,
+      isBursary: true,
+      bursaryFeeUgx: 45000,
+      bursaryCategory: "Need-based",
+      bursaryReason: "Database repository integration verification",
+      takesBreakfast: false,
+      takesLunch: false,
+      reason: "PostgreSQL repository integration verification",
+      guardian: null
+    });
+    assert(/^CH-[0-9]{4}-[0-9]{6}$/.test(admittedLearner.pupil_code),
+      "Admissions repository must return a database-generated permanent pupil code.");
+    const admittedLearnerState = await client.query(
+      "SELECT l.pupil_code, l.class_id, l.is_bursary, l.bursary_fee_ugx, e.class_id AS enrolment_class_id, e.admission_date, a.event_code " +
+      "FROM cornhill_school.learners l " +
+      "JOIN cornhill_school.enrolment_periods e ON e.learner_id = l.id AND e.ended_on IS NULL " +
+      "JOIN cornhill_school.admission_events a ON a.learner_id = l.id " +
+      "WHERE l.id = $1",
+      [admittedLearner.id]
+    );
+    assert(admittedLearnerState.rows.length === 1
+      && admittedLearnerState.rows[0].pupil_code === admittedLearner.pupil_code
+      && admittedLearnerState.rows[0].class_id === null
+      && admittedLearnerState.rows[0].enrolment_class_id === null
+      && admittedLearnerState.rows[0].event_code === "admitted"
+      && admittedLearnerState.rows[0].is_bursary === true
+      && String(admittedLearnerState.rows[0].bursary_fee_ugx) === "45000",
+      "PostgreSQL admissions repository must atomically persist provisional class, bursary and admission audit state.");
     const yearPrevious = await client.query(
       "INSERT INTO cornhill_school.academic_years (year_label, starts_on, ends_on, status) VALUES ('2025', '2025-01-01', '2025-12-31', 'Completed') RETURNING id"
     );
