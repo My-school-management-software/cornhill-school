@@ -113,7 +113,7 @@ test("local HTTPS server exposes only the explicit school workspace assets", asy
   const source = await (await import("node:fs/promises")).readFile(
     new URL("../src/https-server.mjs", import.meta.url), "utf8"
   );
-  for (const route of ["/bursar", "/bursar.html", "/bursar.js", "/bursar.css", "/school", "/school.html", "/school.js", "/school.css", "/academics", "/academics.html", "/academics.js", "/academics.css", "/leadership", "/leadership.html", "/leadership.js", "/leadership.css"]) {
+  for (const route of ["/app", "/app.html", "/app.js", "/app.css", "/bursar", "/bursar.html", "/bursar.js", "/bursar.css", "/school", "/school.html", "/school.js", "/school.css", "/academics", "/academics.html", "/academics.js", "/academics.css", "/leadership", "/leadership.html", "/leadership.js", "/leadership.css"]) {
     assert.ok(source.includes('["' + route + '"'), "missing explicit static route " + route);
   }
   assert.match(source, /school\.html/);
