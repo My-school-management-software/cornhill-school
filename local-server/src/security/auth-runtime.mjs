@@ -170,6 +170,7 @@ export async function createLocalAuthRuntime({
       }
       routeHandler = async (request, response) => {
         if (await authRouteHandler(request, response)) return true;
+        if (await guardianPortalRouteHandler(request, response)) return true;
         if (await schoolCatalogRouteHandler(request, response)) return true;
         if (await admissionsRouteHandler(request, response)) return true;
         if (await academicsRouteHandler(request, response)) return true;
