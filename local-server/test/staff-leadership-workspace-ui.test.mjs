@@ -7,9 +7,11 @@ const css=await readFile(new URL("../public/leadership.css",import.meta.url),"ut
 test("Leadership workspace is responsive and contains Director-only staff administration",()=>{
  assert.ok(html.includes("Leadership & Staff Office"));
  assert.ok(html.includes('id="admin-panel"'));
+ assert.ok(html.includes('id="bursar-link"'));
  assert.ok(html.includes('id="staff-account-form"'));
  assert.ok(html.includes('id="permission-list"'));
  assert.ok(js.includes("/security/role-management"));
+ assert.ok(js.includes('$("bursar-link").hidden'));
  assert.ok(js.includes("/security/staff-accounts"));
  assert.ok(js.includes("/security/roles/"));
  assert.ok(js.includes('principal.roles?.includes("director")&&can("system.roles_manage")'));

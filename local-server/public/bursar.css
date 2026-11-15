@@ -251,3 +251,5 @@ button { font: inherit; cursor: pointer; }
 .finance-history-list { display: grid; gap: 8px; padding: 10px 0 2px; border-top: 1px solid var(--line); }
 .finance-history-event { display: grid; gap: 3px; padding: 9px 11px; border-left: 3px solid var(--brand); background: #f6faf8; border-radius: 7px; }
 .finance-history-event p { margin: 0; overflow-wrap: anywhere; }
+
+.workspace-shortcuts{max-width:1180px;margin:12px auto 0;padding:0 18px;display:flex;flex-wrap:wrap;gap:8px}.workspace-shortcuts a{display:inline-flex;align-items:center;padding:9px 12px;border:1px solid #dce6e1;border-radius:10px;background:#fff;color:#204c43;text-decoration:none;font-size:12px;font-weight:750}.workspace-shortcuts a:hover{background:#eaf2ee}
