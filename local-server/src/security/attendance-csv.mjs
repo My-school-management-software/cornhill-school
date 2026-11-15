@@ -106,20 +106,23 @@ function parseRecords(csvText) {
 function parseTimestamp(value) {
   const text = value.trim();
   const local = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/);
+  const zoned = text.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|([+-])(\d{2}):(\d{2}))$/i);
   let iso = text;
+  const match = local || zoned;
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second = "00"] = match;
+  const calendar = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  if (calendar.getUTCFullYear() !== Number(year) ||
+      calendar.getUTCMonth() !== Number(month) - 1 ||
+      calendar.getUTCDate() !== Number(day) ||
+      Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return null;
   if (local) {
-    const [, year, month, day, hour, minute, second = "00", fraction = "000"] = local;
-    const calendar = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-    if (calendar.getUTCFullYear() !== Number(year) ||
-        calendar.getUTCMonth() !== Number(month) - 1 ||
-        calendar.getUTCDate() !== Number(day) ||
-        Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) {
-      return null;
-    }
+    const fraction = local[7] || "";
     iso = year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" +
       second + (fraction ? "." + fraction.padEnd(3, "0") : "") + "+03:00";
-  } else if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/i.test(text)) {
-    return null;
+  } else if (zoned[8]) {
+    const offsetHour = Number(zoned[9]), offsetMinute = Number(zoned[10]);
+    if (offsetHour > 14 || offsetMinute > 59 || (offsetHour === 14 && offsetMinute !== 0)) return null;
   }
   const timestamp = new Date(iso);
   if (!Number.isFinite(timestamp.getTime())) return null;
