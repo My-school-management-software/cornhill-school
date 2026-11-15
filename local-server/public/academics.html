@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#153a36"><title>CORNHILL | Academics</title><link rel="stylesheet" href="/academics.css"><script src="/academics.js" defer></script></head>
+<body>
+<header class="top"><a class="brand" href="/school">C</a><div><p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p><h1>Teaching & Academic Office</h1></div><span class="secure">LOCAL · SECURE STAFF ACCESS</span></header>
+<main class="layout">
+<div id="notice" class="notice" role="status" aria-live="polite">Checking local academic service…</div>
+<section id="login" class="panel narrow" hidden><p class="eyebrow">STAFF ACCOUNT</p><h2>Sign in</h2><form id="login-form"><label>Username<input id="username" autocomplete="username" required minlength="3"></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><button>Sign in</button></form></section>
+<section id="app" hidden>
+<div class="welcome"><div><p class="eyebrow">ACADEMIC WORKSPACE</p><h2 id="staff-name">Staff member</h2><p id="staff-roles" class="muted"></p></div><div class="actions"><a class="button secondary" href="/school">School office</a><button id="logout" class="secondary">Sign out</button></div></div>
+<section class="panel"><div class="section-head"><div><h2>Class and assessment</h2><p class="muted">Your access follows your assigned class and approved academic permissions.</p></div><span id="access-label" class="pill">Checking access</span></div>
+<div class="selectors"><label>Class<select id="class-select"><option value="">Choose permitted class</option></select></label><label>Academic term<select id="term-select"><option value="">Choose term</option></select></label><label>Assessment<select id="assessment-select"><option value="">Choose assessment</option></select></label></div>
+<div class="assessment-actions"><span id="assessment-status" class="pill">No assessment selected</span><div id="workflow-actions" class="actions"></div></div>
+</section>
+<section id="create-panel" class="panel" hidden><h2>Create assessment</h2><form id="create-form" class="create-grid">
+<label>Assessment name<input name="assessmentName" required minlength="2" maxlength="100" placeholder="e.g. End of Term 1 Examination"></label>
+<label>Type<select name="assessmentType"><option>Beginning of Term</option><option>Mid Term</option><option selected>End of Term</option><option>Continuous Assessment</option><option>Mock</option><option>Practice</option></select></label>
+<label>Date<input name="assessmentDate" type="date"></label><label>Maximum score<input name="maxScore" type="number" min="1" max="10000" step="0.01" value="100" required></label>
+<div class="full"><button type="submit">Create draft assessment</button></div></form></section>
+<section class="panel"><div class="section-head"><div><h2>Marks entry and results</h2><p class="muted">Enter marks by learner and learning area. Save is enabled only for an open assessment and an authorised class teacher.</p></div><button id="reload-marks" class="secondary">Reload</button></div>
+<div id="empty" class="empty">Choose a class, term and assessment to view the marks register.</div>
+<div id="marks-area" hidden><div class="table-wrap"><table><thead><tr><th>Pupil code</th><th>LIN</th><th>Learner</th><th>Subject</th><th>Score</th><th>Teacher comment</th></tr></thead><tbody id="mark-rows"></tbody></table></div>
+<div class="footer-row"><span id="mark-summary" class="muted"></span><button id="save-marks">Save marks</button></div></div></section>
+</section></main>
+</body></html>

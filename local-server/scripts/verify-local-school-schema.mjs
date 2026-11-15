@@ -25,6 +25,7 @@ try {
     "SELECT table_name FROM information_schema.tables WHERE table_schema = 'cornhill_school' AND table_type = 'BASE TABLE' ORDER BY table_name"
   );
   const expected = [
+    "academic_audit_events",
     "academic_terms",
     "academic_years",
     "admission_enquiries",
@@ -88,6 +89,34 @@ try {
   ];
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
     "Local school table inventory mismatch. Expected: " + JSON.stringify(expected) + "; actual: " + JSON.stringify(tables.rows.map(row => row.table_name)));
+
+  const academicTriggers = await pool.query(
+    "SELECT tgname FROM pg_trigger WHERE tgname IN ('academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard') AND NOT tgisinternal"
+  );
+  const academicTriggerNames = new Set(academicTriggers.rows.map(row => row.tgname));
+  for (const name of ['academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard']) {
+    assert(academicTriggerNames.has(name), "Missing academic integrity trigger: " + name);
+  }
+  const academicPrivileges = await pool.query(
+    "SELECT has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_terms','SELECT') AS term_read, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.assessments','status','UPDATE') AS assessment_status_update, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.assessments','assessment_name','UPDATE') AS assessment_name_update, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.learner_marks','score','INSERT') AS marks_insert, " +
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_audit_events','INSERT') AS audit_insert"
+  );
+  assert(academicPrivileges.rows[0]?.term_read === true
+    && academicPrivileges.rows[0]?.assessment_status_update === true
+    && academicPrivileges.rows[0]?.assessment_name_update === false
+    && academicPrivileges.rows[0]?.marks_insert === true
+    && academicPrivileges.rows[0]?.audit_insert === false,
+    "Academic API database privileges must remain narrowly scoped.");
+  const academicGuardSql = await pool.query(
+    "SELECT pg_get_functiondef('cornhill_school.guard_learner_mark_scope()'::regprocedure) AS definition"
+  );
+  const academicGuardDefinition = academicGuardSql.rows[0]?.definition ?? "";
+  assert(academicGuardDefinition.includes("Marks can only be entered while an assessment is open")
+    && academicGuardDefinition.includes("Learner is not currently enrolled in the assessment class"),
+    "Database mark guard must enforce assessment and learner class scope.");
 
   const classes = await pool.query(
     "SELECT class_code, display_name, section, level_order FROM cornhill_school.classes ORDER BY level_order"
@@ -1285,7 +1314,7 @@ try {
     assert(reversedRunDeleteRejected, "Reversed payroll history cannot be deleted.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 60 tables, ten classes, fifteen subjects, seven fee items, 49 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 61 tables, ten classes, fifteen subjects, seven fee items, 49 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
