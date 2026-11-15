@@ -64,7 +64,8 @@ function safeSourceName(value){
   return name;
 }
 function importInput(body,deviceId,importedByStaffId){
-  const csvText=text(body.csvText,1,2*1024*1024,"CSV content");
+  if(typeof body.csvText!=="string"||body.csvText.length===0||Buffer.byteLength(body.csvText,"utf8")>2*1024*1024)throw new InputError("Attendance CSV content must be non-empty and no larger than 2 MB.");
+  const csvText=body.csvText;
   const columns=body.columns;
   if(!columns||typeof columns!=="object"||Array.isArray(columns))throw new InputError("Choose the CSV column mapping.");
   for(const key of ["staffIdentifier","occurredAt"])text(columns[key],1,100,key+" column");
@@ -100,8 +101,7 @@ export function createAttendanceImportHttpHandler({authService,repository,expect
     if(!isDevices&&!isStaff&&!isImports&&!deviceMappings&&!deviceStatus&&!deviceImports&&!closeMapping&&!rejectionList)return false;
 
     const method=String(request.method??"GET").toUpperCase();
-    const allowed=(isDevices||isStaff||isImports||deviceMappings||rejectionList)?["GET",...(isDevices?["POST"]:[])]:
-      (deviceStatus||deviceImports||closeMapping)?["POST"]:[];
+    const allowed=deviceMappings?["GET","POST"]:(isDevices||isStaff||isImports||rejectionList)?["GET",...(isDevices?["POST"]:[]) ]:(deviceStatus||deviceImports||closeMapping)?["POST"]:[];
     if(!allowed.includes(method)){response.writeHead(405,{...HEADERS,Allow:allowed.join(", "),"Content-Length":0});response.end();return true;}
     if(request.socket?.encrypted!==true){send(response,426,{error:"Secure HTTPS transport is required."});return true;}
     if(request.headers.host!==origin.host||(method!=="GET"&&request.headers.origin!==origin.origin)){
