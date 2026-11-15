@@ -69,7 +69,9 @@ function parseLeaveRequest(body){
 }
 export function createStaffOperationsHttpHandler({authService,repository,expectedOrigin,onError}={}){
   if(!authService||typeof authService.authenticate!=="function"||
-    !repository||typeof repository.getWorkspace!=="function"||typeof repository.submitLeaveRequest!=="function"){
+    !repository||typeof repository.getWorkspace!=="function"||typeof repository.submitLeaveRequest!=="function"||
+    typeof repository.recordAttendanceReview!=="function"||typeof repository.recordPayrollDisbursement!=="function"||
+    typeof repository.verifyPayrollDisbursement!=="function"){
     throw new TypeError("Staff Operations API dependencies are incomplete.");
   }
   let origin;try{origin=new URL(expectedOrigin);}catch{throw new TypeError("An exact HTTPS origin is required.");}
