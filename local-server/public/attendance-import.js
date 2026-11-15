@@ -135,7 +135,7 @@ $("device-form").addEventListener("submit",async event=>{
   const form=event.currentTarget;
   const data=Object.fromEntries(new FormData(form));
   for(const key of ["manufacturer","model","serialNumber","deviceLocation"])data[key]=data[key]||null;
-  try{const result=await api("/staff/attendance/devices",{method:"POST",body:data});event.currentTarget.reset();form.reset();await loadWorkspace();notice("Registered device "+result.device.deviceCode+". It remains Planned until activated.");}
+  try{const result=await api("/staff/attendance/devices",{method:"POST",body:data});form.reset();await loadWorkspace();notice("Registered device "+result.device.deviceCode+". It remains Planned until activated.");}
   catch(error){notice(error.message,true);}
 });
 $("mapping-device").addEventListener("change",()=>{void loadMappings().catch(error=>notice(error.message,true));});
