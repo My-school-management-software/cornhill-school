@@ -102,7 +102,7 @@ export function createStaffOperationsHttpHandler({authService,repository,expecte
       else if(error instanceof AuthorizationError)send(response,403,{error:"Your role is not authorised to access Staff Operations."});
       else if(error instanceof CsrfValidationError)send(response,403,{error:"The request could not be verified."});
       else if(error instanceof AuthenticationServiceError)send(response,503,{error:"Authentication is temporarily unavailable."});
-      else if(["23514","23503","23505","42501"].includes(error?.code))send(response,409,{error:error.message||"The staff request conflicts with current school policy or records."});
+      else if(["23514","23503","23505","23P01","42501"].includes(error?.code))send(response,409,{error:error.message||"The staff request conflicts with current school policy or records."});
       else send(response,503,{error:"The Staff Operations request could not be completed."});
     }
     return true;
