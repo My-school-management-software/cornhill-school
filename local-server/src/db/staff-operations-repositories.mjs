@@ -32,19 +32,25 @@ export function createPostgresStaffOperationsRepository(pool) {
       includeOwnLeave = false,
       includeLeaveReview = false,
       includeAllLeaveBalances = false,
-      includePayroll = false
+      includeAttendanceReview = false,
+      includePayroll = false,
+      includePayrollRecord = false,
+      includePayrollVerify = false
     } = {}) {
       if (includeOwnLeave || includeAllLeaveBalances) assertUuid(staffId, "Staff ID");
       const result = {
         attendance: { recentDays: [], monthly: [], reviewQueue: [] },
         leave: { ownRequests: [], balances: [], allBalances: [], reviewQueue: [] },
-        payroll: { periods: [], runs: [], lines: [] },
+        payroll: { periods: [], runs: [], lines: [], disbursements: [] },
         capabilities: {
           attendance: includeAttendance,
+          attendanceReview: includeAttendanceReview,
           ownLeave: includeOwnLeave,
           leaveReview: includeLeaveReview,
           allLeaveBalances: includeAllLeaveBalances,
-          payroll: includePayroll
+          payroll: includePayroll,
+          payrollRecord: includePayrollRecord,
+          payrollVerify: includePayrollVerify
         }
       };
       const jobs = [];
@@ -153,6 +159,23 @@ export function createPostgresStaffOperationsRepository(pool) {
         ).then(rows => { result.payroll.runs = rows.rows; }));
 
         jobs.push(pool.query(
+          "SELECT pd.id::text AS id,pd.payroll_line_id::text AS \"payrollLineId\", " +
+          "pp.period_code AS \"periodCode\",sp.staff_number AS \"staffNumber\", " +
+          "COALESCE(sp.preferred_name,sp.legal_name) AS \"staffName\", " +
+          "pd.amount_ugx::text AS \"amountUgx\",pd.payment_method AS \"paymentMethod\", " +
+          "pd.external_reference AS \"externalReference\",pd.paid_at AS \"paidAt\", " +
+          "pd.disbursement_status AS status,pd.recorded_by_staff_id::text AS \"recordedByStaffId\", " +
+          "pd.verified_by_staff_id::text AS \"verifiedByStaffId\",pd.verified_at AS \"verifiedAt\", " +
+          "pd.verification_note AS \"verificationNote\" " +
+          "FROM cornhill_school.payroll_disbursements pd " +
+          "JOIN cornhill_school.payroll_lines pl ON pl.id=pd.payroll_line_id " +
+          "JOIN cornhill_school.payroll_runs pr ON pr.id=pl.payroll_run_id " +
+          "JOIN cornhill_school.payroll_periods pp ON pp.id=pr.payroll_period_id " +
+          "JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=pl.staff_account_id " +
+          "ORDER BY pd.paid_at DESC LIMIT 500"
+        ).then(rows => { result.payroll.disbursements = rows.rows; }));
+
+        jobs.push(pool.query(
           "SELECT pl.id::text AS id,pp.period_code AS \"periodCode\",sp.staff_number AS \"staffNumber\", " +
           "COALESCE(sp.preferred_name,sp.legal_name) AS \"staffName\",pl.base_salary_ugx::text AS \"baseSalaryUgx\", " +
           "pl.allowances_ugx::text AS \"allowancesUgx\",pl.deductions_ugx::text AS \"deductionsUgx\", " +
@@ -168,6 +191,73 @@ export function createPostgresStaffOperationsRepository(pool) {
 
       await Promise.all(jobs);
       return result;
+    },
+
+    async recordAttendanceReview({ attendanceDayId, reviewerStaffId, reviewStatus, reviewNote }) {
+      assertUuid(attendanceDayId, "Attendance day ID");
+      assertUuid(reviewerStaffId, "Reviewer staff ID");
+      if (!["Verified", "Correction Required"].includes(reviewStatus)) throw new TypeError("Choose Verified or Correction Required.");
+      if (typeof reviewNote !== "string" || reviewNote.trim().length < 5 || reviewNote.trim().length > 1000) {
+        throw new TypeError("Attendance review note must contain 5 to 1,000 characters.");
+      }
+      const result = await pool.query(
+        "INSERT INTO cornhill_school.attendance_day_review_events " +
+        "(attendance_day_id,staff_account_id,attendance_date,review_status,review_note,reviewed_by_staff_id) " +
+        "SELECT id,staff_account_id,work_date,$3,$4,$2::uuid " +
+        "FROM cornhill_school.attendance_days WHERE id=$1::uuid " +
+        "RETURNING id::text AS id,attendance_date::text AS \"attendanceDate\",review_status AS status,review_note AS note,reviewed_at AS \"reviewedAt\"",
+        [attendanceDayId, reviewerStaffId, reviewStatus, reviewNote.trim()]
+      );
+      if (result.rowCount !== 1) {
+        const error = new Error("The attendance day was not found.");
+        error.code = "P0002";
+        throw error;
+      }
+      return result.rows[0];
+    },
+
+    async recordPayrollDisbursement({ payrollLineId, recorderStaffId, amountUgx, paymentMethod, externalReference, paidAt }) {
+      assertUuid(payrollLineId, "Payroll line ID");
+      assertUuid(recorderStaffId, "Recording officer ID");
+      if (!Number.isSafeInteger(amountUgx) || amountUgx <= 0 || amountUgx > 1000000000) throw new TypeError("Enter a positive whole UGX payment amount.");
+      if (!["Cash", "Bank Transfer", "Mobile Money"].includes(paymentMethod)) throw new TypeError("Choose a supported payroll payment method.");
+      const reference = typeof externalReference === "string" ? externalReference.trim() : "";
+      if (reference.length > 120 || (paymentMethod !== "Cash" && reference.length < 3)) throw new TypeError("Bank and mobile-money payments require a reference of 3 to 120 characters.");
+      if (typeof paidAt !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/.test(paidAt) || !Number.isFinite(Date.parse(paidAt))) {
+        throw new TypeError("Payment date must be a valid ISO timestamp with a timezone.");
+      }
+      const result = await pool.query(
+        "INSERT INTO cornhill_school.payroll_disbursements " +
+        "(payroll_line_id,amount_ugx,payment_method,external_reference,paid_at,recorded_by_staff_id) " +
+        "VALUES ($1::uuid,$2,$3,$4,$5::timestamptz,$6::uuid) " +
+        "RETURNING id::text AS id,amount_ugx::text AS \"amountUgx\",payment_method AS \"paymentMethod\", " +
+        "external_reference AS \"externalReference\",paid_at AS \"paidAt\",disbursement_status AS status",
+        [payrollLineId, amountUgx, paymentMethod, reference || null, paidAt, recorderStaffId]
+      );
+      return result.rows[0];
+    },
+
+    async verifyPayrollDisbursement({ disbursementId, verifierStaffId, decision, verificationNote = "" }) {
+      assertUuid(disbursementId, "Payroll disbursement ID");
+      assertUuid(verifierStaffId, "Verifier staff ID");
+      if (!["Verified", "Rejected"].includes(decision)) throw new TypeError("Choose Verified or Rejected.");
+      if (typeof verificationNote !== "string" || verificationNote.trim().length > 1000 ||
+          (decision === "Rejected" && verificationNote.trim().length < 5)) {
+        throw new TypeError("A rejection reason of at least five characters is required; notes may not exceed 1,000 characters.");
+      }
+      const result = await pool.query(
+        "UPDATE cornhill_school.payroll_disbursements " +
+        "SET disbursement_status=$2,verified_by_staff_id=$3::uuid,verification_note=$4 " +
+        "WHERE id=$1::uuid AND disbursement_status='Pending Verification' " +
+        "RETURNING id::text AS id,disbursement_status AS status,verified_at AS \"verifiedAt\"",
+        [disbursementId, decision, verifierStaffId, verificationNote.trim() || null]
+      );
+      if (result.rowCount !== 1) {
+        const error = new Error("This payroll payment is no longer awaiting verification.");
+        error.code = "P0002";
+        throw error;
+      }
+      return result.rows[0];
     },
 
     async submitLeaveRequest({ staffId, leaveType, startsOn, endsOn, requestedDays, reason }) {
