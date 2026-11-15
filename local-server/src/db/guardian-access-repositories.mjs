@@ -44,7 +44,7 @@ export function createPostgresGuardianAccessRepository(pool) {
         WHERE gc.is_active = true
           AND gc.phone_e164 IS NOT NULL
           AND l.status <> 'Archived'
-        ORDER BY l.pupil_code, gc.is_primary DESC, gc.guardian_name
+        ORDER BY l.pupil_code, gc.guardian_name
         LIMIT 300
       `);
       return result.rows;
