@@ -28,11 +28,11 @@ test("leave review queue exposes independent approve/reject actions and payroll 
   assert.match(js,/decision,note:value/);
   assert.ok(html.includes("<th>Review action</th>"));
   assert.match(html,/does not initiate bank or mobile-money transfers/i);
-  assert.match(js,/staff\\/attendance\\/days\\//);
-  assert.match(js,/staff\\/payroll\\/disbursements/);
-  assert.match(js,/caps\\.attendanceReview/);
-  assert.match(js,/caps\\.payrollRecord/);
-  assert.match(js,/caps\\.payrollVerify/);
+  assert.ok(js.includes("/staff/attendance/days/"));
+  assert.ok(js.includes("/staff/payroll/disbursements"));
+  assert.ok(js.includes("caps.attendanceReview"));
+  assert.ok(js.includes("caps.payrollRecord"));
+  assert.ok(js.includes("caps.payrollVerify"));
   assert.match(html,/Every entry remains pending independent verification/i);
 });
 
