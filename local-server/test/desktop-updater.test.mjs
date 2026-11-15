@@ -9,7 +9,7 @@ test("desktop updater fetches the approved branch using fast-forward only and pr
  assert.match(script,/uncommitted changes/);
 });
 test("desktop updater installs pinned dependencies and runs Windows and database checks as one batch",()=>{
- assert.match(script,/"ci","--no-audit","--no-fund"/);
+ assert.match(script,/"install","--no-package-lock","--no-audit","--no-fund"/);
  assert.match(script,/npm.*test/);
  for(const check of ["db:migrate","db:verify","db:verify-auth","db:verify-runtime","db:verify-school","db:verify-finance","db:director-status","setup:director"])assert.ok(script.includes(check));
 });
