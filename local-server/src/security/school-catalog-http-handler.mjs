@@ -1,5 +1,5 @@
 import { AuthenticationError, AuthenticationServiceError } from "./auth-service.mjs";
-import { AuthorizationError, staffHasPermission } from "./authorization.mjs";
+import { AuthorizationError, isLocalUuid, staffHasClassAssignment, staffHasPermission } from "./authorization.mjs";
 import { readSessionTokenFromCookieHeader } from "./session-cookies.mjs";
 
 const HEADERS = Object.freeze({
@@ -44,7 +44,9 @@ export function createSchoolCatalogHttpHandler({ authService, schoolRepository, 
 
   return async function handleSchoolCatalogRequest(request, response) {
     const url = new URL(request.url ?? "/", origin);
-    if (url.pathname !== "/api/v1/school/catalog") return false;
+    const isCatalog = url.pathname === "/api/v1/school/catalog";
+    const isLearnerList = url.pathname === "/api/v1/school/learners";
+    if (!isCatalog && !isLearnerList) return false;
     const method = String(request.method ?? "GET").toUpperCase();
 
     if (method !== "GET" && method !== "HEAD") {
@@ -70,8 +72,29 @@ export function createSchoolCatalogHttpHandler({ authService, schoolRepository, 
           !staffHasPermission({ principal, permissionCode: "learners.read" })) {
         throw new AuthorizationError();
       }
-      const classes = await schoolRepository.listActiveClassesAndSubjects();
-      send(response, 200, { classes }, method);
+      if (isCatalog) {
+        const classes = await schoolRepository.listActiveClassesAndSubjects();
+        send(response, 200, { classes }, method);
+      } else {
+        const classId = url.searchParams.get("classId") || null;
+        const rawSearch = url.searchParams.get("search");
+        const search = rawSearch === null ? null : rawSearch.trim();
+        if (classId && !isLocalUuid(classId)) {
+          send(response, 400, { error: "The class identifier is invalid." }, method);
+          return true;
+        }
+        if (search !== null && (search.length < 2 || search.length > 80)) {
+          send(response, 400, { error: "Search must contain between 2 and 80 characters." }, method);
+          return true;
+        }
+        const classScopedRoles = new Set(["teacher", "class_teacher", "upper_primary_teacher", "lower_primary_teacher", "nursery_head"]);
+        const isClassScoped = principal.roles.some(role => classScopedRoles.has(role));
+        if (isClassScoped && (!classId || !staffHasClassAssignment({ principal, classId }))) {
+          throw new AuthorizationError();
+        }
+        const learners = await schoolRepository.listLearners({ classId, search });
+        send(response, 200, { learners }, method);
+      }
     } catch (error) {
       if (error instanceof AuthenticationError) {
         send(response, 401, { error: "A valid staff session is required." }, method);
