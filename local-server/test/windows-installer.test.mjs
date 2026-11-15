@@ -91,6 +91,13 @@ test("installer provisions separate NOLOGIN finance roles", () => {
   assert.match(script, /Provisioning separate restricted finance roles/);
   assert.match(script, /CREATE ROLE cornhill_finance_runtime NOLOGIN/);
   assert.match(script, /CREATE ROLE cornhill_finance_api NOLOGIN INHERIT/);
+  assert.match(script, /CORNHILL_DB_FINANCE_RUNTIME_PASSWORD/);
+  assert.match(script, /\$financeConfigured = \$financePassword\.Length -ge 32/);
+  assert.match(script, /\$financeLoginMode = "NOLOGIN"/);
+  assert.match(script, /\$financeLoginMode = "LOGIN"/);
+  assert.match(script, /__FINANCE_PASSWORD_CLAUSE__/);
+  assert.match(script, /Replace\("__FINANCE_LOGIN_MODE__", \$financeLoginMode\)/);
+  assert.doesNotMatch(script, /ALTER ROLE cornhill_finance_api NOLOGIN INHERIT/);
   assert.match(script, /GRANT cornhill_finance_runtime TO cornhill_finance_api/);
   assert.ok(script.includes("db:verify-finance"));
 });
