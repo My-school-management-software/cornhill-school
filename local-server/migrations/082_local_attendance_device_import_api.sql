@@ -21,17 +21,56 @@ RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = pg_catalog, cornhill_school
 AS $function$
+DECLARE
+  batch_status text;
 BEGIN
-  RAISE EXCEPTION 'Attendance import rejection evidence is append-only'
-    USING ERRCODE = 'check_violation';
+  IF TG_OP <> 'INSERT' THEN
+    RAISE EXCEPTION 'Attendance import rejection evidence is append-only'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  SELECT import_status INTO batch_status
+  FROM cornhill_school.attendance_import_batches
+  WHERE id = NEW.import_batch_id
+  FOR KEY SHARE;
+  IF batch_status IS DISTINCT FROM 'Processing' THEN
+    RAISE EXCEPTION 'Rejected attendance rows can only be recorded while their import batch is processing'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
 END;
 $function$;
 
 CREATE TRIGGER attendance_import_rejection_append_only
-BEFORE UPDATE OR DELETE ON cornhill_school.attendance_import_rejections
+BEFORE INSERT OR UPDATE OR DELETE ON cornhill_school.attendance_import_rejections
 FOR EACH ROW EXECUTE FUNCTION cornhill_school.guard_attendance_import_rejection();
 
+CREATE FUNCTION cornhill_school.validate_attendance_import_rejection_count()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, cornhill_school
+AS $function$
+DECLARE
+  rejection_count integer;
+BEGIN
+  IF NEW.import_status IN ('Completed', 'Failed') THEN
+    SELECT count(*)::integer INTO rejection_count
+    FROM cornhill_school.attendance_import_rejections
+    WHERE import_batch_id = NEW.id;
+    IF rejection_count <> NEW.rows_rejected THEN
+      RAISE EXCEPTION 'Rejected attendance import row count must match retained rejection evidence'
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER attendance_import_rejection_count_guard
+BEFORE UPDATE OF rows_rejected, import_status ON cornhill_school.attendance_import_batches
+FOR EACH ROW EXECUTE FUNCTION cornhill_school.validate_attendance_import_rejection_count();
+
 REVOKE ALL ON FUNCTION cornhill_school.guard_attendance_import_rejection() FROM PUBLIC;
+REVOKE ALL ON FUNCTION cornhill_school.validate_attendance_import_rejection_count() FROM PUBLIC;
 REVOKE ALL ON TABLE cornhill_school.attendance_import_rejections FROM PUBLIC;
 
 GRANT SELECT (
