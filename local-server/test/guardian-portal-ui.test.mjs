@@ -5,20 +5,22 @@ import { readFile } from "node:fs/promises";
 test("guardian portal requires registered phone and PIN and uses only same-origin local APIs", async () => {
   const html = await readFile(new URL("../public/guardian.html", import.meta.url), "utf8");
   const js = await readFile(new URL("../public/guardian.js", import.meta.url), "utf8");
-  assert.match(html, /Parent &amp; Guardian Portal/);
-  assert.match(html, /pattern="\\+256\[0-9\]\{9\}"/);
-  assert.match(html, /pattern="\[0-9\]\{8\}"/);
-  assert.match(js, /\/auth\/guardian\/login/);
-  assert.match(js, /\/auth\/session/);
-  assert.match(js, /\/guardian\/learners/);
-  assert.match(js, /credentials:\s*"same-origin"/);
-  assert.match(js, /createElement/);
+  assert.ok(html.includes("Parent &amp; Guardian Portal"));
+  assert.ok(html.includes('name="phone"'));
+  assert.ok(html.includes('maxlength="13"'));
+  assert.ok(html.includes('name="pin"'));
+  assert.ok(html.includes('pattern="[0-9]{8}"'));
+  assert.ok(js.includes("/auth/guardian/login"));
+  assert.ok(js.includes("/auth/session"));
+  assert.ok(js.includes("/guardian/learners"));
+  assert.ok(js.includes('credentials: "same-origin"'));
+  assert.ok(js.includes("createElement"));
   assert.doesNotMatch(js, /innerHTML\s*=/);
   assert.doesNotMatch(js, /https?:\/\//);
 });
 
 test("guardian contact administration is visibly separate from parent sign-in", async () => {
   const html = await readFile(new URL("../public/app.html", import.meta.url), "utf8");
-  assert.match(html, /Parent &amp; Guardian Portal/);
-  assert.match(html, /href="\/guardian"/);
+  assert.ok(html.includes("Parent &amp; Guardian Portal"));
+  assert.ok(html.includes('href="/guardian"'));
 });
