@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { AuthenticationError, AuthenticationServiceError, CsrfValidationError } from "./auth-service.mjs";
 import { AuthorizationError, isLocalUuid, staffHasClassAssignment, staffHasPermission } from "./authorization.mjs";
-import { readSessionTokenFromCookieHeader } from "./session-cookies.mjs";
+import { readSessionTokenFromCookieHeader, readCsrfTokenFromCookieHeader } from "./session-cookies.mjs";
 
 const MAX_BODY = 16 * 1024;
 const HEADERS = Object.freeze({
@@ -64,7 +64,7 @@ export function createAdmissionsHttpHandler({authService,admissionsRepository,ex
     if(request.socket?.encrypted!==true){send(response,426,{error:"Secure HTTPS transport is required."});return true;}
     if(request.headers.host!==origin.host||request.headers.origin!==origin.origin){send(response,421,{error:"Request origin is not authorised."});return true;}
     try{
-      const principal=await authService.authenticate({sessionToken:readSessionTokenFromCookieHeader(request.headers.cookie),method,csrfToken:request.headers["x-cornhill-csrf"]});
+      const principal=await authService.authenticate({sessionToken:readSessionTokenFromCookieHeader(request.headers.cookie),method,csrfToken:request.headers["x-cornhill-csrf"] ?? readCsrfTokenFromCookieHeader(request.headers.cookie)});
       if(principal.principalType!=="staff"||!staffHasPermission({principal,permissionCode:"admissions.register_learner"}))throw new AuthorizationError();
       const body=validate(await readBody(request),principal.id);
       if(body.lin&&!staffHasPermission({principal,permissionCode:"learners.lin_manage"}))throw new AuthorizationError();
