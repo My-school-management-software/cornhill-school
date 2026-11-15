@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#153a36">
+  <meta name="description" content="Secure CORNHILL parent and guardian learner portal.">
+  <title>CORNHILL | Parent & Guardian Portal</title>
+  <link rel="stylesheet" href="/guardian.css">
+  <script src="/guardian.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand-mark" href="/app" aria-label="CORNHILL home">C</a>
+    <div class="brand-copy">
+      <p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p>
+      <h1>Parent & Guardian Portal</h1>
+    </div>
+    <a class="home-link" href="/app">School workspace</a>
+  </header>
+
+  <main class="shell">
+    <div id="notice" class="notice" role="status" aria-live="polite">Secure local portal ready.</div>
+    <section id="login-panel" class="panel login-panel">
+      <p class="eyebrow">PRIVATE GUARDIAN SIGN-IN</p>
+      <h2>Welcome</h2>
+      <p class="muted">Sign in with the phone number registered at school and the guardian PIN issued by school administration.</p>
+      <form id="login-form">
+        <label for="phone">Registered phone number</label>
+        <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="username"
+          placeholder="+2567XXXXXXXX" pattern="\+256[0-9]{9}" maxlength="13" required>
+        <label for="pin">Guardian PIN</label>
+        <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password"
+          pattern="[0-9]{8}" minlength="8" maxlength="8" required>
+        <button type="submit">Sign in securely</button>
+      </form>
+      <p class="security-note">Profiles are linked and approved by the school. A pupil code by itself never grants access.</p>
+    </section>
+
+    <section id="portal-panel" class="portal-panel" hidden>
+      <div class="welcome">
+        <div><p class="eyebrow">APPROVED LEARNER PROFILES</p><h2 id="guardian-name">Guardian</h2><p class="muted">Only learners approved for this guardian account are shown.</p></div>
+        <button id="sign-out" class="secondary" type="button">Sign out</button>
+      </div>
+      <div id="learner-list" class="learner-list" aria-live="polite"></div>
+    </section>
+    <footer>For learner access corrections, contact CORNHILL school administration. Never share your guardian PIN.</footer>
+  </main>
+</body>
+</html>
