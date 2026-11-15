@@ -26,6 +26,7 @@ try {
   );
   const expected = [
     "academic_audit_events",
+    "academic_period_audit_events",
     "academic_terms",
     "academic_years",
     "admission_enquiries",
@@ -94,7 +95,7 @@ try {
     "SELECT tgname FROM pg_trigger WHERE tgname IN ('academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard') AND NOT tgisinternal"
   );
   const academicTriggerNames = new Set(academicTriggers.rows.map(row => row.tgname));
-  for (const name of ['academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard']) {
+  for (const name of ['academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard']) {
     assert(academicTriggerNames.has(name), "Missing academic integrity trigger: " + name);
   }
   const academicPrivileges = await pool.query(
@@ -103,9 +104,15 @@ try {
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.assessments','assessment_name','UPDATE') AS assessment_name_update, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.learner_marks','score','INSERT') AS marks_insert, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.enrolment_periods','class_id','SELECT') AS enrolment_class_read, " +
-    "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_audit_events','INSERT') AS audit_insert"
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_audit_events','INSERT') AS audit_insert, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.academic_years','year_label','INSERT') AS year_insert, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.academic_terms','term_number','INSERT') AS term_insert, " +
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_period_audit_events','INSERT') AS period_audit_insert"
   );
   assert(academicPrivileges.rows[0]?.term_read === true
+    && academicPrivileges.rows[0]?.year_insert === true
+    && academicPrivileges.rows[0]?.term_insert === true
+    && academicPrivileges.rows[0]?.period_audit_insert === false
     && academicPrivileges.rows[0]?.assessment_status_update === true
     && academicPrivileges.rows[0]?.assessment_name_update === false
     && academicPrivileges.rows[0]?.marks_insert === true
