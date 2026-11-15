@@ -26,7 +26,7 @@ function setup({ principal = teacher, overrides = {} } = {}) {
     async listWorkspace(input) { calls.workspace++; calls.workspaceInput = input; return { classes: [], terms: [], assessments: [] }; },
     async getAssessment() { return { id: ASSESSMENT_ID, classId: CLASS_ID, status: "Open", maxScore: 100 }; },
     async getAssessmentMarks() { calls.marks++; return { assessment: { id: ASSESSMENT_ID, classId: CLASS_ID, status: "Open" }, subjects: [], learners: [] }; },
-    async createAcademicYear(input) { calls.createdYear = input; return { id: TERM, ...input }; },
+    async createAcademicYear(input) { calls.createdYear = input; return { id: STAFF_ID, ...input }; },
     async createAcademicTerm(input) { calls.createdTerm = input; return { id: ASSESSMENT_ID, ...input }; },
     async createAssessment(input) { calls.created = input; return { id: ASSESSMENT_ID, ...input }; },
     async transitionAssessment(input) { calls.transitions++; return { status: input.nextStatus }; },
