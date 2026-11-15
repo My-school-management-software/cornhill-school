@@ -121,7 +121,7 @@ function parseTimestamp(value) {
     iso = year + "-" + month + "-" + day + "T" + hour + ":" + minute + ":" +
       second + (fraction ? "." + fraction.padEnd(3, "0") : "") + "+03:00";
   } else if (zoned[8]) {
-    const offsetHour = Number(zoned[9]), offsetMinute = Number(zoned[10]);
+    const offsetHour = Number(zoned[10]), offsetMinute = Number(zoned[11]);
     if (offsetHour > 14 || offsetMinute > 59 || (offsetHour === 14 && offsetMinute !== 0)) return null;
   }
   const timestamp = new Date(iso);
