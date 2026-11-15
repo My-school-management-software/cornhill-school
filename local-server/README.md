@@ -129,3 +129,12 @@ This is disposable CI verification only. Migration 014 has not been applied to t
 - USB in this batch means importing a CSV exported from a USB-connected terminal. It is not a live USB driver, fingerprint reader integration or biometric-template storage. The exact terminal model and export format must be selected and validated before device-specific integration.
 - Automated coverage includes CSV parsing and timezone validation, row-level rejection, route permissions, guardian isolation, HTTPS/CSRF/origin enforcement, runtime wiring, static assets, and Windows/Linux Node test runs plus PostgreSQL migration/schema verification.
 - This batch does not complete direct fingerprint capture, attendance-day reconciliation, payroll effects, Android/LAN access, offline synchronisation or the overall application readiness gate.
+
+
+### Batch 25 — Director-controlled attendance import permission (2026-11-15)
+
+- Added additive migration 083 to register `staff.attendance_import` in the permission catalogue as a high-risk staff capability.
+- The migration does not grant the permission to the Director, Bursar, teachers or any other role automatically. The Director can explicitly assign it to selected staff roles through Leadership → role permissions.
+- Extended the school-schema verifier to require the new catalogue record, category and high-risk flag, and to verify the updated catalogue totals.
+- Updated the single-run Windows desktop updater to report Attendance Devices & Imports as part of the installation release and explain that staff access requires Director delegation.
+- The attendance workspace can now be enabled by an explicit role grant after migration 083 is installed. This does not change attendance records or biometric data.
