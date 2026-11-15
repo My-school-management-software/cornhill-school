@@ -13,3 +13,9 @@ test("staff permissions remain catalogued but are never granted automatically",a
  const migration=await readFile(new URL("../migrations/079_local_staff_leadership_workspace.sql",import.meta.url),"utf8");
  assert.doesNotMatch(migration,/INSERT INTO cornhill_auth\.staff_role_permissions/i);
 });
+
+test("Director staff administration is composed into both local auth runtime route chains",()=>{
+ assert.match(runtime,/createPostgresStaffAdministrationRepository/);
+ assert.match(runtime,/createStaffAdministrationHttpHandler/);
+ assert.ok((runtime.match(/staffAdministrationRouteHandler\(request, response\)/g)||[]).length>=2);
+});

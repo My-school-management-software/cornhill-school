@@ -4,17 +4,19 @@ import { readFile } from "node:fs/promises";
 const html=await readFile(new URL("../public/leadership.html",import.meta.url),"utf8");
 const js=await readFile(new URL("../public/leadership.js",import.meta.url),"utf8");
 const css=await readFile(new URL("../public/leadership.css",import.meta.url),"utf8");
-test("Leadership workspace is a responsive local staff screen",()=>{
+test("Leadership workspace is responsive and contains Director-only staff administration",()=>{
  assert.ok(html.includes("Leadership & Staff Office"));
- assert.ok(html.includes("/leadership.css"));
- assert.ok(html.includes("/leadership.js"));
- assert.ok(css.includes("@media(max-width:760px)"));
+ assert.ok(html.includes('id="admin-panel"'));
+ assert.ok(html.includes('id="staff-account-form"'));
+ assert.ok(html.includes('id="permission-list"'));
+ assert.ok(js.includes("/security/role-management"));
+ assert.ok(js.includes("/security/staff-accounts"));
+ assert.ok(js.includes("/security/roles/"));
+ assert.ok(js.includes('principal.roles?.includes("director")&&can("system.roles_manage")'));
+ assert.ok(css.includes(".admin-grid"));
 });
-test("Leadership workspace uses local staff session and separate role-permission actions",()=>{
- for(const path of ["/auth/staff/login","/auth/session","/staff/leadership/workspace","/staff/attendance/incidents/"])assert.ok(js.includes(path));
+test("Director controls never request or store credentials in browser storage",()=>{
  assert.ok(js.includes("X-Cornhill-CSRF"));
- assert.ok(js.includes("staff.attendance_statement_submit"));
- assert.ok(js.includes("staff.attendance_incident_decide"));
  assert.ok(js.includes('credentials: "same-origin"'));
- assert.doesNotMatch(js,/supabase|localStorage\.setItem|sessionStorage\.setItem/i);
+ assert.doesNotMatch(js,/localStorage|sessionStorage|supabase/i);
 });

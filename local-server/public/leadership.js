@@ -3,6 +3,7 @@
 const $ = id => document.getElementById(id);
 let principal = null;
 let workspace = null;
+let administration = null;
 const csrf = () => {
   const prefix = "__Host-cornhill_csrf=";
   const value = document.cookie.split(";").map(v => v.trim()).find(v => v.startsWith(prefix));
@@ -113,6 +114,60 @@ function renderSessions() {
   if(!items.length){empty(host,"No special preparation sessions are scheduled in the next 30 days.");return;}
   for(const item of items){const card=document.createElement("div");card.className="session";const name=document.createElement("strong");name.textContent=item.title+" · "+item.className;card.append(name);const meta=document.createElement("span");meta.textContent=item.prepDate+" · "+item.startTime+"–"+item.endTime+" · "+item.approvalStatus+(item.isPublished?" · Published":"");card.append(meta);host.append(card);}
 }
+function renderPermissionEditor() {
+  const roleCode=$("permission-role").value;
+  const host=$("permission-list");host.replaceChildren();
+  if(!roleCode||!administration){empty(host,"Choose a staff role to view its permissions.");return;}
+  const existing=new Set(administration.grants.filter(grant=>grant.roleCode===roleCode).map(grant=>grant.permissionCode));
+  const groups=new Map();
+  for(const item of administration.permissions){
+    if(item.permissionCode==="system.roles_manage"||item.permissionCode==="system.backups_manage")continue;
+    if(!groups.has(item.category))groups.set(item.category,[]);
+    groups.get(item.category).push(item);
+  }
+  for(const [category,items] of groups){
+    const section=document.createElement("section");section.className="permission-group";
+    const heading=document.createElement("h4");heading.textContent=category.replaceAll("_"," ").toUpperCase();section.append(heading);
+    for(const item of items){
+      const label=document.createElement("label");label.className="permission-choice";
+      const input=document.createElement("input");input.type="checkbox";input.value=item.permissionCode;input.checked=existing.has(item.permissionCode);
+      const detail=document.createElement("span");
+      const name=document.createElement("strong");name.textContent=item.permissionCode;detail.append(name);
+      const description=document.createElement("small");description.textContent=item.description+(item.highRisk?" · HIGH RISK":"");detail.append(description);
+      label.append(input,detail);section.append(label);
+    }
+    host.append(section);
+  }
+}
+function renderAdminWorkspace(){
+  if(!administration)return;
+  const roleSelect=$("permission-role"),newRole=$("new-staff-role"),previousRole=roleSelect.value;
+  roleSelect.replaceChildren();newRole.replaceChildren();
+  for(const select of [roleSelect,newRole]){
+    const first=document.createElement("option");first.value="";first.textContent="Choose staff role";select.append(first);
+  }
+  for(const role of administration.roles){
+    for(const select of [roleSelect,newRole]){
+      const option=document.createElement("option");option.value=role.roleCode;option.textContent=role.displayName;select.append(option);
+    }
+  }
+  if(administration.roles.some(role=>role.roleCode===previousRole))roleSelect.value=previousRole;
+  else if(administration.roles.length)roleSelect.value=administration.roles[0].roleCode;
+  const host=$("account-rows");host.replaceChildren();
+  if(!administration.staff.length)empty(host,"No staff login accounts have been created yet.");
+  else for(const account of administration.staff){
+    const row=document.createElement("tr");
+    for(const value of [account.staffNumber,account.legalName,account.username,account.jobTitle,(account.roles||[]).join(", "),account.accountStatus,account.employmentStatus]){
+      const td=document.createElement("td");td.textContent=value||"—";row.append(td);
+    }
+    host.append(row);
+  }
+  renderPermissionEditor();
+}
+async function loadAdministrationWorkspace(){
+  administration=await api("/security/role-management");
+  renderAdminWorkspace();
+}
 async function loadWorkspace(){
   workspace=await api("/staff/leadership/workspace");
   $("attendance-panel").hidden=!can("staff.attendance_manage");
@@ -123,6 +178,9 @@ async function loadWorkspace(){
   if(can("staff.profile_manage"))renderStaff();
   if(can("staff.attendance_statement_submit")||can("staff.attendance_incident_decide"))renderIncidents();
   if(can("staff.prep_session_manage"))renderSessions();
+  const directorManager=principal.roles?.includes("director")&&can("system.roles_manage");
+  $("admin-panel").hidden=!directorManager;
+  if(directorManager)await loadAdministrationWorkspace();
   notice("Leadership workspace loaded. Only records permitted by your assigned staff permissions are displayed.");
 }
 async function start(){
@@ -143,6 +201,27 @@ $("logout").addEventListener("click",async()=>{
   principal=null;$("app").hidden=true;$("login").hidden=false;notice("You have signed out.");
 });
 $("reload").addEventListener("click",async()=>{try{await loadWorkspace();}catch(error){notice(error.message,true);}});
+$("permission-role").addEventListener("change",renderPermissionEditor);
+$("save-role-permissions").addEventListener("click",async()=>{
+  const roleCode=$("permission-role").value;
+  if(!roleCode){notice("Choose a staff role first.",true);return;}
+  const permissionCodes=[...$("permission-list").querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value);
+  try{
+    await api("/security/roles/"+encodeURIComponent(roleCode)+"/permissions",{method:"POST",body:{permissionCodes}});
+    await loadAdministrationWorkspace();
+    notice("Role permissions saved and audited for "+roleCode+".");
+  }catch(error){notice(error.message,true);}
+});
+$("staff-account-form").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const form=new FormData(event.currentTarget),body=Object.fromEntries(form.entries());
+  try{
+    const result=await api("/security/staff-accounts",{method:"POST",body});
+    event.currentTarget.reset();
+    await loadAdministrationWorkspace();
+    notice("Staff account created: "+result.staff.username+" ("+result.staff.roleCode+"). Give the initial password to the staff member privately.");
+  }catch(error){notice(error.message,true);}
+});
 (async()=>{
   try{const session=await api("/auth/session");principal=session.principal;await start();}
   catch{$("login").hidden=false;notice("Local leadership workspace ready. Please sign in.");}
