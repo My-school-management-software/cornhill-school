@@ -58,7 +58,9 @@ test("repository returns database-issued learner row", async () => {
 test("pupil code is omitted from insert so database generates it", async () => {
   const m = mockPool(); await createPostgresAdmissionsRepository(m.pool).registerLearner(INPUT);
   const sql = m.calls.find(x => x.sql.startsWith("INSERT INTO cornhill_school.learners")).sql;
-  assert.doesNotMatch(sql, /pupil_code/i);
+  const insertColumns = sql.split(") VALUES")[0].split("(").at(-1);
+  assert.ok(insertColumns, "learner INSERT column list must be present");
+  assert.doesNotMatch(insertColumns, /pupil_code/i);
   assert.match(sql, /RETURNING id,pupil_code/);
 });
 test("learner write uses parameterised values", async () => {
