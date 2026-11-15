@@ -22,7 +22,7 @@ async function readBody(req){
 }
 function text(value,max,label,required=true){if(value==null&&!required)return null;if(typeof value!=="string"|| (required&&value.trim().length===0)||value.trim().length>max)throw new InputError(label+" is invalid.");return value.trim()||null;}
 function isCalendarDate(value){
-  if(typeof value!=="string"||!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false;
+  if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
   const [year,month,day]=value.split("-").map(Number);
   const parsed=new Date(Date.UTC(year,month-1,day));
   return parsed.getUTCFullYear()===year&&parsed.getUTCMonth()===month-1&&parsed.getUTCDate()===day;
