@@ -54,9 +54,27 @@ function renderLeave(data){
     cell(tr,x.leaveType);cell(tr,x.availableDays);
   },"No leave balance entries have been recorded for your account.");
   $("leave-review-count").textContent=(data.reviewQueue||[]).length+" pending requests";
-  rows($("leave-review-rows"),data.reviewQueue||[],8,(tr,x)=>{
+  rows($("leave-review-rows"),data.reviewQueue||[],9,(tr,x)=>{
     cell(tr,x.staffNumber);cell(tr,x.legalName);cell(tr,x.leaveType);cell(tr,dateOnly(x.startsOn));
     cell(tr,dateOnly(x.endsOn));cell(tr,x.requestedDays);cell(tr,x.reason);cell(tr,dateTime(x.submittedAt));
+    const actions=cell(tr,"");actions.replaceChildren();
+    const note=document.createElement("input");note.type="text";note.maxLength=1200;
+    note.placeholder="Review note";note.setAttribute("aria-label","Review note for "+x.legalName);
+    const approve=document.createElement("button");approve.type="button";approve.textContent="Approve";
+    const reject=document.createElement("button");reject.type="button";reject.textContent="Reject";reject.className="secondary";
+    const act=async decision=>{
+      const value=note.value.trim();
+      if(decision==="Rejected"&&value.length<5){notice("Enter a rejection reason of at least five characters.",true);note.focus();return;}
+      approve.disabled=true;reject.disabled=true;
+      try{
+        await api("/staff/leave/requests/"+encodeURIComponent(x.id)+"/review",{method:"POST",body:{decision,note:value}});
+        notice("Leave request "+decision.toLowerCase()+". Balance usage remains a separate controlled action.");
+        await loadWorkspace();
+      }catch(error){notice(error.message,true);approve.disabled=false;reject.disabled=false;}
+    };
+    approve.addEventListener("click",()=>act("Approved"));
+    reject.addEventListener("click",()=>act("Rejected"));
+    actions.append(note,approve,reject);
   },"The leave review queue is empty.");
   rows($("all-leave-balance-rows"),data.allBalances||data.balances||[],4,(tr,x)=>{
     cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.leaveType);cell(tr,x.availableDays);
