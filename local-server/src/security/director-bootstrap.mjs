@@ -67,7 +67,7 @@ export async function bootstrapDirectorAccount({ pool, passwordHasher, username,
     const account = await client.query(
       "INSERT INTO cornhill_auth.staff_accounts " +
       "(username, username_normalized, email, email_normalized, password_hash, account_status, must_change_password, password_changed_at) " +
-      "VALUES ($1, lower($1), $2, $3, $4, 'active', false, now()) RETURNING id::text AS id, username",
+      "VALUES ($1, lower($1), $2::text, $3::text, $4, 'active', false, now()) RETURNING id::text AS id, username",
       [username.trim(), emailValue, emailValue, passwordHash]
     );
     const staffId = account.rows[0].id;
@@ -92,7 +92,7 @@ export async function bootstrapDirectorAccount({ pool, passwordHasher, username,
       "INSERT INTO cornhill_auth.security_audit_events " +
       "(actor_type, actor_id, event_code, target_type, target_id, outcome, details) " +
       "VALUES ('staff', $1::uuid, 'security.director_bootstrap_completed', 'staff_account', $1::uuid, 'success', " +
-      "jsonb_build_object('username', $2, 'staffNumber', $3, 'roleCode', 'director', 'initialPermissionCount', $4))",
+      "jsonb_build_object('username', $2::text, 'staffNumber', $3::text, 'roleCode', 'director', 'initialPermissionCount', $4::integer))",
       [staffId, username.trim(), staffNumber.trim(), permissionCodes.length]
     );
     await client.query("COMMIT");
