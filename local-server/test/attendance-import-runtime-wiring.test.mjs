@@ -45,4 +45,7 @@ test("frontend uses same-origin cookies, CSRF header and text-only rendering for
  assert.match(frontend,/X-Cornhill-CSRF/);
  assert.match(frontend,/textContent/);
  assert.doesNotMatch(frontend,/innerHTML/);
+ assert.doesNotMatch(frontend,/event\.currentTarget\.reset\(\)/);
+ assert.match(frontend,/const form=event\.currentTarget/);
+ assert.match(frontend,/const formElement=event\.currentTarget/);
 });
