@@ -42,7 +42,8 @@ test("workspace exposes only sections supported by explicitly granted permission
   const handled=await handler(makeRequest(),res);
   assert.equal(handled,true);assert.equal(res.status,200);
   assert.deepEqual(calls.workspace[0],{
-    staffId:STAFF_ID,includeAttendance:true,includeAttendanceReview:false,includeOwnLeave:true,
+    staffId:STAFF_ID,includeAttendance:true,includeAttendanceReview:false,
+    includeAttendanceGovernance:true,includeSalaryAgreements:true,includeOwnLeave:true,
     includeLeaveReview:true,includeAllLeaveBalances:false,includePayroll:true,includePayrollRecord:false,includePayrollVerify:false
   });
 });
