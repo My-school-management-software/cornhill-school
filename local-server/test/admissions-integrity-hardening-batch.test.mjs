@@ -8,6 +8,8 @@ const CLASS_ID = "22222222-2222-4222-8222-222222222222";
 const STAFF = {
   id: "11111111-1111-4111-8111-111111111111",
   principalType: "staff",
+  accountStatus: "active",
+  session: { revokedAt: null, expiresAt: Date.now() + 60_000 },
   roles: ["headteacher"],
   rolePermissions: { headteacher: [
     "admissions.register_learner", "learners.lin_manage", "learners.guardians_manage"
