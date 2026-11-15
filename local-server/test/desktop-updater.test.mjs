@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 const script=await readFile(new URL("../windows/Update-CORNHILL-Desktop.ps1",import.meta.url),"utf8");
 
 test("desktop updater fetches the approved branch using fast-forward only and protects uncommitted work",()=>{
@@ -51,4 +53,15 @@ test("desktop updater gracefully signals and waits for the old server before sta
 test("desktop updater opens the local workspace launcher after restart",()=>{
   assert.match(script,/https:\/\/localhost:4174\/app/);
   assert.doesNotMatch(script,/https:\/\/localhost:4174\/leadership/);
+});
+
+test("desktop updater PowerShell syntax parses on Windows", { skip: process.platform !== "win32" }, () => {
+  const updaterPath = fileURLToPath(new URL("../windows/Update-CORNHILL-Desktop.ps1", import.meta.url));
+  const escapedPath = updaterPath.replace(/'/g, "''");
+  const command = "$tokens=$null; $errors=$null; " +
+    "[System.Management.Automation.Language.Parser]::ParseFile('" + escapedPath +
+    "',[ref]$tokens,[ref]$errors) | Out-Null; " +
+    "if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }";
+  const result = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr || result.stdout || "PowerShell parser did not complete successfully.");
 });
