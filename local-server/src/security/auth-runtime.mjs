@@ -1,10 +1,12 @@
 import { readLocalRuntimeDatabaseConfig } from "../db/runtime-config.mjs";
 import { readLocalFinanceRuntimeDatabaseConfig } from "../db/finance-runtime-config.mjs";
 import { createPostgresAuthRepositories } from "../db/auth-repositories.mjs";
+import { createPostgresSchoolCatalogRepository } from "../db/school-catalog-repositories.mjs";
 import { createPostgresFinanceRepositories } from "../db/finance-repositories.mjs";
 import { createArgon2PasswordHasher } from "./argon2-password-hasher.mjs";
 import { createAuthService } from "./auth-service.mjs";
 import { createAuthHttpHandler } from "./auth-http-handler.mjs";
+import { createSchoolCatalogHttpHandler } from "./school-catalog-http-handler.mjs";
 import { createFinanceHttpHandler } from "./finance-http-handler.mjs";
 import { createFinanceOperationsHttpHandler } from "./finance-operations-http-handler.mjs";
 import { createEvidenceHttpHandler } from "./evidence-http-handler.mjs";
@@ -68,8 +70,16 @@ export async function createLocalAuthRuntime({
     const authRouteHandler = createAuthHttpHandler({
       authService, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
     });
+    const schoolCatalogRepository = createPostgresSchoolCatalogRepository(pool);
+    const schoolCatalogRouteHandler = createSchoolCatalogHttpHandler({
+      authService, schoolRepository: schoolCatalogRepository,
+      expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+    });
 
-    let routeHandler = authRouteHandler;
+    let routeHandler = async (request, response) => {
+      if (await authRouteHandler(request, response)) return true;
+      return schoolCatalogRouteHandler(request, response);
+    };
     let financeEnabled = false;
     if (financeConfig) {
       if (financePoolFactory !== undefined && typeof financePoolFactory !== "function") {
@@ -114,6 +124,7 @@ export async function createLocalAuthRuntime({
       }
       routeHandler = async (request, response) => {
         if (await authRouteHandler(request, response)) return true;
+        if (await schoolCatalogRouteHandler(request, response)) return true;
         if (await financeOperationsRouteHandler(request, response)) return true;
         if (await financeRouteHandler(request, response)) return true;
         return evidenceRouteHandler ? evidenceRouteHandler(request, response) : false;

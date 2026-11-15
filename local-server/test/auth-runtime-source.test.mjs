@@ -23,3 +23,10 @@ test("auth runtime never falls back to the administrator DB role", () => {
 test("auth runtime closes its pool on startup failure", () => {
   assert.match(source, /await (?:pool|activePool)\.end\(\)/);
 });
+
+test("auth runtime wires the read-only school catalogue through the restricted auth pool", () => {
+  assert.match(source, /createPostgresSchoolCatalogRepository/);
+  assert.match(source, /createSchoolCatalogHttpHandler/);
+  assert.match(source, /schoolCatalogRouteHandler/);
+  assert.match(source, /if \(await schoolCatalogRouteHandler\(request, response\)\) return true/);
+});
