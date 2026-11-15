@@ -115,7 +115,11 @@ const PUBLIC_ASSETS = new Map([
   ["/academics", { file: new URL("../public/academics.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/academics.html", { file: new URL("../public/academics.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/academics.js", { file: new URL("../public/academics.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
-  ["/academics.css", { file: new URL("../public/academics.css", import.meta.url), type: "text/css; charset=utf-8" }]
+  ["/academics.css", { file: new URL("../public/academics.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/leadership", { file: new URL("../public/leadership.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/leadership.html", { file: new URL("../public/leadership.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/leadership.js", { file: new URL("../public/leadership.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/leadership.css", { file: new URL("../public/leadership.css", import.meta.url), type: "text/css; charset=utf-8" }]
 ]);
 
 const STATIC_CONTENT_SECURITY_POLICY =
