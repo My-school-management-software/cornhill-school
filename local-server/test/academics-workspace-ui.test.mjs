@@ -24,3 +24,12 @@ test("academic workspace uses local APIs, CSRF and role permissions", () => {
   assert.match(js, /credentials: "same-origin"/);
   assert.doesNotMatch(js, /supabase|localStorage\.setItem|sessionStorage\.setItem/i);
 });
+test("academic workspace exposes year and term setup behind academic management permissions", () => {
+  assert.match(html, /id="period-setup"/);
+  assert.match(html, /id="create-year-form"/);
+  assert.match(html, /id="create-term-form"/);
+  assert.match(js, /academics\.terms_manage/);
+  assert.match(js, /\/academics\/years/);
+  assert.match(js, /\/academics\/terms/);
+  assert.match(js, /renderPeriods/);
+});
