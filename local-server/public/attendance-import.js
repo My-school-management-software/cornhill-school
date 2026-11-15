@@ -132,24 +132,26 @@ $("logout").addEventListener("click",async()=>{
 });
 $("device-form").addEventListener("submit",async event=>{
   event.preventDefault();
-  const data=Object.fromEntries(new FormData(event.currentTarget));
+  const form=event.currentTarget;
+  const data=Object.fromEntries(new FormData(form));
   for(const key of ["manufacturer","model","serialNumber","deviceLocation"])data[key]=data[key]||null;
-  try{const result=await api("/staff/attendance/devices",{method:"POST",body:data});event.currentTarget.reset();await loadWorkspace();notice("Registered device "+result.device.deviceCode+". It remains Planned until activated.");}
+  try{const result=await api("/staff/attendance/devices",{method:"POST",body:data});event.currentTarget.reset();form.reset();await loadWorkspace();notice("Registered device "+result.device.deviceCode+". It remains Planned until activated.");}
   catch(error){notice(error.message,true);}
 });
 $("mapping-device").addEventListener("change",()=>{void loadMappings().catch(error=>notice(error.message,true));});
 $("mapping-form").addEventListener("submit",async event=>{
-  event.preventDefault();const data=Object.fromEntries(new FormData(event.currentTarget));
+  event.preventDefault();const form=event.currentTarget;const data=Object.fromEntries(new FormData(form));
   const deviceId=data.deviceId;delete data.deviceId;
-  try{await api("/staff/attendance/devices/"+encodeURIComponent(deviceId)+"/mappings",{method:"POST",body:data});event.currentTarget.reset();await loadMappings();notice("Staff identifier mapping saved with its effective date.");}
+  try{await api("/staff/attendance/devices/"+encodeURIComponent(deviceId)+"/mappings",{method:"POST",body:data});form.reset();await loadMappings();notice("Staff identifier mapping saved with its effective date.");}
   catch(error){notice(error.message,true);}
 });
 $("import-form").addEventListener("submit",async event=>{
   event.preventDefault();
+  const formElement=event.currentTarget;
   const file=$("csv-file").files?.[0];
   if(!file){notice("Choose a CSV file to import.",true);return;}
   if(file.size>2*1024*1024){notice("Attendance CSV files must be 2 MB or smaller.",true);return;}
-  const form=new FormData(event.currentTarget),deviceId=form.get("deviceId");
+  const form=new FormData(formElement),deviceId=form.get("deviceId");
   const body={
     sourceName:file.name,csvText:await file.text(),
     columns:{
@@ -170,7 +172,7 @@ $("import-form").addEventListener("submit",async event=>{
       for(const item of result.rejections){const li=document.createElement("li");li.textContent="Row "+item.rowNumber+": "+item.reason;list.append(li);}
       box.append(list);
     }
-    event.currentTarget.reset();await loadWorkspace();notice("Attendance CSV import completed and its source checksum was recorded.");
+    formElement.reset();await loadWorkspace();notice("Attendance CSV import completed and its source checksum was recorded.");
   }catch(error){$("import-message").textContent=error.message;notice(error.message,true);}
   finally{button.disabled=false;}
 });
