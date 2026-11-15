@@ -43,6 +43,7 @@ function hasherFactory() {
       return typeof hash === "string" && hash.startsWith("$argon2id$");
     },
     async createDummyHash() { return DUMMY_HASH; },
+    async hash(value) { return "$argon2id$test$" + Buffer.from(value,"utf8").toString("base64url"); },
     async verify() { return false; }
   });
 }
