@@ -56,7 +56,7 @@ test("catalogue returns only repository class and subject data to an authorised 
   assert.equal(calls.auth.length,1);
   assert.equal(calls.auth[0].method,"GET");
   assert.equal(calls.repository,1);
-  assert.equal(res.headers["cache-control"],"no-store");
+  assert.equal(res.headers["Cache-Control"],"no-store");
 });
 
 test("catalogue refuses guardian principals", async () => {
