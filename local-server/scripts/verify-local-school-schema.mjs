@@ -138,7 +138,7 @@ try {
   const permissionCount = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog"
   );
-  assert(permissionCount.rows[0]?.count === 49, "Expected 49 unique permission catalogue entries after leave, attendance review and payroll disbursement permissions are added.");
+  assert(permissionCount.rows[0]?.count === 50, "Expected 50 unique permission catalogue entries after staff leadership incident statements are added.");
 
   const subjects = await pool.query(
     "SELECT subject_code FROM cornhill_school.subjects ORDER BY subject_code"
@@ -168,7 +168,28 @@ try {
   const staffPermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE permission_code LIKE 'staff.%'"
   );
-  assert(staffPermissions.rows[0]?.count === 17, "Expected seventeen staff, leave, attendance and payroll permission codes.");
+  assert(staffPermissions.rows[0]?.count === 18, "Expected eighteen staff, leave, attendance and payroll permission codes.");
+
+  const leadershipPrivileges = await pool.query(
+    "SELECT has_column_privilege('cornhill_auth_runtime','cornhill_school.staff_profiles','legal_name','SELECT') AS staff_read, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.attendance_days','attendance_status','SELECT') AS attendance_read, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.staff_attendance_incidents','headteacher_statement','UPDATE') AS statement_update, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.staff_attendance_incidents','director_decision','UPDATE') AS decision_update, " +
+    "has_column_privilege('cornhill_auth_runtime','cornhill_school.staff_attendance_incidents','attendance_date','UPDATE') AS incident_identity_update, " +
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.staff_attendance_incidents','DELETE') AS incident_delete"
+  );
+  assert(leadershipPrivileges.rows[0]?.staff_read === true
+    && leadershipPrivileges.rows[0]?.attendance_read === true
+    && leadershipPrivileges.rows[0]?.statement_update === true
+    && leadershipPrivileges.rows[0]?.decision_update === true
+    && leadershipPrivileges.rows[0]?.incident_identity_update === false
+    && leadershipPrivileges.rows[0]?.incident_delete === false,
+    "Staff leadership runtime grants must be limited to scoped reads and approved review columns.");
+  const incidentDecisionTrigger = await pool.query(
+    "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'attendance_incident_decision_guard' AND NOT tgisinternal) AS installed"
+  );
+  assert(incidentDecisionTrigger.rows[0]?.installed === true,
+    "Director/Headteacher attendance incident authority guard must remain installed.");
 
   const saturdayPolicy = await pool.query(
     "SELECT saturday_start_time::text, saturday_end_time::text FROM cornhill_school.staff_attendance_policy_settings WHERE id = true"

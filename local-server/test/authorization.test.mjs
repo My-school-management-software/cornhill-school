@@ -80,6 +80,24 @@ test("new admissions and academic permissions are recognised but never implicit"
   }), true);
 });
 
+test("staff leadership permissions are recognised but never implicit", () => {
+  for (const permissionCode of [
+    "staff.attendance_statement_submit",
+    "staff.attendance_incident_decide",
+    "staff.prep_session_manage",
+    "staff.attendance_policy_manage"
+  ]) {
+    assert.equal(staffHasPermission({
+      principal: staff({ roles: ["headteacher"], rolePermissions: {} }),
+      permissionCode, nowMs: NOW
+    }), false);
+  }
+  assert.equal(staffHasPermission({
+    principal: staff({ roles: ["headteacher"], rolePermissions: { headteacher: ["staff.attendance_statement_submit"] } }),
+    permissionCode: "staff.attendance_statement_submit", nowMs: NOW
+  }), true);
+});
+
 test("staff without an explicit role grant are denied", () => {
   assert.equal(staffHasPermission({
     principal: staff({ roles: ["cook"] }), permissionCode: "academics.marks_enter",

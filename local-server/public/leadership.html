@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#153a36"><title>CORNHILL | Leadership & Staff</title><link rel="stylesheet" href="/leadership.css"><script src="/leadership.js" defer></script></head>
+<body>
+<header class="top"><a class="brand" href="/school">C</a><div><p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL</p><h1>Leadership & Staff Office</h1></div><span class="secure">LOCAL · SECURE STAFF ACCESS</span></header>
+<main class="layout">
+<div id="notice" class="notice" role="status" aria-live="polite">Checking staff leadership service…</div>
+<section id="login" class="panel narrow" hidden><p class="eyebrow">STAFF ACCOUNT</p><h2>Sign in</h2><form id="login-form"><label>Username<input id="username" autocomplete="username" required minlength="3"></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><button>Sign in</button></form></section>
+<section id="app" hidden>
+<div class="welcome"><div><p class="eyebrow">STAFF GOVERNANCE</p><h2 id="staff-name">Staff member</h2><p id="staff-roles" class="muted"></p></div><div class="actions"><a class="button secondary" href="/school">School office</a><button id="reload" class="secondary">Refresh</button><button id="logout" class="secondary">Sign out</button></div></div>
+<section id="attendance-panel" class="panel" hidden><div class="section-head"><div><h2>Today's staff attendance</h2><p class="muted">Records shown from verified local attendance-day entries.</p></div><span id="attendance-date" class="pill"></span></div>
+<div class="stats"><article><span>Active staff</span><strong id="staff-total">—</strong></article><article><span>Present</span><strong id="staff-present">—</strong></article><article><span>Late</span><strong id="staff-late">—</strong></article><article><span>Absent</span><strong id="staff-absent">—</strong></article></div>
+<div class="table-wrap"><table><thead><tr><th>Staff</th><th>Position</th><th>First clock-in</th><th>Last clock-out</th><th>Status</th><th>Worked minutes</th><th>Verification</th></tr></thead><tbody id="attendance-rows"></tbody></table></div></section>
+<section id="staff-panel" class="panel" hidden><div class="section-head"><div><h2>Staff directory</h2><p class="muted">Employment profiles available to staff with profile-management authority.</p></div><span id="staff-count" class="pill"></span></div>
+<div class="table-wrap"><table><thead><tr><th>Staff number</th><th>Name</th><th>Job title</th><th>Department</th><th>Status</th><th>Hired</th></tr></thead><tbody id="staff-rows"></tbody></table></div></section>
+<section id="incidents-panel" class="panel" hidden><div class="section-head"><div><h2>Attendance incident review</h2><p class="muted">Headteacher/DOS statements and Director decisions are separate, recorded actions. The database enforces the review window and role authority.</p></div><span id="incident-count" class="pill"></span></div>
+<div id="incidents-list" class="incident-list"></div></section>
+<section id="sessions-panel" class="panel" hidden><div class="section-head"><div><h2>Special staff preparation sessions</h2><p class="muted">Upcoming published and draft session information.</p></div></div><div id="sessions-list" class="session-list"></div></section>
+</section></main>
+</body></html>

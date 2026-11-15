@@ -33,9 +33,9 @@ try {
   const permissionCatalog = await pool.query(
     "SELECT permission_code FROM cornhill_auth.permission_catalog ORDER BY permission_code"
   );
-  if (permissionCatalog.rows.length !== 49) {
+  if (permissionCatalog.rows.length !== 50) {
     throw new Error(
-      `Expected 49 catalogued permission codes; found ${permissionCatalog.rows.length}: ${permissionCatalog.rows.map(row => row.permission_code).join(", ")}`
+      `Expected 50 catalogued permission codes; found ${permissionCatalog.rows.length}: ${permissionCatalog.rows.map(row => row.permission_code).join(", ")}`
     );
   }
 
@@ -81,7 +81,7 @@ try {
     throw new Error("Expected identity and authorization constraints were not installed.");
   }
 
-  console.log("PostgreSQL schema verified: 11 tables, 17 roles, 49 permission codes, 0 role grants, rate-limit indexes, no PUBLIC schema access.");
+  console.log("PostgreSQL schema verified: 11 tables, 17 roles, 50 permission codes, 0 role grants, rate-limit indexes, no PUBLIC schema access.");
 } finally {
   await pool.end();
 }

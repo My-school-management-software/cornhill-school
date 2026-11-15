@@ -17,7 +17,9 @@ const PERMISSION_CODES = new Set([
   "finance.evidence_manage", "finance.evidence_review",
   "staff.attendance_manage", "staff.payroll_read", "staff.payroll_manage",
   "staff.profile_manage", "staff.attendance_import", "staff.attendance_adjust", "staff.payroll_approve",
-  "staff.accounts_manage", "guardians.access_approve",
+  "staff.accounts_manage", "staff.attendance_policy_manage",
+  "staff.attendance_incident_decide", "staff.attendance_statement_submit",
+  "staff.prep_session_manage", "guardians.access_approve",
   "system.roles_manage", "system.backups_manage"
 ]);
 
