@@ -103,7 +103,7 @@ function sendJson(response, statusCode, payload, method = "GET") {
 }
 
 const PUBLIC_ASSETS = new Map([
-  ["/", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/", { file: new URL("../public/app.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/bursar", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/bursar.html", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/bursar.js", { file: new URL("../public/bursar.js", import.meta.url), type: "text/javascript; charset=utf-8" }],

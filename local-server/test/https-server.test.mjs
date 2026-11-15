@@ -121,6 +121,14 @@ test("local HTTPS server exposes only the explicit school workspace assets", asy
   assert.match(source, /school\.css/);
 });
 
+test("local HTTPS root opens the workspace launcher while Bursar remains a separate route", async () => {
+  const source = await (await import("node:fs/promises")).readFile(
+    new URL("../src/https-server.mjs", import.meta.url), "utf8"
+  );
+  assert.match(source, /\["\/", \{ file: new URL\("\.\.\/public\/app\.html"/);
+  assert.match(source, /\["\/bursar", \{ file: new URL\("\.\.\/public\/bursar\.html"/);
+});
+
 test("school workspace calls only authenticated local school APIs", async () => {
   const source = await (await import("node:fs/promises")).readFile(
     new URL("../public/school.js", import.meta.url), "utf8"
