@@ -82,7 +82,8 @@ export async function createLocalAuthRuntime({
 
     let routeHandler = async (request, response) => {
       if (await authRouteHandler(request, response)) return true;
-      return schoolCatalogRouteHandler(request, response);
+      if (await schoolCatalogRouteHandler(request, response)) return true;
+      return admissionsRouteHandler(request, response);
     };
     let financeEnabled = false;
     if (financeConfig) {
@@ -129,7 +130,7 @@ export async function createLocalAuthRuntime({
       routeHandler = async (request, response) => {
         if (await authRouteHandler(request, response)) return true;
         if (await schoolCatalogRouteHandler(request, response)) return true;
-      if (await admissionsRouteHandler(request, response)) return true;
+        if (await admissionsRouteHandler(request, response)) return true;
         if (await financeOperationsRouteHandler(request, response)) return true;
         if (await financeRouteHandler(request, response)) return true;
         return evidenceRouteHandler ? evidenceRouteHandler(request, response) : false;
