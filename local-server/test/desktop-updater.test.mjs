@@ -15,6 +15,8 @@ test("desktop updater fetches the approved branch using fast-forward only and pr
 test("desktop updater installs pinned dependencies and runs Windows and database checks as one batch",()=>{
   assert.match(script,/"install","--no-package-lock","--no-audit","--no-fund"/);
   assert.match(script,/npm.*test/);
+  assert.match(script,/Attendance Devices & Imports/);
+  assert.match(script,/staff\.attendance_import/);
   for(const check of ["db:migrate","db:verify","db:verify-auth","db:verify-runtime","db:verify-school","db:verify-finance","db:director-status","setup:director"]) assert.ok(script.includes(check));
 });
 

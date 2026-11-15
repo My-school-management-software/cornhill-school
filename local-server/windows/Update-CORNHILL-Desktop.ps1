@@ -104,7 +104,7 @@ if ($LASTEXITCODE -ne 0) { Stop-WithGuidance "Could not inspect the working tree
 if ($dirty.Count -gt 0) { Stop-WithGuidance "Your source folder has uncommitted changes. Commit or back them up before updating; nothing has been overwritten." }
 
 Write-Host "CORNHILL INTEGRATED DESKTOP UPDATE" -ForegroundColor Cyan
-Write-Host "Release batch: Director + Bursar + School Office + Academics + Staff workspaces."
+Write-Host "Release batch: Director + Bursar + School Office + Academics + Staff Operations + Attendance Devices & Imports."
 Write-Host "First checking for local changes, then fast-forwarding the approved development branch."
 Invoke-Checked "git" @("fetch","origin",$Branch) "Could not fetch the approved CORNHILL branch."
 Invoke-Checked "git" @("merge","--ff-only","origin/$Branch") "The local branch cannot be fast-forwarded. No reset or forced overwrite was attempted."
@@ -177,8 +177,9 @@ if (-not $SkipDatabase) {
 
 Write-Host ""
 Write-Host "INTEGRATED SOURCE UPDATE AND REQUESTED CHECKS COMPLETED" -ForegroundColor Green
-Write-Host "Installed workspaces: Director/Staff leadership, Bursar finance, School Office and Academics."
+Write-Host "Installed workspaces: Director/Staff leadership, Bursar finance, School Office, Academics, Staff Operations and Attendance Devices & Imports."
 Write-Host "The existing local database was retained; only unapplied checksum-verified migrations were considered."
+Write-Host "Attendance import access remains disabled for staff roles until the Director explicitly delegates staff.attendance_import."
 Write-Host "To start the local service: Set-Location '$localServerRoot'; npm run start:auth"
 Write-Host "Then open https://localhost:4174/app for the local workspace launcher. The listener remains restricted to this computer."
 
