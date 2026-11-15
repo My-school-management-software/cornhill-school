@@ -7,8 +7,10 @@ import { createSchoolCatalogHttpHandler } from "../src/security/school-catalog-h
 
 const ORIGIN = "https://cornhill.local";
 const secrets = createOpaqueSessionSecrets();
+const CLASS_ID = "22222222-2222-4222-8222-222222222222";
 const staff = {
   id: "11111111-1111-4111-8111-111111111111",
+  classIds: [CLASS_ID],
   principalType: "staff",
   accountStatus: "active",
   roles: ["headteacher"],
@@ -20,7 +22,10 @@ function setup({ principal = staff, rows = [] } = {}) {
   const handler = createSchoolCatalogHttpHandler({
     expectedOrigin: ORIGIN,
     authService: { async authenticate(input) { calls.auth.push(input); if (!principal) throw new Error("not authenticated"); return principal; } },
-    schoolRepository: { async listActiveClassesAndSubjects() { calls.repository++; return rows; } }
+    schoolRepository: {
+      async listActiveClassesAndSubjects() { calls.repository++; return rows; },
+      async listLearners(input) { calls.learnerInput = input; calls.repository++; return rows; }
+    }
   });
   return { handler, calls };
 }
@@ -95,4 +100,25 @@ test("catalogue returns a generic error if the repository fails", async () => {
   const res=await invoke(badHandler,{headers:{host:"cornhill.local",cookie}});
   assert.equal(res.statusCode,503);
   assert.doesNotMatch(res.body,/database password/);
+});
+
+test("learner roster is limited to an explicitly assigned class for class teachers", async () => {
+  const teacher = { ...staff, roles: ["class_teacher"] };
+  const {handler,calls}=setup({principal:teacher,rows:[{pupilCode:"CH-2026-000001"}]});
+  const denied=await invoke(handler,{headers:{host:"cornhill.local",cookie}});
+  assert.equal(denied.statusCode,403);
+  assert.equal(calls.repository,0);
+  const allowed=await invoke(handler,{headers:{host:"cornhill.local",cookie},path:"/api/v1/school/learners?classId="+CLASS_ID+"&search=CH-2026"});
+  assert.equal(allowed.statusCode,200);
+  assert.deepEqual(calls.learnerInput,{classId:CLASS_ID,search:"CH-2026"});
+  assert.deepEqual(allowed.json(),{learners:[{pupilCode:"CH-2026-000001"}]});
+});
+
+test("learner roster rejects malformed class identifiers and short searches", async () => {
+  const {handler,calls}=setup();
+  const badClass=await invoke(handler,{headers:{host:"cornhill.local",cookie},path:"/api/v1/school/learners?classId=not-a-uuid"});
+  assert.equal(badClass.statusCode,400);
+  const shortSearch=await invoke(handler,{headers:{host:"cornhill.local",cookie},path:"/api/v1/school/learners?search=x"});
+  assert.equal(shortSearch.statusCode,400);
+  assert.equal(calls.repository,0);
 });
