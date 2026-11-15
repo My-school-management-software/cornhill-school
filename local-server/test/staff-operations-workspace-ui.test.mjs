@@ -22,8 +22,11 @@ test("Staff Operations renders records through text nodes and never injects retu
   assert.doesNotMatch(js,/insertAdjacentHTML/);
 });
 
-test("leave review queue clearly separates viewing from approval and payroll does not transfer money",()=>{
-  assert.match(html,/approval and balance usage are separate controlled actions/i);
+test("leave review queue exposes independent approve/reject actions and payroll does not transfer money",()=>{
+  assert.match(html,/Authorised reviewers can approve or reject submitted requests/i);
+  assert.ok(js.includes("encodeURIComponent(x.id)"));
+  assert.match(js,/decision,note:value/);
+  assert.ok(html.includes("<th>Review action</th>"));
   assert.match(html,/does not initiate bank or mobile-money transfers/i);
 });
 

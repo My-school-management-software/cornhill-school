@@ -100,6 +100,20 @@ try {
   assert.equal(result.guardian_contact_update, false);
   assert.equal(result.guardian_learner_update, false);
 
+  const leaveReviewGrant = await pool.query(`
+    SELECT
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.staff_leave_requests', 'status', 'UPDATE') AS status_update,
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.staff_leave_requests', 'reviewed_by_staff_id', 'UPDATE') AS reviewer_update,
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.staff_leave_requests', 'review_note', 'UPDATE') AS note_update,
+      has_column_privilege('cornhill_auth_api', 'cornhill_school.staff_leave_requests', 'reason', 'UPDATE') AS request_reason_update,
+      has_table_privilege('cornhill_auth_api', 'cornhill_school.staff_leave_requests', 'DELETE') AS request_delete
+  `);
+  assert.equal(leaveReviewGrant.rows[0]?.status_update, true);
+  assert.equal(leaveReviewGrant.rows[0]?.reviewer_update, true);
+  assert.equal(leaveReviewGrant.rows[0]?.note_update, true);
+  assert.equal(leaveReviewGrant.rows[0]?.request_reason_update, false);
+  assert.equal(leaveReviewGrant.rows[0]?.request_delete, false);
+
   console.log("Authentication database role verified: restricted runtime group is NOLOGIN; API login is enabled only with a private runtime password; least-privilege grants verified.");
 } finally {
   await pool.end();
