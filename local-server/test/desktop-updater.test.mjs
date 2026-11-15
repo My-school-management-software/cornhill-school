@@ -24,3 +24,24 @@ test("desktop updater configures localhost HTTPS only when missing and can launc
  assert.match(script,/npm run start:auth/);
  assert.match(script,/https:\/\/localhost:4174/);
 });
+
+test("desktop updater identifies the listener on port 4174 before attempting a restart",()=>{
+ assert.match(script,/Get-NetTCPConnection -LocalPort 4174 -State Listen/);
+ assert.match(script,/scripts\[\\\/\]start-local-auth/);
+ assert.match(script,/CORNHILL local authentication server/);
+});
+test("desktop updater verifies the original PowerShell launcher path before stopping a process",()=>{
+ assert.match(script,/Win32_Process/);
+ assert.match(script,/npm\(\?:\\[.]cmd\)\?\\s\+run\\s\+start:auth/);
+ assert.match(script,/IndexOf\(\$expectedPath/);
+ assert.match(script,/Nothing was stopped/);
+});
+test("desktop updater gracefully signals and waits for the old server before starting another",()=>{
+ assert.match(script,/process\.kill\(\$listenerPid, 'SIGINT'\)/);
+ assert.match(script,/The existing local service did not release port 4174/);
+ assert.ok(script.indexOf("Stop-ExistingLocalAuthService $localServerRoot") < script.indexOf('Start-Process -FilePath "powershell.exe"'));
+});
+test("desktop updater opens the local workspace launcher after restart",()=>{
+ assert.match(script,/https:\/\/localhost:4174\/app/);
+ assert.doesNotMatch(script,/https:\/\/localhost:4174\/leadership/);
+});
