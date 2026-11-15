@@ -25,7 +25,9 @@ function response() {
   };
 }
 function request({ path = "/api/v1/guardian/access/contacts", method = "GET", encrypted = true, host = "localhost:4174", origin = ORIGIN, body, cookie } = {}) {
-  const req = { url: path, method, headers: { host, origin, cookie: cookie ?? "__Host-cornhill_session=" + SESSION + "; __Host-cornhill_csrf=" + CSRF }, socket: { encrypted } };
+  const headers = { host, origin, cookie: cookie ?? "__Host-cornhill_session=" + SESSION + "; __Host-cornhill_csrf=" + CSRF };
+  if (body !== undefined) headers["content-type"] = "application/json";
+  const req = { url: path, method, headers, socket: { encrypted } };
   if (body !== undefined) req[Symbol.asyncIterator] = async function* () { yield Buffer.from(JSON.stringify(body)); };
   return req;
 }
