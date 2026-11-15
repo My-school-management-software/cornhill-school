@@ -35,8 +35,13 @@ function validate(body,actorStaffId){
   if(!["Male","Female"].includes(body.gender))throw new InputError("Select Male or Female.");
   const dateOfBirth=body.dateOfBirth==null||body.dateOfBirth===""?null:text(body.dateOfBirth,10,"Date of birth");
   const admissionDate=text(body.admissionDate,10,"Admission date");
-  for(const [v,label] of [[dateOfBirth,"Date of birth"],[admissionDate,"Admission date"]])if(v&&!/^\d{4}-\d{2}-\d{2}$/.test(v))throw new InputError(label+" must use YYYY-MM-DD.");
+  for(const [v,label] of [[dateOfBirth,"Date of birth"],[admissionDate,"Admission date"]]) {
+    if(v&&!isCalendarDate(v))throw new InputError(label+" must be a valid calendar date in YYYY-MM-DD format.");
+  }
+  if(dateOfBirth&&dateOfBirth>admissionDate)throw new InputError("Date of birth cannot be after the admission date.");
+  if(body.learnerType!==undefined&&!["Day","Boarding"].includes(body.learnerType))throw new InputError("Learner category must be Day or Boarding.");
   const lin=text(body.lin,40,"LIN",false);
+  if(body.isBursary!==undefined&&typeof body.isBursary!=="boolean")throw new InputError("Bursary flag must be true or false.");
   const isBursary=body.isBursary===true;
   const bursaryFeeUgx=isBursary?body.bursaryFeeUgx:0;
   if(!Number.isSafeInteger(bursaryFeeUgx)||bursaryFeeUgx<0||(!isBursary&&body.bursaryFeeUgx!=null&&body.bursaryFeeUgx!==0))throw new InputError("Bursary amount must be a non-negative whole-UGX amount.");
@@ -52,7 +57,7 @@ function validate(body,actorStaffId){
     if((guardian.smsOptIn&&!phone)||(guardian.whatsappOptIn&&!whatsapp))throw new InputError("A contact number is required for each communication consent.");
   }
   return {actorStaffId,classId,firstName,middleName,lastName,gender:body.gender,dateOfBirth,lin,admissionDate,
-    learnerType:body.learnerType==="Boarding"?"Boarding":"Day",previousSchool:text(body.previousSchool,160,"Previous school",false),
+    learnerType:body.learnerType??"Day",previousSchool:text(body.previousSchool,160,"Previous school",false),
     p7IndexNumber:text(body.p7IndexNumber,40,"P.7 index number",false),isBursary,bursaryFeeUgx,
     bursaryCategory:isBursary?text(body.bursaryCategory,80,"Bursary category",false):null,
     bursaryReason:isBursary?text(body.bursaryReason,300,"Bursary reason",false):null,
