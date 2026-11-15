@@ -149,7 +149,7 @@ export function createPostgresStaffOperationsRepository(pool) {
           "JOIN cornhill_school.payroll_periods pp ON pp.id=pr.payroll_period_id " +
           "LEFT JOIN cornhill_school.payroll_lines pl ON pl.payroll_run_id=pr.id " +
           "LEFT JOIN cornhill_school.payroll_disbursement_summary ds ON ds.payroll_line_id=pl.id " +
-          "GROUP BY pr.id,pp.period_code ORDER BY pp.starts_on DESC LIMIT 48"
+          "GROUP BY pr.id,pp.period_code,pp.starts_on ORDER BY pp.starts_on DESC LIMIT 48"
         ).then(rows => { result.payroll.runs = rows.rows; }));
 
         jobs.push(pool.query(
