@@ -8,7 +8,7 @@ This branch contains the school-controlled local backend foundation for moving C
 - Separate loopback-only HTTPS authentication server and launcher.
 - Argon2id staff/guardian authentication, secure cookies, CSRF validation, session expiry/revocation and rate limiting.
 - Explicit role permissions, staff class assignments and guardian-to-learner scope checks. Role grants remain empty by default.
-- Twelve additive PostgreSQL migrations:
+- Eighty-seven additive, checksum-verified PostgreSQL migrations (001–087), covering:
   1. Staff/guardian identity and session records.
   2. Permission catalog, role permissions and staff class assignments.
   3. Failed-login rate-limit indexes.
@@ -138,3 +138,23 @@ This is disposable CI verification only. Migration 014 has not been applied to t
 - Confirmed no role receives the permission automatically. The Director can explicitly assign it to selected staff roles through Leadership → role permissions.
 - Updated the single-run Windows desktop updater to report Attendance Devices & Imports as part of the installation release and explain that staff access requires Director delegation.
 - The attendance workspace can be enabled by an explicit role grant after the existing update is installed. This does not change attendance records or biometric data.
+
+
+### Batch 26 — independent staff leave decisions (2026-11-15)
+
+- Added a separate HTTPS endpoint for approving or rejecting a submitted staff leave request.
+- The reviewer identity is taken from the authenticated staff session. The database transition guard rejects self-review, assigns the official timestamp, and protects submitted request details from rewriting.
+- Added `staff.leave_review` checks and an additive column-level permission migration (086). Rejection requires a meaningful reason.
+- Leadership's leave queue now offers independent approve/reject actions. Approving a request does not automatically consume leave balance or create a salary deduction.
+- CI run [43703760165](https://github.com/My-school-management-software/cornhill-school/actions/runs/43703760165) passed Windows and PostgreSQL 17 checks: 749 tests, 748 passed, 0 failed, 1 skipped; migrations 001–086 were applied and checksum repeatability verified in the disposable CI database.
+
+### Batch 27 — attendance review and payroll payment evidence (2026-11-15)
+
+- Staff Operations now supports append-only attendance-day review records (Verified / Correction Required) with required notes. The source attendance-day identity is loaded by the database, the reviewer comes from the active session, and staff cannot review their own attendance.
+- Added payroll payment evidence entry for an already-completed cash, bank or mobile-money payment against a posted payroll line. The database prevents overpayment beyond net pay and requires a separate active verifier who is neither the recorder nor the beneficiary.
+- Pending payroll evidence can be independently verified or rejected with a reason. Final evidence is immutable. This is a record-keeping workflow only; no bank or mobile-money transfer is initiated.
+- Added migration 087 with narrow INSERT/UPDATE column grants and fixed-search-path SECURITY DEFINER helpers for source-row locks. The runtime role does not receive UPDATE privileges on attendance days, payroll runs or payroll lines.
+- No staff role receives attendance-review or payroll-disbursement permissions automatically. The Director must explicitly delegate the relevant high-risk permissions.
+- CI run [43704640654](https://github.com/My-school-management-software/cornhill-school/actions/runs/43704640654) passed both jobs: **755 Windows tests, 754 passed, 0 failed, 1 skipped**; PostgreSQL 17 applied migrations 001–087, verified checksum repeatability, and passed authentication, schema, runtime privilege and finance verifiers.
+
+These are CI validations against disposable synthetic data. The new migrations and screens are not installed on the school's Windows database until the approved desktop updater is run. Full-school readiness remains blocked by the separate launcher release conditions.

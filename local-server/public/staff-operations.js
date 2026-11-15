@@ -29,11 +29,29 @@ function showPanels(caps){
   $("payroll-panel").hidden=!caps.payroll;
   $("leave-form").hidden=!caps.ownLeave;
 }
-function renderAttendance(data){
-  rows($("attendance-rows"),data.recentDays||[],10,(tr,x)=>{
+function renderAttendance(data,canReview=false){
+  rows($("attendance-rows"),data.recentDays||[],canReview?11:10,(tr,x)=>{
     cell(tr,dateOnly(x.workDate));cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.jobTitle);
     cell(tr,x.status);cell(tr,dateTime(x.firstClockIn));cell(tr,dateTime(x.lastClockOut));
     cell(tr,x.workedMinutes);cell(tr,x.source);cell(tr,x.verifiedAt?"Verified":"Not verified");
+    if(canReview){
+      const action=cell(tr,"");action.replaceChildren();
+      const decision=document.createElement("select");
+      for(const value of ["Verified","Correction Required"]){const option=document.createElement("option");option.value=value;option.textContent=value;decision.append(option);}
+      const note=document.createElement("input");note.type="text";note.maxLength=1000;note.placeholder="Review note";
+      note.setAttribute("aria-label","Attendance review note for "+x.staffName);
+      const button=document.createElement("button");button.type="button";button.textContent="Save review";
+      button.addEventListener("click",async()=>{
+        if(note.value.trim().length<5){notice("Enter an attendance review note of at least five characters.",true);note.focus();return;}
+        button.disabled=true;
+        try{
+          await api("/staff/attendance/days/"+encodeURIComponent(x.id)+"/review",{method:"POST",body:{reviewStatus:decision.value,reviewNote:note.value.trim()}});
+          notice("Attendance review recorded in the append-only review history.");
+          await loadWorkspace();
+        }catch(error){notice(error.message,true);button.disabled=false;}
+      });
+      action.append(decision,note,button);
+    }
   },"No staff attendance records exist in the last 30 days.");
   rows($("monthly-rows"),data.monthly||[],10,(tr,x)=>{
     cell(tr,x.monthStart);cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.recordedDays);
@@ -80,7 +98,43 @@ function renderLeave(data){
     cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.leaveType);cell(tr,x.availableDays);
   },"No staff leave balances have been recorded.");
 }
-function renderPayroll(data){
+function renderPayroll(data,caps={}){
+  const lineSelect=$("payroll-line-id");
+  if(lineSelect){
+    lineSelect.replaceChildren();
+    const placeholder=document.createElement("option");placeholder.value="";placeholder.textContent="Choose a payroll line";lineSelect.append(placeholder);
+    for(const item of data.lines||[]){
+      const option=document.createElement("option");option.value=item.id;
+      option.textContent=item.periodCode+" · "+item.staffNumber+" · "+item.staffName+" · "+money(item.netPayUgx);
+      lineSelect.append(option);
+    }
+  }
+  const recordForm=$("payroll-record-form");if(recordForm)recordForm.hidden=!caps.payrollRecord;
+  rows($("payroll-disbursement-rows"),data.disbursements||[],10,(tr,x)=>{
+    cell(tr,x.periodCode);cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.paymentMethod);
+    cell(tr,x.externalReference);cell(tr,money(x.amountUgx));cell(tr,dateTime(x.paidAt));
+    cell(tr,x.status);cell(tr,dateTime(x.verifiedAt));
+    const actions=cell(tr,"");actions.replaceChildren();
+    if(caps.payrollVerify&&x.status==="Pending Verification"){
+      const note=document.createElement("input");note.type="text";note.maxLength=1000;note.placeholder="Verification note";
+      note.setAttribute("aria-label","Verification note for "+x.staffName);
+      const verified=document.createElement("button");verified.type="button";verified.textContent="Verify";
+      const rejected=document.createElement("button");rejected.type="button";rejected.textContent="Reject";rejected.className="secondary";
+      const decide=async decision=>{
+        const value=note.value.trim();
+        if(decision==="Rejected"&&value.length<5){notice("Enter a rejection reason of at least five characters.",true);note.focus();return;}
+        verified.disabled=true;rejected.disabled=true;
+        try{
+          await api("/staff/payroll/disbursements/"+encodeURIComponent(x.id)+"/verify",{method:"POST",body:{decision,verificationNote:value}});
+          notice("Payroll payment evidence "+decision.toLowerCase()+".");
+          await loadWorkspace();
+        }catch(error){notice(error.message,true);verified.disabled=false;rejected.disabled=false;}
+      };
+      verified.addEventListener("click",()=>decide("Verified"));
+      rejected.addEventListener("click",()=>decide("Rejected"));
+      actions.append(note,verified,rejected);
+    }
+  },"No payroll payment evidence has been recorded.");
   rows($("payroll-period-rows"),data.periods||[],5,(tr,x)=>{
     cell(tr,x.periodCode);cell(tr,dateOnly(x.startsOn));cell(tr,dateOnly(x.endsOn));
     cell(tr,dateOnly(x.paymentDate));cell(tr,x.status);
@@ -102,12 +156,12 @@ async function loadWorkspace(){
   workspace=result;
   const caps=result.capabilities||{};
   showPanels(caps);
-  if(caps.attendance)renderAttendance(result.attendance||{});
+  if(caps.attendance)renderAttendance(result.attendance||{},caps.attendanceReview);
   if(caps.ownLeave||caps.leaveReview||caps.allLeaveBalances)renderLeave({
     ...(result.leave||{}),
     allBalances:caps.allLeaveBalances?(result.leave?.allBalances||[]):undefined
   });
-  if(caps.payroll)renderPayroll(result.payroll||{});
+  if(caps.payroll)renderPayroll(result.payroll||{},caps);
   const enabled=Object.values(caps).filter(Boolean).length;
   if(!enabled)throw new Error("Your staff account has no Staff Operations permissions.");
   notice("Staff Operations refreshed. Only sections permitted to your account are displayed.");
@@ -128,6 +182,25 @@ $("refresh").addEventListener("click",async()=>{try{await loadWorkspace();}catch
 $("logout").addEventListener("click",async()=>{
   try{await api("/auth/logout",{method:"POST",body:{}});}catch{}
   principal=null;workspace=null;$("app").hidden=true;$("login").hidden=false;notice("You have signed out.");
+});
+$("payroll-record-form").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const form=new FormData(event.currentTarget);
+  const parsedDate=new Date(form.get("paidAt"));
+  if(Number.isNaN(parsedDate.getTime())){notice("Enter a valid payment date and time.",true);return;}
+  const body={
+    payrollLineId:form.get("payrollLineId"),amountUgx:Number(form.get("amountUgx")),
+    paymentMethod:form.get("paymentMethod"),externalReference:form.get("externalReference"),
+    paidAt:parsedDate.toISOString()
+  };
+  const button=event.currentTarget.querySelector("button[type=submit]");
+  button.disabled=true;$("payroll-record-message").textContent="Recording evidence…";
+  try{
+    await api("/staff/payroll/disbursements",{method:"POST",body});
+    event.currentTarget.reset();$("payroll-record-message").textContent="Payment evidence saved for independent verification.";
+    await loadWorkspace();
+  }catch(error){$("payroll-record-message").textContent=error.message;notice(error.message,true);}
+  finally{button.disabled=false;}
 });
 $("leave-form").addEventListener("submit",async event=>{
   event.preventDefault();

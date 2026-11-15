@@ -16,7 +16,10 @@ test("desktop updater installs pinned dependencies and runs Windows and database
   assert.match(script,/"install","--no-package-lock","--no-audit","--no-fund"/);
   assert.match(script,/npm.*test/);
   assert.match(script,/Attendance Devices & Imports/);
-  assert.match(script,/staff\.attendance_import/);
+  assert.ok(script.includes("staff.attendance_import"));
+  for (const permission of ["staff.attendance_review", "staff.leave_review", "staff.payroll_disbursements_manage", "staff.payroll_disbursements_verify"]) {
+    assert.ok(script.includes(permission), "missing explicit Director delegation guidance for " + permission);
+  }
   for(const check of ["db:migrate","db:verify","db:verify-auth","db:verify-runtime","db:verify-school","db:verify-finance","db:director-status","setup:director"]) assert.ok(script.includes(check));
 });
 

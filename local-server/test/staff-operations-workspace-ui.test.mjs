@@ -6,7 +6,7 @@ const js=await readFile(new URL("../public/staff-operations.js",import.meta.url)
 const server=await readFile(new URL("../src/https-server.mjs",import.meta.url),"utf8");
 
 test("Staff Operations page presents attendance, self-service leave, review and payroll sections",()=>{
-  for(const text of ["Staff attendance overview","Submit a leave request","Submitted leave requests","Staff leave balances","Payroll periods and runs"])assert.ok(html.includes(text));
+  for(const text of ["Staff attendance overview","Submit a leave request","Submitted leave requests","Staff leave balances","Payroll periods and runs","Record a payroll payment already made","Payroll payment evidence register"])assert.ok(html.includes(text));
 });
 
 test("Staff Operations uses same-origin local APIs and the local CSRF token",()=>{
@@ -28,6 +28,12 @@ test("leave review queue exposes independent approve/reject actions and payroll 
   assert.match(js,/decision,note:value/);
   assert.ok(html.includes("<th>Review action</th>"));
   assert.match(html,/does not initiate bank or mobile-money transfers/i);
+  assert.ok(js.includes("/staff/attendance/days/"));
+  assert.ok(js.includes("/staff/payroll/disbursements"));
+  assert.ok(js.includes("caps.attendanceReview"));
+  assert.ok(js.includes("caps.payrollRecord"));
+  assert.ok(js.includes("caps.payrollVerify"));
+  assert.match(html,/Every entry remains pending independent verification/i);
 });
 
 
