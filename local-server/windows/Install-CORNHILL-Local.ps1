@@ -86,7 +86,17 @@ if (-not $SkipDatabase) {
     if ($null -eq $runtimeMatch) { Stop-WithGuidance "CORNHILL_DB_RUNTIME_PASSWORD is missing from the private .env file." }
     $runtimePassword = $runtimeMatch.Matches.Groups[1].Value
     if ($runtimePassword.Length -lt 32 -or $runtimePassword -notmatch "^[A-Za-z0-9_-]+$") { Stop-WithGuidance "CORNHILL_DB_RUNTIME_PASSWORD must be a URL-safe random password of at least 32 characters." }
-
+        $financeMatch = Select-String -Path $envPath -Pattern '^CORNHILL_DB_FINANCE_RUNTIME_PASSWORD=(.+)$'
+    if ($null -eq $financeMatch) { Stop-WithGuidance "CORNHILL_DB_FINANCE_RUNTIME_PASSWORD is missing from the private .env file." }
+    $financePassword = $financeMatch.Matches.Groups[1].Value
+    $financeConfigured = $financePassword.Length -ge 32 -and $financePassword -notmatch '^REPLACE_WITH_'
+    if ($financeConfigured -and $financePassword -notmatch "^[A-Za-z0-9_-]+$") { Stop-WithGuidance "CORNHILL_DB_FINANCE_RUNTIME_PASSWORD must be URL-safe when provisioned." }
+    $financeLoginMode = "NOLOGIN"
+    $financePasswordClause = ""
+    if ($financeConfigured) {
+      $financeLoginMode = "LOGIN"
+      $financePasswordClause = "PASSWORD '$financePassword'"
+    }
     if ($roleExistsText.Trim() -eq "1") {
       $roleSql = "ALTER ROLE cornhill_local_admin WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD '$adminPassword';"
     } else {
@@ -126,9 +136,10 @@ BEGIN
 END
 $roles$;
 ALTER ROLE cornhill_finance_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-ALTER ROLE cornhill_finance_api NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE cornhill_finance_api __FINANCE_LOGIN_MODE__ INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS __FINANCE_PASSWORD_CLAUSE__;
 GRANT cornhill_finance_runtime TO cornhill_finance_api;
 '@
+    $financeRoleSql = $financeRoleSql.Replace("__FINANCE_LOGIN_MODE__", $financeLoginMode).Replace("__FINANCE_PASSWORD_CLAUSE__", $financePasswordClause)
     Invoke-Checked $psql @("-X","-v","ON_ERROR_STOP=1","-h","127.0.0.1","-p","5432","-U","postgres","-d","postgres","-c",$financeRoleSql) "Could not provision restricted finance roles."
 
     $exists = & $psql -X -h 127.0.0.1 -p 5432 -U postgres -d postgres -Atc "SELECT 1 FROM pg_database WHERE datname = 'cornhill_local';"
@@ -153,6 +164,7 @@ GRANT cornhill_finance_runtime TO cornhill_finance_api;
     $postgresPassword = $null
     $adminPassword = $null
     $runtimePassword = $null
+    $financePassword = $null
   }
   $env:CORNHILL_ALLOW_LOCAL_MIGRATIONS = "true"
   $env:CORNHILL_DB_TARGET = "local-development"
