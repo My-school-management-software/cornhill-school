@@ -179,7 +179,7 @@ Write-Host ""
 Write-Host "INTEGRATED SOURCE UPDATE AND REQUESTED CHECKS COMPLETED" -ForegroundColor Green
 Write-Host "Installed workspaces: Director/Staff leadership, Bursar finance, School Office, Academics, Staff Operations, Attendance Devices & Imports and Parent & Guardian Portal."
 Write-Host "The existing local database was retained; only unapplied checksum-verified migrations were considered."
-Write-Host "Attendance import, independent attendance review, leave review and payroll disbursement actions remain permission-gated; the Director must explicitly delegate each required high-risk permission."
+Write-Host "Attendance import remains disabled until the Director delegates staff.attendance_import. Other high-risk actions require explicit staff.attendance_review, staff.leave_review, staff.payroll_disbursements_manage or staff.payroll_disbursements_verify permissions."
 Write-Host "To start the local service: Set-Location '$localServerRoot'; npm run start:auth"
 Write-Host "Then open https://localhost:4174/app for the local workspace launcher. The listener remains restricted to this computer."
 
