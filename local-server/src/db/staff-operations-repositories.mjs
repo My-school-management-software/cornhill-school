@@ -37,7 +37,7 @@ export function createPostgresStaffOperationsRepository(pool) {
       if (includeOwnLeave || includeAllLeaveBalances) assertUuid(staffId, "Staff ID");
       const result = {
         attendance: { recentDays: [], monthly: [], reviewQueue: [] },
-        leave: { ownRequests: [], balances: [], reviewQueue: [] },
+        leave: { ownRequests: [], balances: [], allBalances: [], reviewQueue: [] },
         payroll: { periods: [], runs: [], lines: [] },
         capabilities: {
           attendance: includeAttendance,
@@ -114,7 +114,7 @@ export function createPostgresStaffOperationsRepository(pool) {
           "FROM cornhill_school.staff_leave_balance_summary b " +
           "JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id=b.staff_account_id " +
           "ORDER BY sp.legal_name,b.leave_type LIMIT 500"
-        ).then(rows => { result.leave.balances = rows.rows; }));
+        ).then(rows => { result.leave.allBalances = rows.rows; }));
       }
 
       if (includeLeaveReview) {
@@ -189,8 +189,8 @@ export function createPostgresStaffOperationsRepository(pool) {
         await client.query("BEGIN");
         const inserted = await client.query(
           "INSERT INTO cornhill_school.staff_leave_requests " +
-          "(staff_account_id,leave_type,starts_on,ends_on,requested_days,reason,status,requested_by_staff_id,created_by_staff_id) " +
-          "VALUES ($1::uuid,$2,$3::date,$4::date,$5,$6,'Draft',$1::uuid,$1::uuid) " +
+          "(staff_account_id,leave_type,starts_on,ends_on,requested_days,reason,requested_by_staff_id,created_by_staff_id) " +
+          "VALUES ($1::uuid,$2,$3::date,$4::date,$5,$6,$1::uuid,$1::uuid) " +
           "RETURNING id::text AS id",
           [staffId,leaveType,startsOn,endsOn,requestedDays,reason.trim()]
         );
