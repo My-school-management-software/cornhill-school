@@ -29,11 +29,29 @@ function showPanels(caps){
   $("payroll-panel").hidden=!caps.payroll;
   $("leave-form").hidden=!caps.ownLeave;
 }
-function renderAttendance(data){
-  rows($("attendance-rows"),data.recentDays||[],10,(tr,x)=>{
+function renderAttendance(data,canReview=false){
+  rows($("attendance-rows"),data.recentDays||[],canReview?11:10,(tr,x)=>{
     cell(tr,dateOnly(x.workDate));cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.jobTitle);
     cell(tr,x.status);cell(tr,dateTime(x.firstClockIn));cell(tr,dateTime(x.lastClockOut));
     cell(tr,x.workedMinutes);cell(tr,x.source);cell(tr,x.verifiedAt?"Verified":"Not verified");
+    if(canReview){
+      const action=cell(tr,"");action.replaceChildren();
+      const decision=document.createElement("select");
+      for(const value of ["Verified","Correction Required"]){const option=document.createElement("option");option.value=value;option.textContent=value;decision.append(option);}
+      const note=document.createElement("input");note.type="text";note.maxLength=1000;note.placeholder="Review note";
+      note.setAttribute("aria-label","Attendance review note for "+x.staffName);
+      const button=document.createElement("button");button.type="button";button.textContent="Save review";
+      button.addEventListener("click",async()=>{
+        if(note.value.trim().length<5){notice("Enter an attendance review note of at least five characters.",true);note.focus();return;}
+        button.disabled=true;
+        try{
+          await api("/staff/attendance/days/"+encodeURIComponent(x.id)+"/review",{method:"POST",body:{reviewStatus:decision.value,reviewNote:note.value.trim()}});
+          notice("Attendance review recorded in the append-only review history.");
+          await loadWorkspace();
+        }catch(error){notice(error.message,true);button.disabled=false;}
+      });
+      action.append(decision,note,button);
+    }
   },"No staff attendance records exist in the last 30 days.");
   rows($("monthly-rows"),data.monthly||[],10,(tr,x)=>{
     cell(tr,x.monthStart);cell(tr,x.staffNumber);cell(tr,x.staffName);cell(tr,x.recordedDays);
