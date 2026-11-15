@@ -12,7 +12,7 @@ test("Staff Operations migration exposes only intended attendance, leave and pay
 });
 
 test("leave request submission is limited to its required columns and status transition",()=>{
-  assert.match(sql,/GRANT INSERT \([\s\S]*staff_account_id,leave_type,starts_on,ends_on,requested_days,[\s\S]*requested_by_staff_id,created_by_staff_id[\s\S]*\)\s*ON cornhill_school\.staff_leave_requests/);
+  assert.ok(sql.includes("GRANT INSERT (") && sql.includes("staff_account_id, leave_type, starts_on, ends_on, requested_days,") && sql.includes("reason, requested_by_staff_id, created_by_staff_id") && sql.includes("ON cornhill_school.staff_leave_requests TO cornhill_auth_runtime;"));
   assert.match(sql,/GRANT UPDATE \(status\)\s*ON cornhill_school\.staff_leave_requests/);
   assert.doesNotMatch(sql,/GRANT (?:ALL|INSERT, UPDATE|UPDATE, INSERT)[\s\S]{0,120}staff_leave_requests/i);
 });
