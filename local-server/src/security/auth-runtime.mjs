@@ -15,6 +15,8 @@ import { createPostgresStaffLeadershipRepository } from "../db/staff-leadership-
 import { createStaffLeadershipHttpHandler } from "./staff-leadership-http-handler.mjs";
 import { createPostgresStaffAdministrationRepository } from "../db/staff-administration-repositories.mjs";
 import { createStaffAdministrationHttpHandler } from "./staff-administration-http-handler.mjs";
+import { createPostgresStaffOperationsRepository } from "../db/staff-operations-repositories.mjs";
+import { createStaffOperationsHttpHandler } from "./staff-operations-http-handler.mjs";
 import { createFinanceHttpHandler } from "./finance-http-handler.mjs";
 import { createFinanceOperationsHttpHandler } from "./finance-operations-http-handler.mjs";
 import { createEvidenceHttpHandler } from "./evidence-http-handler.mjs";
@@ -92,6 +94,10 @@ export async function createLocalAuthRuntime({
       authService, repository: staffAdministrationRepository, passwordHasher,
       expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
     });
+    const staffOperationsRepository = createPostgresStaffOperationsRepository(pool);
+    const staffOperationsRouteHandler = createStaffOperationsHttpHandler({
+      authService, repository: staffOperationsRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+    });
     const schoolCatalogRouteHandler = createSchoolCatalogHttpHandler({
       authService, schoolRepository: schoolCatalogRepository,
       expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
@@ -103,6 +109,7 @@ export async function createLocalAuthRuntime({
       if (await admissionsRouteHandler(request, response)) return true;
       if (await academicsRouteHandler(request, response)) return true;
       if (await staffAdministrationRouteHandler(request, response)) return true;
+      if (await staffOperationsRouteHandler(request, response)) return true;
       return leadershipRouteHandler(request, response);
     };
     let financeEnabled = false;
@@ -153,6 +160,7 @@ export async function createLocalAuthRuntime({
         if (await admissionsRouteHandler(request, response)) return true;
         if (await academicsRouteHandler(request, response)) return true;
         if (await staffAdministrationRouteHandler(request, response)) return true;
+        if (await staffOperationsRouteHandler(request, response)) return true;
         if (await leadershipRouteHandler(request, response)) return true;
         if (await financeOperationsRouteHandler(request, response)) return true;
         if (await financeRouteHandler(request, response)) return true;

@@ -105,3 +105,15 @@ This is disposable CI verification only. Migration 014 has not been applied to t
 - The updater sends a graceful SIGINT and confirms that port 4174 has been released before starting the updated service. Unknown listeners, multiple owners, mismatched launchers and timeout conditions fail closed; the updater never kills an unidentified process or starts a duplicate server.
 - The `-Launch` option now opens the local workspace launcher at https://localhost:4174/app after the updated service starts.
 - Added updater regression tests for listener identity, parent-path verification, graceful stop ordering, unknown-process safety and the launcher destination.
+
+
+### Batch 23 — local Staff Operations API and workspace (2026-11-15)
+
+- Added a permission-scoped Staff Operations workspace at `/staff-operations`, linked from the local launcher and Leadership page.
+- Connected the local attendance read models for recent attendance days, monthly summaries and the independent attendance-day review trail.
+- Added personal leave request history and balances, a leadership leave-review queue, Director-controlled staff-wide leave balance visibility, and read-only payroll period/run/disbursement summaries and staff payroll lines.
+- Staff with the explicit `staff.leave_manage` permission can submit a leave request. The database transaction creates a Draft and submits it in one transaction; the database transition guard supplies the official submission timestamp. The signed-in staff identity is taken from the authenticated session, not from request input.
+- Leave approval and ledger usage remain separate and are not presented as implemented actions. The page does not initiate bank or mobile-money transfers, does not write attendance results, and does not store fingerprint templates.
+- Added migration 081 with narrow read-column grants and the minimum INSERT/status-only UPDATE rights for a leave request. No role permission grants are assigned automatically; the Director must review and assign role permissions.
+- Added automated tests for migration privilege boundaries, SQL query scoping, transaction commit/rollback, permission checks, request validation, runtime composition, static routes and UI output escaping.
+- Migration 081 has not yet been applied to the school's Windows PostgreSQL database. The attendance device import workflow, live fingerprint integration, leave approvals/balance posting, payroll preparation/review/approval/posting and full offline/multi-device acceptance remain separate work.

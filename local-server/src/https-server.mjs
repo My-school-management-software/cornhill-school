@@ -123,7 +123,11 @@ const PUBLIC_ASSETS = new Map([
   ["/leadership", { file: new URL("../public/leadership.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/leadership.html", { file: new URL("../public/leadership.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/leadership.js", { file: new URL("../public/leadership.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
-  ["/leadership.css", { file: new URL("../public/leadership.css", import.meta.url), type: "text/css; charset=utf-8" }]
+  ["/leadership.css", { file: new URL("../public/leadership.css", import.meta.url), type: "text/css; charset=utf-8" }],
+  ["/staff-operations", { file: new URL("../public/staff-operations.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/staff-operations.html", { file: new URL("../public/staff-operations.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/staff-operations.js", { file: new URL("../public/staff-operations.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/staff-operations.css", { file: new URL("../public/staff-operations.css", import.meta.url), type: "text/css; charset=utf-8" }]
 ]);
 
 const STATIC_CONTENT_SECURITY_POLICY =
