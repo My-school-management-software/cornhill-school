@@ -16,9 +16,10 @@ const STATIC_ASSETS = new Set([
 
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll([...STATIC_ASSETS]))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll([...STATIC_ASSETS]))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", event => {
@@ -26,9 +27,8 @@ self.addEventListener("activate", event => {
     caches.keys().then(keys => Promise.all(
       keys.filter(key => key.startsWith("cornhill-public-shell-") && key !== CACHE_NAME)
         .map(key => caches.delete(key))
-    ))
+    )).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", event => {
