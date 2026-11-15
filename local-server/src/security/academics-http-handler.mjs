@@ -150,7 +150,7 @@ function requireClassScope(principal, classId) {
   if (!staffHasClassAssignment({ principal, classId })) throw new AuthorizationError();
 }
 
-export function createAcademicsHttpHandler({ authService, academicsRepository, expectedOrigin } = {}) {
+export function createAcademicsHttpHandler({ authService, academicsRepository, expectedOrigin, onError } = {}) {
   if (!authService || typeof authService.authenticate !== "function" ||
       !academicsRepository || typeof academicsRepository.listWorkspace !== "function" ||
       typeof academicsRepository.createAcademicYear !== "function" ||
@@ -306,6 +306,7 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
         return true;
       }
     } catch (error) {
+      try { onError?.(error); } catch {}
       if (error instanceof InputError) send(response, error.status, { error: error.message });
       else if (error instanceof AuthenticationError) send(response, 401, { error: "A valid staff session is required." });
       else if (error instanceof AuthorizationError) send(response, 403, { error: "You are not authorised to access this academic record." });

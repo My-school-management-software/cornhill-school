@@ -36,7 +36,8 @@ function setup({ principal = teacher, overrides = {} } = {}) {
   const handler = createAcademicsHttpHandler({
     expectedOrigin: ORIGIN,
     authService: { async authenticate({ method, csrfToken } = {}) { calls.auth++; if (!principal) throw new Error("anonymous"); if (method !== "GET" && method !== "HEAD" && csrfToken !== secrets.csrfToken) throw new CsrfValidationError(); return principal; } },
-    academicsRepository: repository
+    academicsRepository: repository,
+    onError(error) { calls.lastError = error; }
   });
   return { handler, calls };
 }
@@ -143,7 +144,7 @@ test("only an authorised academic administrator can create a school year", async
   const { handler, calls } = setup({ principal: admin });
   const body = { yearLabel: "2026/2027", startsOn: "2026-09-01", endsOn: "2027-08-31", status: "Active" };
   const result = await invoke(handler, { path: "/api/v1/academics/years", method: "POST", body });
-  assert.equal(result.statusCode, 201);
+  assert.equal(result.statusCode, 201, calls.lastError?.stack || calls.lastError?.message || "No handler error recorded");
   assert.equal(calls.createdYear.staffId, STAFF_ID);
   assert.equal(calls.createdYear.yearLabel, "2026/2027");
 });
