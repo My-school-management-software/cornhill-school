@@ -27,6 +27,65 @@ function Read-EnvFile([string]$Path) {
   return $values
 }
 
+function Stop-ExistingLocalAuthService([string]$LocalServerRoot) {
+  if (-not (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue)) {
+    Stop-WithGuidance "Cannot safely inspect port 4174 on this Windows installation. The existing service was not stopped."
+  }
+  $connections = @(Get-NetTCPConnection -LocalPort 4174 -State Listen -ErrorAction SilentlyContinue)
+  if ($connections.Count -eq 0) { return }
+
+  $owners = @($connections | Select-Object -ExpandProperty OwningProcess -Unique)
+  if ($owners.Count -ne 1) {
+    Stop-WithGuidance "Port 4174 has more than one listener owner. No running process was stopped."
+  }
+
+  $listenerPid = [int]$owners[0]
+  $listener = Get-CimInstance Win32_Process -Filter ("ProcessId = " + $listenerPid)
+  if (-not $listener -or $listener.Name -notmatch "^node(\.exe)?$" -or
+      $listener.CommandLine -notmatch "(?i)(?:^|\s)scripts[\\/]start-local-auth\.mjs(?:\s|$)") {
+    Stop-WithGuidance "Port 4174 is occupied by a process that is not positively identified as the CORNHILL local authentication server. Nothing was stopped."
+  }
+
+  $expectedPath = [System.IO.Path]::GetFullPath($LocalServerRoot).TrimEnd("\","/")
+  $ancestorId = [int]$listener.ParentProcessId
+  $verifiedLauncher = $false
+  for ($depth = 0; $depth -lt 10 -and $ancestorId -gt 0; $depth++) {
+    $ancestor = Get-CimInstance Win32_Process -Filter ("ProcessId = " + $ancestorId) -ErrorAction SilentlyContinue
+    if (-not $ancestor) { break }
+    $isPowerShell = $ancestor.Name -match "^(powershell|pwsh)(\.exe)?$"
+    $hasExpectedPath = $ancestor.CommandLine -and
+      $ancestor.CommandLine.IndexOf($expectedPath, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+    $startsExpectedService = $ancestor.CommandLine -match "(?i)npm(?:\.cmd)?\s+run\s+start:auth"
+    if ($isPowerShell -and $hasExpectedPath -and $startsExpectedService) {
+      $verifiedLauncher = $true
+      break
+    }
+    $ancestorId = [int]$ancestor.ParentProcessId
+  }
+  if (-not $verifiedLauncher) {
+    Stop-WithGuidance "Port 4174 is running a CORNHILL-like Node command, but its launcher path could not be verified. Nothing was stopped."
+  }
+
+  Write-Host "Found the existing CORNHILL local HTTPS service (PID $listenerPid). Sending a graceful interrupt so the updated routes can load..."
+  & node -e "process.kill($listenerPid, 'SIGINT')"
+  if ($LASTEXITCODE -ne 0) {
+    Stop-WithGuidance "Could not signal the verified local service. No replacement service was started."
+  }
+
+  $stopped = $false
+  for ($attempt = 0; $attempt -lt 40; $attempt++) {
+    Start-Sleep -Milliseconds 250
+    $remaining = @(Get-NetTCPConnection -LocalPort 4174 -State Listen -ErrorAction SilentlyContinue)
+    if (-not ($remaining | Where-Object { $_.OwningProcess -eq $listenerPid })) {
+      $stopped = $true
+      break
+    }
+  }
+  if (-not $stopped) {
+    Stop-WithGuidance "The existing local service did not release port 4174 after the graceful stop request. No duplicate service was started."
+  }
+}
+
 $localServerRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $localServerRoot ".."))
 Set-Location $repoRoot
@@ -121,11 +180,12 @@ Write-Host "INTEGRATED SOURCE UPDATE AND REQUESTED CHECKS COMPLETED" -Foreground
 Write-Host "Installed workspaces: Director/Staff leadership, Bursar finance, School Office and Academics."
 Write-Host "The existing local database was retained; only unapplied checksum-verified migrations were considered."
 Write-Host "To start the local service: Set-Location '$localServerRoot'; npm run start:auth"
-Write-Host "Then open https://localhost:4174. The listener remains restricted to this computer."
+Write-Host "Then open https://localhost:4174/app for the local workspace launcher. The listener remains restricted to this computer."
 
 if ($Launch) {
+  Stop-ExistingLocalAuthService $localServerRoot
   $command = "Set-Location -LiteralPath '" + $localServerRoot.Replace("'","''") + "'; npm run start:auth"
   Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoProfile","-NoExit","-Command",$command)
   Start-Sleep -Seconds 3
-  Start-Process "https://localhost:4174/leadership"
+  Start-Process "https://localhost:4174/app"
 }
