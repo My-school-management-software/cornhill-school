@@ -125,9 +125,9 @@ test("HTTPS root opens the school workspace launcher while Bursar remains at its
   const source = await (await import("node:fs/promises")).readFile(
     new URL("../src/https-server.mjs", import.meta.url), "utf8"
   );
-  assert.match(source, /\["\\/", \\{ file: new URL\("\.\.\/public\/app\.html"/);
-  assert.match(source, /\["\\/bursar", \\{ file: new URL\("\.\.\/public\/bursar\.html"/);
-  assert.match(source, /\["\\/app", \\{ file: new URL\("\.\.\/public\/app\.html"/);
+  assert.ok(source.includes('["/", { file: new URL("../public/app.html"'));
+  assert.ok(source.includes('["/bursar", { file: new URL("../public/bursar.html"'));
+  assert.ok(source.includes('["/app", { file: new URL("../public/app.html"'));
 });
 
 test("school workspace calls only authenticated local school APIs", async () => {
