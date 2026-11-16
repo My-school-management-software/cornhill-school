@@ -12,6 +12,8 @@ function createWorkerHarness() {
   const written = [];
   let networkCalls = 0;
   let cacheOpenCalls = 0;
+  const cacheKeys = ["cornhill-public-shell-v1", "cornhill-public-shell-v2", "unrelated-cache"];
+  const deletedCacheKeys = [];
 
   const cache = {
     async addAll(paths) {
@@ -33,8 +35,8 @@ function createWorkerHarness() {
       cacheOpenCalls += 1;
       return cache;
     },
-    async keys() { return []; },
-    async delete() { return true; }
+    async keys() { return [...cacheKeys]; },
+    async delete(key) { deletedCacheKeys.push(key); return true; }
   };
 
   const self = {
@@ -77,7 +79,7 @@ function createWorkerHarness() {
   }
 
   return {
-    listeners, cached, addedAssets, written, install, dispatchFetch,
+    listeners, cached, addedAssets, written, install, dispatchFetch, deletedCacheKeys,
     get networkCalls() { return networkCalls; },
     get cacheOpenCalls() { return cacheOpenCalls; }
   };
@@ -159,4 +161,13 @@ test("unknown same-origin paths are not cached as application data", async () =>
   assert.equal(result.intercepted, false);
   assert.equal(worker.networkCalls, 0);
   assert.deepEqual(worker.written, []);
+});
+
+test("service worker activation removes the previous CORNHILL shell cache only", async () => {
+  const worker = createWorkerHarness();
+  const pending = [];
+  worker.listeners.get("activate")({ waitUntil(promise) { pending.push(promise); } });
+  await Promise.all(pending);
+
+  assert.deepEqual(worker.deletedCacheKeys, ["cornhill-public-shell-v1"]);
 });
