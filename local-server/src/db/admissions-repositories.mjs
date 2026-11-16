@@ -67,7 +67,7 @@ export function createPostgresAdmissionsRepository(pool) {
         try { await client.query("ROLLBACK"); } catch {}
         throw error;
       } finally { client.release(); }
-    }
+    },
     async registerLearner(input) {
       const client = await pool.connect();
       try {
