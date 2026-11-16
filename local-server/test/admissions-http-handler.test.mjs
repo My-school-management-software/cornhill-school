@@ -26,6 +26,12 @@ test("admission API creates a learner with a database-issued permanent code",asy
  assert.equal(res.statusCode,201);assert.equal(res.json().learner.pupil_code,"CH-2026-000001");
  assert.equal(calls.registered.length,1);assert.equal(calls.registered[0].bursaryFeeUgx,50000);
 });
+test("admission API preserves a supplied P.7 index number",async()=>{
+ const{handler,calls}=setup();const res=await invoke(handler,{...valid,p7IndexNumber:"U1234/001"});
+ assert.equal(res.statusCode,201);
+ assert.equal(calls.registered[0].p7IndexNumber,"U1234/001");
+});
+
 test("admission API refuses insecure transport and wrong origin before authentication",async()=>{
  const{handler,calls}=setup();assert.equal((await invoke(handler,valid,{encrypted:false})).statusCode,426);
  assert.equal((await invoke(handler,valid,{headers:{host:"cornhill.local",origin:"https://evil.local","content-type":"application/json"}})).statusCode,421);
