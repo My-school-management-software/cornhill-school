@@ -110,6 +110,35 @@ test("every workspace loads the shared offline status notice and stylesheet", as
   assert.match(serverSource, /"\/offline-status\.css"/);
 });
 
+const offlineStatusSource = await readFile(new URL("../public/offline-status.js", import.meta.url), "utf8");
+
+test("offline status warning appears once and clears when connectivity returns", () => {
+  const listeners = new Map();
+  const children = [];
+  const document = {
+    body: { prepend(node) { children.unshift(node); } },
+    createElement() {
+      return {
+        attributes: {},
+        setAttribute(name, value) { this.attributes[name] = value; },
+        remove() { this.removed = true; }
+      };
+    }
+  };
+  const window = { addEventListener(name, callback) { listeners.set(name, callback); } };
+  const navigator = { onLine: false };
+  vm.runInNewContext(offlineStatusSource, { document, window, navigator });
+  assert.equal(children.length, 1);
+  assert.equal(children[0].className, "offline-status");
+  assert.equal(children[0].attributes.role, "status");
+  assert.match(children[0].textContent, /Changes are not saved offline/);
+  listeners.get("offline")();
+  assert.equal(children.length, 1);
+  navigator.onLine = true;
+  listeners.get("online")();
+  assert.equal(children[0].removed, true);
+});
+
 test("GET API requests bypass the service worker cache completely", async () => {
   const worker = createWorkerHarness();
   await worker.install();
