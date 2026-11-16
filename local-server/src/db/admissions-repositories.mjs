@@ -10,6 +10,64 @@ function requiredText(value, label, max = 80) {
 export function createPostgresAdmissionsRepository(pool) {
   if (!pool || typeof pool.connect !== "function") throw new TypeError("A PostgreSQL pool is required.");
   return Object.freeze({
+    async updateLearnerProfile({learnerId,actorStaffId,changes,reason,canManageLin, classIds=[], requireAssignedClass=false}) {
+      const allowed = new Map([
+        ["firstName", ["first_name", value => value]],
+        ["middleName", ["middle_name", value => value]],
+        ["lastName", ["last_name", value => value]],
+        ["gender", ["gender", value => value]],
+        ["dateOfBirth", ["date_of_birth", value => value]],
+        ["lin", ["lin", value => value]],
+        ["learnerType", ["learner_type", value => value]],
+        ["previousSchool", ["previous_school", value => value]],
+        ["p7IndexNumber", ["p7_index_number", value => value]]
+      ]);
+      if (!changes || typeof changes !== "object" || Array.isArray(changes) ||
+          Object.keys(changes).length === 0 || Object.keys(changes).some(key => !allowed.has(key)) ||
+          !UUID_PATTERN.test(learnerId ?? "") || !UUID_PATTERN.test(actorStaffId ?? "") ||
+          typeof reason !== "string" || !reason.trim() || reason.length > 300 ||
+          (Object.hasOwn(changes, "lin") && canManageLin !== true)) {
+        throw new TypeError("Learner profile update input is invalid.");
+      }
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const locked = await client.query(
+          "SELECT id,class_id,lin FROM cornhill_school.learners WHERE id=$1::uuid FOR UPDATE",
+          [learnerId]
+        );
+        const current = locked.rows[0];
+        if (!current) { await client.query("ROLLBACK"); return null; }
+        if (requireAssignedClass && (!current.class_id || !Array.isArray(classIds) ||
+            !classIds.some(id => typeof id === "string" && id.toLowerCase() === String(current.class_id).toLowerCase()))) {
+          const error = new Error("Learner is outside the assigned class scope.");
+          error.code = "42501";
+          throw error;
+        }
+        const entries = Object.entries(changes).filter(([key,value]) => key !== "lin" || value !== current.lin);
+        if (entries.length === 0) { await client.query("ROLLBACK"); return {id:current.id,updatedFields:[]}; }
+        const assignments = entries.map(([key],index) => allowed.get(key)[0] + "=$" + (index+2) +
+          (key === "dateOfBirth" ? "::date" : ""));
+        assignments.push("updated_at=now()");
+        const values = entries.map(([key,value]) => allowed.get(key)[1](value));
+        const updated = await client.query(
+          "UPDATE cornhill_school.learners SET " + assignments.join(",") +
+          " WHERE id=$1::uuid RETURNING id,pupil_code,lin,first_name,middle_name,last_name,gender,date_of_birth",
+          [learnerId,...values]
+        );
+        const updatedFields = entries.map(([key]) => key);
+        await client.query(
+          "INSERT INTO cornhill_school.admission_events (learner_id,event_code,actor_staff_id,reason,details) " +
+          "VALUES ($1::uuid,'profile_updated',$2::uuid,$3,$4::jsonb)",
+          [learnerId,actorStaffId,reason.trim(),JSON.stringify({updatedFields})]
+        );
+        await client.query("COMMIT");
+        return {...updated.rows[0],updatedFields};
+      } catch (error) {
+        try { await client.query("ROLLBACK"); } catch {}
+        throw error;
+      } finally { client.release(); }
+    }
     async registerLearner(input) {
       const client = await pool.connect();
       try {
