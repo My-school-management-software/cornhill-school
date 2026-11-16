@@ -49,7 +49,7 @@ test("learner roster repository uses parameterised class and search filters", as
   });
   assert.equal(rows[0].pupilCode, "CH-2026-000001");
   assert.equal(rows[0].p7IndexNumber, "U1234/001");
-  assert.match(captured.sql, /l\\.p7_index_number AS "p7IndexNumber"/);
+  assert.match(captured.sql, /l\.p7_index_number AS "p7IndexNumber"/);
   assert.deepEqual(captured.params, ["11111111-1111-4111-8111-111111111111", "CH-2026"]);
   assert.match(captured.sql, /l\.status <> 'Archived'/);
   assert.match(captured.sql, /LIMIT 500/);
