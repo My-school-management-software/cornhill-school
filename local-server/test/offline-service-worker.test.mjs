@@ -97,6 +97,19 @@ test("offline install precaches every public workspace shell without API routes"
   assert.ok(worker.addedAssets.every(path => !path.startsWith("/api/")));
 });
 
+test("every workspace loads the shared offline status notice and stylesheet", async () => {
+  const names = ["app","school","academics","bursar","leadership","staff-operations","attendance-import","guardian"];
+  for (const name of names) {
+    const html = await readFile(new URL("../public/" + name + ".html", import.meta.url), "utf8");
+    assert.match(html, /<script src="\/offline-status\.js" defer><\/script>/);
+    assert.match(html, /<link rel="stylesheet" href="\/offline-status\.css">/);
+  }
+  assert.match(source, /"\/offline-status\.js"/);
+  assert.match(source, /"\/offline-status\.css"/);
+  assert.match(serverSource, /"\/offline-status\.js"/);
+  assert.match(serverSource, /"\/offline-status\.css"/);
+});
+
 test("GET API requests bypass the service worker cache completely", async () => {
   const worker = createWorkerHarness();
   await worker.install();

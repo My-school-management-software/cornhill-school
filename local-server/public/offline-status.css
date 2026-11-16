@@ -1,0 +1,13 @@
+.offline-status {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.8rem 1rem;
+  color: #fff;
+  background: #8a3b12;
+  border-bottom: 2px solid #f0b27a;
+  font: 600 0.92rem/1.45 system-ui, sans-serif;
+  text-align: center;
+}

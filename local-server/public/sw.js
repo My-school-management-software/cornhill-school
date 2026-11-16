@@ -4,6 +4,7 @@
 // authenticated records, payment data, or any other private response.
 const CACHE_NAME = "cornhill-public-shell-v2";
 const STATIC_ASSETS = new Set([
+  "/", "/offline-status.js", "/offline-status.css",
   "/", "/app", "/app.html", "/app.js", "/app.css",
   "/school", "/school.html", "/school.js", "/school.css",
   "/academics", "/academics.html", "/academics.js", "/academics.css",
