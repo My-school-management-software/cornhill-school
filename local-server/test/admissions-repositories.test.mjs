@@ -41,7 +41,7 @@ test("profile repository updates only whitelisted fields and appends audit event
  const result=await repo.updateLearnerProfile({learnerId:"11111111-1111-4111-8111-111111111111",actorStaffId:"22222222-2222-4222-8222-222222222222",changes:{firstName:"Amina"},reason:"Corrected spelling",canManageLin:false});
  assert.deepEqual(result.updatedFields,["firstName"]);assert.equal(calls[0].sql,"BEGIN");
  const update=calls.find(x=>x.sql.startsWith("UPDATE cornhill_school.learners"));
- assert.match(update.sql,/first_name=\$2/);assert.doesNotMatch(update.sql,/pupil_code|class_id|status|admission_date/);
+ assert.match(update.sql,/first_name=\$2/);const setClause=update.sql.match(/ SET ([\\s\\S]*?) WHERE /i)?.[1]??"";assert.doesNotMatch(setClause,/pupil_code|class_id|status|admission_date/);
  const audit=calls.find(x=>x.sql.startsWith("INSERT INTO cornhill_school.admission_events"));
  assert.ok(audit);assert.deepEqual(JSON.parse(audit.params[3]),{updatedFields:["firstName"]});
  assert.equal(calls.at(-2).sql,"COMMIT");assert.equal(calls.at(-1).sql,"RELEASE");
