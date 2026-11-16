@@ -20,7 +20,7 @@ test("School Office contains role-aware overview, learner register and admission
   for (const id of ["login-form", "overview", "learners", "admissions", "class-count", "learner-count", "scope-note", "learner-rows", "admission-form", "admission-message"]) {
     assert.ok(html.includes('id="' + id + '"'), "Missing School Office component " + id);
   }
-  for (const field of ["firstName", "middleName", "lastName", "gender", "dateOfBirth", "admissionDate", "classId", "lin", "learnerType", "previousSchool", "isBursary", "bursaryFeeUgx"]) {
+  for (const field of ["firstName", "middleName", "lastName", "gender", "dateOfBirth", "admissionDate", "classId", "lin", "learnerType", "previousSchool", "p7IndexNumber", "isBursary", "bursaryFeeUgx"]) {
     assert.ok(html.includes('name="' + field + '"'), "Missing admission field " + field);
   }
   assert.ok(html.includes("Search by pupil code, LIN or learner name"));
@@ -42,7 +42,7 @@ test("School Office uses authenticated same-origin APIs, CSRF and permission-gat
 });
 
 test("School Office submits admission details and displays the server-generated permanent pupil code", () => {
-  for (const fragment of ["new FormData(e.currentTarget)", 'api("/school/admissions"', "d.learner.pupilCode", "Permanent pupil code:", "bursaryFeeUgx:Number", "body.guardian="]) {
+  for (const fragment of ["new FormData(e.currentTarget)", 'api("/school/admissions"', "d.learner.pupilCode", "Permanent pupil code:", "bursaryFeeUgx:Number", "p7IndexNumber:f.get(\"p7IndexNumber\")||null", "body.guardian="]) {
     assert.ok(js.includes(fragment), "Missing admission workflow fragment " + fragment);
   }
 });
