@@ -20,7 +20,7 @@ test("School Office contains role-aware overview, learner register and admission
   for (const id of ["login-form", "overview", "learners", "admissions", "class-count", "learner-count", "scope-note", "learner-rows", "admission-form", "admission-message"]) {
     assert.ok(html.includes('id="' + id + '"'), "Missing School Office component " + id);
   }
-  for (const field of ["firstName", "middleName", "lastName", "gender", "dateOfBirth", "admissionDate", "classId", "lin", "learnerType", "previousSchool", "p7IndexNumber", "isBursary", "bursaryFeeUgx"]) {
+  for (const field of ["firstName", "middleName", "lastName", "gender", "dateOfBirth", "admissionDate", "classId", "lin", "learnerType", "previousSchool", "p7IndexNumber", "isBursary", "bursaryFeeUgx", "guardianName", "phone", "whatsapp", "email", "smsOptIn", "whatsappOptIn"]) {
     assert.ok(html.includes('name="' + field + '"'), "Missing admission field " + field);
   }
   assert.ok(html.includes("Search by pupil code, LIN or learner name"));

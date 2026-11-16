@@ -48,6 +48,8 @@ function validate(body,actorStaffId){
   let guardian=null;
   if(body.guardian!=null){
     const g=body.guardian;if(!g||typeof g!=="object"||Array.isArray(g))throw new InputError("Guardian details are invalid.");
+    if(g.smsOptIn!=null&&typeof g.smsOptIn!=="boolean")throw new InputError("Guardian SMS consent must be true or false.");
+    if(g.whatsappOptIn!=null&&typeof g.whatsappOptIn!=="boolean")throw new InputError("Guardian WhatsApp consent must be true or false.");
     const phone=text(g.phone,13,"Guardian phone",false),whatsapp=text(g.whatsapp,13,"Guardian WhatsApp",false);
     if(phone&&!/^\+256[0-9]{9}$/.test(phone))throw new InputError("Guardian phone must use Uganda format +256XXXXXXXXX.");
     if(whatsapp&&!/^\+256[0-9]{9}$/.test(whatsapp))throw new InputError("Guardian WhatsApp must use Uganda format +256XXXXXXXXX.");

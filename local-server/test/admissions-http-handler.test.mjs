@@ -55,6 +55,21 @@ test("guardian messaging opt-ins are false unless explicitly selected",async()=>
  assert.equal(res.statusCode,201);assert.equal(calls.registered[0].guardian.smsOptIn,false);
  assert.equal(calls.registered[0].guardian.whatsappOptIn,false);
 });
+test("guardian communication preferences are stored only after explicit consent",async()=>{
+ const{handler,calls}=setup();const res=await invoke(handler,{...valid,guardian:{name:"Parent One",phone:"+256700000001",smsOptIn:true}});
+ assert.equal(res.statusCode,201);assert.equal(calls.registered[0].guardian.smsOptIn,true);assert.equal(calls.registered[0].guardian.whatsappOptIn,false);
+});
+test("guardian consent requires the matching valid contact number",async()=>{
+ const{handler,calls}=setup();
+ assert.equal((await invoke(handler,{...valid,guardian:{name:"Parent One",smsOptIn:true}})).statusCode,400);
+ assert.equal((await invoke(handler,{...valid,guardian:{name:"Parent One",phone:"+256700000001",whatsappOptIn:true}})).statusCode,400);
+ assert.equal(calls.registered.length,0);
+});
+test("guardian consent flags must be explicit booleans",async()=>{
+ const{handler,calls}=setup();
+ assert.equal((await invoke(handler,{...valid,guardian:{name:"Parent One",phone:"+256700000001",smsOptIn:"yes"}})).statusCode,400);
+ assert.equal(calls.registered.length,0);
+});
 test("class teachers cannot admit learners outside their assigned class",async()=>{
  const teacher={...STAFF,roles:["class_teacher"],rolePermissions:{class_teacher:["admissions.register_learner"]},classIds:[]};
  const{handler,calls}=setup({principal:teacher});assert.equal((await invoke(handler,valid)).statusCode,403);
