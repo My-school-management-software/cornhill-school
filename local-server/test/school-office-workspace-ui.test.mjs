@@ -24,7 +24,7 @@ test("School Office contains role-aware overview, learner register and admission
     assert.ok(html.includes('name="' + field + '"'), "Missing admission field " + field);
   }
   assert.ok(html.includes("Search by pupil code, LIN or learner name"));
-  assert.ok(html.includes("<th>P.7 Index No.</th>"));
+  for (const heading of ["P.7 Index No.","Gender","Date of birth","Admission date"]) assert.ok(html.includes("<th>"+heading+"</th>"));
   assert.match(html, /server generates the permanent pupil code/i);
 });
 
@@ -49,7 +49,7 @@ test("School Office submits admission details and displays the server-generated 
 });
 
 test("School Office learner search sends class and search filters and renders returned values as text", () => {
-  for (const fragment of ['p.set("classId",c)', 'p.set("search",q)', '["class-filter","admission-class"]', "td.textContent=v", "learner-rows", "l.p7IndexNumber||\"—\""]) {
+  for (const fragment of ['p.set("classId",c)', 'p.set("search",q)', '["class-filter","admission-class"]', "td.textContent=v", "learner-rows", "l.p7IndexNumber||\"—\"", "l.dateOfBirth||\"—\"", "l.admissionDate||\"—\""]) {
     assert.ok(js.includes(fragment), "Missing learner-list workflow fragment " + fragment);
   }
   assert.ok(js.includes("showLearnerRowMessage"));
