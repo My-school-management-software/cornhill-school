@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
 const [school, academics, bursar, leadership, staffOps, attendance, guardian,
-  authHandler, schoolHandler, admissionsHandler, academicsHandler,
+  authHandler, schoolHandler, admissionsHandler, learnerProfileHandler, academicsHandler,
   financeHandler, financeOpsHandler, evidenceHandler, guardianAccessHandler,
   guardianPortalHandler, leadershipHandler, staffOpsHandler, leaveHandler,
   attendanceHandler, runtime] = await Promise.all([
@@ -113,7 +113,7 @@ test("finance workspace endpoints are routed through the enabled finance handler
 });
 
 test("runtime composition includes each non-finance workspace handler", () => {
-  for (const name of ["schoolCatalogRouteHandler","admissionsRouteHandler","academicsRouteHandler",
+  for (const name of ["schoolCatalogRouteHandler","admissionsRouteHandler","learnerProfileRouteHandler","academicsRouteHandler",
     "leadershipRouteHandler","staffOperationsRouteHandler","staffLeaveReviewRouteHandler",
     "attendanceImportRouteHandler","guardianAccessRouteHandler","guardianPortalRouteHandler"]) {
     assert.match(runtime, new RegExp(name));
