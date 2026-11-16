@@ -87,3 +87,21 @@ test("offline worker allowlist includes every local workspace shell and never st
   assert.doesNotMatch(serviceWorker, /STATIC_ASSETS[^;]*\/api\//s);
   assert.match(httpsServer, /\["\/sw\.js"/);
 });
+
+test("launcher explains the exact offline boundary for cached screens, private records and writes", () => {
+  assert.match(html, /OFFLINE CAPABILITY/);
+  assert.match(html, /Public application screens/);
+  assert.match(html, /Private school records/);
+  assert.match(html, /API data is never stored by the offline shell/);
+  assert.match(html, /Offline write queue is not enabled/);
+  assert.match(script, /navigator\.onLine/);
+  assert.match(script, /addEventListener\("online"/);
+  assert.match(script, /addEventListener\("offline"/);
+  assert.match(script, /local-service-note/);
+});
+
+test("browser network state does not block loopback local-service checks", () => {
+  assert.match(script, /Browser network interface connected/);
+  assert.match(script, /a local server on this computer may still work/);
+  assert.doesNotMatch(script, /if\s*\(navigator\.onLine\s*===\s*false\)[\s\S]{0,180}return/);
+});
