@@ -10,6 +10,7 @@ import { createAuthService } from "./auth-service.mjs";
 import { createAuthHttpHandler } from "./auth-http-handler.mjs";
 import { createSchoolCatalogHttpHandler } from "./school-catalog-http-handler.mjs";
 import { createAdmissionsHttpHandler } from "./admissions-http-handler.mjs";
+import { createLearnerProfileHttpHandler } from "./learner-profile-http-handler.mjs";
 import { createAcademicsHttpHandler } from "./academics-http-handler.mjs";
 import { createPostgresStaffLeadershipRepository } from "../db/staff-leadership-repositories.mjs";
 import { createStaffLeadershipHttpHandler } from "./staff-leadership-http-handler.mjs";
@@ -91,6 +92,7 @@ export async function createLocalAuthRuntime({
     const schoolCatalogRepository = createPostgresSchoolCatalogRepository(pool);
     const admissionsRepository = createPostgresAdmissionsRepository(pool);
     const admissionsRouteHandler = createAdmissionsHttpHandler({ authService, admissionsRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN });
+    const learnerProfileRouteHandler = createLearnerProfileHttpHandler({ authService, repository: admissionsRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN });
     const academicsRepository = createPostgresAcademicsRepository(pool);
     const academicsRouteHandler = createAcademicsHttpHandler({ authService, academicsRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN });
     const staffLeadershipRepository = createPostgresStaffLeadershipRepository(pool);
@@ -134,6 +136,7 @@ export async function createLocalAuthRuntime({
       if (await guardianPortalRouteHandler(request, response)) return true;
       if (await schoolCatalogRouteHandler(request, response)) return true;
       if (await admissionsRouteHandler(request, response)) return true;
+      if (await learnerProfileRouteHandler(request, response)) return true;
       if (await academicsRouteHandler(request, response)) return true;
       if (await staffAdministrationRouteHandler(request, response)) return true;
       if (await staffOperationsRouteHandler(request, response)) return true;
@@ -189,6 +192,7 @@ export async function createLocalAuthRuntime({
         if (await guardianPortalRouteHandler(request, response)) return true;
         if (await schoolCatalogRouteHandler(request, response)) return true;
         if (await admissionsRouteHandler(request, response)) return true;
+        if (await learnerProfileRouteHandler(request, response)) return true;
         if (await academicsRouteHandler(request, response)) return true;
         if (await staffAdministrationRouteHandler(request, response)) return true;
         if (await staffOperationsRouteHandler(request, response)) return true;
