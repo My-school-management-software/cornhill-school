@@ -83,15 +83,11 @@ test("staff operations leave, attendance review and payroll actions match backen
 
 test("attendance import workspace device, staff, import and mapping routes match backend", () => {
   for (const route of ["devices","staff-options","imports"]) {
-    assert.ok(attendanceHandler.includes("/api/v1/staff/attendance/" + route), "backend route missing: " + route);
+    assert.ok(attendanceHandler.includes('path==="/api/v1/staff/attendance/' + route + '"'), "backend route missing: " + route);
   }
   assert.ok(attendanceHandler.includes("deviceMappings=path.match"));
-  assert.ok(attendanceHandler.includes("mappings"), "dynamic device mapping route missing");
-  for (const route of ["devices","staff-options","imports","mappings"]) {
-    assert.ok(attendanceHandler.includes("/api/v1/staff/attendance/" + route), "backend route missing: " + route);
-  }
-  assert.ok(attendanceHandler.includes("deviceMappings=path.match"));
-  assert.ok(attendanceHandler.includes("/mappings$/i"));
+  assert.ok(attendanceHandler.includes("deviceMappings=path.match(/^\\\\/api\\\\/v1\\\\/staff\\\\/attendance\\\\/devices"));
+  assert.ok(attendanceHandler.includes("\\\\/mappings$/i"));
 });
 
 test("guardian portal learner and access routes have dedicated protected handlers", () => {
