@@ -20,7 +20,8 @@
     "verify:director-credential": "node --env-file=.env scripts/verify-director-credential.mjs",
     "verify:director-runtime-credential": "node --env-file=.env scripts/verify-director-runtime-credential.mjs",
     "verify:release": "node scripts/verify-local-release.mjs",
-    "import:learners": "node --env-file=.env scripts/import-learner-transfer.mjs"
+    "import:learners": "node --env-file=.env scripts/import-learner-transfer.mjs",
+    "seal:learners": "node scripts/seal-learner-transfer.mjs"
   },
   "engines": {
     "node": ">=22"
