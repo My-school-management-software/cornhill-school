@@ -76,7 +76,7 @@ test("offline worker caches only an explicit public static asset allowlist", () 
   assert.match(serviceWorker, /if \(!STATIC_ASSETS\.has\(url\.pathname\)\) return/);
   assert.match(serviceWorker, /request\.method !== "GET"/);
   assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
-  assert.match(serviceWorker, /cornhill-public-shell-v1/);
+  assert.match(serviceWorker, /cornhill-public-shell-v2/);
   assert.match(serviceWorker, /cache\.addAll\(\[\.\.\.STATIC_ASSETS\]\)/);
 });
 
