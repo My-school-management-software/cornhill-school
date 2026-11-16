@@ -10,6 +10,9 @@ test("school catalogue migration grants metadata reads but no write privileges",
   assert.match(sql,/SELECT \(id, class_id, subject_id, display_order, is_compulsory, is_active\)/);
   assert.match(sql,/REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER/);
   assert.doesNotMatch(sql,/GRANT .* ON ALL TABLES/i);
+  const p7Sql=await readFile(new URL("../migrations/090_local_p7_index_roster_read_api.sql",import.meta.url),"utf8");
+  assert.match(p7Sql,/GRANT SELECT \(p7_index_number\)[\s\S]*ON cornhill_school\.learners TO cornhill_auth_runtime/);
+  assert.doesNotMatch(p7Sql,/GRANT .* ON ALL TABLES/i);
 });
 
 test("learner roster migration grants only approved identity columns", async () => {
