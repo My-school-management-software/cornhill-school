@@ -42,12 +42,14 @@ test("learner roster repository uses parameterised class and search filters", as
   let captured;
   const pool = { async query(sql, params) {
     captured = { sql, params };
-    return { rows: [{ id: "learner-id", pupilCode: "CH-2026-000001", lin: "LIN-1", firstName: "A", lastName: "B", status: "Active" }] };
+    return { rows: [{ id: "learner-id", pupilCode: "CH-2026-000001", lin: "LIN-1", firstName: "A", lastName: "B", p7IndexNumber: "U1234/001", status: "Active" }] };
   }};
   const rows = await createPostgresSchoolCatalogRepository(pool).listLearners({
     classId: "11111111-1111-4111-8111-111111111111", search: "CH-2026"
   });
   assert.equal(rows[0].pupilCode, "CH-2026-000001");
+  assert.equal(rows[0].p7IndexNumber, "U1234/001");
+  assert.match(captured.sql, /l\\.p7_index_number AS "p7IndexNumber"/);
   assert.deepEqual(captured.params, ["11111111-1111-4111-8111-111111111111", "CH-2026"]);
   assert.match(captured.sql, /l\.status <> 'Archived'/);
   assert.match(captured.sql, /LIMIT 500/);
