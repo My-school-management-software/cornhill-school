@@ -59,6 +59,17 @@ test("catalogue returns only repository class and subject data to an authorised 
   assert.equal(res.headers["Cache-Control"],"no-store");
 });
 
+test("admissions-only staff can read class metadata but cannot read learner records", async () => {
+  const admissionsOnly = { ...staff, rolePermissions: { headteacher: ["admissions.register_learner"] } };
+  const {handler,calls}=setup({principal:admissionsOnly,rows:[{id:CLASS_ID,displayName:"P.1"}]});
+  const catalog=await invoke(handler,{headers:{host:"cornhill.local",cookie}});
+  assert.equal(catalog.statusCode,200);
+  assert.equal(catalog.json().classes[0].id,CLASS_ID);
+  const learners=await invoke(handler,{headers:{host:"cornhill.local",cookie},path:"/api/v1/school/learners"});
+  assert.equal(learners.statusCode,403);
+  assert.equal(calls.repository,1);
+});
+
 test("catalogue refuses guardian principals", async () => {
   const guardian={...staff,principalType:"guardian"};
   const {handler,calls}=setup({principal:guardian});
