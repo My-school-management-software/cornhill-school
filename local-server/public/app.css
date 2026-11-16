@@ -33,3 +33,16 @@ a{color:inherit}
 @media(max-width:800px){.pending-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{align-items:flex-start;flex-direction:column}.hero-status{max-width:none}}
 @media(max-width:560px){.topbar{align-items:flex-start;padding:15px 18px}.environment-tag{max-width:130px;white-space:normal;text-align:center;font-size:9px}.brand-copy h1{font-size:16px}.shell{width:calc(100% - 24px);margin-top:14px}.hero{padding:20px}.module-grid,.pending-grid,.readiness-list{grid-template-columns:1fr}.module-card{padding:16px}.section-heading,.readiness-heading,.footer{align-items:flex-start;flex-direction:column}.section-note{margin-top:-7px}.refresh-button{width:100%}}
 @media(prefers-reduced-motion:no-preference){.module-card,.pending-card{transition:transform .15s ease,box-shadow .15s ease}.module-card:hover,.pending-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px #173c3218}}
+
+.offline-panel{margin-top:18px;padding:20px 22px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.offline-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:13px}
+.offline-heading h2{margin:0;font-size:20px}
+.network-state{max-width:420px;padding:7px 10px;border-radius:999px;background:var(--green-soft);color:#1c6252;font-size:11px;font-weight:800;text-align:center}
+.network-state.network-disconnected{background:var(--amber-bg);color:var(--amber)}
+.offline-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.offline-grid article{padding:13px;border:1px solid var(--line);border-radius:12px;background:#f9fbfa}
+.offline-grid h3{margin:0 0 5px;font-size:14px}
+.offline-grid p,.offline-note{margin:0;color:var(--muted);font-size:12px}
+.offline-note{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+@media(max-width:800px){.offline-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.offline-panel{padding:17px}.offline-heading{align-items:flex-start;flex-direction:column}.offline-grid{grid-template-columns:1fr}.network-state{max-width:none}}
