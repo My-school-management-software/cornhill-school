@@ -42,6 +42,7 @@ export function createPostgresSchoolCatalogRepository(pool) {
         "SELECT l.id::text AS id, l.pupil_code AS \"pupilCode\", l.lin, " +
         "l.first_name AS \"firstName\", l.middle_name AS \"middleName\", " +
         "l.last_name AS \"lastName\", l.gender, l.date_of_birth AS \"dateOfBirth\", l.p7_index_number AS \"p7IndexNumber\", " +
+        "l.learner_type AS \"learnerType\", l.previous_school AS \"previousSchool\", " +
         "l.class_id::text AS \"classId\", c.display_name AS \"className\", " +
         "l.admission_date AS \"admissionDate\", l.status " +
         "FROM cornhill_school.learners l " +
