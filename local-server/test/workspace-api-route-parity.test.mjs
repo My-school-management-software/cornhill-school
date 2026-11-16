@@ -50,6 +50,8 @@ test("learner workspace API paths have matching catalogue and admission handlers
   assert.match(schoolHandler, /\/api\/v1\/school\/catalog/);
   assert.match(schoolHandler, /\/api\/v1\/school\/learners/);
   assert.match(admissionsHandler, /\/api\/v1\/school\/admissions/);
+  assert.ok(school.includes('"/school/learners/"+encodeURIComponent(id)+"/profile"'));
+  assert.match(learnerProfileHandler, /\\/api\\/v1\\/school\\/learners\\/\(\[\^\/\]\+\)\\/profile/);
 });
 
 test("academics workspace API paths match the academics handler routes", () => {
