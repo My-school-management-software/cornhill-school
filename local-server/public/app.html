@@ -32,6 +32,31 @@
       </div>
     </section>
 
+    <section class="offline-panel" aria-labelledby="offline-title">
+      <div class="offline-heading">
+        <div>
+          <p class="eyebrow">OFFLINE CAPABILITY</p>
+          <h2 id="offline-title">What works without a network connection?</h2>
+        </div>
+        <span id="network-state" class="network-state" role="status" aria-live="polite">Checking browser network state…</span>
+      </div>
+      <div class="offline-grid">
+        <article>
+          <h3>Public application screens</h3>
+          <p>Can open from the cached shell after a successful first visit in a supported secure browser.</p>
+        </article>
+        <article>
+          <h3>Private school records</h3>
+          <p>Not cached. The local CORNHILL HTTPS service must be reachable; API data is never stored by the offline shell.</p>
+        </article>
+        <article>
+          <h3>Saving changes while offline</h3>
+          <p>Offline write queue is not enabled. A save without a confirmed server response must be checked before it is treated as recorded.</p>
+        </article>
+      </div>
+      <p class="offline-note" id="local-service-note">Browser network status and local server availability are checked separately. A local server on this computer may still work without internet access.</p>
+    </section>
+
     <section class="section">
       <div class="section-heading">
         <div><p class="eyebrow">CONNECTED WORKSPACES</p><h2>Available locally</h2></div>
