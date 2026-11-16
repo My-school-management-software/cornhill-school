@@ -19,7 +19,7 @@ test("runner strips outer transaction wrapper and accepts comment headers",()=>{
  assert.equal(prepareTransactionalMigration("\uFEFF-- header\r\nBEGIN;\r\nSELECT 1;\r\nCOMMIT;"),"SELECT 1;");
  assert.throws(()=>prepareTransactionalMigration("/* unterminated\nBEGIN; SELECT 1; COMMIT;"),/BEGIN\/COMMIT/);
 });
-test("all eighty-nine migrations use valid outer transactions",async()=>{
+test("all ninety migrations use valid outer transactions",async()=>{
  const dir=new URL("../migrations/",import.meta.url);const names=sortMigrationFiles(await readdir(dir));
  assert.deepEqual(names,[
  "001_local_identity_foundation.sql","002_local_authorization_foundation.sql","003_local_auth_rate_limit_indexes.sql",
