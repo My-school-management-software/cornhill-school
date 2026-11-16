@@ -31,6 +31,8 @@ test("School Office uses authenticated same-origin APIs, CSRF and permission-gat
   for (const route of ["/api/v1/health", "/auth/staff/login", "/auth/session", "/auth/logout", "/school/catalog", "/school/learners", "/school/admissions"]) {
     assert.ok(js.includes(route), "Missing local API route " + route);
   }
+  assert.ok(js.includes('if(!can("learners.read")&&!can("admissions.register_learner"))return;'),
+    "Admissions-only staff must be able to load the class catalogue without learner-list permission.");
   assert.ok(js.includes("X-Cornhill-CSRF"));
   assert.ok(js.includes('credentials:"same-origin"'));
   assert.ok(js.includes('cache:"no-store"'));
