@@ -49,7 +49,8 @@ test("School Office learner search sends class and search filters and renders re
   for (const fragment of ['p.set("classId",c)', 'p.set("search",q)', '["class-filter","admission-class"]', "td.textContent=v", "learner-rows"]) {
     assert.ok(js.includes(fragment), "Missing learner-list workflow fragment " + fragment);
   }
-  assert.doesNotMatch(js, /innerHTML\s*=\s*[^;]*(?:l\.pupilCode|l\.lin|l\.firstName|d\.)/);
+  assert.ok(js.includes("showLearnerRowMessage"));
+  assert.doesNotMatch(js, /\.innerHTML\s*=/);
 });
 
 test("HTTPS server allow-lists the School Office page and its local assets", () => {
