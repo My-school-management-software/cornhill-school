@@ -56,8 +56,9 @@ test("academics workspace API paths match the academics handler routes", () => {
     assert.ok(academics.includes("/academics/" + route), "frontend route missing: " + route);
     assert.ok(academicsHandler.includes("/api/v1/academics/" + route), "backend route missing: " + route);
   }
-  assert.ok(academicsHandler.includes("/api/v1/academics/assessments/"));
-  assert.ok(academicsHandler.includes("/marks$/i"));
+  assert.ok(academicsHandler.includes('const isAssessments = url.pathname === "/api/v1/academics/assessments"'));
+  assert.ok(academicsHandler.includes("const marksMatch = url.pathname.match("));
+  assert.ok(academicsHandler.includes("marks$/i"));
 });
 
 test("staff leadership and incident decisions have matching backend handlers", () => {
@@ -83,11 +84,13 @@ test("staff operations leave, attendance review and payroll actions match backen
 
 test("attendance import workspace device, staff, import and mapping routes match backend", () => {
   for (const route of ["devices","staff-options","imports"]) {
+    assert.ok(attendance.includes("/staff/attendance/" + route), "frontend route missing: " + route);
+  }
+  for (const route of ["devices","staff-options","imports"]) {
     assert.ok(attendanceHandler.includes('path==="/api/v1/staff/attendance/' + route + '"'), "backend route missing: " + route);
   }
-  assert.ok(attendanceHandler.includes("deviceMappings=path.match"));
-  assert.ok(attendanceHandler.includes("deviceMappings=path.match(/^\\\\/api\\\\/v1\\\\/staff\\\\/attendance\\\\/devices"));
-  assert.ok(attendanceHandler.includes("\\\\/mappings$/i"));
+  assert.ok(attendanceHandler.includes("const deviceMappings=path.match("), "dynamic device mapping route missing");
+  assert.ok(attendanceHandler.includes("mappings$/i"), "dynamic mapping suffix missing");
 });
 
 test("guardian portal learner and access routes have dedicated protected handlers", () => {
