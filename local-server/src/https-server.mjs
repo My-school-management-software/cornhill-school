@@ -14,6 +14,7 @@ const SECURITY_HEADERS = Object.freeze({
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
   "X-Frame-Options": "DENY",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), display-capture=()",
   "Cross-Origin-Resource-Policy": "same-origin",
   "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
   "Strict-Transport-Security": "max-age=86400"
