@@ -58,6 +58,13 @@ function shortText(value, max, label) {
   }
   return value.trim();
 }
+function optionalComment(value) {
+  if (value == null || value === "") return null;
+  if (typeof value !== "string" || value.trim().length > 600) {
+    throw new InputError("Teacher comment is invalid.");
+  }
+  return value.trim() || null;
+}
 function parseAssessmentInput(body) {
   if (!isLocalUuid(body.academicTermId) || !isLocalUuid(body.classId)) {
     throw new InputError("Choose a valid academic term and class.");
@@ -131,8 +138,7 @@ function parseMarks(body) {
     if (!Number.isFinite(score) || score < 0 || score > 10000) {
       throw new InputError("Every score must be a valid non-negative number.");
     }
-    const comment = row.comment == null || row.comment === ""
-      ? null : shortText(row.comment, 600, "Teacher comment");
+    const comment = optionalComment(row.comment);
     return { learnerId: row.learnerId, subjectId: row.subjectId, score, comment };
   });
   return { assessmentId: body.assessmentId, classId: body.classId, marks };

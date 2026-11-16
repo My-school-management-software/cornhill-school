@@ -109,6 +109,16 @@ test("teacher marks save requires valid CSRF and a bounded mark list", async () 
   assert.equal(validCsrf.statusCode, 200);
   assert.equal(calls.saved, 1);
 });
+test("mark entry accepts a one-character teacher comment", async () => {
+  const { handler, calls } = setup();
+  const result = await invoke(handler, {
+    path: "/api/v1/academics/marks", method: "POST",
+    body: { assessmentId: ASSESSMENT_ID, classId: CLASS_ID,
+      marks: [{ learnerId: STAFF_ID, subjectId: ASSESSMENT_ID, score: 20, comment: "A" }] }
+  });
+  assert.equal(result.statusCode, 200);
+  assert.equal(calls.savedInput.marks[0].comment, "A");
+});
 test("mark list rejects duplicate learner-subject combinations and excessive batches", async () => {
   const { handler, calls } = setup();
   const row = { learnerId: STAFF_ID, subjectId: ASSESSMENT_ID, score: 20 };
