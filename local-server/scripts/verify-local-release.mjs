@@ -11,7 +11,7 @@ function collect(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const fullPath = join(directory, entry.name);
     if (entry.isDirectory()) collect(fullPath);
-    else if (entry.isFile() && /\\.(?:mjs|js)$/i.test(entry.name)) sourceFiles.push(fullPath);
+    else if (entry.isFile() && /\.(?:mjs|js)$/i.test(entry.name)) sourceFiles.push(fullPath);
   }
 }
 
@@ -19,7 +19,7 @@ for (const directory of sourceRoots) collect(join(root, directory));
 sourceFiles.sort();
 
 function run(label, args) {
-  console.log("\\n== " + label + " ==");
+  console.log("\n== " + label + " ==");
   const result = spawnSync(process.execPath, args, {
     cwd: root,
     stdio: "inherit",
@@ -42,4 +42,4 @@ for (const file of sourceFiles) {
   run("Syntax: " + relative, ["--check", file]);
 }
 run("Complete automated test suite", ["--test"]);
-console.log("\\nPASS: source syntax checks and the complete automated test suite finished successfully.");
+console.log("\nPASS: source syntax checks and the complete automated test suite finished successfully.");
