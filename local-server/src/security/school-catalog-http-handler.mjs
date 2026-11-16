@@ -33,6 +33,20 @@ function exactHttpsOrigin(value) {
   return origin;
 }
 
+function logCatalogueFailure(error, operation) {
+  // Keep logs useful without exposing SQL, parameters, credentials or raw database messages.
+  const details = {
+    operation,
+    errorName: error?.name === "Error" ? "Error" : "DatabaseError",
+    code: typeof error?.code === "string" && /^[0-9A-Z]{5}$/.test(error.code) ? error.code : "UNKNOWN",
+    schema: typeof error?.schema === "string" ? error.schema : undefined,
+    table: typeof error?.table === "string" ? error.table : undefined,
+    column: typeof error?.column === "string" ? error.column : undefined,
+    constraint: typeof error?.constraint === "string" ? error.constraint : undefined
+  };
+  console.error("[CORNHILL catalogue]", JSON.stringify(details));
+}
+
 export function createSchoolCatalogHttpHandler({ authService, schoolRepository, expectedOrigin } = {}) {
   if (!authService || typeof authService.authenticate !== "function") {
     throw new TypeError("An authentication service is required.");
@@ -63,6 +77,7 @@ export function createSchoolCatalogHttpHandler({ authService, schoolRepository, 
       return true;
     }
 
+    let operation = "authenticate";
     try {
       const principal = await authService.authenticate({
         sessionToken: readSessionTokenFromCookieHeader(request.headers.cookie),
@@ -76,6 +91,7 @@ export function createSchoolCatalogHttpHandler({ authService, schoolRepository, 
         throw new AuthorizationError();
       }
       if (isCatalog) {
+        operation = "list_active_classes";
         const classes = await schoolRepository.listActiveClassesAndSubjects();
         send(response, 200, { classes }, method);
       } else {
@@ -95,6 +111,7 @@ export function createSchoolCatalogHttpHandler({ authService, schoolRepository, 
         if (isClassScoped && (!classId || !staffHasClassAssignment({ principal, classId }))) {
           throw new AuthorizationError();
         }
+        operation = "list_learners";
         const learners = await schoolRepository.listLearners({ classId, search });
         send(response, 200, { learners }, method);
       }
@@ -106,6 +123,7 @@ export function createSchoolCatalogHttpHandler({ authService, schoolRepository, 
       } else if (error instanceof AuthenticationServiceError) {
         send(response, 503, { error: "The authentication service is temporarily unavailable." }, method);
       } else {
+        logCatalogueFailure(error, operation);
         send(response, 503, { error: "The school catalogue is temporarily unavailable." }, method);
       }
     }
