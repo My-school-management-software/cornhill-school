@@ -49,8 +49,8 @@ jobs:
       - name: Install local backend dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Run Node test suite
-        run: npm test
+      - name: Run release verification (source syntax and complete test suite)
+        run: npm run verify:release
 
       - name: Create temporary CI database configuration
         run: |
@@ -109,5 +109,5 @@ jobs:
       - name: Install local backend dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Run Node test suite on Windows
-        run: npm test
+      - name: Run release verification on Windows (source syntax and complete test suite)
+        run: npm run verify:release
