@@ -8,8 +8,8 @@ const styles = await readFile(new URL("../public/app.css", import.meta.url), "ut
 const httpsServer = await readFile(new URL("../src/https-server.mjs", import.meta.url), "utf8");
 const serviceWorker = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
 
-test("local app launcher provides links to the four currently integrated workspaces", () => {
-  for (const route of ["/school", "/academics", "/bursar", "/leadership", "/staff-operations", "/attendance-import"]) {
+test("local app launcher links all seven locally served school workspaces", () => {
+  for (const route of ["/school", "/academics", "/bursar", "/leadership", "/staff-operations", "/attendance-import", "/guardian"]) {
     assert.match(html, new RegExp('href="' + route.replace("/", "\\/") + '"'));
   }
   assert.match(html, /School Office/);
