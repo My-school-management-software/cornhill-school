@@ -127,7 +127,7 @@ test("staff operations workspace and leave submission have backend routes", () =
 test("attendance-day review UI uses the dynamic review handler", () => {
   matches(staffOps, /\/staff\/attendance\/days\/.*\/review/, "attendance-day review UI path");
   contains(staffOperationsApi, "const attendanceReviewMatch=url.pathname.match(", "attendance review route matcher");
-  contains(staffOperationsApi, "attendance/days/", "attendance review route prefix");
+  contains(staffOperationsApi, "staff\\/attendance\\/days\\/", "attendance review route prefix");
 });
 
 test("leave approval and rejection are handled by the independent review endpoint", () => {
@@ -180,7 +180,7 @@ test("attendance import rejection evidence has a matching batch-specific route",
 test("guardian portal learner reads are isolated to the guardian principal", () => {
   contains(guardian, 'api("/guardian/learners")', "guardian learner UI path");
   contains(guardianPortalApi, '"/api/v1/guardian/learners"', "guardian learner API path");
-  contains(guardianPortalApi, 'principal.principalType!=="guardian"', "guardian-only principal check");
+  contains(guardianPortalApi, 'principal.principalType !== "guardian"', "guardian-only principal check");
 });
 
 test("guardian contact directory and PIN issuance use staff approval handlers", () => {
@@ -201,7 +201,7 @@ test("finance payment posting and idempotency recovery have matching routes", ()
   contains(bursar, '"/finance/payments"', "payment posting UI path");
   contains(financeApi, '"/api/v1/finance/payments"', "payment posting API path");
   contains(financeApi, "const paymentStatusMatch = path.match(", "payment recovery matcher");
-  contains(financeApi, "/requests/", "payment recovery route segment");
+  contains(financeApi, "payments\\/requests\\/", "payment recovery route segment");
 });
 
 test("finance receipt reprints and retained-credit allocation have matching routes", () => {
