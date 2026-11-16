@@ -11,6 +11,22 @@
   }
 
   registerOfflineShell();
+
+  function updateNetworkState() {
+    const state = $("network-state");
+    if (!state) return;
+    const connected = navigator.onLine !== false;
+    state.textContent = connected
+      ? "Browser network interface connected · local service checked separately"
+      : "Browser reports no network · a local server on this computer may still work";
+    state.classList.toggle("network-connected", connected);
+    state.classList.toggle("network-disconnected", !connected);
+  }
+
+  window.addEventListener("online", updateNetworkState);
+  window.addEventListener("offline", updateNetworkState);
+  updateNetworkState();
+
   const BLOCKER_LABELS = Object.freeze({
     frontend_not_integrated: "Complete school application is not yet integrated.",
     school_api_parity_incomplete: "Some school module APIs still need local PostgreSQL integration.",
@@ -61,6 +77,8 @@
         throw new Error("The local service identity could not be confirmed.");
       }
       setServiceState("Local HTTPS service is responding", true);
+      $("local-service-note").textContent =
+        "Local HTTPS service responded. Browser network status is separate; each private-data action still needs its own successful API response.";
       $("server-detail").textContent = "HTTPS · loopback-only · " + health.service;
       renderReadiness(readiness);
 
@@ -77,6 +95,8 @@
       }
     } catch (error) {
       setServiceState("Local status could not be verified", false);
+      $("local-service-note").textContent =
+        "The local service could not be confirmed. Cached public screens may still open, but private records and saves are unavailable until the local server responds.";
       $("readiness-summary").textContent = error.message || "Local integration status is unavailable.";
       $("server-detail").textContent = "Check that the CORNHILL local HTTPS service is running.";
       $("finance-status").textContent = "Finance runtime not verified";
