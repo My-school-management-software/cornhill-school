@@ -38,6 +38,8 @@ function contains(source, fragment, label) {
 function matches(source, pattern, label) {
   assert.match(source, pattern, label + " declaration is missing");
 }
+const unescapedAttendanceRoutes = attendanceImportApi.replaceAll("\\/", "/");
+const unescapedFinanceOperationsRoutes = financeOperationsApi.replaceAll("\\/", "/");
 
 test("school catalogue UI GET requests resolve to the protected local catalogue handler", () => {
   contains(school, 'api("/school/catalog")', "class catalogue request");
@@ -64,7 +66,7 @@ test("academics workspace and period setup routes are declared on both sides", (
 test("assessment list and create requests have an exact backend route", () => {
   contains(academics, '"/academics/assessments"', "assessment collection UI path");
   contains(academicsApi, '"/api/v1/academics/assessments"', "assessment collection API path");
-  contains(academicsApi, "if (isAssessments && method === \"POST\")", "assessment creation branch");
+  contains(academicsApi, 'if (isAssessments && method === "POST")', "assessment creation branch");
 });
 
 test("assessment marks lookup uses the parameterised assessment marks route", () => {
@@ -131,7 +133,7 @@ test("attendance-day review UI uses the dynamic review handler", () => {
 test("leave approval and rejection are handled by the independent review endpoint", () => {
   matches(staffOps, /\/staff\/leave\/requests\/.*\/review/, "leave review UI path");
   contains(leaveReviewApi, "/api/v1/staff/leave/requests/", "leave review API prefix");
-  contains(leaveReviewApi, "/review$/", "leave review route suffix");
+  contains(leaveReviewApi, '/review$","i")', "leave review route suffix");
   contains(leaveReviewApi, 'permissionCode:"staff.leave_review"', "leave review permission");
 });
 
@@ -159,14 +161,14 @@ test("attendance device mappings support list and create operations", () => {
   matches(attendance, /\/staff\/attendance\/devices\/.*\/mappings/, "device mappings UI path");
   contains(attendanceImportApi, "const deviceMappings=path.match(", "device mappings route matcher");
   contains(attendanceImportApi, "mappings$/i", "device mappings route suffix");
-  contains(attendanceImportApi, "if(deviceMappings&&method==="GET")", "mapping list branch");
-  contains(attendanceImportApi, "if(deviceMappings&&method==="POST")", "mapping creation branch");
+  contains(attendanceImportApi, 'if(deviceMappings&&method==="GET")', "mapping list branch");
+  contains(attendanceImportApi, 'if(deviceMappings&&method==="POST")', "mapping creation branch");
 });
 
 test("attendance device mapping history can be closed without deleting the mapping", () => {
   matches(attendance, /\/staff\/attendance\/mappings\/.*\/close/, "mapping close UI path");
   contains(attendanceImportApi, "const closeMapping=path.match(", "mapping close route matcher");
-  contains(attendanceImportApi, "mappings\\/([0-9a-f-]{36})\\/close", "mapping close route suffix");
+  contains(unescapedAttendanceRoutes, "/mappings/([0-9a-f-]{36})/close", "mapping close route suffix");
 });
 
 test("attendance import rejection evidence has a matching batch-specific route", () => {
@@ -216,7 +218,7 @@ test("finance expenses and banking operations have route-table coverage", () => 
     "expenses/limit-staff", "expenses/limits", "expenses", "bank-transactions", "record-archive"
   ]) {
     contains(bursar, '"/finance/' + route, "Bursar UI route " + route);
-    contains(financeOperationsApi, "/finance/" + route, "finance operations route " + route);
+    contains(unescapedFinanceOperationsRoutes, "/finance/" + route, "finance operations route " + route);
   }
   contains(financeOperationsApi, "const routeTable=[", "finance operations route table");
 });
