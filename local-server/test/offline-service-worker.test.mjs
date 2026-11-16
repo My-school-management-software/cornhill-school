@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
-import { readFile } from "node:fs/promises";
+import { readFile, access } from "node:fs/promises";
 
 const source = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+const serverSource = await readFile(new URL("../src/https-server.mjs", import.meta.url), "utf8");
 
 function createWorkerHarness() {
   const listeners = new Map();
@@ -170,4 +171,20 @@ test("service worker activation removes the previous CORNHILL shell cache only",
   await Promise.all(pending);
 
   assert.deepEqual(worker.deletedCacheKeys, ["cornhill-public-shell-v1"]);
+});
+
+test("every cached offline asset is explicitly served by HTTPS and has a real file", async () => {
+  const assetBlock = source.match(/const STATIC_ASSETS = new Set\\(\\[([\\s\\S]*?)\\]\\);/);
+  assert.ok(assetBlock, "offline static asset allowlist must exist");
+  const assets = [...assetBlock[1].matchAll(/"([^"]+)"/g)].map(match => match[1]);
+  const publicRoutes = new Map(
+    [...serverSource.matchAll(/\\["([^"]+)", \\{ file: new URL\\("\\.\\.\\/public\\/([^"]+)"/g)]
+      .map(match => [match[1], match[2]])
+  );
+
+  assert.ok(assets.length > 0, "offline allowlist must not be empty");
+  for (const route of assets) {
+    assert.ok(publicRoutes.has(route), "cached route is not explicitly served: " + route);
+    await access(new URL("../public/" + publicRoutes.get(route), import.meta.url));
+  }
 });
