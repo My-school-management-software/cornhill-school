@@ -2,7 +2,7 @@
 
 // Cache only public application-shell files. Never cache API responses,
 // authenticated records, payment data, or any other private response.
-const CACHE_NAME = "cornhill-public-shell-v1";
+const CACHE_NAME = "cornhill-public-shell-v2";
 const STATIC_ASSETS = new Set([
   "/", "/app", "/app.html", "/app.js", "/app.css",
   "/school", "/school.html", "/school.js", "/school.css",
