@@ -61,3 +61,14 @@ test("HTTPS server allow-lists the School Office page and its local assets", () 
     assert.ok(https.includes(route), "HTTPS server does not allow-list " + route);
   }
 });
+
+test("School Office exposes a permission-aware learner profile editor with a mandatory audit reason",()=>{
+ assert.ok(html.includes('id="learner-edit-dialog"'));
+ assert.ok(html.includes('id="learner-edit-form"'));
+ for(const field of ["firstName","middleName","lastName","gender","dateOfBirth","lin","learnerType","previousSchool","p7IndexNumber","reason"])assert.ok(html.includes('name="'+field+'"'),"Missing profile field "+field);
+ assert.ok(js.includes('api("/school/learners/"+encodeURIComponent(id)+"/profile"'));
+ assert.ok(js.includes('method:"PATCH"'));
+ assert.ok(js.includes('if(can("learners.manage"))'));
+ assert.ok(js.includes('disabled=!can("learners.lin_manage")'));
+ assert.ok(js.includes("Learner profile updated and audit record saved."));
+});
