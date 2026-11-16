@@ -17,6 +17,11 @@ test("school catalogue migration grants metadata reads but no write privileges",
   assert.match(auditSql,/CREATE TRIGGER admission_events_append_only[\s\S]*BEFORE UPDATE OR DELETE ON cornhill_school\.admission_events/);
   assert.match(auditSql,/Learner audit events are append-only/);
   assert.match(auditSql,/REVOKE ALL ON FUNCTION cornhill_school\.prevent_admission_event_mutation/);
+  const profileSql=await readFile(new URL("../migrations/092_local_learner_profile_edit_columns.sql",import.meta.url),"utf8");
+  assert.match(profileSql,/GRANT UPDATE \\([\\s\\S]*first_name[\\s\\S]*lin[\\s\\S]*p7_index_number[\\s\\S]*updated_at[\\s\\S]*\\) ON cornhill_school\\.learners TO cornhill_auth_runtime/);
+  assert.match(profileSql,/GRANT SELECT \\(id, class_id\\)[\\s\\S]*ON cornhill_school\\.learners TO cornhill_auth_runtime/);
+  assert.doesNotMatch(profileSql,/UPDATE \\(\\s*pupil_code|class_id|status|admission_date/);
+  assert.doesNotMatch(profileSql,/GRANT .* ON ALL TABLES/i);
 });
 
 test("learner roster migration grants only approved identity columns", async () => {
