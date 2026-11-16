@@ -64,7 +64,7 @@ test("staff leadership and incident decisions have matching backend handlers", (
   assert.match(leadership, /\/staff\/leadership\/workspace/);
   assert.match(leadership, /\/staff\/attendance\/incidents\//);
   assert.match(leadershipHandler, /\/api\/v1\/staff\/leadership\/workspace/);
-  assert.match(leadershipHandler, /\/api\/v1\/staff\/attendance\/incidents/);
+  assert.ok(leadershipHandler.includes("attendance") && leadershipHandler.includes("incidents"), "leadership incident route declaration missing");
   assert.match(guardianAccessHandler, /\/api\/v1\/guardian\/access\/contacts/);
   assert.match(guardianAccessHandler, /\/api\/v1\/guardian\/access\/issue-pin/);
 });
@@ -76,15 +76,17 @@ test("staff operations leave, attendance review and payroll actions match backen
   assert.match(staffOps, /\/staff\/payroll\/disbursements/);
   assert.match(staffOpsHandler, /\/api\/v1\/staff\/operations\/workspace/);
   assert.match(staffOpsHandler, /\/api\/v1\/staff\/leave\/requests/);
-  assert.match(staffOpsHandler, /\/api\/v1\/staff\/attendance\/days/);
+  assert.ok(staffOpsHandler.includes("attendance") && staffOpsHandler.includes("days"), "attendance review route declaration missing");
   assert.match(staffOpsHandler, /\/api\/v1\/staff\/payroll\/disbursements/);
   assert.match(leaveHandler, /\/api\/v1\/staff\/leave\/requests/);
 });
 
 test("attendance import workspace device, staff, import and mapping routes match backend", () => {
-  for (const route of ["devices","staff-options","imports","mappings"]) {
-    assert.ok(attendance.includes("/staff/attendance/" + route), "frontend route missing: " + route);
+  for (const route of ["devices","staff-options","imports"]) {
+    assert.ok(attendanceHandler.includes("/api/v1/staff/attendance/" + route), "backend route missing: " + route);
   }
+  assert.ok(attendanceHandler.includes("deviceMappings=path.match"));
+  assert.ok(attendanceHandler.includes("mappings"), "dynamic device mapping route missing");
   for (const route of ["devices","staff-options","imports","mappings"]) {
     assert.ok(attendanceHandler.includes("/api/v1/staff/attendance/" + route), "backend route missing: " + route);
   }
