@@ -207,6 +207,8 @@ export async function createCornhillHttpsServer({
     requestCert: false,
     rejectUnauthorized: true
   }, (request, response) => {
+    // Apply this browser capability policy centrally so every API handler inherits it.
+    response.setHeader("Permissions-Policy", SECURITY_HEADERS["Permissions-Policy"]);
     void (async () => {
       const path = new URL(request.url ?? "/", expectedOrigin).pathname;
       const method = String(request.method ?? "GET").toUpperCase();
