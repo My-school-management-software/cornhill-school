@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
 
 const PUBLIC_DIR = new URL("../public/", import.meta.url);
 const files = (await readdir(PUBLIC_DIR, { withFileTypes: true }))
@@ -11,7 +10,7 @@ test("local workspace assets do not depend on hosted Supabase or remote runtime 
   assert.ok(files.length > 0, "local public workspace assets must exist");
   const violations = [];
   for (const entry of files) {
-    const source = await readFile(join(PUBLIC_DIR.pathname, entry.name), "utf8");
+    const source = await readFile(new URL(entry.name, PUBLIC_DIR), "utf8");
     const checks = [
       ["hosted Supabase URL", /https?:\/\/[a-z0-9.-]+\.supabase\.co\b/i],
       ["Supabase browser SDK", /@supabase\/supabase-js/i],
