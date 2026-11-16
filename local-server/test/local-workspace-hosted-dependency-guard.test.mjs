@@ -17,6 +17,10 @@ test("local workspace assets do not depend on hosted Supabase or remote runtime 
       ["remote script source", /<script\b[^>]*\bsrc\s*=\s*["']https?:\/\//i],
       ["remote module import", /(?:from\s*|import\s*\()\s*["']https?:\/\//i],
       ["remote fetch endpoint", /fetch\s*\(\s*["']https?:\/\//i],
+      ["remote WebSocket endpoint", /new\s+WebSocket\s*\(\s*["']wss?:\/\//i],
+      ["remote EventSource endpoint", /new\s+EventSource\s*\(\s*["']https?:\/\//i],
+      ["remote XMLHttpRequest endpoint", /\.open\s*\(\s*["'](?:GET|POST|PUT|PATCH|DELETE)["']\s*,\s*["']https?:\/\//i],
+      ["remote worker import", /importScripts\s*\(\s*["']https?:\/\//i],
       ["remote CSS import", /@import\s+(?:url\()?\s*["']?https?:\/\//i]
     ];
     for (const [label, pattern] of checks) {
