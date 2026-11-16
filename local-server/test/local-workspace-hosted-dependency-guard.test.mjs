@@ -13,12 +13,12 @@ test("local workspace assets do not depend on hosted Supabase or remote runtime 
   for (const entry of files) {
     const source = await readFile(join(PUBLIC_DIR.pathname, entry.name), "utf8");
     const checks = [
-      ["hosted Supabase URL", /https?:\\/\\/[a-z0-9.-]+\\.supabase\\.co\\b/i],
-      ["Supabase browser SDK", /@supabase\\/supabase-js/i],
-      ["remote script source", /<script\\b[^>]*\\bsrc\\s*=\\s*["']https?:\\/\\//i],
-      ["remote module import", /(?:from\\s*|import\\s*\\()\\s*["']https?:\\/\\//i],
-      ["remote fetch endpoint", /fetch\\s*\\(\\s*["']https?:\\/\\//i],
-      ["remote CSS import", /@import\\s+(?:url\\()?\\s*["']?https?:\\/\\//i]
+      ["hosted Supabase URL", /https?:\/\/[a-z0-9.-]+\.supabase\.co\b/i],
+      ["Supabase browser SDK", /@supabase\/supabase-js/i],
+      ["remote script source", /<script\b[^>]*\bsrc\s*=\s*["']https?:\/\//i],
+      ["remote module import", /(?:from\s*|import\s*\()\s*["']https?:\/\//i],
+      ["remote fetch endpoint", /fetch\s*\(\s*["']https?:\/\//i],
+      ["remote CSS import", /@import\s+(?:url\()?\s*["']?https?:\/\//i]
     ];
     for (const [label, pattern] of checks) {
       if (pattern.test(source)) violations.push(entry.name + ": " + label);
