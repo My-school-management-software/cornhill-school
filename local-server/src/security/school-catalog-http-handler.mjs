@@ -68,8 +68,11 @@ export function createSchoolCatalogHttpHandler({ authService, schoolRepository, 
         sessionToken: readSessionTokenFromCookieHeader(request.headers.cookie),
         method
       });
-      if (principal.principalType !== "staff" ||
-          !staffHasPermission({ principal, permissionCode: "learners.read" })) {
+      const canReadLearners = staffHasPermission({ principal, permissionCode: "learners.read" });
+      const canRegisterLearners = staffHasPermission({ principal, permissionCode: "admissions.register_learner" });
+      if (principal.principalType !== "staff" || !(isCatalog
+        ? canReadLearners || canRegisterLearners
+        : canReadLearners)) {
         throw new AuthorizationError();
       }
       if (isCatalog) {
