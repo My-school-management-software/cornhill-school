@@ -8,7 +8,7 @@ const {Pool}=pg;
 export function transferDigest(payload){return createHash("sha256").update(JSON.stringify(payload),"utf8").digest("hex");}
 function validDate(v,optional=false){if(optional&&(v==null||v===""))return true;if(typeof v!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const [y,m,d]=v.split("-").map(Number),x=new Date(Date.UTC(y,m-1,d));return x.getUTCFullYear()===y&&x.getUTCMonth()===m-1&&x.getUTCDate()===d;}
 function req(v,label,max=200){if(typeof v!=="string"||!v.trim()||v.trim().length>max)throw Error(label+" is invalid.");return v.trim();}
-function phone(v){if(v==null||v==="")return null;let s=String(v).replace(/[\s()-]/g,"");if(/^0\d{9}$/.test(s))s="+256"+s.slice(1);else if(/^256\d{9}$/.test(s))s="+"+s;if(!/^\\+256\d{9}$/.test(s))throw Error("Guardian phone is not a valid Ugandan number; resolve it before import.");return s;}
+function phone(v){if(v==null||v==="")return null;let s=String(v).replace(/[\s()-]/g,"");if(/^0\d{9}$/.test(s))s="+256"+s.slice(1);else if(/^256\d{9}$/.test(s))s="+"+s;if(!/^\+256\d{9}$/.test(s))throw Error("Guardian phone is not a valid Ugandan number; resolve it before import.");return s;}
 export function validateTransfer(d){
  if(!d||d.format!=="cornhill-learner-transfer"||d.version!==1||d.manifest?.sourceProjectRef!=="yemhortbudwbcrzsoozk"||!Array.isArray(d.classes)||!Array.isArray(d.learners)||!Array.isArray(d.enrolmentPeriods)||!Array.isArray(d.codeAliases)||!Array.isArray(d.guardianContacts))throw Error("Transfer package format, version, source project, or collections are invalid.");
  const {digest,...payload}=d;if(typeof digest!=="string"||transferDigest(payload)!==digest)throw Error("Transfer package SHA-256 integrity check failed.");
