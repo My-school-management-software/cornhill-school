@@ -23,6 +23,8 @@ test("School Office contains role-aware overview, learner register and admission
   for (const field of ["firstName", "middleName", "lastName", "gender", "dateOfBirth", "admissionDate", "classId", "lin", "learnerType", "previousSchool", "p7IndexNumber", "isBursary", "bursaryFeeUgx", "guardianName", "phone", "whatsapp", "email", "smsOptIn", "whatsappOptIn"]) {
     assert.ok(html.includes('name="' + field + '"'), "Missing admission field " + field);
   }
+  assert.ok(html.includes("SMS consent places a notification in the local queue"));
+  assert.ok(html.includes("WhatsApp delivery is not enabled yet"));
   assert.ok(html.includes("Search by pupil code, LIN or learner name"));
   for (const heading of ["P.7 Index No.","Gender","Date of birth","Admission date"]) assert.ok(html.includes("<th>"+heading+"</th>"));
   assert.match(html, /server generates the permanent pupil code/i);
