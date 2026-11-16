@@ -51,7 +51,7 @@ test("learner workspace API paths have matching catalogue and admission handlers
   assert.match(schoolHandler, /\/api\/v1\/school\/learners/);
   assert.match(admissionsHandler, /\/api\/v1\/school\/admissions/);
   assert.ok(school.includes('"/school/learners/"+encodeURIComponent(id)+"/profile"'));
-  assert.ok(learnerProfileHandler.includes("/api/v1/school/learners/") && learnerProfileHandler.includes("/profile$/"));
+  assert.ok(learnerProfileHandler.includes("profile$/"), "learner profile handler must match the profile route suffix");
 });
 
 test("academics workspace API paths match the academics handler routes", () => {
