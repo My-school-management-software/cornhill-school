@@ -174,11 +174,11 @@ test("service worker activation removes the previous CORNHILL shell cache only",
 });
 
 test("every cached offline asset is explicitly served by HTTPS and has a real file", async () => {
-  const assetBlock = source.match(/const STATIC_ASSETS = new Set\\(\\[([\\s\\S]*?)\\]\\);/);
+  const assetBlock = source.match(/const STATIC_ASSETS = new Set\(\[([\s\S]*?)\]\);/);
   assert.ok(assetBlock, "offline static asset allowlist must exist");
   const assets = [...assetBlock[1].matchAll(/"([^"]+)"/g)].map(match => match[1]);
   const publicRoutes = new Map(
-    [...serverSource.matchAll(/\\["([^"]+)", \\{ file: new URL\\("\\.\\.\\/public\\/([^"]+)"/g)]
+    [...serverSource.matchAll(/\["([^"]+)", \{ file: new URL\("\.\.\/public\/([^"]+)"/g)]
       .map(match => [match[1], match[2]])
   );
 
