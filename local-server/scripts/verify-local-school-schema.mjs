@@ -61,6 +61,7 @@ try {
     "finance_audit_events",
     "finance_operator_limits",
     "guardian_contacts",
+    "learner_code_aliases",
     "learner_marks",
     "learners",
     "payment_allocations",
@@ -1418,7 +1419,7 @@ try {
     assert(reversedRunDeleteRejected, "Reversed payroll history cannot be deleted.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 63 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 64 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
