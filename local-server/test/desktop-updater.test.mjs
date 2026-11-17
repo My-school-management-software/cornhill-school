@@ -4,6 +4,25 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const script=await readFile(new URL("../windows/Update-CORNHILL-Desktop.ps1",import.meta.url),"utf8");
+const installGuide=await readFile(new URL("../POSTGRES_LOCAL_SETUP.md",import.meta.url),"utf8");
+const ignoreRules=await readFile(new URL("../.gitignore",import.meta.url),"utf8");
+
+test("installer and updater target the checked-out development branch",()=>{
+  const branch="feat/cornhill-integration-batch-20261115";
+  assert.ok(script.includes('$Branch = "'+branch+'"'));
+  assert.ok(installGuide.includes("git clone --branch "+branch));
+  assert.doesNotMatch(script,/feat\/local-first-self-hosted-migration-20261113/);
+  assert.doesNotMatch(installGuide,/feat\/local-first-self-hosted-migration-20261113/);
+});
+
+test("only the two reviewed source inspection SQL files bypass the SQL ignore rule",()=>{
+  assert.ok(ignoreRules.includes("*.sql"));
+  const sqlExceptions=ignoreRules.split(/\r?\n/).filter(line=>line.startsWith("!")&&line.endsWith(".sql"));
+  assert.deepEqual(sqlExceptions,[
+    "!scripts/provision-source-inventory-readonly-role.review.sql",
+    "!scripts/verify-source-inventory-readonly-role.review.sql"
+  ]);
+});
 
 test("desktop updater fetches the approved branch using fast-forward only and protects uncommitted work",()=>{
   assert.match(script,/Invoke-Checked "git" @\("fetch","origin"/);

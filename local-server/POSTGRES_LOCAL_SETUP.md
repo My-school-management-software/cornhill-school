@@ -14,7 +14,7 @@ This is an isolated local migration/rehearsal database. It is not the live schoo
 Clone the exact development branch on the Windows computer (Git for Windows is required):
 
 ```powershell
-git clone --branch feat/local-first-self-hosted-migration-20261113 https://github.com/My-school-management-software/cornhill-school.git
+git clone --branch feat/cornhill-integration-batch-20261115 https://github.com/My-school-management-software/cornhill-school.git
 cd .\cornhill-school\local-server
 ```
 
@@ -62,7 +62,7 @@ The local PostgreSQL connection uses host `127.0.0.1`, port `5432`, database `co
 
 The runner discovers all numbered SQL files present in `migrations`, applies them in numeric order, and records a SHA-256 checksum for each. It requires both explicit local-development flags, validates the loopback host and exact database name, and uses a PostgreSQL advisory lock. A changed already-applied migration causes a hard stop rather than a silent reapply.
 
-The current numbered sequence is migrations 001–073. Coverage includes local identity and authorization; learner admissions and academics; UGX finance, payment posting and recovery, expenses, banking, evidence and record archives; staff profiles, attendance imports, work schedules, leave requests and balances, attendance reviews; and payroll audit, approval and disbursement controls. These migrations are **not yet certified as a complete copy of the hosted CORNHILL system**. The hosted project inventory still has to be reconciled object-by-object, including all source tables/columns, constraints, indexes, policies, routines, triggers, views, storage objects, edge functions, auth behavior, integrations and application call sites. Any provider-managed feature that cannot be migrated must be documented and safely replaced rather than silently omitted.
+The current numbered sequence is migrations 001–094. Coverage includes local identity and authorization; learner admissions and academics; UGX finance, payment posting and recovery, expenses, banking, evidence and record archives; staff profiles, attendance imports, work schedules, leave requests and balances, attendance reviews; and payroll audit, approval and disbursement controls. These migrations are **not yet certified as a complete copy of the hosted CORNHILL system**. The hosted project inventory still has to be reconciled object-by-object, including all source tables/columns, constraints, indexes, policies, routines, triggers, views, storage objects, edge functions, auth behavior, integrations and application call sites. Any provider-managed feature that cannot be migrated must be documented and safely replaced rather than silently omitted.
 
 After migration, the installer runs `npm run db:verify`, `npm run db:verify-auth`, `npm run db:verify-runtime`, `npm run db:verify-school` and `npm run db:verify-finance`. A successful run proves only that the current local migrations and their checks pass. It does not prove that the full local school application, production data migration, LAN access, offline sync, backups, Android access or production security are ready.
 

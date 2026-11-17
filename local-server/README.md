@@ -8,7 +8,7 @@ This branch contains the school-controlled local backend foundation for moving C
 - Separate loopback-only HTTPS authentication server and launcher.
 - Argon2id staff/guardian authentication, secure cookies, CSRF validation, session expiry/revocation and rate limiting.
 - Explicit role permissions, staff class assignments and guardian-to-learner scope checks. Role grants remain empty by default.
-- Eighty-seven additive, checksum-verified PostgreSQL migrations (001–087), covering:
+- Ninety-four additive, checksum-verified PostgreSQL migrations (001–094), covering:
   1. Staff/guardian identity and session records.
   2. Permission catalog, role permissions and staff class assignments.
   3. Failed-login rate-limit indexes.

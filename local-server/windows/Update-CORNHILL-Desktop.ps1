@@ -6,7 +6,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-$Branch = "feat/local-first-self-hosted-migration-20261113"
+$Branch = "feat/cornhill-integration-batch-20261115"
 
 function Stop-WithGuidance([string]$Message) {
   Write-Host ""

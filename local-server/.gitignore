@@ -5,6 +5,9 @@
 
 # Local PostgreSQL exports and backups
 *.sql
+# Keep only the non-executable, review-only source access proposals visible.
+!scripts/provision-source-inventory-readonly-role.review.sql
+!scripts/verify-source-inventory-readonly-role.review.sql
 *.dump
 *.backup
 backups/
