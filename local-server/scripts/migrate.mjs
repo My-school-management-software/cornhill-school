@@ -41,7 +41,7 @@ async function run() {
     if (expectedIsolatedTarget) {
       const identity = await client.query(`
         SELECT current_database() AS database,
-               inet_server_addr()::text AS server_address,
+               host(inet_server_addr()) AS server_address,
                current_setting('port')::integer AS port,
                current_setting('data_directory') AS data_directory,
                (SELECT system_identifier::text FROM pg_control_system()) AS system_identifier,

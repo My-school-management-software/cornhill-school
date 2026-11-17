@@ -733,6 +733,16 @@ try {
       && Number(p7ReportCard.rows[0].class_size) === 2
       && Number(p7ReportCard.rows[0].subject_count) === 4,
       "P.7 report card must preserve identity, academic period, totals, aggregate, class rank and all four subjects.");
+    assert(await expectPgError(client, "published_mark_immutable_test",
+      "UPDATE cornhill_school.learner_marks SET score=0 WHERE learner_id=$1 AND assessment_id=$2 AND subject_id=(SELECT id FROM cornhill_school.subjects WHERE subject_code='ENGLISH')",
+      [p7Learner.rows[0].id, p7Assessment.rows[0].id], "23514"),
+      "Published assessment marks must reject later edits.");
+    const unchangedPublishedMark = await client.query(
+      "SELECT score FROM cornhill_school.learner_marks WHERE learner_id=$1 AND assessment_id=$2 AND subject_id=(SELECT id FROM cornhill_school.subjects WHERE subject_code='ENGLISH')",
+      [p7Learner.rows[0].id, p7Assessment.rows[0].id]
+    );
+    assert(unchangedPublishedMark.rowCount === 1 && Number(unchangedPublishedMark.rows[0].score) === 87,
+      "A rejected post-publication mark edit must leave the original mark intact.");
     const secondP7ReportCard = await client.query(
       "SELECT aggregate_total,class_position,class_size FROM cornhill_school.academic_report_cards WHERE learner_id=$1 AND assessment_id=$2",
       [p7SecondLearner.rows[0].id, p7Assessment.rows[0].id]
@@ -832,9 +842,22 @@ try {
       [payment.rows[0].id]
     );
     const progressionPeriods = await client.query(
-      "SELECT id,class_id,status,exit_date,previous_period_id FROM cornhill_school.enrolment_periods WHERE learner_id=$1 ORDER BY admission_date,id",
+      "SELECT id,class_id,status,exit_date::text AS exit_date,admission_date::text AS admission_date,previous_period_id FROM cornhill_school.enrolment_periods WHERE learner_id=$1 ORDER BY admission_date,id",
       [first.rows[0].id]
     );
+    const progressionDiagnostics = {
+      eventCreated: Boolean(feeLearnerProgression.rows[0]?.event_id),
+      receiptCount: receiptAfterPromotion.rowCount,
+      receiptLearnerMatches: receiptAfterPromotion.rows[0]?.learner_id === first.rows[0].id,
+      receiptCodeMatches: receiptAfterPromotion.rows[0]?.receipt_data_snapshot.pupil_code === first.rows[0].pupil_code,
+      periodCount: progressionPeriods.rowCount,
+      priorPeriodMatches: progressionPeriods.rows[0]?.id === firstActiveEnrolment.rows[0].id,
+      priorStatus: progressionPeriods.rows[0]?.status,
+      priorExitDate: String(progressionPeriods.rows[0]?.exit_date).slice(0, 10),
+      nextClassMatches: progressionPeriods.rows[1]?.class_id === p2Class.rows[0].id,
+      nextAdmissionDate: String(progressionPeriods.rows[1]?.admission_date).slice(0, 10),
+      previousPeriodMatches: progressionPeriods.rows[1]?.previous_period_id === firstActiveEnrolment.rows[0].id
+    };
     assert(Boolean(feeLearnerProgression.rows[0]?.event_id)
       && receiptAfterPromotion.rowCount === 1
       && receiptAfterPromotion.rows[0].learner_id === first.rows[0].id
@@ -846,7 +869,7 @@ try {
       && progressionPeriods.rows[1].class_id === p2Class.rows[0].id
       && String(progressionPeriods.rows[1].admission_date).slice(0, 10) === "2026-11-01"
       && progressionPeriods.rows[1].previous_period_id === firstActiveEnrolment.rows[0].id,
-      "Class progression must preserve the learner's financial receipts and linked enrolment chain.");
+      "Class progression must preserve the learner's financial receipts and linked enrolment chain: " + JSON.stringify(progressionDiagnostics));
 
     const receiptMutationRejected = await expectPgError(
       client, "receipt_snapshot_immutable_test",
@@ -1627,7 +1650,7 @@ try {
 
     await client.query("UPDATE cornhill_auth.staff_accounts SET account_status = 'disabled' WHERE id = $1", [staff.rows[0].id]);
     const formerStaffHistory = await client.query(
-      "SELECT a.account_status, p.staff_number, p.job_title, t.starts_on, t.contract_type, t.base_salary_ugx " +
+      "SELECT a.account_status, p.staff_number, p.job_title, t.starts_on::text AS starts_on, t.contract_type, t.base_salary_ugx " +
       "FROM cornhill_auth.staff_accounts a " +
       "JOIN cornhill_school.staff_profiles p ON p.staff_account_id = a.id " +
       "JOIN cornhill_school.staff_employment_terms t ON t.staff_account_id = a.id " +

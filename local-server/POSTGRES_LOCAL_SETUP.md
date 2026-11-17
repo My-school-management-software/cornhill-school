@@ -40,7 +40,7 @@ This stage installs pinned Node dependencies, creates the ignored private `.env`
 .\windows\Install-CORNHILL-Local.ps1 -RunTests
 ```
 
-That second stage asks for the local PostgreSQL administrator password, creates or resumes only the isolated `cornhill_local` database, applies migrations 001–073 and runs the five database verifiers. Never paste the PostgreSQL password or `.env` contents into chat. If any command fails, stop and share only the error text with passwords, tokens and private paths removed.
+That second stage asks for the local PostgreSQL administrator password, creates or safely resumes only the isolated `cornhill_local` database, applies migrations 001–095 and runs the database verifiers. Never paste the PostgreSQL password or `.env` contents into chat. If any command fails, stop and share only the error text with passwords, tokens and private paths removed.
 
 ## Windows installer
 
@@ -52,17 +52,17 @@ From the repository's `local-server` directory, run:
 
 It installs pinned npm dependencies, creates or preserves a private `.env`, prompts securely for the PostgreSQL `postgres` password, creates a separate `cornhill_local_admin` login and an isolated `cornhill_local` database, applies numbered local migrations and runs all five database verifiers. The administrator password is not printed or written into command history. Generated local secrets are stored only in the ignored `.env` file.
 
-The installer refuses to continue if a database named `cornhill_local` already exists. It will not overwrite or reset a database whose contents it has not inspected. Back up and review that database before any separate recovery procedure.
+On a clean test computer, the installer creates `cornhill_local`. If a database with that name already exists and is owned by `cornhill_local_admin`, the installer creates and verifies a private backup, then resumes checksum-verified migrations without resetting the database. It stops if the existing database has a different owner. Because resuming may apply unapplied migrations, run this only on a clean disposable test computer; never point it at the school's database.
 
 ## Manual environment settings
 
-The local PostgreSQL connection uses host `127.0.0.1`, port `5432`, database `cornhill_local`, and migration user `cornhill_local_admin`. Keep `.env` private. It is excluded by `.gitignore`; never commit it or paste its contents into chat. The authentication runtime role `cornhill_auth_api` and finance runtime role `cornhill_finance_api` remain NOLOGIN. The finance API stays disabled while `CORNHILL_DB_FINANCE_RUNTIME_PASSWORD` in the private `.env` is a placeholder. Do not activate either runtime role until API integration, HTTPS, private credential provisioning and full integration tests have passed.
+The local PostgreSQL connection uses host `127.0.0.1`, port `5432`, database `cornhill_local`, and migration user `cornhill_local_admin`. Keep `.env` private. It is excluded by `.gitignore`; never commit it or paste its contents into chat. The installer generates the authentication runtime secret and provisions `cornhill_auth_api` as a restricted login. The finance API remains NOLOGIN while `CORNHILL_DB_FINANCE_RUNTIME_PASSWORD` is a placeholder. Do not enable finance routes until HTTPS, private credential provisioning and full integration tests have passed.
 
 ## Migration and verification scope
 
 The runner discovers all numbered SQL files present in `migrations`, applies them in numeric order, and records a SHA-256 checksum for each. It requires both explicit local-development flags, validates the loopback host and exact database name, and uses a PostgreSQL advisory lock. A changed already-applied migration causes a hard stop rather than a silent reapply.
 
-The current numbered sequence is migrations 001–094. Coverage includes local identity and authorization; learner admissions and academics; UGX finance, payment posting and recovery, expenses, banking, evidence and record archives; staff profiles, attendance imports, work schedules, leave requests and balances, attendance reviews; and payroll audit, approval and disbursement controls. These migrations are **not yet certified as a complete copy of the hosted CORNHILL system**. The hosted project inventory still has to be reconciled object-by-object, including all source tables/columns, constraints, indexes, policies, routines, triggers, views, storage objects, edge functions, auth behavior, integrations and application call sites. Any provider-managed feature that cannot be migrated must be documented and safely replaced rather than silently omitted.
+The current numbered sequence is migrations 001–095. Coverage includes local identity and authorization; learner admissions, Nursery and Primary subject structures, marks, immutable report cards and class progression; UGX finance and payment history; staff profiles, attendance and leave; and payroll records. These migrations are **not yet certified as a complete copy of the hosted CORNHILL system**. The hosted project inventory still has to be reconciled object-by-object, including all source tables/columns, constraints, indexes, policies, routines, triggers, views, storage objects, edge functions, auth behavior, integrations and application call sites. Any provider-managed feature that cannot be migrated must be documented and safely replaced rather than silently omitted.
 
 After migration, the installer runs `npm run db:verify`, `npm run db:verify-auth`, `npm run db:verify-runtime`, `npm run db:verify-school` and `npm run db:verify-finance`. A successful run proves only that the current local migrations and their checks pass. It does not prove that the full local school application, production data migration, LAN access, offline sync, backups, Android access or production security are ready.
 
@@ -107,3 +107,9 @@ The updater checks that the correct development branch is active and the source 
 The update links the School Office, Bursar Desk, Academics and Staff/Leadership workspaces. It checks whether the initial Director account is already configured; when it is not, the updater offers the one-time hidden-password Director setup. If trusted localhost HTTPS has not yet been configured, it offers to create the local certificate. Add `-Launch` to open the local server window and browser after the checks pass.
 
 After the update is complete, the local service can be started from `local-server` using `npm run start:auth`, then opened at `https://localhost:4174`. The server remains loopback-only; this batch does not enable LAN access, multi-device synchronization or offline sync.
+
+## Owner acceptance path
+
+The installer runs the Node.js and SQL steps itself; the owner does not need to type Node.js commands or SQL. The owner still needs to install Git for Windows, Node.js 22 and PostgreSQL 17, open PowerShell in the `local-server` folder, run the installer script, and enter the local PostgreSQL administrator password at its hidden prompt. This is not yet a one-click installer.
+
+For acceptance, use a clean Windows 10 and a clean Windows 11 virtual machine with a disposable PostgreSQL 17 database. After the installer completes, run `windows/Update-CORNHILL-Desktop.ps1 -Launch` from PowerShell. Complete the first Director setup and trusted localhost HTTPS setup with synthetic credentials. The script should open `https://localhost:4174/app`; use only synthetic learner, staff, academic and finance records. Record Pass, Fail or Not run for every item in [the Windows acceptance checklist](windows/CORNHILL-Installation-Acceptance.md). This procedure has not been executed on a clean Windows VM yet.

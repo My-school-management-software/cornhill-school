@@ -59,6 +59,9 @@ test("finance API gets function execution but not direct access to school financ
  assert.match(posting,/REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA cornhill_school/);
  assert.ok(posting.includes("FROM cornhill_finance_runtime,cornhill_finance_api"));
  assert.match(lookup,/GRANT EXECUTE ON FUNCTION cornhill_school\.finance_get_learner_account/);
+ assert.match(posting,/GRANT CONNECT ON DATABASE %I TO cornhill_finance_runtime/);
+ assert.match(posting,/current_database\(\)/);
+ assert.doesNotMatch(posting,/ON DATABASE cornhill_local/);
 });
 
 test("receipt reprinting has independent permission, reason and immutable snapshot audit",()=>{

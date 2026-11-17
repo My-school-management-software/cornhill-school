@@ -27,8 +27,15 @@ BEGIN
 END
 $roles$;
 
-GRANT CONNECT ON DATABASE cornhill_local TO cornhill_auth_runtime;
-REVOKE TEMPORARY ON DATABASE cornhill_local FROM PUBLIC, cornhill_auth_runtime, cornhill_auth_api;
+DO $database_privileges$
+BEGIN
+    EXECUTE pg_catalog.format('GRANT CONNECT ON DATABASE %I TO cornhill_auth_runtime', current_database());
+    EXECUTE pg_catalog.format(
+        'REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC, cornhill_auth_runtime, cornhill_auth_api',
+        current_database()
+    );
+END
+$database_privileges$;
 
 REVOKE ALL ON SCHEMA cornhill_auth FROM PUBLIC, cornhill_auth_runtime, cornhill_auth_api;
 GRANT USAGE ON SCHEMA cornhill_auth TO cornhill_auth_runtime;

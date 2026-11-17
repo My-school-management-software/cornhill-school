@@ -35,7 +35,7 @@ test("all ninety-five migrations use valid outer transactions",async()=>{
  "090_local_p7_index_roster_read_api.sql","091_local_learner_audit_append_only.sql",
  "092_local_learner_profile_edit_columns.sql","093_local_school_learner_catalogue_read.sql",
  "094_local_learner_source_identity_and_code_aliases.sql","095_local_academic_results_and_progression.sql"]);
- for(const name of names){const source=await readFile(new URL(name,dir),"utf8");assert.doesNotThrow(()=>prepareTransactionalMigration(source),name);}
+ for(const name of names){const source=await readFile(new URL(name,dir),"utf8");assert.doesNotThrow(()=>prepareTransactionalMigration(source),name);assert.doesNotMatch(source,/(?:GRANT|REVOKE)\s+(?:CONNECT|TEMPORARY)[\s\S]{0,80}ON DATABASE cornhill_local/i,name+" must support the isolated CI database name");}
 });
 test("runner rejects malformed or destructive SQL and ledger mismatches",()=>{
  assert.throws(()=>prepareTransactionalMigration(""),/non-empty/);

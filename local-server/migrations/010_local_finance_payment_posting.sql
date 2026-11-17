@@ -300,8 +300,15 @@ REVOKE ALL ON SCHEMA cornhill_school FROM cornhill_auth_runtime,cornhill_auth_ap
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
 REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA cornhill_school FROM cornhill_finance_runtime,cornhill_finance_api;
-GRANT CONNECT ON DATABASE cornhill_local TO cornhill_finance_runtime;
-REVOKE TEMPORARY ON DATABASE cornhill_local FROM cornhill_finance_runtime,cornhill_finance_api;
+DO $database_privileges$
+BEGIN
+  EXECUTE pg_catalog.format('GRANT CONNECT ON DATABASE %I TO cornhill_finance_runtime', current_database());
+  EXECUTE pg_catalog.format(
+    'REVOKE TEMPORARY ON DATABASE %I FROM cornhill_finance_runtime,cornhill_finance_api',
+    current_database()
+  );
+END
+$database_privileges$;
 GRANT USAGE ON SCHEMA cornhill_school TO cornhill_finance_runtime;
 GRANT EXECUTE ON FUNCTION cornhill_school.post_local_payment(uuid,uuid,bigint,text,uuid,jsonb,text,text,text,text,text)
   TO cornhill_finance_runtime;

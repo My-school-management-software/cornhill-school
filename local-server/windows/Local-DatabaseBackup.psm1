@@ -42,7 +42,7 @@ function New-CornhillPreMigrationBackup {
     $env:PGPASSWORD = $Password
     $identity = & $psql -X --no-password -v ON_ERROR_STOP=1 `
       --host $ServerHost --port $Port --username $Username --dbname $Database `
-      --tuples-only --no-align --command "SELECT current_database() || '|' || current_setting('server_version_num') || '|' || inet_server_addr()::text" 2>$null
+      --tuples-only --no-align --command "SELECT current_database() || '|' || current_setting('server_version_num') || '|' || host(inet_server_addr())" 2>$null
     if ($LASTEXITCODE -ne 0) {
       throw "Backup stopped: could not verify the local database identity."
     }

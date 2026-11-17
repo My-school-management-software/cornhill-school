@@ -8,7 +8,7 @@ This branch contains the school-controlled local backend foundation for moving C
 - Separate loopback-only HTTPS authentication server and launcher.
 - Argon2id staff/guardian authentication, secure cookies, CSRF validation, session expiry/revocation and rate limiting.
 - Explicit role permissions, staff class assignments and guardian-to-learner scope checks. Role grants remain empty by default.
-- Ninety-four additive, checksum-verified PostgreSQL migrations (001–094), covering:
+- Ninety-five additive, checksum-verified PostgreSQL migrations (001–095), covering:
   1. Staff/guardian identity and session records.
   2. Permission catalog, role permissions and staff class assignments.
   3. Failed-login rate-limit indexes.
@@ -21,14 +21,17 @@ This branch contains the school-controlled local backend foundation for moving C
   10. Local atomic payment posting, payer/collection details, unallocated credit, immutable receipt snapshots and restricted finance runtime permissions.
   11. Permission-gated Bursar learner search and learner fee-account read functions, without direct finance-table grants.
   12. Permission-checked receipt reprints with a mandatory reason, print count and append-only finance audit record.
+  13. Nursery and primary grading schemes, immutable report-card snapshots, aggregates, class positions and learner progression history.
 - Local schema verifiers for authentication, learners, academics, finance, attendance and payroll.
 - Windows unit-test CI and Linux/PostgreSQL 17 integration CI.
 
 ## Validation status
 
-CI passed on 2026-11-14 through Batch 18: **314 Windows unit tests passed (0 failed)**; PostgreSQL 17 successfully applied migrations 001–012, re-ran them with checksum verification, and passed the local school/academic/finance/staff/attendance/payroll schema checks plus finance integration checks. Batch 18 receipt reprinting passed its PostgreSQL integration and HTTP/UI checks. Latest verified branch commit: `2cee4c499999128a1692a32ac9c21dcbef972e83`.
+Historical GitHub Actions validation through Batch 18 passed on 2026-11-14: **314 Windows unit tests passed (0 failed)**, and PostgreSQL 17 applied migrations 001–012 with checksum repeatability. That record predates the current branch and migration 095.
 
-This is CI validation only. The migrations have **not** been applied to the school's Windows computer, and no real school data has been imported.
+Local verification on 2026-11-17, using a disposable PostgreSQL 17.12 cluster, applied and checksum-rechecked all 95 migrations. Schema, authentication, runtime-role, school, finance and backup/restore verification passed with synthetic records. `npm run verify:release` passed **1,082 tests, 0 failed, 1 skipped**; the parent project suite passed **392 tests, 0 failed**. These are local results only: GitHub Actions has no run for local commit `a5c1e21` or the current uncommitted changes, and clean Windows 10/11 installation acceptance has not been run.
+
+These results use disposable PostgreSQL and synthetic records only. The migrations have **not** been applied to the school's Windows computer, and no real school data has been imported.
 
 ## Run only the health-only scaffold
 
@@ -40,7 +43,7 @@ Use Node.js 22 or later. From this folder:
 4. Open http://127.0.0.1:4173 on the same computer.
 5. Press Ctrl+C to stop.
 
-The status page on port 4173 is not a school-data application. The separate HTTPS Bursar service is not enabled by the installer: authentication/finance runtime roles remain NOLOGIN, and private TLS files must be provisioned outside the repository before it can start. Do not enter real school data into the health-only status page.
+The status page on port 4173 is not a school-data application. The authenticated HTTPS service requires a trusted localhost certificate before it can start. The installer provisions the authentication runtime login with a private generated secret; finance routes remain disabled unless a separate finance runtime credential is securely configured. Do not enter real school data into the health-only status page.
 
 ## Important safety boundaries
 
@@ -48,10 +51,10 @@ The status page on port 4173 is not a school-data application. The separate HTTP
 - No live Vercel or Supabase resources have been changed.
 - No production learner, guardian, staff, finance or payroll records have been copied.
 - The authenticated HTTPS runtime composes the auth and finance handlers and can serve the local Bursar page. It remains separate from the health-only HTTP scaffold and the hosted main school application.
-- The school workspace launcher is served at `/` and `/app`; the Bursar screen remains available at `/bursar`. It includes staff sign-in, learner search, term-by-term fee balances, optional previous-term allocations, UGX payment entry, idempotent posting, printable receipt preview and permission-gated audited reprinting with a reason. The audit logs a requested reprint action, not a printer-success signal. Its finance HTTP routes remain disabled unless a separate finance database runtime credential is privately provisioned; the example `.env` leaves this setting as a placeholder. Unallocated credit is recorded, but later allocation remains pending. A separate credit-allocation workflow has not yet been implemented.
-- Authentication and finance runtime roles remain NOLOGIN by default. No runtime password is provisioned by the installer.
+- The school workspace launcher is served at `/` and `/app`; the Bursar screen remains available at `/bursar`. It includes staff sign-in, learner search, term-by-term fee balances, previous-term allocations, UGX payment entry, idempotent posting, printable receipt preview, audited receipt reprints and permission-gated retained-credit allocation. The audit logs a requested reprint action, not a printer-success signal. Finance HTTP routes remain disabled unless a separate finance runtime credential is privately provisioned; the example `.env` leaves this setting as a placeholder.
+- Authentication runtime credentials are generated into the ignored private `.env` file during first-time setup. Finance runtime access remains disabled unless a separate private credential is configured. Never copy `.env` contents into chat or commit them.
 - The server and HTTPS launcher bind to loopback only. Do not change this to 0.0.0.0 or expose the service to the school LAN.
-- LAN access, Android access, offline synchronisation, backups, recovery, thermal-printer hardware compatibility and the full school-wide UI remain pending. The Bursar print view is not yet verified on a physical thermal printer.
+- LAN access, Android access, offline synchronisation, clean-Windows backup/recovery acceptance, thermal-printer hardware compatibility and the full school-wide UI remain pending. PostgreSQL backup and restore were exercised only against synthetic data. The Bursar print view is not yet verified on a physical thermal printer.
 
 The live CORNHILL PWA remains on its current hosted backend until a separately approved migration and cutover.
 

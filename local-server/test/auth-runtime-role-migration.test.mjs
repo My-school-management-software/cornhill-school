@@ -17,7 +17,9 @@ test("migration 004 never creates, alters or grants membership to cluster roles"
 });
 
 test("migration 004 retains database and schema scoped grants", () => {
-  assert.match(migration, /GRANT CONNECT ON DATABASE cornhill_local TO cornhill_auth_runtime/);
+  assert.match(migration, /GRANT CONNECT ON DATABASE %I TO cornhill_auth_runtime/);
+  assert.match(migration, /current_database\(\)/);
+  assert.doesNotMatch(migration, /ON DATABASE cornhill_local/);
   assert.match(migration, /GRANT USAGE ON SCHEMA cornhill_auth TO cornhill_auth_runtime/);
   assert.match(migration, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER/);
 });

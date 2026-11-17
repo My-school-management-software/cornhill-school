@@ -119,7 +119,7 @@ test("pre-migration backups are loopback-only, private, versioned and restore-li
   assert.match(backupModule, /Port -ne 5432/);
   assert.match(backupModule, /PostgreSQL\\\) 17/);
   assert.match(backupModule, /SetAccessRuleProtection\(\$true, \$false\)/);
-  assert.match(backupModule, /inet_server_addr\(\)::text/);
+  assert.match(backupModule, /host\(inet_server_addr\(\)\)/);
   assert.match(backupModule, /DirectorySecurity\]::new\(\)/);
   assert.match(backupModule, /Directory\]::CreateDirectory\(\$backupFolder, \$folderAcl\)/);
   assert.match(backupModule, /FullControl/);
