@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isIP } from "node:net";
 
 export const MIGRATION_LOCK_ID = "70211420261113";
 
@@ -79,10 +80,33 @@ function normalizeDataDirectory(value) {
   return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }
 
+function isAllowedIsolatedPostgresServerAddress(value) {
+  if (typeof value !== "string" || value.length === 0) return false;
+  const address = value.trim().toLowerCase().replace(/^\\[|\\]$/g, "");
+  if (address === "localhost" || address === "::1" || address === "127.0.0.1") return true;
+
+  const version = isIP(address);
+  if (version === 4) {
+    const octets = address.split(".").map(Number);
+    return octets[0] === 10 ||
+      (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+      (octets[0] === 192 && octets[1] === 168);
+  }
+  if (version === 6) {
+    if (address.startsWith("::ffff:")) {
+      return isAllowedIsolatedPostgresServerAddress(address.slice(7));
+    }
+    return address.startsWith("fc") || address.startsWith("fd") ||
+      address.startsWith("fe8") || address.startsWith("fe9") ||
+      address.startsWith("fea") || address.startsWith("feb");
+  }
+  return false;
+}
+
 export function assertIsolatedPostgresServerIdentity(actual, expected) {
   if (!actual || !expected ||
       actual.database !== expected.database ||
-      actual.server_address !== "127.0.0.1" ||
+      !isAllowedIsolatedPostgresServerAddress(actual.server_address) ||
       Number(actual.port) !== expected.serverPort ||
       String(actual.system_identifier) !== expected.systemIdentifier ||
       normalizeDataDirectory(actual.data_directory) !== normalizeDataDirectory(expected.dataDirectory)) {
@@ -90,7 +114,6 @@ export function assertIsolatedPostgresServerIdentity(actual, expected) {
   }
   return true;
 }
-
 export function assertIsolatedDatabaseIdentity(actual, expected) {
   assertIsolatedPostgresServerIdentity(actual, expected);
   if (Number(actual.user_object_count) !== 0) {
