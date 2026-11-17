@@ -113,7 +113,7 @@ Invoke-Checked "git" @("merge","--ff-only","origin/$Branch") "The local branch c
 Set-Location $localServerRoot
 $nodeMajor = [int]((node --version).Trim().TrimStart("v").Split(".")[0])
 if ($nodeMajor -lt 22) { Stop-WithGuidance "Node.js 22 or newer is required." }
-Write-Host "Installing the dependency versions pinned in package.json..."
+Write-Host "Installing dependencies without modifying the existing lockfile..."
 Invoke-Checked "npm" @("install","--no-package-lock","--no-audit","--no-fund") "Node dependency installation failed."
 if (-not $SkipTests) {
   Write-Host "Running the complete combined Windows test suite..."
@@ -194,8 +194,18 @@ if (-not $SkipDatabase) {
 
 Write-Host ""
 Write-Host "INTEGRATED SOURCE UPDATE AND REQUESTED CHECKS COMPLETED" -ForegroundColor Green
-Write-Host "Installed workspaces: Director/Staff leadership, Bursar finance, School Office, Academics, Staff Operations, Attendance Devices & Imports and Parent & Guardian Portal."
-Write-Host "The existing local database was retained; only unapplied checksum-verified migrations were considered."
+Write-Host "Source includes: Director/Staff leadership, Bursar finance, School Office, Academics, Staff Operations, Attendance Devices & Imports and Parent & Guardian Portal."
+if ($SkipTests) {
+  Write-Host "WARNING: Automated tests were SKIPPED. This update has not passed local release verification." -ForegroundColor Yellow
+} else {
+  Write-Host "Automated Windows tests passed. Actual screen and device acceptance testing is still required."
+}
+if ($SkipDatabase) {
+  Write-Host "WARNING: Database backup, migrations and database verification were SKIPPED. No database readiness claim is made." -ForegroundColor Yellow
+} else {
+  Write-Host "A verified backup was created before migrations. Only unapplied checksum-verified local migrations were considered; database verifiers passed."
+}
+Write-Host "This is NOT confirmation of a complete Windows installation, offline sync, LAN or Android readiness." -ForegroundColor Yellow
 Write-Host "Attendance import remains disabled until the Director delegates staff.attendance_import. Other high-risk actions require explicit staff.attendance_review, staff.leave_review, staff.payroll_disbursements_manage or staff.payroll_disbursements_verify permissions."
 Write-Host "To start the local service: Set-Location '$localServerRoot'; npm run start:auth"
 Write-Host "Then open https://localhost:4174/app for the local workspace launcher. The listener remains restricted to this computer."
