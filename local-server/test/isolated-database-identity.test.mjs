@@ -32,8 +32,18 @@ test("isolated migration preflight rejects another database name", () => {
   assert.throws(() => assertIsolatedDatabaseIdentity({ ...actual, database: "cornhill_local" }, expected), /preflight failed/);
 });
 
-test("isolated migration preflight rejects a non-loopback server address", () => {
-  assert.throws(() => assertIsolatedPostgresServerIdentity({ ...actual, server_address: "192.168.1.20" }, expected), /preflight failed/);
+test("isolated migration preflight accepts a private Docker bridge IPv4 server address", () => {
+  assert.equal(assertIsolatedPostgresServerIdentity({ ...actual, server_address: "172.19.0.4" }, expected), true);
+});
+
+test("isolated migration preflight accepts a private IPv6 server address", () => {
+  assert.equal(assertIsolatedPostgresServerIdentity({ ...actual, server_address: "fd12:3456:789a::4" }, expected), true);
+});
+
+test("isolated migration preflight rejects public and malformed server addresses", () => {
+  for (const server_address of ["8.8.8.8", "172.32.0.1", "2001:4860:4860::8888", "not-an-ip"]) {
+    assert.throws(() => assertIsolatedPostgresServerIdentity({ ...actual, server_address }, expected), /preflight failed/);
+  }
 });
 
 test("isolated migration preflight rejects a different server port", () => {
