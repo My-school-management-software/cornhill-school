@@ -657,6 +657,58 @@ try {
 
     const p6Class = await client.query("SELECT id FROM cornhill_school.classes WHERE class_code = 'P6'");
     const p7Class = await client.query("SELECT id FROM cornhill_school.classes WHERE class_code = 'P7'");
+    const babyClass = await client.query("SELECT id FROM cornhill_school.classes WHERE class_code = 'BABY'");
+    const babyLearner = await client.query(
+      "INSERT INTO cornhill_school.learners (first_name, last_name, gender, class_id, admission_date, admission_year) VALUES ('CI', 'NurseryHistory', 'Female', $1, '2025-01-01', 2025) RETURNING id",
+      [babyClass.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id, status) VALUES ($1, '2025-01-01', $2, 'Active')",
+      [babyLearner.rows[0].id, babyClass.rows[0].id]
+    );
+    const babyAssessment = await client.query(
+      "INSERT INTO cornhill_school.assessments (academic_term_id, class_id, assessment_name, assessment_type, assessment_date, max_score, status, created_by_staff_id) VALUES ($1, $2, 'CI Nursery End of Term', 'End of Term', '2025-04-15', 100, 'Open', $3) RETURNING id",
+      [termPrevious.rows[0].id, babyClass.rows[0].id, staff.rows[0].id]
+    );
+    const babySubjects = await client.query(
+      "SELECT subject.id, subject.subject_code FROM cornhill_school.subjects subject JOIN cornhill_school.class_subjects mapping ON mapping.subject_id = subject.id WHERE mapping.class_id = $1 AND mapping.is_active = true ORDER BY subject.subject_code",
+      [babyClass.rows[0].id]
+    );
+    assert(babySubjects.rowCount === 7, "Synthetic Nursery record must include all seven Baby learning areas.");
+    for (const subject of babySubjects.rows) {
+      await client.query(
+        "INSERT INTO cornhill_school.learner_marks (assessment_id, learner_id, class_id, subject_id, score, max_score, entered_by_staff_id) VALUES ($1, $2, $3, $4, 80, 100, $5)",
+        [babyAssessment.rows[0].id, babyLearner.rows[0].id, babyClass.rows[0].id, subject.id, staff.rows[0].id]
+      );
+    }
+    await client.query(
+      "UPDATE cornhill_school.assessments SET status='Locked', locked_at=now(), last_updated_by_staff_id=$2, updated_at=now() WHERE id=$1",
+      [babyAssessment.rows[0].id, academicStaff.rows[0].id]
+    );
+    await client.query(
+      "UPDATE cornhill_school.assessments SET status='Published', published_at=now(), last_updated_by_staff_id=$2, updated_at=now() WHERE id=$1",
+      [babyAssessment.rows[0].id, academicStaff.rows[0].id]
+    );
+    const babyReportCards = await client.query(
+      "SELECT cornhill_school.generate_academic_report_cards($1::uuid,$2::uuid)::int AS count",
+      [babyAssessment.rows[0].id, academicStaff.rows[0].id]
+    );
+    const babyReportCard = await client.query(
+      "SELECT grading_scheme_code,class_code_snapshot,total_score,total_possible,average_percent,aggregate_total,division_code,jsonb_array_length(subject_results)::int AS subject_count,NOT EXISTS (SELECT 1 FROM jsonb_array_elements(subject_results) subject_result WHERE subject_result->>'grade' <> 'A') AS all_subjects_grade_a FROM cornhill_school.academic_report_cards WHERE learner_id=$1 AND assessment_id=$2",
+      [babyLearner.rows[0].id, babyAssessment.rows[0].id]
+    );
+    assert(babyReportCards.rows[0]?.count === 1
+      && babyReportCard.rowCount === 1
+      && babyReportCard.rows[0].grading_scheme_code === "nursery_ae"
+      && babyReportCard.rows[0].class_code_snapshot === "BABY"
+      && Number(babyReportCard.rows[0].total_score) === 560
+      && Number(babyReportCard.rows[0].total_possible) === 700
+      && Number(babyReportCard.rows[0].average_percent) === 80
+      && babyReportCard.rows[0].aggregate_total === null
+      && babyReportCard.rows[0].division_code === null
+      && Number(babyReportCard.rows[0].subject_count) === 7
+      && babyReportCard.rows[0].all_subjects_grade_a === true,
+      "Published synthetic Nursery results must preserve all seven learning-area grades without a primary aggregate or division.");
     const p7Subjects = await client.query(
       "SELECT s.id, s.subject_code FROM cornhill_school.subjects s JOIN cornhill_school.class_subjects cs ON cs.subject_id = s.id WHERE cs.class_id = $1 AND cs.is_active=true ORDER BY s.subject_code",
       [p7Class.rows[0].id]
