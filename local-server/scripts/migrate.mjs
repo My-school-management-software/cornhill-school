@@ -1,8 +1,10 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readLocalDatabaseConfig } from "../src/db/config.mjs";
+import { readIsolatedTestDatabaseTarget, readLocalDatabaseConfig } from "../src/db/config.mjs";
 import {
+  assertIsolatedDatabaseIdentity,
+  assertIsolatedPostgresServerIdentity,
   assertMigrationLedgerRow,
   migrationChecksum,
   MIGRATION_LOCK_ID,
@@ -14,21 +16,80 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS_DIR = resolve(ROOT, "migrations");
 
 async function run() {
-  if (process.env.CORNHILL_ALLOW_LOCAL_MIGRATIONS !== "true" ||
+  const isolatedTestTarget = process.env.CORNHILL_DB_TARGET === "isolated-test";
+  if (isolatedTestTarget) {
+    if (process.env.CORNHILL_ALLOW_ISOLATED_TEST_MIGRATIONS !== "true") {
+      throw new Error("Refusing isolated-test migration without CORNHILL_ALLOW_ISOLATED_TEST_MIGRATIONS=true.");
+    }
+  } else if (process.env.CORNHILL_ALLOW_LOCAL_MIGRATIONS !== "true" ||
       process.env.CORNHILL_DB_TARGET !== "local-development") {
     throw new Error("Refusing migration: explicitly set CORNHILL_ALLOW_LOCAL_MIGRATIONS=true and CORNHILL_DB_TARGET=local-development.");
   }
 
   const config = readLocalDatabaseConfig();
+  const expectedIsolatedTarget = readIsolatedTestDatabaseTarget();
+  const migrationFiles = sortMigrationFiles(await readdir(MIGRATIONS_DIR));
+  if (migrationFiles.length === 0) {
+    throw new Error("No valid local SQL migrations were found.");
+  }
   const { Pool } = await import("pg");
   const pool = new Pool(config);
   const client = await pool.connect();
+  let isolatedDatabaseIsEmpty = null;
 
   try {
+    if (expectedIsolatedTarget) {
+      const identity = await client.query(`
+        SELECT current_database() AS database,
+               inet_server_addr()::text AS server_address,
+               current_setting('port')::integer AS port,
+               current_setting('data_directory') AS data_directory,
+               (SELECT system_identifier::text FROM pg_control_system()) AS system_identifier,
+               (SELECT count(*)::integer
+                  FROM pg_class c
+                  JOIN pg_namespace n ON n.oid = c.relnamespace
+                 WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+                   AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                   AND n.nspname NOT LIKE 'pg_toast%') AS user_object_count
+      `);
+      assertIsolatedPostgresServerIdentity(identity.rows[0], expectedIsolatedTarget);
+      if (Number(identity.rows[0]?.user_object_count) === 0) {
+        assertIsolatedDatabaseIdentity(identity.rows[0], expectedIsolatedTarget);
+        isolatedDatabaseIsEmpty = true;
+        console.log("Isolated PostgreSQL test target and empty database verified before migration writes.");
+      } else {
+        isolatedDatabaseIsEmpty = false;
+        const ledger = await client.query(`
+          SELECT to_regclass('cornhill_meta.schema_migrations') IS NOT NULL AS exists
+        `);
+        if (ledger.rows[0]?.exists !== true) {
+          throw new Error("Refusing isolated-test migration: the named test database is not empty and has no migration ledger.");
+        }
+      }
+    } else {
+      const identity = await client.query("SELECT current_database() AS database");
+      if (identity.rows[0]?.database !== "cornhill_local") {
+        throw new Error("Connected database is not the expected isolated local development database.");
+      }
+    }
+
     await client.query("SELECT pg_advisory_lock($1::bigint)", [MIGRATION_LOCK_ID]);
-    const identity = await client.query("SELECT current_database() AS database");
-    if (identity.rows[0]?.database !== "cornhill_local") {
-      throw new Error("Connected database is not the expected isolated local development database.");
+
+    if (expectedIsolatedTarget && isolatedDatabaseIsEmpty === false) {
+      const ledger = await client.query(
+        "SELECT migration_name, checksum FROM cornhill_meta.schema_migrations ORDER BY migration_name"
+      );
+      if (ledger.rowCount !== migrationFiles.length) {
+        throw new Error("Refusing isolated-test migration: a non-empty database must already contain the complete migration ledger.");
+      }
+      const entries = new Map(ledger.rows.map(row => [row.migration_name, row]));
+      for (const fileName of migrationFiles) {
+        const migrationName = basename(fileName, ".sql");
+        const source = await readFile(resolve(MIGRATIONS_DIR, fileName), "utf8");
+        assertMigrationLedgerRow(entries.get(migrationName), migrationChecksum(source), migrationName);
+      }
+      console.log(`Existing isolated-test migration ledger contains all ${migrationFiles.length} expected checksums; no migration changes were made.`);
+      return;
     }
 
     await client.query("CREATE SCHEMA IF NOT EXISTS cornhill_meta");
@@ -40,11 +101,6 @@ async function run() {
         applied_at timestamptz NOT NULL DEFAULT now()
       )
     `);
-
-    const migrationFiles = sortMigrationFiles(await readdir(MIGRATIONS_DIR));
-    if (migrationFiles.length === 0) {
-      throw new Error("No valid local SQL migrations were found.");
-    }
 
     let appliedCount = 0;
     for (const fileName of migrationFiles) {

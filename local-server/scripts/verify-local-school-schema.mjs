@@ -593,6 +593,55 @@ try {
       "INSERT INTO cornhill_school.academic_terms (academic_year_id, term_number, term_name, starts_on, ends_on, status) VALUES ($1, 1, 'Term 1', '2026-01-01', '2026-04-30', 'Active') RETURNING id",
       [yearCurrent.rows[0].id]
     );
+
+    const p6Class = await client.query("SELECT id FROM cornhill_school.classes WHERE class_code = 'P6'");
+    const p7Class = await client.query("SELECT id FROM cornhill_school.classes WHERE class_code = 'P7'");
+    const p7English = await client.query(
+      "SELECT s.id FROM cornhill_school.subjects s JOIN cornhill_school.class_subjects cs ON cs.subject_id = s.id WHERE cs.class_id = $1 AND s.subject_code = 'ENGLISH'",
+      [p7Class.rows[0].id]
+    );
+    const p7Learner = await client.query(
+      "INSERT INTO cornhill_school.learners (first_name, last_name, gender, class_id, p7_index_number) VALUES ('CI', 'P7History', 'Female', $1, 'CI-P7-0001') RETURNING id",
+      [p7Class.rows[0].id]
+    );
+    const p6Enrolment = await client.query(
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, exit_date, class_id, status) VALUES ($1, '2024-01-01', '2024-12-31', $2, 'Completed') RETURNING id",
+      [p7Learner.rows[0].id, p6Class.rows[0].id]
+    );
+    const p7Enrolment = await client.query(
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, exit_date, class_id, status, previous_period_id) VALUES ($1, '2025-01-01', '2025-12-31', $2, 'Completed', $3) RETURNING id",
+      [p7Learner.rows[0].id, p7Class.rows[0].id, p6Enrolment.rows[0].id]
+    );
+    const p7Assessment = await client.query(
+      "INSERT INTO cornhill_school.assessments (academic_term_id, class_id, assessment_name, assessment_type, assessment_date, max_score, status, created_by_staff_id) VALUES ($1, $2, 'CI Historical End of Term', 'End of Term', '2025-04-15', 100, 'Open', $3) RETURNING id",
+      [termPrevious.rows[0].id, p7Class.rows[0].id, staff.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.learner_marks (assessment_id, learner_id, class_id, subject_id, score, max_score, entered_by_staff_id) VALUES ($1, $2, $3, $4, 87, 100, $5)",
+      [p7Assessment.rows[0].id, p7Learner.rows[0].id, p7Class.rows[0].id, p7English.rows[0].id, staff.rows[0].id]
+    );
+    await client.query("UPDATE cornhill_school.learners SET status = 'Graduated' WHERE id = $1", [p7Learner.rows[0].id]);
+    const p7History = await client.query(
+      "SELECT l.status AS learner_status, l.p7_index_number, ep.status AS enrolment_status, ep.previous_period_id, ay.year_label, lm.score, lm.max_score " +
+      "FROM cornhill_school.learners l " +
+      "JOIN cornhill_school.enrolment_periods ep ON ep.id = $2 " +
+      "JOIN cornhill_school.learner_marks lm ON lm.learner_id = l.id AND lm.assessment_id = $3 " +
+      "JOIN cornhill_school.assessments a ON a.id = lm.assessment_id " +
+      "JOIN cornhill_school.academic_terms t ON t.id = a.academic_term_id " +
+      "JOIN cornhill_school.academic_years ay ON ay.id = t.academic_year_id " +
+      "WHERE l.id = $1",
+      [p7Learner.rows[0].id, p7Enrolment.rows[0].id, p7Assessment.rows[0].id]
+    );
+    assert(p7History.rowCount === 1
+      && p7History.rows[0].learner_status === "Graduated"
+      && p7History.rows[0].p7_index_number === "CI-P7-0001"
+      && p7History.rows[0].enrolment_status === "Completed"
+      && p7History.rows[0].previous_period_id === p6Enrolment.rows[0].id
+      && p7History.rows[0].year_label === "2025"
+      && Number(p7History.rows[0].score) === 87
+      && Number(p7History.rows[0].max_score) === 100,
+      "Graduating a synthetic P.7 learner must retain the P.6/P.7 enrolment chain, index number and historical marks.");
+
     const tuition = await client.query("SELECT id FROM cornhill_school.fee_catalogue WHERE item_code = 'TUITION'");
     const previousCharge = await client.query(
       "INSERT INTO cornhill_school.fee_obligations (learner_id, academic_term_id, fee_item_id, amount_ugx) VALUES ($1, $2, $3, 50000) RETURNING id",
@@ -1418,8 +1467,26 @@ try {
     );
     assert(reversedRunDeleteRejected, "Reversed payroll history cannot be deleted.");
 
+    await client.query("UPDATE cornhill_auth.staff_accounts SET account_status = 'disabled' WHERE id = $1", [staff.rows[0].id]);
+    const formerStaffHistory = await client.query(
+      "SELECT a.account_status, p.staff_number, p.job_title, t.starts_on, t.contract_type, t.base_salary_ugx " +
+      "FROM cornhill_auth.staff_accounts a " +
+      "JOIN cornhill_school.staff_profiles p ON p.staff_account_id = a.id " +
+      "JOIN cornhill_school.staff_employment_terms t ON t.staff_account_id = a.id " +
+      "WHERE a.id = $1",
+      [staff.rows[0].id]
+    );
+    assert(formerStaffHistory.rowCount === 1
+      && formerStaffHistory.rows[0].account_status === "disabled"
+      && formerStaffHistory.rows[0].staff_number === "CI-001"
+      && formerStaffHistory.rows[0].job_title === "Bursar"
+      && String(formerStaffHistory.rows[0].starts_on).startsWith("2026-01-01")
+      && formerStaffHistory.rows[0].contract_type === "Permanent"
+      && Number(formerStaffHistory.rows[0].base_salary_ugx) === 1000000,
+      "A former staff account must retain its profile and employment history for authorised review.");
+
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 64 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 64 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, P.7 graduation with preserved academic and enrolment history, former-staff profile/employment retention, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

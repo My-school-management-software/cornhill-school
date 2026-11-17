@@ -73,3 +73,27 @@ export function assertMigrationLedgerRow(row, expectedChecksum, expectedName) {
   }
   return true;
 }
+
+function normalizeDataDirectory(value) {
+  const normalized = String(value ?? "").replaceAll("\\", "/").replace(/\/+$/, "");
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+export function assertIsolatedPostgresServerIdentity(actual, expected) {
+  if (!actual || !expected ||
+      actual.database !== expected.database ||
+      Number(actual.port) !== expected.serverPort ||
+      String(actual.system_identifier) !== expected.systemIdentifier ||
+      normalizeDataDirectory(actual.data_directory) !== normalizeDataDirectory(expected.dataDirectory)) {
+    throw new Error("Isolated-test PostgreSQL identity preflight failed.");
+  }
+  return true;
+}
+
+export function assertIsolatedDatabaseIdentity(actual, expected) {
+  assertIsolatedPostgresServerIdentity(actual, expected);
+  if (Number(actual.user_object_count) !== 0) {
+    throw new Error("Isolated-test database is not empty; no migrations were run.");
+  }
+  return true;
+}

@@ -32,6 +32,41 @@ test("database config rejects production or unexpected database names", () => {
   assert.throws(() => readLocalDatabaseConfig({ ...valid, CORNHILL_DB_NAME: "postgres" }), /cornhill_local/);
 });
 
+test("database config permits a uniquely named isolated-test database only with explicit identity", () => {
+  const isolated = {
+    ...valid,
+    CORNHILL_DB_TARGET: "isolated-test",
+    CORNHILL_DB_NAME: "cornhill_isolated_test_0123456789abcdef0123456789abcdef",
+    CORNHILL_DB_PORT: "54329",
+    CORNHILL_DB_ISOLATED_SERVER_PORT: "54329",
+    CORNHILL_DB_ISOLATED_SYSTEM_IDENTIFIER: "7483921045823049182",
+    CORNHILL_DB_ISOLATED_DATA_DIRECTORY: "C:\\temp\\cornhill-pg17-test"
+  };
+  const config = readLocalDatabaseConfig(isolated);
+  assert.equal(config.database, isolated.CORNHILL_DB_NAME);
+  assert.equal(config.host, "127.0.0.1");
+  assert.equal(config.port, 54329);
+});
+
+test("database config rejects isolated-test mode without an explicit unique identity", () => {
+  const isolated = {
+    ...valid,
+    CORNHILL_DB_TARGET: "isolated-test",
+    CORNHILL_DB_NAME: "cornhill_isolated_test_0123456789abcdef0123456789abcdef",
+    CORNHILL_DB_PORT: "54329",
+    CORNHILL_DB_ISOLATED_SERVER_PORT: "54329",
+    CORNHILL_DB_ISOLATED_SYSTEM_IDENTIFIER: "7483921045823049182",
+    CORNHILL_DB_ISOLATED_DATA_DIRECTORY: "C:\\temp\\cornhill-pg17-test"
+  };
+  assert.throws(() => readLocalDatabaseConfig({ ...isolated, CORNHILL_DB_NAME: "cornhill_local" }), /isolated-test database/);
+  assert.throws(() => readLocalDatabaseConfig({ ...isolated, CORNHILL_DB_NAME: "cornhill_isolated_test_not-a-uuid" }), /isolated-test database/);
+  assert.throws(() => readLocalDatabaseConfig({ ...isolated, CORNHILL_DB_ISOLATED_SYSTEM_IDENTIFIER: "" }), /system identifier/);
+  assert.throws(() => readLocalDatabaseConfig({ ...isolated, CORNHILL_DB_ISOLATED_SERVER_PORT: "" }), /server port/);
+  assert.throws(() => readLocalDatabaseConfig({ ...isolated, CORNHILL_DB_ISOLATED_DATA_DIRECTORY: "relative/path" }), /absolute path/);
+  assert.throws(() => readLocalDatabaseConfig({ ...isolated, CORNHILL_DB_HOST: "localhost" }), /127\.0\.0\.1/);
+  assert.throws(() => readLocalDatabaseConfig({ ...isolated, CORNHILL_DB_PORT: "5432" }), /dedicated non-default port/);
+});
+
 test("database config rejects invalid ports", () => {
   assert.throws(() => readLocalDatabaseConfig({ ...valid, CORNHILL_DB_PORT: "543" }), /port/);
   assert.throws(() => readLocalDatabaseConfig({ ...valid, CORNHILL_DB_PORT: "70000" }), /port/);

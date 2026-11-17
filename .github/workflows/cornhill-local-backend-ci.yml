@@ -11,6 +11,7 @@ on:
       - main
       - master
       - feat/local-first-self-hosted-migration-20261113
+      - feat/cornhill-integration-batch-20261115
 
 permissions:
   contents: read
@@ -18,19 +19,24 @@ permissions:
 jobs:
   local-backend:
     runs-on: ubuntu-latest
+    env:
+      CORNHILL_DB_HOST: 127.0.0.1
+      CORNHILL_DB_PORT: "54329"
+      CORNHILL_DB_ADMIN_USER: cornhill_test_admin
+      CORNHILL_DB_ADMIN_PASSWORD: cornhill-ci-${{ github.run_id }}-${{ github.run_attempt }}-isolated-postgres
     services:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: cornhill_local
-          POSTGRES_USER: cornhill_local_admin
-          POSTGRES_PASSWORD: ci-only-not-a-school-secret-2026
+          POSTGRES_DB: postgres
+          POSTGRES_USER: cornhill_test_admin
+          POSTGRES_PASSWORD: cornhill-ci-${{ github.run_id }}-${{ github.run_attempt }}-isolated-postgres
           TZ: Africa/Kampala
           PGTZ: Africa/Kampala
         ports:
           - 54329:5432
         options: >-
-          --health-cmd "pg_isready -U cornhill_local_admin -d cornhill_local"
+          --health-cmd "pg_isready -U cornhill_test_admin -d postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -52,45 +58,78 @@ jobs:
       - name: Run release verification (source syntax and complete test suite)
         run: npm run verify:release
 
-      - name: Create temporary CI database configuration
+      - name: Verify fresh PostgreSQL 17 service and create unique empty test database
+        shell: bash
         run: |
-          cat > .env <<'EOF'
-          CORNHILL_DB_HOST=127.0.0.1
-          CORNHILL_DB_PORT=54329
-          CORNHILL_DB_NAME=cornhill_local
-          CORNHILL_DB_ADMIN_USER=cornhill_local_admin
-          CORNHILL_DB_ADMIN_PASSWORD=ci-only-not-a-school-secret-2026
-          EOF
+          set -euo pipefail
+          suffix="$(openssl rand -hex 16)"
+          database="cornhill_isolated_test_${suffix}"
+          identity="$(PGPASSWORD="$CORNHILL_DB_ADMIN_PASSWORD" psql -X -v ON_ERROR_STOP=1 \
+            --host 127.0.0.1 --port 54329 --username "$CORNHILL_DB_ADMIN_USER" \
+            --dbname postgres --tuples-only --no-align --field-separator='|' \
+            --command "SELECT current_setting('server_version_num'), current_database(), current_setting('port'), current_setting('data_directory'), (SELECT system_identifier::text FROM pg_control_system()), (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p','v','m','f','S') AND n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%')")"
+          IFS='|' read -r server_version maintenance_database server_port data_directory system_identifier user_object_count <<< "$identity"
+          [[ "$server_version" == 17* ]] || { echo "Expected PostgreSQL 17; observed another server version."; exit 1; }
+          [[ "$maintenance_database" == postgres ]] || { echo "Unexpected PostgreSQL maintenance database identity."; exit 1; }
+          [[ "$server_port" == 5432 ]] || { echo "Unexpected PostgreSQL service port."; exit 1; }
+          [[ "$data_directory" == /* ]] || { echo "PostgreSQL service data directory is not absolute."; exit 1; }
+          [[ "$system_identifier" =~ ^[0-9]{10,20}$ ]] || { echo "PostgreSQL service system identifier is invalid."; exit 1; }
+          [[ "$user_object_count" == 0 ]] || { echo "Fresh PostgreSQL service contains user objects before migrations."; exit 1; }
+          PGPASSWORD="$CORNHILL_DB_ADMIN_PASSWORD" createdb \
+            --host 127.0.0.1 --port 54329 --username "$CORNHILL_DB_ADMIN_USER" "$database"
+          {
+            printf 'CORNHILL_DB_NAME=%s\n' "$database"
+            printf 'CORNHILL_DB_TARGET=isolated-test\n'
+            printf 'CORNHILL_ALLOW_ISOLATED_TEST_MIGRATIONS=true\n'
+            printf 'CORNHILL_DB_ISOLATED_SERVER_PORT=%s\n' "$server_port"
+            printf 'CORNHILL_DB_ISOLATED_SYSTEM_IDENTIFIER=%s\n' "$system_identifier"
+            printf 'CORNHILL_DB_ISOLATED_DATA_DIRECTORY=%s\n' "$data_directory"
+          } >> "$GITHUB_ENV"
+          echo "Verified PostgreSQL ${server_version} and created a unique empty CI-only database."
 
-      - name: Provision authentication and finance roles in temporary CI database
-        run: node --env-file=.env scripts/provision-local-finance-roles.mjs
+      - name: Provision CI-only authentication and finance roles
+        run: node scripts/provision-local-finance-roles.mjs
 
       - name: Apply all isolated local migrations
         env:
-          CORNHILL_ALLOW_LOCAL_MIGRATIONS: "true"
-          CORNHILL_DB_TARGET: local-development
-        run: npm run db:migrate
+          CORNHILL_ALLOW_ISOLATED_TEST_MIGRATIONS: "true"
+        run: node scripts/migrate.mjs
 
-      - name: Verify all migrations are safely repeatable
+      - name: Verify migrations are safely repeatable
         env:
-          CORNHILL_ALLOW_LOCAL_MIGRATIONS: "true"
-          CORNHILL_DB_TARGET: local-development
-        run: npm run db:migrate
+          CORNHILL_ALLOW_ISOLATED_TEST_MIGRATIONS: "true"
+        run: node scripts/migrate.mjs
 
       - name: Verify PostgreSQL tables, roles and schema permissions
-        run: node --env-file=.env scripts/verify-local-schema.mjs
+        run: node scripts/verify-local-schema.mjs
 
       - name: Exercise PostgreSQL authentication repositories
-        run: npm run db:verify-auth
+        run: node scripts/verify-auth-repositories.mjs
 
       - name: Verify least-privilege authentication database role
-        run: npm run db:verify-runtime
+        run: node scripts/verify-local-runtime-role.mjs
 
-      - name: Verify local learner and admissions schema
-        run: npm run db:verify-school
+      - name: Verify learner, academic history, staff, attendance and payroll integrity
+        run: node scripts/verify-local-school-schema.mjs
 
       - name: Verify local atomic payment workflow and finance role
-        run: npm run db:verify-finance
+        run: node scripts/verify-local-finance.mjs
+
+      - name: Install PostgreSQL 17 backup/restore client tools
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          pg_dump --version
+          pg_restore --version
+
+      - name: Verify backup and restore against a second isolated database
+        run: node scripts/verify-isolated-postgres-backup-restore.mjs
 
   windows-unit:
     runs-on: windows-latest
