@@ -10,7 +10,10 @@ const PNG = Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
 async function fixture(t) {
   const parent = await mkdtemp(join(tmpdir(), "cornhill-evidence-"));
   const root = join(parent, "private");
-  const store = await createPrivateEvidenceStore({ rootPath: root });
+  // Keep filesystem behavior tests independent from machine-wide Windows ACL
+  // policy. The ACL command and its fail-closed behavior are tested separately
+  // below with a controlled runner.
+  const store = await createPrivateEvidenceStore({ rootPath: root, windowsAclRunner: async () => ({ stdout: "", stderr: "" }) });
   t.after(() => rm(parent, { recursive: true, force: true }));
   return { parent, root, store };
 }
