@@ -66,18 +66,38 @@ function validate(body,actorStaffId){
     takesBreakfast:body.takesBreakfast===true,takesLunch:body.takesLunch===true,
     reason:text(body.reason,300,"Admission reason",false),guardian};
 }
+function validateProgression(body,learnerId,actorStaffId){
+  if(!Object.hasOwn(body,"classId"))throw new InputError("Choose a destination class or explicitly record P.7 completion.");
+  const toClassId=body.classId===null?null:body.classId;
+  if(toClassId!==null&&!isLocalUuid(toClassId))throw new InputError("Select a valid destination class.");
+  if(!isLocalUuid(body.academicTermId))throw new InputError("Choose the academic term for this progression.");
+  if(!isCalendarDate(body.effectiveDate))throw new InputError("Progression date must be a valid calendar date in YYYY-MM-DD format.");
+  const reason=text(body.reason,300,"Progression reason");
+  if(reason.length<2)throw new InputError("Progression reason is too short.");
+  return {learnerId,actorStaffId,toClassId,academicTermId:body.academicTermId,effectiveDate:body.effectiveDate,reason};
+}
 export function createAdmissionsHttpHandler({authService,admissionsRepository,expectedOrigin}={}){
   if(!authService||typeof authService.authenticate!=="function"||!admissionsRepository||typeof admissionsRepository.registerLearner!=="function")throw new TypeError("Admissions API dependencies are incomplete.");
   const origin=new URL(expectedOrigin);if(origin.protocol!=="https:"||origin.origin!==expectedOrigin||origin.pathname!=="/")throw new TypeError("An exact HTTPS origin is required.");
   return async function handleAdmissions(request,response){
     let url;try{url=new URL(request.url??"/",origin);}catch{return false;}
-    if(url.pathname!=="/api/v1/school/admissions")return false;
+    const progressionMatch=url.pathname.match(/^\/api\/v1\/school\/learners\/([0-9a-f-]{36})\/progression$/i);
+    const isAdmissions=url.pathname==="/api/v1/school/admissions";
+    if(!isAdmissions&&!progressionMatch)return false;
     const method=String(request.method??"GET").toUpperCase();
     if(method!=="POST"){response.writeHead(405,{...HEADERS,Allow:"POST","Content-Length":0});response.end();return true;}
     if(request.socket?.encrypted!==true){send(response,426,{error:"Secure HTTPS transport is required."});return true;}
     if(request.headers.host!==origin.host||request.headers.origin!==origin.origin){send(response,421,{error:"Request origin is not authorised."});return true;}
     try{
       const principal=await authService.authenticate({sessionToken:readSessionTokenFromCookieHeader(request.headers.cookie),method,csrfToken:request.headers["x-cornhill-csrf"] ?? readCsrfTokenFromCookieHeader(request.headers.cookie)});
+      if(progressionMatch){
+        if(principal.principalType!=="staff"||!staffHasPermission({principal,permissionCode:"learners.manage"}))throw new AuthorizationError();
+        if(typeof admissionsRepository.progressLearner!=="function")throw new Error("Learner progression is not available.");
+        const input=validateProgression(await readBody(request),progressionMatch[1],principal.id);
+        const progression=await admissionsRepository.progressLearner(input);
+        send(response,201,{progression});
+        return true;
+      }
       if(principal.principalType!=="staff"||!staffHasPermission({principal,permissionCode:"admissions.register_learner"}))throw new AuthorizationError();
       const body=validate(await readBody(request),principal.id);
       if(body.lin&&!staffHasPermission({principal,permissionCode:"learners.lin_manage"}))throw new AuthorizationError();
@@ -92,6 +112,9 @@ export function createAdmissionsHttpHandler({authService,admissionsRepository,ex
       else if(error instanceof AuthorizationError)send(response,403,{error:"You are not authorised to register this learner."});
       else if(error instanceof CsrfValidationError)send(response,403,{error:"The request could not be verified."});
       else if(error instanceof AuthenticationServiceError)send(response,503,{error:"Authentication is temporarily unavailable."});
+      else if(error?.code==="42501")send(response,403,{error:"You are not authorised to manage this learner's class history."});
+      else if(error?.code==="23514"||error?.code==="23503")send(response,409,{error:"The requested progression conflicts with the learner's current enrolment or academic term."});
+      else if(error?.code==="22023")send(response,400,{error:"Progression details are invalid."});
       else if(error?.code==="23505")send(response,409,{error:"The LIN or learner details conflict with an existing record."});
       else send(response,503,{error:"Learner admission could not be completed.",requestId:randomUUID()});
     }

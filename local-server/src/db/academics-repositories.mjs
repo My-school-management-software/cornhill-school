@@ -294,6 +294,52 @@ export function createPostgresAcademicsRepository(pool) {
       } finally {
         client.release();
       }
+    },
+
+    async generateReportCards({ assessmentId, staffId }) {
+      assertUuid(assessmentId, "Assessment ID");
+      assertUuid(staffId, "Staff ID");
+      const result = await pool.query(
+        "SELECT cornhill_school.generate_academic_report_cards($1::uuid,$2::uuid)::int AS \"generatedCount\"",
+        [assessmentId, staffId]
+      );
+      return { generatedCount: Number(result.rows[0]?.generatedCount ?? 0) };
+    },
+
+    async getLearnerReportCards(learnerId, classIds = null) {
+      assertUuid(learnerId, "Learner ID");
+      if (classIds !== null && (!Array.isArray(classIds) || classIds.some(classId => !UUID_PATTERN.test(classId)))) {
+        throw new TypeError("Report-card class scope is invalid.");
+      }
+      const result = await pool.query(
+        "SELECT id::text AS id, learner_id::text AS \"learnerId\", assessment_id::text AS \"assessmentId\", " +
+        "academic_year_id::text AS \"academicYearId\", academic_term_id::text AS \"academicTermId\", " +
+        "class_id::text AS \"classId\", enrolment_period_id::text AS \"enrolmentPeriodId\", " +
+        "pupil_code_snapshot AS \"pupilCode\", lin_snapshot AS lin, learner_name_snapshot AS \"learnerName\", " +
+        "p7_index_number_snapshot AS \"p7IndexNumber\", class_code_snapshot AS \"classCode\", " +
+        "class_name_snapshot AS \"className\", assessment_name_snapshot AS \"assessmentName\", " +
+        "assessment_type_snapshot AS \"assessmentType\", assessment_date::text AS \"assessmentDate\", " +
+        "academic_year_label_snapshot AS \"academicYear\", " +
+        "academic_term_number_snapshot AS \"termNumber\", academic_term_name_snapshot AS \"termName\", " +
+        "grading_scheme_code AS \"gradingScheme\", subject_results AS subjects, " +
+        "total_score::text AS \"totalScore\", total_possible::text AS \"totalPossible\", " +
+        "average_percent::text AS \"averagePercent\", aggregate_total AS aggregate, " +
+        "division_code AS division, class_position AS position, class_size AS \"classSize\", " +
+        "generated_at AS \"generatedAt\" " +
+        "FROM cornhill_school.academic_report_cards WHERE learner_id=$1::uuid " +
+        "AND ($2::uuid[] IS NULL OR class_id=ANY($2::uuid[])) " +
+        "ORDER BY assessment_date DESC, generated_at DESC LIMIT 200",
+        [learnerId, classIds]
+      );
+      return result.rows.map(row => ({
+        ...row,
+        totalScore: Number(row.totalScore),
+        totalPossible: Number(row.totalPossible),
+        averagePercent: Number(row.averagePercent),
+        aggregate: row.aggregate == null ? null : Number(row.aggregate),
+        position: Number(row.position),
+        classSize: Number(row.classSize)
+      }));
     }
   });
 }

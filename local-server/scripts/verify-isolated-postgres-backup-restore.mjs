@@ -10,7 +10,7 @@ import {
   assertIsolatedPostgresServerIdentity
 } from "../src/db/migrations.mjs";
 
-const EXPECTED_MIGRATION_COUNT = 94;
+const EXPECTED_MIGRATION_COUNT = 95;
 
 function quoteIdentifier(value) {
   if (!/^cornhill_isolated_test_[a-f0-9]{32}$/.test(value)) {
@@ -54,9 +54,9 @@ async function readIdentity(pool) {
            (SELECT count(*)::integer
               FROM pg_class c
               JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE c.relkind IN ('r', 'p')
+             WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
                AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-               AND n.nspname NOT LIKE 'pg_toast%') AS user_table_count
+               AND n.nspname NOT LIKE 'pg_toast%') AS user_object_count
   `);
   return result.rows[0];
 }

@@ -165,7 +165,9 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
       typeof academicsRepository.getAssessmentMarks !== "function" ||
       typeof academicsRepository.createAssessment !== "function" ||
       typeof academicsRepository.transitionAssessment !== "function" ||
-      typeof academicsRepository.saveMarks !== "function") {
+      typeof academicsRepository.saveMarks !== "function" ||
+      typeof academicsRepository.generateReportCards !== "function" ||
+      typeof academicsRepository.getLearnerReportCards !== "function") {
     throw new TypeError("Academic API dependencies are incomplete.");
   }
   let origin;
@@ -180,18 +182,22 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
     const url = new URL(request.url ?? "/", origin);
     const marksMatch = url.pathname.match(/^\/api\/v1\/academics\/assessments\/([0-9a-f-]{36})\/marks$/i);
     const statusMatch = url.pathname.match(/^\/api\/v1\/academics\/assessments\/([0-9a-f-]{36})\/status$/i);
+    const reportCardsMatch = url.pathname.match(/^\/api\/v1\/academics\/assessments\/([0-9a-f-]{36})\/report-cards$/i);
+    const learnerReportCardsMatch = url.pathname.match(/^\/api\/v1\/academics\/learners\/([0-9a-f-]{36})\/report-cards$/i);
     const isWorkspace = url.pathname === "/api/v1/academics/workspace";
     const isYears = url.pathname === "/api/v1/academics/years";
     const isTerms = url.pathname === "/api/v1/academics/terms";
     const isAssessments = url.pathname === "/api/v1/academics/assessments";
     const isMarks = url.pathname === "/api/v1/academics/marks";
-    if (!isWorkspace && !isYears && !isTerms && !isAssessments && !isMarks && !marksMatch && !statusMatch) return false;
+    if (!isWorkspace && !isYears && !isTerms && !isAssessments && !isMarks && !marksMatch && !statusMatch &&
+        !reportCardsMatch && !learnerReportCardsMatch) return false;
 
     const method = String(request.method ?? "GET").toUpperCase();
     const allowed = isWorkspace || marksMatch ? ["GET", "HEAD"] :
       isYears || isTerms ? ["POST"] :
       isAssessments ? ["GET", "HEAD", "POST"] :
-      isMarks ? ["POST"] : ["PATCH"];
+      isMarks || reportCardsMatch ? ["POST"] :
+      learnerReportCardsMatch ? ["GET", "HEAD"] : ["PATCH"];
     if (!allowed.includes(method)) {
       response.writeHead(405, { ...HEADERS, Allow: allowed.join(", "), "Content-Length": 0 });
       response.end();
@@ -214,6 +220,32 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
         sessionToken: readSessionTokenFromCookieHeader(request.headers.cookie),
         method, csrfToken
       });
+
+      if (reportCardsMatch) {
+        requireAcademicPermission(principal, ["academics.results_publish"]);
+        const assessment = await academicsRepository.getAssessment(reportCardsMatch[1]);
+        if (!assessment) {
+          send(response, 404, { error: "Assessment was not found." }, method);
+          return true;
+        }
+        if (isClassScoped(principal)) requireClassScope(principal, assessment.classId);
+        const result = await academicsRepository.generateReportCards({
+          assessmentId: assessment.id, staffId: principal.id
+        });
+        send(response, 201, { assessmentId: assessment.id, ...result });
+        return true;
+      }
+
+      if (learnerReportCardsMatch) {
+        requireAcademicPermission(principal, ["academics.results_view"]);
+        const classIds = isClassScoped(principal) ? principal.classIds : null;
+        const rows = await academicsRepository.getLearnerReportCards(learnerReportCardsMatch[1], classIds);
+        const reportCards = isClassScoped(principal)
+          ? rows.filter(reportCard => staffHasClassAssignment({ principal, classId: reportCard.classId }))
+          : rows;
+        send(response, 200, reportCards, method);
+        return true;
+      }
 
       if (isYears || isTerms) {
         requireAcademicPermission(principal, ["academics.terms_manage"]);
@@ -318,6 +350,7 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
       else if (error instanceof AuthorizationError) send(response, 403, { error: "You are not authorised to access this academic record." });
       else if (error instanceof CsrfValidationError) send(response, 403, { error: "The request could not be verified." });
       else if (error instanceof AuthenticationServiceError) send(response, 503, { error: "Authentication is temporarily unavailable." });
+      else if (error?.code === "42501") send(response, 403, { error: "You are not authorised to access this academic record." });
       else if (error?.code === "CORNHILL_ACADEMIC_CONFLICT" || error?.code === "23505" ||
                error?.code === "23514" || error?.code === "23503") {
         send(response, 409, { error: error.message === "Assessment not found." ? error.message : "The academic change conflicts with the current assessment or learner records." });

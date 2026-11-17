@@ -6,6 +6,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+Import-Module (Join-Path $PSScriptRoot "Local-DatabaseBackup.psm1") -Force
 $Branch = "feat/cornhill-integration-batch-20261115"
 
 function Stop-WithGuidance([string]$Message) {
@@ -131,6 +132,22 @@ if (-not $SkipDatabase) {
   }
   $service = Get-Service -Name "postgresql-x64-17" -ErrorAction SilentlyContinue
   if (-not $service -or $service.Status -ne "Running") { Stop-WithGuidance "Start the PostgreSQL 17 Windows service, then run the update again." }
+
+  $pgBin = "C:\Program Files\PostgreSQL\17\bin"
+  $databaseUser = if ($config.ContainsKey("CORNHILL_DB_ADMIN_USER")) { $config["CORNHILL_DB_ADMIN_USER"] } else { "" }
+  $databasePassword = if ($config.ContainsKey("CORNHILL_DB_ADMIN_PASSWORD")) { $config["CORNHILL_DB_ADMIN_PASSWORD"] } else { "" }
+  Write-Host "Creating and validating a private pre-migration database backup..."
+  try {
+    $preMigrationBackup = New-CornhillPreMigrationBackup `
+      -PostgresBin $pgBin -ServerHost "127.0.0.1" -Port 5432 `
+      -Database $dbName -Username $databaseUser -Password $databasePassword
+  } catch {
+    Stop-WithGuidance "The pre-migration backup could not be created and verified. No database migrations were started. Preserve any partial archive and resolve the backup problem before retrying."
+  } finally {
+    $databasePassword = $null
+  }
+  Write-Host "Verified pre-migration backup: $($preMigrationBackup.Path)"
+  $databaseUser = $null
 
   $env:CORNHILL_ALLOW_LOCAL_MIGRATIONS = "true"
   $env:CORNHILL_DB_TARGET = "local-development"

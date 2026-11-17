@@ -111,6 +111,20 @@ export function createPostgresAdmissionsRepository(pool) {
       } finally {
         client.release();
       }
+    },
+    async progressLearner({learnerId,actorStaffId,toClassId,academicTermId,effectiveDate,reason}) {
+      if (!UUID_PATTERN.test(learnerId ?? "") || !UUID_PATTERN.test(actorStaffId ?? "") ||
+          (toClassId !== null && !UUID_PATTERN.test(toClassId ?? "")) ||
+          !UUID_PATTERN.test(academicTermId ?? "") ||
+          typeof effectiveDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate) ||
+          typeof reason !== "string" || reason.trim().length < 2 || reason.trim().length > 300) {
+        throw new TypeError("Learner progression input is invalid.");
+      }
+      const result = await pool.query(
+        "SELECT cornhill_school.record_learner_progression($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::date,$6)::text AS \"progressionEventId\"",
+        [actorStaffId,learnerId,toClassId,academicTermId,effectiveDate,reason.trim()]
+      );
+      return { progressionEventId: result.rows[0]?.progressionEventId };
     }
   });
 }

@@ -21,6 +21,11 @@ test("academic workspace uses local APIs, CSRF and role permissions", () => {
   assert.match(js, /X-Cornhill-CSRF/);
   assert.match(js, /academics\.marks_enter/);
   assert.match(js, /academics\.results_publish/);
+  assert.match(html, /id="report-history-panel"/);
+  assert.match(js, /\/academics\/assessments\/" \+ assessment\.id \+ "\/report-cards/);
+  assert.match(js, /\/academics\/learners\/" \+ learnerId \+ "\/report-cards/);
+  assert.match(js, /Generate report cards/);
+  assert.match(js, /createElement\("details"\)/);
   assert.match(js, /credentials: "same-origin"/);
   assert.doesNotMatch(js, /supabase|localStorage\.setItem|sessionStorage\.setItem/i);
 });

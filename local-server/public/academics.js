@@ -153,6 +153,11 @@ function renderMarks(data) {
     }
   }
   $("save-marks").hidden = !editable;
+  const learnerSelect = $("report-history-learner");
+  setOptions(learnerSelect, "Choose a learner", data.learners,
+    item => item.pupilCode + " · " + [item.firstName, item.middleName, item.lastName].filter(Boolean).join(" "));
+  $("report-history-panel").hidden = !can("academics.results_view");
+  $("report-history").textContent = "Choose a learner to view saved report cards.";
   $("mark-summary").textContent = data.learners.length + " learners · " + data.subjects.length +
     " subjects · " + existing + " saved mark(s) · maximum " + data.assessment.maxScore;
   renderWorkflowActions(data.assessment);
@@ -179,6 +184,78 @@ function renderWorkflowActions(assessment) {
   if (assessment.status === "Draft") add("Open assessment", "Open", "academics.assessments_manage");
   if (assessment.status === "Open") add("Lock marks", "Locked", "academics.assessments_manage");
   if (assessment.status === "Locked") add("Publish results", "Published", "academics.results_publish");
+  if (assessment.status === "Published" && can("academics.results_publish")) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Generate report cards";
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const result = await api("/academics/assessments/" + assessment.id + "/report-cards", { method: "POST", body: {} });
+        notice(result.generatedCount + " historical report card(s) are saved for this assessment.");
+      } catch (error) { notice(error.message, true); }
+      finally { button.disabled = false; }
+    });
+    host.append(button);
+  }
+}
+function renderReportCards(cards) {
+  const host = $("report-history");
+  host.replaceChildren();
+  if (!cards.length) {
+    host.textContent = "No saved report cards are available for this learner and your class access.";
+    return;
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "table-wrap";
+  const table = document.createElement("table");
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  for (const label of ["Academic period", "Class and assessment", "Total", "Average", "Aggregate / division", "Position", "Subject results"]) {
+    const cell = document.createElement("th");
+    cell.textContent = label;
+    headRow.append(cell);
+  }
+  head.append(headRow);
+  table.append(head);
+  const body = document.createElement("tbody");
+  for (const card of cards) {
+    const row = document.createElement("tr");
+    appendCell(row, card.academicYear + " · " + card.termName);
+    appendCell(row, card.className + " · " + card.assessmentName + " · " + card.assessmentDate);
+    appendCell(row, Number(card.totalScore).toFixed(2) + " / " + Number(card.totalPossible).toFixed(2));
+    appendCell(row, Number(card.averagePercent).toFixed(2) + "%");
+    appendCell(row, card.aggregate == null ? "—" : String(card.aggregate) + (card.division ? " · " + card.division : ""));
+    appendCell(row, card.position + " of " + card.classSize);
+    const subjectCell = document.createElement("td");
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Show subjects";
+    details.append(summary);
+    const list = document.createElement("ul");
+    for (const subject of card.subjects || []) {
+      const item = document.createElement("li");
+      item.textContent = subject.subjectName + ": " + subject.score + " / " + subject.maxScore +
+        " (" + subject.percent + "%, " + subject.grade + ")" + (subject.comment ? " · " + subject.comment : "");
+      list.append(item);
+    }
+    details.append(list);
+    subjectCell.append(details);
+    row.append(subjectCell);
+    body.append(row);
+  }
+  table.append(body);
+  wrap.append(table);
+  host.append(wrap);
+}
+async function loadReportHistory() {
+  const learnerId = $("report-history-learner").value;
+  if (!learnerId || !can("academics.results_view")) return;
+  try {
+    const cards = await api("/academics/learners/" + learnerId + "/report-cards");
+    renderReportCards(cards);
+    notice(cards.length + " historical report card(s) loaded.");
+  } catch (error) { notice(error.message, true); }
 }
 async function loadSelectedAssessment() {
   const id = $("assessment-select").value;
@@ -189,6 +266,7 @@ async function loadSelectedAssessment() {
     $("empty").textContent = "Choose an assessment to load the class mark register.";
     $("assessment-status").textContent = "No assessment selected";
     $("workflow-actions").replaceChildren();
+    $("report-history-panel").hidden = true;
     return;
   }
   try {
@@ -288,6 +366,7 @@ $("class-select").addEventListener("change", async () => {
 $("term-select").addEventListener("change", () => { renderAssessments(); loadSelectedAssessment(); });
 $("assessment-select").addEventListener("change", loadSelectedAssessment);
 $("reload-marks").addEventListener("click", loadSelectedAssessment);
+$("load-report-history").addEventListener("click", loadReportHistory);
 $("save-marks").addEventListener("click", async () => {
   try { await saveMarks(); } catch (error) { notice(error.message, true); }
 });

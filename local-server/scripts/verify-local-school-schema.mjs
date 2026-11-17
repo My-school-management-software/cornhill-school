@@ -27,7 +27,11 @@ try {
   );
   const expected = [
     "academic_audit_events",
+    "academic_division_bands",
+    "academic_grade_bands",
+    "academic_grading_schemes",
     "academic_period_audit_events",
+    "academic_report_cards",
     "academic_terms",
     "academic_years",
     "admission_enquiries",
@@ -63,6 +67,7 @@ try {
     "guardian_contacts",
     "learner_code_aliases",
     "learner_marks",
+    "learner_progression_events",
     "learners",
     "payment_allocations",
     "payment_credit_allocation_batches",
@@ -95,12 +100,31 @@ try {
     "Local school table inventory mismatch. Expected: " + JSON.stringify(expected) + "; actual: " + JSON.stringify(tables.rows.map(row => row.table_name)));
 
   const academicTriggers = await pool.query(
-    "SELECT tgname FROM pg_trigger WHERE tgname IN ('academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard') AND NOT tgisinternal"
+    "SELECT tgname FROM pg_trigger WHERE tgname IN ('academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard','academic_report_cards_append_only','learner_progression_events_append_only','academic_division_band_overlap_guard') AND NOT tgisinternal"
   );
   const academicTriggerNames = new Set(academicTriggers.rows.map(row => row.tgname));
-  for (const name of ['academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard']) {
+  for (const name of ['academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard','academic_report_cards_append_only','learner_progression_events_append_only','academic_division_band_overlap_guard']) {
     assert(academicTriggerNames.has(name), "Missing academic integrity trigger: " + name);
   }
+  const academicScales = await pool.query(
+    "SELECT scheme_code, class_section, first_level, last_level, uses_subject_aggregates FROM cornhill_school.academic_grading_schemes ORDER BY first_level"
+  );
+  assert(academicScales.rowCount === 3
+    && academicScales.rows[0]?.scheme_code === "nursery_ae"
+    && academicScales.rows[1]?.scheme_code === "lower_primary_ae"
+    && academicScales.rows[2]?.scheme_code === "upper_primary_uneb"
+    && academicScales.rows[2]?.uses_subject_aggregates === true,
+    "Nursery, P.1–P.3 and P.4–P.7 must use separate preserved grading structures.");
+  const upperScale = await pool.query(
+    "SELECT count(*)::int AS count, min_percent, max_percent FROM cornhill_school.academic_grade_bands WHERE scheme_code='upper_primary_uneb' AND subject_id=(SELECT id FROM cornhill_school.subjects WHERE subject_code='ENGLISH') AND grade_code='D1' GROUP BY min_percent,max_percent"
+  );
+  assert(upperScale.rowCount === 1 && upperScale.rows[0].count === 1
+    && Number(upperScale.rows[0].min_percent) === 89
+    && Number(upperScale.rows[0].max_percent) === 100,
+    "P.4–P.7 grade scale must retain the verified workbook boundaries.");
+  const divisionRules = await pool.query("SELECT count(*)::int AS count FROM cornhill_school.academic_division_bands");
+  assert(divisionRules.rows[0]?.count === 0,
+    "Unverified aggregate-to-division cut-offs must not be seeded as school policy.");
   const academicPrivileges = await pool.query(
     "SELECT has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_terms','SELECT') AS term_read, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.assessments','status','UPDATE') AS assessment_status_update, " +
@@ -110,7 +134,13 @@ try {
     "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_audit_events','INSERT') AS audit_insert, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.academic_years','year_label','INSERT') AS year_insert, " +
     "has_column_privilege('cornhill_auth_runtime','cornhill_school.academic_terms','term_number','INSERT') AS term_insert, " +
-    "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_period_audit_events','INSERT') AS period_audit_insert"
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_period_audit_events','INSERT') AS period_audit_insert, " +
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_report_cards','SELECT') AS report_cards_read, " +
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.academic_report_cards','INSERT') AS report_cards_insert, " +
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.learner_progression_events','SELECT') AS progression_read, " +
+    "has_table_privilege('cornhill_auth_runtime','cornhill_school.learner_progression_events','INSERT') AS progression_insert, " +
+    "has_function_privilege('cornhill_auth_runtime','cornhill_school.generate_academic_report_cards(uuid,uuid)','EXECUTE') AS report_generation_execute, " +
+    "has_function_privilege('cornhill_auth_runtime','cornhill_school.record_learner_progression(uuid,uuid,uuid,uuid,date,text)','EXECUTE') AS progression_execute"
   );
   assert(academicPrivileges.rows[0]?.term_read === true
     && academicPrivileges.rows[0]?.year_insert === true
@@ -120,7 +150,13 @@ try {
     && academicPrivileges.rows[0]?.assessment_name_update === false
     && academicPrivileges.rows[0]?.marks_insert === true
     && academicPrivileges.rows[0]?.enrolment_class_read === true
-    && academicPrivileges.rows[0]?.audit_insert === false,
+    && academicPrivileges.rows[0]?.audit_insert === false
+    && academicPrivileges.rows[0]?.report_cards_read === true
+    && academicPrivileges.rows[0]?.report_cards_insert === false
+    && academicPrivileges.rows[0]?.progression_read === true
+    && academicPrivileges.rows[0]?.progression_insert === false
+    && academicPrivileges.rows[0]?.report_generation_execute === true
+    && academicPrivileges.rows[0]?.progression_execute === true,
     "Academic API database privileges must remain narrowly scoped.");
   const academicGuardSql = await pool.query(
     "SELECT pg_get_functiondef('cornhill_school.guard_learner_mark_scope()'::regprocedure) AS definition"
@@ -504,19 +540,40 @@ try {
     );
     assert(duplicatePrimaryRejected, "Only one active primary guardian is allowed per learner.");
 
-    await client.query(
-      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id) VALUES ($1, CURRENT_DATE, (SELECT id FROM cornhill_school.classes WHERE class_code = 'P1'))",
+    const firstActiveEnrolment = await client.query(
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id) VALUES ($1, '2026-01-01', (SELECT id FROM cornhill_school.classes WHERE class_code = 'P1')) RETURNING id",
       [first.rows[0].id]
     );
+    await client.query(
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id) VALUES ($1, '2026-01-01', (SELECT id FROM cornhill_school.classes WHERE class_code = 'P1'))",
+      [second.rows[0].id]
+    );
+    await client.query("UPDATE cornhill_school.learners SET class_id=(SELECT id FROM cornhill_school.classes WHERE class_code='P1') WHERE id IN ($1,$2)",
+      [first.rows[0].id, second.rows[0].id]);
     const duplicateActivePeriodRejected = await expectPgError(
       client, "duplicate_active_enrolment_test",
-      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id) VALUES ($1, CURRENT_DATE, (SELECT id FROM cornhill_school.classes WHERE class_code = 'P2'))",
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id) VALUES ($1, '2026-01-01', (SELECT id FROM cornhill_school.classes WHERE class_code = 'P2'))",
       [first.rows[0].id], "23505"
     );
     assert(duplicateActivePeriodRejected, "A learner cannot have two active enrolment periods.");
 
     const staff = await client.query(
       "INSERT INTO cornhill_auth.staff_accounts (username, username_normalized, password_hash, account_status) VALUES ('ci-finance', 'ci-finance', '$argon2id$ci-test', 'active') RETURNING id"
+    );
+    const academicStaff = await client.query(
+      "INSERT INTO cornhill_auth.staff_accounts (username, username_normalized, password_hash, account_status) VALUES ('ci-academic-approver', 'ci-academic-approver', '$argon2id$ci-test', 'active') RETURNING id"
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.staff_profiles (staff_account_id, staff_number, legal_name, job_title) VALUES ($1, 'CI-ACADEMIC-001', 'CI Academic Approver', 'Director of Studies')",
+      [academicStaff.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_assignments (staff_account_id, role_code, assigned_by) VALUES ($1, 'director_of_studies', $1)",
+      [academicStaff.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_auth.staff_role_permissions (role_code, permission_code, granted_by_staff_id) VALUES ('director_of_studies', 'academics.results_publish', $1), ('director_of_studies', 'learners.manage', $1) ON CONFLICT (role_code, permission_code) DO NOTHING",
+      [academicStaff.rows[0].id]
     );
 
     // Exercise the real admissions repository against PostgreSQL while keeping
@@ -589,19 +646,27 @@ try {
       "INSERT INTO cornhill_school.academic_terms (academic_year_id, term_number, term_name, starts_on, ends_on, status) VALUES ($1, 1, 'Term 1', '2025-01-01', '2025-04-30', 'Completed') RETURNING id",
       [yearPrevious.rows[0].id]
     );
+    const termCompletion = await client.query(
+      "INSERT INTO cornhill_school.academic_terms (academic_year_id, term_number, term_name, starts_on, ends_on, status) VALUES ($1, 3, 'Term 3', '2025-09-01', '2025-12-31', 'Completed') RETURNING id",
+      [yearPrevious.rows[0].id]
+    );
     const termCurrent = await client.query(
-      "INSERT INTO cornhill_school.academic_terms (academic_year_id, term_number, term_name, starts_on, ends_on, status) VALUES ($1, 1, 'Term 1', '2026-01-01', '2026-04-30', 'Active') RETURNING id",
+      "INSERT INTO cornhill_school.academic_terms (academic_year_id, term_number, term_name, starts_on, ends_on, status) VALUES ($1, 1, 'Term 1', '2026-01-01', '2026-12-31', 'Active') RETURNING id",
       [yearCurrent.rows[0].id]
     );
 
     const p6Class = await client.query("SELECT id FROM cornhill_school.classes WHERE class_code = 'P6'");
     const p7Class = await client.query("SELECT id FROM cornhill_school.classes WHERE class_code = 'P7'");
-    const p7English = await client.query(
-      "SELECT s.id FROM cornhill_school.subjects s JOIN cornhill_school.class_subjects cs ON cs.subject_id = s.id WHERE cs.class_id = $1 AND s.subject_code = 'ENGLISH'",
+    const p7Subjects = await client.query(
+      "SELECT s.id, s.subject_code FROM cornhill_school.subjects s JOIN cornhill_school.class_subjects cs ON cs.subject_id = s.id WHERE cs.class_id = $1 AND cs.is_active=true ORDER BY s.subject_code",
       [p7Class.rows[0].id]
     );
     const p7Learner = await client.query(
       "INSERT INTO cornhill_school.learners (first_name, last_name, gender, class_id, p7_index_number) VALUES ('CI', 'P7History', 'Female', $1, 'CI-P7-0001') RETURNING id",
+      [p7Class.rows[0].id]
+    );
+    const p7SecondLearner = await client.query(
+      "INSERT INTO cornhill_school.learners (first_name, last_name, gender, class_id, p7_index_number, status) VALUES ('CI', 'P7RankedSecond', 'Male', $1, 'CI-P7-0002', 'Graduated') RETURNING id",
       [p7Class.rows[0].id]
     );
     const p6Enrolment = await client.query(
@@ -609,23 +674,90 @@ try {
       [p7Learner.rows[0].id, p6Class.rows[0].id]
     );
     const p7Enrolment = await client.query(
-      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, exit_date, class_id, status, previous_period_id) VALUES ($1, '2025-01-01', '2025-12-31', $2, 'Completed', $3) RETURNING id",
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, class_id, status, previous_period_id) VALUES ($1, '2025-01-01', $2, 'Active', $3) RETURNING id",
       [p7Learner.rows[0].id, p7Class.rows[0].id, p6Enrolment.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.enrolment_periods (learner_id, admission_date, exit_date, class_id, status) VALUES ($1, '2025-01-01', '2025-12-31', $2, 'Completed')",
+      [p7SecondLearner.rows[0].id, p7Class.rows[0].id]
     );
     const p7Assessment = await client.query(
       "INSERT INTO cornhill_school.assessments (academic_term_id, class_id, assessment_name, assessment_type, assessment_date, max_score, status, created_by_staff_id) VALUES ($1, $2, 'CI Historical End of Term', 'End of Term', '2025-04-15', 100, 'Open', $3) RETURNING id",
       [termPrevious.rows[0].id, p7Class.rows[0].id, staff.rows[0].id]
     );
+    const firstP7Scores = { ENGLISH: 87, MATHEMATICS: 78, SCIENCE: 69, SOCIAL_STUDIES: 45 };
+    const secondP7Scores = { ENGLISH: 50, MATHEMATICS: 60, SCIENCE: 40, SOCIAL_STUDIES: 30 };
+    for (const subject of p7Subjects.rows) {
+      await client.query(
+        "INSERT INTO cornhill_school.learner_marks (assessment_id, learner_id, class_id, subject_id, score, max_score, entered_by_staff_id) VALUES ($1, $2, $3, $4, $5, 100, $6), ($1, $7, $3, $4, $8, 100, $6)",
+        [p7Assessment.rows[0].id, p7Learner.rows[0].id, p7Class.rows[0].id, subject.id,
+          firstP7Scores[subject.subject_code], staff.rows[0].id,
+          p7SecondLearner.rows[0].id, secondP7Scores[subject.subject_code]]
+      );
+    }
     await client.query(
-      "INSERT INTO cornhill_school.learner_marks (assessment_id, learner_id, class_id, subject_id, score, max_score, entered_by_staff_id) VALUES ($1, $2, $3, $4, 87, 100, $5)",
-      [p7Assessment.rows[0].id, p7Learner.rows[0].id, p7Class.rows[0].id, p7English.rows[0].id, staff.rows[0].id]
+      "UPDATE cornhill_school.assessments SET status='Locked', locked_at=now(), last_updated_by_staff_id=$2, updated_at=now() WHERE id=$1",
+      [p7Assessment.rows[0].id, academicStaff.rows[0].id]
     );
-    await client.query("UPDATE cornhill_school.learners SET status = 'Graduated' WHERE id = $1", [p7Learner.rows[0].id]);
+    await client.query(
+      "UPDATE cornhill_school.assessments SET status='Published', published_at=now(), last_updated_by_staff_id=$2, updated_at=now() WHERE id=$1",
+      [p7Assessment.rows[0].id, academicStaff.rows[0].id]
+    );
+    const generatedReportCards = await client.query(
+      "SELECT cornhill_school.generate_academic_report_cards($1::uuid,$2::uuid)::int AS count",
+      [p7Assessment.rows[0].id, academicStaff.rows[0].id]
+    );
+    assert(generatedReportCards.rows[0]?.count === 2,
+      "Published P.7 assessment must generate a historical report-card snapshot for each enrolled learner.");
+    const repeatedReportCardGeneration = await client.query(
+      "SELECT cornhill_school.generate_academic_report_cards($1::uuid,$2::uuid)::int AS count",
+      [p7Assessment.rows[0].id, academicStaff.rows[0].id]
+    );
+    assert(repeatedReportCardGeneration.rows[0]?.count === 2,
+      "Report-card generation must be idempotent and must not rewrite existing historical snapshots.");
+    const p7ReportCard = await client.query(
+      "SELECT pupil_code_snapshot,lin_snapshot,learner_name_snapshot,p7_index_number_snapshot,class_code_snapshot,academic_year_label_snapshot,academic_term_name_snapshot,total_score,total_possible,average_percent,aggregate_total,division_code,class_position,class_size,jsonb_array_length(subject_results)::int AS subject_count FROM cornhill_school.academic_report_cards WHERE learner_id=$1 AND assessment_id=$2",
+      [p7Learner.rows[0].id, p7Assessment.rows[0].id]
+    );
+    assert(p7ReportCard.rowCount === 1
+      && p7ReportCard.rows[0].p7_index_number_snapshot === "CI-P7-0001"
+      && p7ReportCard.rows[0].class_code_snapshot === "P7"
+      && p7ReportCard.rows[0].academic_year_label_snapshot === "2025"
+      && p7ReportCard.rows[0].academic_term_name_snapshot === "Term 1"
+      && Number(p7ReportCard.rows[0].total_score) === 279
+      && Number(p7ReportCard.rows[0].total_possible) === 400
+      && Number(p7ReportCard.rows[0].average_percent) === 69.75
+      && Number(p7ReportCard.rows[0].aggregate_total) === 16
+      && p7ReportCard.rows[0].division_code === null
+      && Number(p7ReportCard.rows[0].class_position) === 1
+      && Number(p7ReportCard.rows[0].class_size) === 2
+      && Number(p7ReportCard.rows[0].subject_count) === 4,
+      "P.7 report card must preserve identity, academic period, totals, aggregate, class rank and all four subjects.");
+    const secondP7ReportCard = await client.query(
+      "SELECT aggregate_total,class_position,class_size FROM cornhill_school.academic_report_cards WHERE learner_id=$1 AND assessment_id=$2",
+      [p7SecondLearner.rows[0].id, p7Assessment.rows[0].id]
+    );
+    assert(secondP7ReportCard.rowCount === 1
+      && Number(secondP7ReportCard.rows[0].aggregate_total) === 28
+      && Number(secondP7ReportCard.rows[0].class_position) === 2
+      && Number(secondP7ReportCard.rows[0].class_size) === 2,
+      "Report card class positions must be calculated across complete historical class results.");
+    assert(await expectPgError(client, "report_card_immutable_test",
+      "UPDATE cornhill_school.academic_report_cards SET average_percent=0 WHERE learner_id=$1 AND assessment_id=$2",
+      [p7Learner.rows[0].id, p7Assessment.rows[0].id], "23514"),
+      "Published report cards must reject mutation.");
+
+    const p7Progression = await client.query(
+      "SELECT cornhill_school.record_learner_progression($1::uuid,$2::uuid,NULL,$3::uuid,'2025-12-31','CI synthetic P.7 completion')::text AS event_id",
+      [academicStaff.rows[0].id, p7Learner.rows[0].id, termCompletion.rows[0].id]
+    );
+    assert(Boolean(p7Progression.rows[0]?.event_id), "P.7 completion must create an immutable progression event.");
     const p7History = await client.query(
       "SELECT l.status AS learner_status, l.p7_index_number, ep.status AS enrolment_status, ep.previous_period_id, ay.year_label, lm.score, lm.max_score " +
       "FROM cornhill_school.learners l " +
       "JOIN cornhill_school.enrolment_periods ep ON ep.id = $2 " +
-      "JOIN cornhill_school.learner_marks lm ON lm.learner_id = l.id AND lm.assessment_id = $3 " +
+      "JOIN cornhill_school.learner_marks lm ON lm.learner_id = l.id AND lm.assessment_id = $3 AND lm.subject_id=(SELECT id FROM cornhill_school.subjects WHERE subject_code='ENGLISH') " +
+      "JOIN cornhill_school.academic_report_cards rc ON rc.learner_id=l.id AND rc.assessment_id=$3 " +
       "JOIN cornhill_school.assessments a ON a.id = lm.assessment_id " +
       "JOIN cornhill_school.academic_terms t ON t.id = a.academic_term_id " +
       "JOIN cornhill_school.academic_years ay ON ay.id = t.academic_year_id " +
@@ -640,7 +772,7 @@ try {
       && p7History.rows[0].year_label === "2025"
       && Number(p7History.rows[0].score) === 87
       && Number(p7History.rows[0].max_score) === 100,
-      "Graduating a synthetic P.7 learner must retain the P.6/P.7 enrolment chain, index number and historical marks.");
+      "Graduating a synthetic P.7 learner must retain the P.6/P.7 enrolment chain, index number, report card and historical marks.");
 
     const tuition = await client.query("SELECT id FROM cornhill_school.fee_catalogue WHERE item_code = 'TUITION'");
     const previousCharge = await client.query(
@@ -689,6 +821,32 @@ try {
     );
     assert(outbox.rowCount === 1 && outbox.rows[0].status === "queued", "Only opted-in guardian contacts should receive a queued notification.");
     assert(outbox.rows[0].destination_phone === "+256700000001", "Notification must use the consented guardian phone.");
+
+    const p2Class = await client.query("SELECT id FROM cornhill_school.classes WHERE class_code='P2'");
+    const feeLearnerProgression = await client.query(
+      "SELECT cornhill_school.record_learner_progression($1::uuid,$2::uuid,$3::uuid,$4::uuid,'2026-11-01','CI synthetic class progression')::text AS event_id",
+      [academicStaff.rows[0].id, first.rows[0].id, p2Class.rows[0].id, termCurrent.rows[0].id]
+    );
+    const receiptAfterPromotion = await client.query(
+      "SELECT payment.learner_id, receipt.receipt_data_snapshot FROM cornhill_school.payment_records payment JOIN cornhill_school.payment_receipts receipt ON receipt.payment_id=payment.id WHERE payment.id=$1",
+      [payment.rows[0].id]
+    );
+    const progressionPeriods = await client.query(
+      "SELECT id,class_id,status,exit_date,previous_period_id FROM cornhill_school.enrolment_periods WHERE learner_id=$1 ORDER BY admission_date,id",
+      [first.rows[0].id]
+    );
+    assert(Boolean(feeLearnerProgression.rows[0]?.event_id)
+      && receiptAfterPromotion.rowCount === 1
+      && receiptAfterPromotion.rows[0].learner_id === first.rows[0].id
+      && receiptAfterPromotion.rows[0].receipt_data_snapshot.pupil_code === first.rows[0].pupil_code
+      && progressionPeriods.rowCount === 2
+      && progressionPeriods.rows[0].id === firstActiveEnrolment.rows[0].id
+      && progressionPeriods.rows[0].status === "Completed"
+      && String(progressionPeriods.rows[0].exit_date).slice(0, 10) === "2026-10-31"
+      && progressionPeriods.rows[1].class_id === p2Class.rows[0].id
+      && String(progressionPeriods.rows[1].admission_date).slice(0, 10) === "2026-11-01"
+      && progressionPeriods.rows[1].previous_period_id === firstActiveEnrolment.rows[0].id,
+      "Class progression must preserve the learner's financial receipts and linked enrolment chain.");
 
     const receiptMutationRejected = await expectPgError(
       client, "receipt_snapshot_immutable_test",
@@ -1486,7 +1644,7 @@ try {
       "A former staff account must retain its profile and employment history for authorised review.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 64 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, P.7 graduation with preserved academic and enrolment history, former-staff profile/employment retention, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 69 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, P.7 graduation with preserved academic and enrolment history, non-overlapping learner progression, former-staff profile/employment retention, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

@@ -129,3 +129,31 @@ test("mark saving rolls back as a unit when any row fails", async () => {
   assert.ok(pool.calls.some(call => call.sql === "ROLLBACK"));
   assert.equal(pool.calls.at(-1).release, true);
 });
+
+test("published report-card generation is delegated to the permission-checked database operation", async () => {
+  const pool = fixturePool({ queryResults: [{ rows: [{ generatedCount: 2 }], rowCount: 1 }] });
+  const result = await createPostgresAcademicsRepository(pool).generateReportCards({
+    assessmentId: ID, staffId: TERM
+  });
+  assert.deepEqual(result, { generatedCount: 2 });
+  assert.match(pool.calls[0].sql, /generate_academic_report_cards/);
+  assert.deepEqual(pool.calls[0].values, [ID, TERM]);
+});
+
+test("report-card history is read by stable learner ID, class scoped, and returns numeric result totals", async () => {
+  const pool = fixturePool({ queryResults: [{ rows: [{
+    learnerId: ID, classId: CLASS, totalScore: "279.00", totalPossible: "400.00",
+    averagePercent: "69.75", aggregate: 16, division: null, position: 1, classSize: 2,
+    subjects: [{ subjectCode: "ENGLISH", score: 87 }]
+  }], rowCount: 1 }] });
+  const rows = await createPostgresAcademicsRepository(pool).getLearnerReportCards(ID, [CLASS]);
+  assert.equal(rows[0].learnerId, ID);
+  assert.equal(rows[0].aggregate, 16);
+  assert.equal(rows[0].averagePercent, 69.75);
+  assert.equal(rows[0].position, 1);
+  assert.deepEqual(rows[0].subjects, [{ subjectCode: "ENGLISH", score: 87 }]);
+  assert.match(pool.calls[0].sql, /WHERE learner_id=\$1::uuid/);
+  assert.match(pool.calls[0].sql, /class_id=ANY\(\$2::uuid\[\]\)/);
+  assert.match(pool.calls[0].sql, /LIMIT 200/);
+  assert.deepEqual(pool.calls[0].values, [ID, [CLASS]]);
+});

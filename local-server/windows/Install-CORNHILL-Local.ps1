@@ -2,6 +2,7 @@
 param([switch]$SkipDatabase,[switch]$RunTests)
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+Import-Module (Join-Path $PSScriptRoot "Local-DatabaseBackup.psm1") -Force
 function Stop-WithGuidance([string]$Message) {
   Write-Host ""
   Write-Host "CORNHILL LOCAL SETUP STOPPED: $Message" -ForegroundColor Red
@@ -62,7 +63,9 @@ if (-not $SkipDatabase) {
   $pgBin = "C:\Program Files\PostgreSQL\17\bin"
   $psql = Join-Path $pgBin "psql.exe"
   $createdb = Join-Path $pgBin "createdb.exe"
-  if (-not (Test-Path $psql) -or -not (Test-Path $createdb)) { Stop-WithGuidance "PostgreSQL 17 command-line tools were not found at $pgBin. Install PostgreSQL 17 with Command Line Tools." }
+  $pgDump = Join-Path $pgBin "pg_dump.exe"
+  $pgRestore = Join-Path $pgBin "pg_restore.exe"
+  if (-not (Test-Path $psql) -or -not (Test-Path $createdb) -or -not (Test-Path $pgDump) -or -not (Test-Path $pgRestore)) { Stop-WithGuidance "PostgreSQL 17 psql, createdb, pg_dump and pg_restore tools were not found at $pgBin. Install PostgreSQL 17 with Command Line Tools." }
   $securePassword = Read-Host "Enter the PostgreSQL postgres administrator password (input is hidden)" -AsSecureString
   $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
   try { $postgresPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
@@ -157,6 +160,15 @@ GRANT cornhill_finance_runtime TO cornhill_finance_api;
       Write-Host "Creating isolated database cornhill_local..."
       Invoke-Checked $createdb @("-h","127.0.0.1","-p","5432","-U","postgres","-O","cornhill_local_admin","cornhill_local") "Could not create cornhill_local. No existing database was deleted."
     }
+    Write-Host "Creating and validating a private pre-migration database backup..."
+    try {
+      $preMigrationBackup = New-CornhillPreMigrationBackup `
+        -PostgresBin $pgBin -ServerHost "127.0.0.1" -Port 5432 `
+        -Database "cornhill_local" -Username "cornhill_local_admin" -Password $adminPassword
+    } catch {
+      Stop-WithGuidance "The pre-migration backup could not be created and verified. No database migrations were started. Preserve any partial archive and resolve the backup problem before retrying."
+    }
+    Write-Host "Verified pre-migration backup: $($preMigrationBackup.Path)"
     $env:PGPASSWORD = $adminPassword;
 
   } finally {

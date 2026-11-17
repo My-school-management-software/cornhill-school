@@ -21,7 +21,7 @@ function response() {
   return { statusCode: 0, headers: {}, body: "", writeHead(code, headers = {}) { this.statusCode = code; this.headers = headers; }, end(body = "") { this.body = Buffer.isBuffer(body) ? body.toString() : String(body); }, json() { return this.body ? JSON.parse(this.body) : null; } };
 }
 function setup({ principal = teacher, overrides = {} } = {}) {
-  const calls = { auth: 0, workspace: 0, marks: 0, saved: 0, transitions: 0 };
+  const calls = { auth: 0, workspace: 0, marks: 0, saved: 0, transitions: 0, reportCards: 0, reportReads: 0 };
   const repository = {
     async listWorkspace(input) { calls.workspace++; calls.workspaceInput = input; return { classes: [], terms: [], assessments: [] }; },
     async getAssessment() { return { id: ASSESSMENT_ID, classId: CLASS_ID, status: "Open", maxScore: 100 }; },
@@ -31,6 +31,8 @@ function setup({ principal = teacher, overrides = {} } = {}) {
     async createAssessment(input) { calls.created = input; return { id: ASSESSMENT_ID, ...input }; },
     async transitionAssessment(input) { calls.transitions++; return { status: input.nextStatus }; },
     async saveMarks(input) { calls.saved++; calls.savedInput = input; return { savedCount: input.marks.length }; },
+    async generateReportCards(input) { calls.reportCards++; calls.reportCardsInput = input; return { generatedCount: 2 }; },
+    async getLearnerReportCards(learnerId) { calls.reportReads++; calls.reportLearnerId = learnerId; return [{ id: ASSESSMENT_ID, classId: CLASS_ID }]; },
     ...overrides
   };
   const handler = createAcademicsHttpHandler({
@@ -147,6 +149,68 @@ test("assessment status changes are permission checked and delegated to reposito
   });
   assert.equal(result.statusCode, 200);
   assert.equal(calls.transitions, 1);
+});
+
+test("only a result publisher can generate report-card snapshots", async () => {
+  const denied = setup();
+  assert.equal((await invoke(denied.handler, {
+    path: "/api/v1/academics/assessments/" + ASSESSMENT_ID + "/report-cards", method: "POST", body: {}
+  })).statusCode, 403);
+  assert.equal(denied.calls.reportCards, 0);
+
+  const publisher = {
+    ...teacher, roles: ["director_of_studies"], classIds: [],
+    rolePermissions: { director_of_studies: ["academics.results_publish"] }
+  };
+  const allowed = setup({ principal: publisher });
+  const response = await invoke(allowed.handler, {
+    path: "/api/v1/academics/assessments/" + ASSESSMENT_ID + "/report-cards", method: "POST", body: {}
+  });
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.json().generatedCount, 2);
+  assert.deepEqual(allowed.calls.reportCardsInput, { assessmentId: ASSESSMENT_ID, staffId: STAFF_ID });
+});
+
+test("class-scoped staff cannot publish results outside assigned classes", async () => {
+  const principal = { ...teacher, rolePermissions: { class_teacher: ["academics.results_publish"] } };
+  const { handler, calls } = setup({ principal, overrides: {
+    async getAssessment() { return { id: ASSESSMENT_ID, classId: "44444444-4444-4444-8444-444444444444", status: "Published", maxScore: 100 }; }
+  } });
+  const result = await invoke(handler, {
+    path: "/api/v1/academics/assessments/" + ASSESSMENT_ID + "/report-cards", method: "POST", body: {}
+  });
+  assert.equal(result.statusCode, 403);
+  assert.equal(calls.reportCards, 0);
+});
+
+test("report-card history requires result-view permission and filters to assigned teacher classes", async () => {
+  const { handler, calls } = setup();
+  const allowed = await invoke(handler, { path: "/api/v1/academics/learners/" + STAFF_ID + "/report-cards" });
+  assert.equal(allowed.statusCode, 200);
+  assert.equal(allowed.json()[0].classId, CLASS_ID);
+  assert.equal(calls.reportReads, 1);
+
+  const publisherOnly = { ...teacher, roles: ["director_of_studies"], classIds: [],
+    rolePermissions: { director_of_studies: ["academics.results_publish"] } };
+  const denied = setup({ principal: publisherOnly });
+  assert.equal((await invoke(denied.handler, {
+    path: "/api/v1/academics/learners/" + STAFF_ID + "/report-cards"
+  })).statusCode, 403);
+
+  const otherClass = setup({ overrides: {
+    async getLearnerReportCards(_learnerId, classIds) {
+      assert.deepEqual(classIds, [CLASS_ID]);
+      return [
+        { id: ASSESSMENT_ID, classId: CLASS_ID },
+        { id: STAFF_ID, classId: "44444444-4444-4444-8444-444444444444" }
+      ];
+    }
+  } });
+  const scopedHistory = await invoke(otherClass.handler, {
+    path: "/api/v1/academics/learners/" + STAFF_ID + "/report-cards"
+  });
+  assert.equal(scopedHistory.statusCode, 200);
+  assert.deepEqual(scopedHistory.json().map(row => row.classId), [CLASS_ID]);
 });
 test("only an authorised academic administrator can create a school year", async () => {
   const admin = { ...teacher, roles: ["director_of_studies"], classIds: [],

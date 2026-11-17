@@ -32,6 +32,10 @@ test("isolated migration preflight rejects another database name", () => {
   assert.throws(() => assertIsolatedDatabaseIdentity({ ...actual, database: "cornhill_local" }, expected), /preflight failed/);
 });
 
+test("isolated migration preflight rejects a non-loopback server address", () => {
+  assert.throws(() => assertIsolatedPostgresServerIdentity({ ...actual, server_address: "192.168.1.20" }, expected), /preflight failed/);
+});
+
 test("isolated migration preflight rejects a different server port", () => {
   assert.throws(() => assertIsolatedDatabaseIdentity({ ...actual, port: "5432" }, expected), /preflight failed/);
 });

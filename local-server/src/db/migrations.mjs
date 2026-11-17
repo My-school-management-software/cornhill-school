@@ -82,6 +82,7 @@ function normalizeDataDirectory(value) {
 export function assertIsolatedPostgresServerIdentity(actual, expected) {
   if (!actual || !expected ||
       actual.database !== expected.database ||
+      actual.server_address !== "127.0.0.1" ||
       Number(actual.port) !== expected.serverPort ||
       String(actual.system_identifier) !== expected.systemIdentifier ||
       normalizeDataDirectory(actual.data_directory) !== normalizeDataDirectory(expected.dataDirectory)) {

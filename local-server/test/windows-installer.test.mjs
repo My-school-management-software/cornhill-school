@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const script = await readFile(new URL("../windows/Install-CORNHILL-Local.ps1", import.meta.url), "utf8");
+const backupModule = await readFile(new URL("../windows/Local-DatabaseBackup.psm1", import.meta.url), "utf8");
 const envExample = await readFile(new URL("../.env.example", import.meta.url), "utf8");
 const dbConfig = await readFile(new URL("../src/db/config.mjs", import.meta.url), "utf8");
 
@@ -100,4 +101,31 @@ test("installer provisions separate NOLOGIN finance roles", () => {
   assert.doesNotMatch(script, /ALTER ROLE cornhill_finance_api NOLOGIN INHERIT/);
   assert.match(script, /GRANT cornhill_finance_runtime TO cornhill_finance_api/);
   assert.ok(script.includes("db:verify-finance"));
+});
+
+test("installer requires a private verified backup before invoking database migrations", () => {
+  assert.match(script, /New-CornhillPreMigrationBackup/);
+  assert.match(script, /No database migrations were started/);
+  const backupCall = script.indexOf("New-CornhillPreMigrationBackup");
+  const migrationCall = script.indexOf('Invoke-Checked "npm" @("run","db:migrate")');
+  assert.ok(backupCall >= 0 && migrationCall > backupCall);
+  assert.match(script, /pg_dump\.exe/);
+  assert.match(script, /pg_restore\.exe/);
+});
+
+test("pre-migration backups are loopback-only, private, versioned and restore-list verified", () => {
+  assert.match(backupModule, /ServerHost -notin @\("127[.]0[.]0[.]1", "::1"\)/);
+  assert.match(backupModule, /Database -ne "cornhill_local"/);
+  assert.match(backupModule, /Port -ne 5432/);
+  assert.match(backupModule, /PostgreSQL\\\) 17/);
+  assert.match(backupModule, /SetAccessRuleProtection\(\$true, \$false\)/);
+  assert.match(backupModule, /inet_server_addr\(\)::text/);
+  assert.match(backupModule, /DirectorySecurity\]::new\(\)/);
+  assert.match(backupModule, /Directory\]::CreateDirectory\(\$backupFolder, \$folderAcl\)/);
+  assert.match(backupModule, /FullControl/);
+  assert.match(backupModule, /--format=custom/);
+  assert.match(backupModule, /pgRestore --no-password --list/);
+  assert.match(backupModule, /archiveSha256/);
+  assert.doesNotMatch(backupModule, /DROP DATABASE|dropdb|TRUNCATE TABLE/i);
+  assert.doesNotMatch(backupModule, /--password(?:=|\s)|PASSWORD=|ConnectionString/i);
 });

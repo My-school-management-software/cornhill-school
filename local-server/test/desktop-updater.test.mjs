@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const script=await readFile(new URL("../windows/Update-CORNHILL-Desktop.ps1",import.meta.url),"utf8");
+const backupModule=await readFile(new URL("../windows/Local-DatabaseBackup.psm1",import.meta.url),"utf8");
 const installGuide=await readFile(new URL("../POSTGRES_LOCAL_SETUP.md",import.meta.url),"utf8");
 const ignoreRules=await readFile(new URL("../.gitignore",import.meta.url),"utf8");
 
@@ -47,6 +48,16 @@ test("desktop updater refuses remote databases and does not delete or recreate l
   assert.match(script,/cornhill_local/);
   assert.match(script,/CORNHILL_ALLOW_LOCAL_MIGRATIONS/);
   assert.doesNotMatch(script,/DROP DATABASE|dropdb|TRUNCATE TABLE|Remove-Item.*PGDATA/i);
+});
+
+test("desktop updater aborts before migrations unless its private database backup verifies",()=>{
+  assert.match(script,/New-CornhillPreMigrationBackup/);
+  assert.match(script,/No database migrations were started/);
+  const backupCall=script.indexOf("New-CornhillPreMigrationBackup");
+  const migrationCall=script.indexOf('Invoke-Checked "npm" @("run","db:migrate")');
+  assert.ok(backupCall>=0&&migrationCall>backupCall);
+  assert.match(script,/CORNHILL_DB_ADMIN_PASSWORD/);
+  assert.match(backupModule,/pgRestore --no-password --list/);
 });
 
 test("desktop updater configures localhost HTTPS only when missing and can launch the local service",()=>{
