@@ -1,3 +1,4 @@
+import { validatePupilBalanceReport } from "../finance/pupil-balance-report-model.mjs";
 import { randomUUID } from "node:crypto";
 import { staffHasPermission } from "./authorization.mjs";
 import { readSessionTokenFromCookieHeader } from "./session-cookies.mjs";
@@ -87,7 +88,7 @@ export function createPupilBalancesReportHttpHandler({authService, reportReposit
       catch { send(response, 400, {error: "Invalid pupil balance report filters."}); return true; }
       const report = await reportRepository.getPupilBalances({actorStaffId: principal.id, filters});
       // Repository must return ledger-derived rows/totals from one snapshot.
-      send(response, 200, {report});
+      send(response, 200, {report: validatePupilBalanceReport(report)});
       return true;
     } catch (error) {
       const status = error?.statusCode === 401 ? 401 :
