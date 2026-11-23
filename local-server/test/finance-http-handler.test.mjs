@@ -331,3 +331,28 @@ test("payment status recovery requires payment-record permission and safely repo
   assert.equal(missing.statusCode,200);
   assert.equal(missing.json().payment,null);
 });
+
+
+test("Director account is denied ordinary fees collection despite payment permission", async()=>{
+  const director={...principal,roles:["director"],rolePermissions:{director:["finance.payments_record","finance.reports_read"]}};
+  const {handler,calls}=setup({principalValue:director});
+  const response=await invoke(handler,{path:"/api/v1/finance/payments",method:"POST",headers:postHeaders,body:JSON.stringify(validBody)});
+  assert.equal(response.statusCode,403);
+  assert.match(response.json().error,/Director account/);
+  assert.equal(calls.post.length,0);
+});
+
+test("staff with both Director and Bursar roles cannot post from Director session", async()=>{
+  const dualRole={...principal,roles:["director","bursar"],rolePermissions:{director:["finance.reports_read"],bursar:["finance.payments_record"]}};
+  const {handler,calls}=setup({principalValue:dualRole});
+  const response=await invoke(handler,{path:"/api/v1/finance/payments",method:"POST",headers:postHeaders,body:JSON.stringify(validBody)});
+  assert.equal(response.statusCode,403);
+  assert.equal(calls.post.length,0);
+});
+
+test("non-Director Bursar payment pathway is preserved", async()=>{
+  const {handler,calls}=setup();
+  const response=await invoke(handler,{path:"/api/v1/finance/payments",method:"POST",headers:postHeaders,body:JSON.stringify(validBody)});
+  assert.equal(response.statusCode,201);
+  assert.equal(calls.post.length,1);
+});
