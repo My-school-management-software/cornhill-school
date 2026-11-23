@@ -191,6 +191,15 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
       const paymentStatusRoute = Boolean(paymentStatusMatch && method === "GET" && UUID_PATTERN.test(paymentStatusMatch[1]));
       const creditStatusMatch = path.match(/^\/api\/v1\/finance\/credits\/allocations\/([0-9a-f-]{36})$/i);
       const creditStatusRoute = Boolean(creditStatusMatch && method === "GET" && UUID_PATTERN.test(creditStatusMatch[1]));
+      // Director oversight does not authorise ordinary payment entry, even when
+      // a broad role grant accidentally includes finance.payments_record.
+      // This denies a Director who also has another Bursar role: use the
+      // separate Bursar account for payment posting instead.
+      if (path === "/api/v1/finance/payments" && method === "POST" &&
+          Array.isArray(principal.roles) && principal.roles.includes("director")) {
+        sendJson(response, 403, { error: "The Director account is for oversight, not fees collection." });
+        return true;
+      }
       const requiredPermission = receiptReprintMatch && method === "POST"
         ? "finance.receipts_reprint"
         : (creditAllocateRoute || creditListRoute || creditStatusRoute)
