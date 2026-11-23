@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CORNHILL | Pupil Account Balances</title>
+<link rel="stylesheet" href="/pupil-balances.css">
+<script src="/pupil-balances.js" defer></script></head>
+<body>
+<header><p>CORNHILL NURSERY AND PRIMARY SCHOOL</p><h1>Pupil Account Balances Sheet</h1><p>WE SHARE ONE DREAM · UGX</p></header>
+<main>
+<p id="status" role="status" aria-live="polite">This report requires an authorised staff session.</p>
+<form id="filters" class="panel">
+<label>Academic year <input id="year" type="number" min="2000" max="2200" placeholder="Current year"></label>
+<label>Term <select id="term"><option value="">All terms</option><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
+<label>Class <input id="class" maxlength="60" placeholder="All classes"></label>
+<label>Payment status <select id="payment-status"><option value="all">All</option><option value="unpaid">Unpaid</option><option value="partly_paid">Partly paid</option><option value="paid">Paid</option></select></label>
+<label>Learner search <input id="query" maxlength="80" placeholder="Pupil name or code"></label>
+<button type="submit">View balances</button>
+<button type="button" id="print" disabled>Print A4</button>
+</form>
+<section class="panel" aria-label="Balance sheet">
+<p id="snapshot">No financial report loaded.</p>
+<div class="summary"><div>Previous-term debt <strong id="previous">—</strong></div>
+<div>Current-term debt <strong id="current">—</strong></div>
+<div>Combined outstanding <strong id="combined">—</strong></div></div>
+<div class="overflow"><table><thead><tr><th>Pupil code</th><th>Full name</th><th>Class</th><th>Year</th><th>Term</th><th>Previous debt</th><th>Current debt</th><th>Combined balance</th><th>Status</th></tr></thead><tbody id="rows"><tr><td colspan="9">Load an authorised report to view balances.</td></tr></tbody></table></div>
+<p id="scope">Totals are supplied by the protected server; never add visible page rows to compute school-wide totals.</p>
+</section>
+<p class="note">This is a read-only report. School fees are collected only in authorised Bursar accounts. The Director supervises and receives reports, not payments.</p>
+</main>
+</body></html>

@@ -105,6 +105,11 @@ function sendJson(response, statusCode, payload, method = "GET") {
 
 const PUBLIC_ASSETS = new Map([
   ["/", { file: new URL("../public/app.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  // V124C read-only Pupil Account Balances Sheet. Backend remains gated until approved.
+  ["/pupil-balances", { file: new URL("../public/pupil-balances.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/pupil-balances.html", { file: new URL("../public/pupil-balances.html", import.meta.url), type: "text/html; charset=utf-8" }],
+  ["/pupil-balances.js", { file: new URL("../public/pupil-balances.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
+  ["/pupil-balances.css", { file: new URL("../public/pupil-balances.css", import.meta.url), type: "text/css; charset=utf-8" }],
   ["/bursar", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/bursar.html", { file: new URL("../public/bursar.html", import.meta.url), type: "text/html; charset=utf-8" }],
   ["/bursar.js", { file: new URL("../public/bursar.js", import.meta.url), type: "text/javascript; charset=utf-8" }],
