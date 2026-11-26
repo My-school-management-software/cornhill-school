@@ -29,13 +29,14 @@ function projectHandover(input) {
   if (!input || typeof input !== "object") throw new TypeError("Handover required");
   const { fromStaffId, toStaffId, quantity, acknowledgements } = input;
   if (![fromStaffId,toStaffId].every(v=>typeof v==="string" && v.trim()!== "") || fromStaffId===toStaffId || !Number.isSafeInteger(quantity) || quantity<=0 || !Array.isArray(acknowledgements)) throw new TypeError("Invalid handover");
-  const accepted = new Set();
+  const seen = new Set();
+  let disputed = false;
   for (const a of acknowledgements) {
-    if (!a || ![fromStaffId,toStaffId].includes(a.staffId) || typeof a.accepted !== "boolean" || accepted.has(a.staffId)) throw new Error("Invalid or duplicate acknowledgement");
-    if (!a.accepted) return "disputed";
-    accepted.add(a.staffId);
+    if (!a || ![fromStaffId,toStaffId].includes(a.staffId) || typeof a.accepted !== "boolean" || seen.has(a.staffId)) throw new Error("Invalid or duplicate acknowledgement");
+    seen.add(a.staffId);
+    if (!a.accepted) disputed = true;
   }
-  return accepted.size===2 ? "acknowledged" : "pending";
+  return disputed ? "disputed" : seen.size===2 ? "acknowledged" : "pending";
 }
 const api=Object.freeze({projectRequirement,projectHandover});
 if(typeof module==="object" && module.exports) module.exports=api;
