@@ -1,0 +1,25 @@
+"use strict";
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const {projectRequirement,projectHandover}=require("../cornhill-requirements-projection.js");
+const requirement={"id":"r","learnerId":"synthetic-l","termId":"t","classId":"c","quantity":3};
+const d={"id":"d","requirementId":"r","learnerId":"synthetic-l","termId":"t","classId":"c","quantity":2,"status":"verified"};
+const h={"fromStaffId":"a","toStaffId":"b","quantity":2,"acknowledgements":[]};
+test("unknown is unassessed",()=>assert.equal((()=>projectRequirement({requirement:null}).status==="unassessed")(),true));
+test("no delivery outstanding",()=>assert.equal((()=>projectRequirement({requirement,deliveries:[]}).outstanding===3)(),true));
+test("partial verified receipt",()=>assert.equal((()=>projectRequirement({requirement,deliveries:[d]}).outstanding===1)(),true));
+test("pending not counted",()=>assert.equal((()=>projectRequirement({requirement,deliveries:[{...d,status:"pending"}]}).received===0)(),true));
+test("reversed not counted",()=>assert.equal((()=>projectRequirement({requirement,deliveries:[{...d,status:"reversed"}]}).received===0)(),true));
+test("full clears",()=>assert.equal((()=>projectRequirement({requirement,deliveries:[{...d,quantity:3}]}).status==="settled")(),true));
+test("overdelivery not negative",()=>assert.equal((()=>projectRequirement({requirement,deliveries:[{...d,quantity:4}]}).outstanding===0)(),true));
+test("reject class mismatch",()=>assert.equal((()=>{try{projectRequirement({requirement,deliveries:[{...d,classId:"other"}]});return false}catch{return true}})(),true));
+test("reject duplicate",()=>assert.equal((()=>{try{projectRequirement({requirement,deliveries:[d,d]});return false}catch{return true}})(),true));
+test("reject fractional quantity",()=>assert.equal((()=>{try{projectRequirement({requirement,deliveries:[{...d,quantity:1.5}]});return false}catch{return true}})(),true));
+test("one acknowledgement pending",()=>assert.equal((()=>projectHandover({...h,acknowledgements:[{staffId:"a",accepted:true}]})==="pending")(),true));
+test("two distinct acknowledgements",()=>assert.equal((()=>projectHandover({...h,acknowledgements:[{staffId:"a",accepted:true},{staffId:"b",accepted:true}]})==="acknowledged")(),true));
+test("disagreement disputed",()=>assert.equal((()=>projectHandover({...h,acknowledgements:[{staffId:"b",accepted:false}]})==="disputed")(),true));
+test("reject same custodian",()=>assert.equal((()=>{try{projectHandover({...h,toStaffId:"a"});return false}catch{return true}})(),true));
+test("reject unlinked staff",()=>assert.equal((()=>{try{projectHandover({...h,acknowledgements:[{staffId:"z",accepted:true}]});return false}catch{return true}})(),true));
+
+test("reject duplicate acknowledgement after dispute",()=>assert.throws(()=>projectHandover({...h,acknowledgements:[{staffId:"a",accepted:false},{staffId:"a",accepted:true}]})));
+test("reject unlinked acknowledgement after dispute",()=>assert.throws(()=>projectHandover({...h,acknowledgements:[{staffId:"a",accepted:false},{staffId:"z",accepted:true}]})));
