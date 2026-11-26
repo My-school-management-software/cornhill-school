@@ -127,9 +127,12 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
  #loginPanel.login{padding-inline:12px!important}
  #loginRoleChoices.login-role-grid{grid-template-columns:1fr}
 }
+
+/* Only the signed-in workspace displays the application navigation strip. */
+body[data-staff-signed-in="false"] header.top .top-actions{display:none!important}
 </style>
 </head>
-<body data-theme="warm-corporate">
+<body data-theme="warm-corporate" data-staff-signed-in="false">
 <header class="top">
   <div class="brand"><img src="/assets/cornhill-school-badge.png" alt="CORNHILL badge"><div>CORNHILL NURSERY AND PRIMARY SCHOOL<small>Secure School Services Portal · Uganda</small></div></div>
   <div class="row top-actions"><span id="userLabel" style="font-size:12px;color:#e5f4e8"></span><button id="installServicesApp" type="button" class="hidden" style="background:#fff;color:#14532d">Install app</button><a class="button" id="servicesNotificationsLink" href="https://notifications-cornhill-school.vercel.app/apps/notifications/" style="background:#fff;color:#14532d">Notification Centre</a><a class="button hidden" id="servicesRecordsLink" href="https://records-cornhill-school.vercel.app/apps/records/" style="background:#fff;color:#14532d">Records Centre</a><a class="button" id="servicesMainLink" href="https://cornhill-school-swart.vercel.app/apps/school-management/" style="background:#fff;color:#14532d">Main School System</a><button id="signOut" class="hidden">Sign out</button></div>
@@ -637,7 +640,7 @@ function configureModules(){
 async function enterApp(){
  await loadProfile();configureModules();
  show('staffAccessCodeAdminPanel',isAdmin());
- show('loginPanel',false);show('appPanel',true);show('signOut',true);
+ show('loginPanel',false);show('appPanel',true);show('signOut',true);document.body.dataset.staffSignedIn='true';
  if(isAdmin())await loadStaffAccessCodeAccounts();
  await refreshAll();
  if(location.hash)setTimeout(()=>document.querySelector(location.hash)?.scrollIntoView({behavior:'instant',block:'start'}),150);
@@ -778,7 +781,7 @@ $('issueStaffAccessCode').addEventListener('click',()=>manageStaffAccessCode('is
 $('revokeStaffAccessCode').addEventListener('click',()=>manageStaffAccessCode('revoke'));
 
 $('signOut').addEventListener('click',async()=>{
- await db.auth.signOut({scope:'local'});user=null;profile=null;show('appPanel',false);show('loginPanel',true);show('signOut',false);$('userLabel').textContent='';returnToRoleChoices();
+ await db.auth.signOut({scope:'local'});user=null;profile=null;document.body.dataset.staffSignedIn='false';show('appPanel',false);show('loginPanel',true);show('signOut',false);$('userLabel').textContent='';returnToRoleChoices();
 });
 document.querySelectorAll('[data-service]').forEach(a=>a.addEventListener('click',()=>{setTimeout(()=>document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth',block:'start'}),0)}));
 async function loadAdmissions(){

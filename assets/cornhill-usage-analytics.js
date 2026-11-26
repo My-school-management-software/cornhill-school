@@ -123,6 +123,8 @@
   }
   function getCurrentStaffToken() { return readStaffAccessToken(); }
 
+  // Staff sign-in has an optional, in-flow privacy settings control instead of an automatic overlay.
+  const staffServicesPage = () => !!(document.body?.hasAttribute('data-staff-signed-in') && document.getElementById('loginPanel') && document.getElementById('appPanel'));
   function injectConsentBanner() {
     if (!document.body || document.getElementById('cornhillUsageConsentBanner')) return;
     const banner = document.createElement('aside');
@@ -137,7 +139,12 @@
       '<button type="button" data-usage-consent="deny" style="border:1px solid #9eb7a5;border-radius:8px;background:#fff;color:#214a30;padding:9px 13px">Not now</button>' +
       '<button type="button" data-usage-consent="close" style="border:0;background:transparent;color:#52685a;padding:7px">Decide later</button>' +
       '</div>';
-    document.body.appendChild(banner);
+    if (staffServicesPage()) {
+      banner.setAttribute('role','region');
+      banner.style.cssText='position:static;max-width:760px;margin:12px auto;background:#fff;border:1px solid #cbded0;border-radius:12px;padding:14px;color:#173f29;font:14px/1.45 system-ui,sans-serif';
+      const link=document.getElementById('cornhillUsagePreferenceLink');
+      if(link)link.insertAdjacentElement('afterend',banner);else (document.querySelector('main.wrap')||document.body).appendChild(banner);
+    } else document.body.appendChild(banner);
     banner.addEventListener('click', async (event) => {
       const button = event.target.closest('[data-usage-consent]');
       if (!button) return;
@@ -161,7 +168,10 @@
       try { localStorage.removeItem(CONSENT_KEY); } catch (_) {}
       injectConsentBanner();
     });
-    document.body.appendChild(link);
+    if(staffServicesPage()) {
+      link.style.cssText='display:block;position:static;margin:16px auto 8px;border:1px solid #9eb7a5;border-radius:7px;background:#fff;color:#214a30;padding:7px 12px;font:12px system-ui,sans-serif';
+      (document.querySelector('main.wrap')||document.body).appendChild(link);
+    } else document.body.appendChild(link);
   }
   function installAdmissionsEvents() {
     const form = document.getElementById('admissionForm');
@@ -251,7 +261,7 @@
   }
 
   function initialise() {
-    injectConsentBanner();
+    if(!staffServicesPage())injectConsentBanner();
     addPreferenceLink();
     installAdmissionsEvents();
     installStaffPageUseTracking();
