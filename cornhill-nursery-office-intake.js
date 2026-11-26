@@ -7,7 +7,7 @@ function setup({db,isAdmin}){
  const message=$("nurseryOfficeMessage"),controls=$("nurseryOfficeControls"),cls=$("nurseryOfficeClass"),learner=$("nurseryOfficeLearner"),search=$("nurseryOfficeSearch"),termLabel=$("nurseryOfficeTerm"),rows=$("nurseryOfficeRows"),history=$("nurseryOfficeHistory"),item=$("nurseryOfficeItem"),quantity=$("nurseryOfficeQuantity"),form=$("nurseryOfficeForm"),button=form.querySelector("button");
  let epoch=0,term=null,roster=[],items=[],attempt=null,busy=false;
  function blank(){items=[];rows.replaceChildren();history.replaceChildren();options(item,"Choose material",[]);form.hidden=true;quantity.value="";}
- function clear(){epoch++;controls.hidden=true;blank();roster=[];term=null;attempt=null;search.value="";options(cls,"Choose class",[]);options(learner,"Choose learner",[]);termLabel.textContent="";message.textContent="Office collection unavailable until authorized backend setup.";}
+ function clear(){epoch++;for(const input of [cls,learner,search,item,quantity,button])input.disabled=false;controls.hidden=true;blank();roster=[];term=null;attempt=null;search.value="";options(cls,"Choose class",[]);options(learner,"Choose learner",[]);termLabel.textContent="";message.textContent="Office collection unavailable until authorized backend setup.";}
  function current(e){return e===epoch&&isAdmin();}
  function showRoster(){
  const value=search.value.trim().toLowerCase(),previous=learner.value;
@@ -16,6 +16,7 @@ function setup({db,isAdmin}){
  }
  async function load(){
  if(busy)return;
+ if(attempt){message.textContent="An unconfirmed receipt is pending. Retry the same entry before refreshing.";return;}
  clear();if(!isAdmin())return;const e=epoch;message.textContent="Checking office backend…";
  try{
   const [check,c,t]=await Promise.all([db.from("school_nursery_office_deliveries").select("id",{count:"exact",head:true}),db.from("school_classes").select("id,name,stream").in("name",["Baby","Middle","Top"]).order("name"),db.from("academic_terms").select("id,name").eq("is_current",true).eq("is_closed",false)]);
@@ -54,9 +55,9 @@ function setup({db,isAdmin}){
  }catch(err){if(current(e))message.textContent=err.message;}
  }
  item.addEventListener("change",()=>{quantity.value="";quantity.max=items.find(x=>x.id===item.value)?.outstanding||0;});
- cls.addEventListener("change",()=>{if(!busy)void loadRoster();});
- learner.addEventListener("change",()=>{if(!busy)void loadLearner();});
- search.addEventListener("input",()=>{if(!busy){epoch++;showRoster();void loadLearner();}});
+ cls.addEventListener("change",()=>{if(!busy&&!attempt)void loadRoster();});
+ learner.addEventListener("change",()=>{if(!busy&&!attempt)void loadLearner();});
+ search.addEventListener("input",()=>{if(!busy&&!attempt){epoch++;showRoster();void loadLearner();}});
  $("nurseryOfficeRefresh").addEventListener("click",()=>{if(!busy)void load();});
  form.addEventListener("submit",async ev=>{
  ev.preventDefault();if(busy||!isAdmin()||form.hidden)return;
@@ -64,15 +65,15 @@ function setup({db,isAdmin}){
  if(!selected||!student||!Number.isSafeInteger(q)||q<1||q>selected.outstanding){message.textContent="Enter a valid outstanding quantity.";return;}
  const key=JSON.stringify([student,selected.id,q]);
  if(attempt&&attempt.key!==key){message.textContent="An earlier receipt has an uncertain outcome. Retry the original entry or have an administrator reconcile it before changing inputs.";return;}
- if(!attempt)attempt={key,id:crypto.randomUUID()};
  if(!confirm("Record "+q+" "+selected.unit+" for the selected individual learner?"))return;
+ if(!attempt)attempt={key,id:crypto.randomUUID()};
  busy=true;for(const input of [cls,learner,search,item,quantity,button])input.disabled=true;const e=epoch;
  try{
   const result=await db.rpc("record_nursery_office_delivery",{p_request_id:attempt.id,p_catalogue_id:selected.id,p_student_id:student,p_quantity:q});
   if(!current(e))return;
   if(result.error||!result.data)throw Error("Delivery not confirmed. Retry the same entry only after checking receipt history.");
   attempt=null;await loadLearner();
- }catch(err){if(current(e))message.textContent=err.message;}finally{busy=false;for(const input of [cls,learner,search,item,quantity,button])input.disabled=false;}
+ }catch(err){if(current(e))message.textContent=err.message;}finally{busy=false;for(const input of [cls,learner,search,item,quantity])input.disabled=Boolean(attempt);button.disabled=false;}
  });
  return {load,clear};
 }

@@ -1,0 +1,41 @@
+name: Hosted parity synthetic acceptance
+on:
+  push:
+    branches: [feat/favourite-live-parity-20261126]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nursery-office:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-only
+          POSTGRES_DB: cornhill_synthetic
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      PGPASSWORD: synthetic-only
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGDATABASE: cornhill_synthetic
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify synthetic target and run migration acceptance
+        run: |
+          test "$PGDATABASE" = cornhill_synthetic
+          psql -v ON_ERROR_STOP=1 -f tests/sql/hosted_material_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/hosted_school_material_catalogue.review.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/hosted_nursery_office_intake.review.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/hosted_material_acceptance.sql
+      - name: Check existing parity functions and client syntax
+        run: |
+          node --check cornhill-nursery-office-intake.js
+          node --check cornhill-hosted-material-catalogue.js
+          node --test tests/cornhill-requirements-projection.test.cjs tests/cornhill-fastsms-status.test.cjs tests/cornhill-sms-preflight.test.cjs tests/cornhill-finance-attendance-review.test.cjs

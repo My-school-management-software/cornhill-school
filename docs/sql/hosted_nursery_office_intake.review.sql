@@ -35,7 +35,7 @@ begin
    return v_old.id;
  end if;
  if v_catalogue.category<>'scholastic' or not exists(select 1 from public.school_classes c where c.id=v_catalogue.class_id and c.name in ('Baby','Middle','Top')) then raise exception 'Nursery scholastic materials only'; end if;
- if not exists(select 1 from public.academic_terms t where t.id=v_catalogue.term_id and t.is_current and not t.is_closed) then raise exception 'Current open term required'; end if;
+ if not exists(select 1 from public.academic_terms t where t.id=v_catalogue.term_id and t.is_current and not t.is_closed for share) then raise exception 'Current open term required'; end if;
  perform 1 from public.students s where s.id=p_student_id and s.class_id=v_catalogue.class_id and s.status='Active' for share;
  if not found then raise exception 'Learner outside active class'; end if;
  select coalesce(sum(d.quantity),0) into v_used from public.school_nursery_office_deliveries d where d.student_id=p_student_id and d.catalogue_id=p_catalogue_id;
