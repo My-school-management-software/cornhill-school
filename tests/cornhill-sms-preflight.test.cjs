@@ -1,0 +1,18 @@
+"use strict";
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const {previewSmsEligibility}=require("../cornhill-sms-preflight.js");
+const input={"policy":{"enabled":true,"providerVerified":true,"senderApproved":true,"templateApproved":true,"verifiedUnitPriceUgx":50,"dailyBudgetUgx":500,"monthlyBudgetUgx":2000,"dailyCommittedUgx":0,"monthlyCommittedUgx":0},"recipient":{"consent":true,"linkVerified":true,"phoneVerified":true},"message":{"approved":true,"idempotencyKey":"synthetic-key","alreadyQueuedOrSent":false,"verifiedBillableUnits":2}};
+const {policy,recipient,message}=input;
+test("disabled by default",()=>assert.equal((()=>previewSmsEligibility({}).reason==="provider_disabled")(),true));
+test("provider not verified",()=>assert.equal((()=>previewSmsEligibility({...input,policy:{...policy,providerVerified:false}}).eligible===false)(),true));
+test("requires guardian consent",()=>assert.equal((()=>previewSmsEligibility({...input,recipient:{...recipient,consent:false}}).eligible===false)(),true));
+test("requires verified phone",()=>assert.equal((()=>previewSmsEligibility({...input,recipient:{...recipient,phoneVerified:false}}).eligible===false)(),true));
+test("requires linked recipient",()=>assert.equal((()=>previewSmsEligibility({...input,recipient:{...recipient,linkVerified:false}}).eligible===false)(),true));
+test("requires approved message",()=>assert.equal((()=>previewSmsEligibility({...input,message:{...message,approved:false}}).eligible===false)(),true));
+test("blocks duplicate",()=>assert.equal((()=>previewSmsEligibility({...input,message:{...message,alreadyQueuedOrSent:true}}).reason==="duplicate_or_unknown")(),true));
+test("blocks unknown duplicate status",()=>assert.equal((()=>previewSmsEligibility({...input,message:{...message,alreadyQueuedOrSent:null}}).eligible===false)(),true));
+test("blocks unknown cost",()=>assert.equal((()=>previewSmsEligibility({...input,policy:{...policy,verifiedUnitPriceUgx:null}}).reason==="cost_unverified")(),true));
+test("blocks daily budget",()=>assert.equal((()=>previewSmsEligibility({...input,policy:{...policy,dailyCommittedUgx:450}}).reason==="budget_exceeded")(),true));
+test("blocks monthly budget",()=>assert.equal((()=>previewSmsEligibility({...input,policy:{...policy,monthlyCommittedUgx:1950}}).reason==="budget_exceeded")(),true));
+test("verified synthetic preview",()=>assert.equal((()=>previewSmsEligibility(input).estimatedCostUgx===100&&previewSmsEligibility(input).reason==="preview_only")(),true));
