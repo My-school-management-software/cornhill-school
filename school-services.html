@@ -442,6 +442,19 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
   <section id="integrations" class="panel module hidden">
     <div class="module-head"><div><span class="kicker">ADMINISTRATOR SETUP</span><h2>Mobile Money, SMS & Backup Integrations</h2><p class="muted">Register the services the school intends to connect. This register never stores provider passwords, API tokens, private keys or PINs. It cannot mark a provider Active: live activation requires a separate server-side connection and verified test transactions.</p></div><button type="button" id="refreshIntegrations">Refresh providers</button></div>
     <div class="notice warning">MTN Mobile Money, Airtel Money and SMS are not yet connected. Live payments require merchant approval, official provider credentials, secure server-side processing, callback verification and reconciliation tests. Do not enter or paste secrets here.</div>
+    <div class="notice" id="cornhillFastSmsPanel">
+  <h3>FastSMS Uganda</h3>
+  <p><strong>Connection: Not activated.</strong> Provider response interpretation is shared with the reviewed Windows version. Legacy documentation must be verified before enabling real SMS. Never enter credentials here.</p>
+  <label for="cornhillFastSmsCode">Legacy response code reference</label>
+  <select id="cornhillFastSmsCode">
+    <option value="">Choose a documented code</option>
+    <option value="0000">0000</option><option value="0001">0001</option>
+    <option value="0002">0002</option><option value="0003">0003</option>
+    <option value="0004">0004</option><option value="0005">0005</option>
+    <option value="0006">0006</option><option value="0007">0007</option>
+  </select>
+  <p id="cornhillFastSmsResult" aria-live="polite">No provider call made. Consent, verified cost, secure server configuration and approval are required before sending.</p>
+</div>
     <div class="table-wrap"><table><thead><tr><th>Provider</th><th>Service</th><th>Current status</th><th>Account reference / sender</th><th>Notes</th><th>Action</th></tr></thead><tbody id="integrationRows"><tr><td colspan="6">Loading…</td></tr></tbody></table></div>
   </section>
 
@@ -1228,5 +1241,7 @@ if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWo
   initialise();
 })();
 </script>
+<script src="/cornhill-fastsms-status.js" defer></script>
+<script src="/cornhill-fastsms-settings.js" defer></script>
 </body>
 </html>
