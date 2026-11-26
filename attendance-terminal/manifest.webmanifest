@@ -1,0 +1,21 @@
+{
+  "id": "/attendance-terminal/",
+  "name": "CORNHILL Attendance Terminal",
+  "short_name": "CORNHILL Attend",
+  "description": "Authorised CORNHILL staff attendance terminal",
+  "start_url": "/attendance-terminal/",
+  "scope": "/attendance-terminal/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f3f7f3",
+  "theme_color": "#123d2b",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
