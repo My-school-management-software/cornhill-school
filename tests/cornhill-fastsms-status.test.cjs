@@ -1,0 +1,13 @@
+"use strict";
+const test=require("node:test"),assert=require("node:assert/strict");const {interpretFastSmsResponse}=require("../cornhill-fastsms-status.js");
+test("legacy response 0000",()=>assert.deepEqual(interpretFastSmsResponse("0000"),{"kind":"provider_offline","accepted":false,"retry":"manual_review"}));
+test("legacy response 0001",()=>assert.deepEqual(interpretFastSmsResponse("0001"),{"kind":"no_message_written","accepted":false,"retry":"manual_review"}));
+test("legacy response 0002",()=>assert.deepEqual(interpretFastSmsResponse("0002"),{"kind":"insufficient_balance","accepted":false,"retry":"no"}));
+test("legacy response 0003",()=>assert.deepEqual(interpretFastSmsResponse("0003"),{"kind":"provider_accepted_not_delivery_confirmed","accepted":true,"retry":"no"}));
+test("legacy response 0004",()=>assert.deepEqual(interpretFastSmsResponse("0004"),{"kind":"undefined_provider_error","accepted":false,"retry":"manual_review"}));
+test("legacy response 0005",()=>assert.deepEqual(interpretFastSmsResponse("0005"),{"kind":"account_inactive","accepted":false,"retry":"no"}));
+test("legacy response 0006",()=>assert.deepEqual(interpretFastSmsResponse("0006"),{"kind":"invalid_provider_credentials","accepted":false,"retry":"no"}));
+test("legacy response 0007",()=>assert.deepEqual(interpretFastSmsResponse("0007"),{"kind":"credentials_too_short","accepted":false,"retry":"no"}));
+test("acceptance not delivery",()=>assert.equal(interpretFastSmsResponse("0003").kind,"provider_accepted_not_delivery_confirmed"));
+for(const input of ["constructor","toString",null,"unrecognized"])test("unknown "+String(input),()=>assert.equal(interpretFastSmsResponse(input).kind,"unknown_response"));
+test("trimmed code",()=>assert.equal(interpretFastSmsResponse(" 0002 ").kind,"insufficient_balance"));
