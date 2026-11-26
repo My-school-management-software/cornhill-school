@@ -17,4 +17,14 @@ bind("sms","smsResult",()=>{
  const result=CornhillSmsPreflight.previewSmsEligibility({policy:{enabled:el("enabled").checked,providerVerified:verified,senderApproved:verified,templateApproved:verified,verifiedUnitPriceUgx:50,dailyBudgetUgx:Number(el("budget").value),monthlyBudgetUgx:1000,dailyCommittedUgx:0,monthlyCommittedUgx:0},recipient:{consent:el("consent").checked,linkVerified:true,phoneVerified:true},message:{approved:true,idempotencyKey:"synthetic-only",alreadyQueuedOrSent:el("duplicate").checked,verifiedBillableUnits:2}});
  return "Eligible for simulated preview: "+(result.eligible?"Yes":"No")+"\nReason: "+result.reason+"\nEstimated test cost: "+(result.estimatedCostUgx??"Unavailable")+"\nNo SMS sent.";
 });
+
+bind("financeReview","financeResult",()=>{
+ const result=CornhillFinanceAttendanceReview.feeReview({assessmentVerified:el("feeVerified").checked,current:Number(el("currentFee").value),previous:Number(el("previousFee").value)});
+ const haircut=CornhillFinanceAttendanceReview.boardingChargeReview({enrolmentVerified:true,boardingStatus:el("boardingStatus").value,periodApproved:el("hairPeriod").checked,obligations:el("hairAssessed").checked?[{periodMatches:true,amountUgx:3000,verifiedAllocatedUgx:Number(el("hairPaid").value)}]:[]});
+ return "Combined fee balance: "+(result.combined??"Unknown / unassessed")+"\nPrevious debt reminder: "+result.reminder+"\nHair charge: "+haircut.status+"\nHair outstanding: "+(haircut.outstanding??"Not assessed / not applicable")+"\nHair is shown separately for review; do not add it twice.";
+});
+bind("attendanceReview","attendanceResult",()=>{
+ const result=CornhillFinanceAttendanceReview.attendanceReview({rosterVerified:true,deviceVerified:true,syncComplete:el("attendanceSync").checked,workingDayVerified:true,expected:el("attendanceExpected").checked,clockInVerified:el("attendanceClocked").checked,elapsedMinutes:Number(el("elapsed").value),reasonStatus:el("reasonStatus").value,allowDeduction:el("deductionAllowed").checked});
+ return "Status: "+result.status+"\nRecommend Director review: "+(result.recommendation?"Yes":"No")+"\nAutomatic salary deduction: No.";
+});
 });
