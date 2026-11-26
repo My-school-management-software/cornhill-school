@@ -460,6 +460,26 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
 </form>
 <div class="table-wrap"><table><thead><tr><th>Class</th><th>Material</th><th>Category</th><th>Quantity</th><th>Duration</th><th>Dates</th></tr></thead><tbody id="materialCatalogueRows"></tbody></table></div>
 </div>
+<div class="notice" id="nurseryOfficeIntake">
+<h3>Nursery scholastic materials — office collection</h3>
+<p>Collect materials directly at the school office, one learner at a time. Only a confirmed server receipt reduces outstanding materials. This does not post school fees.</p>
+<p id="nurseryOfficeMessage" role="status">Awaiting catalogue and office receipt backend.</p>
+<button type="button" id="nurseryOfficeRefresh">Refresh office collection</button>
+<div id="nurseryOfficeControls" hidden>
+<label>Nursery class<select id="nurseryOfficeClass"></select></label>
+<label>Search by name or pupil code<input id="nurseryOfficeSearch" maxlength="100" autocomplete="off"></label>
+<label>Individual learner<select id="nurseryOfficeLearner"></select></label>
+<p id="nurseryOfficeTerm"></p>
+<div class="table-wrap"><table><thead><tr><th>Material</th><th>Required</th><th>Received</th><th>Remaining</th></tr></thead><tbody id="nurseryOfficeRows"></tbody></table></div>
+<form id="nurseryOfficeForm" hidden>
+<label>Material<select id="nurseryOfficeItem" required></select></label>
+<label>Quantity received<input id="nurseryOfficeQuantity" type="number" min="1" max="10000" step="1" required></label>
+<button type="submit">Record individual office delivery</button>
+</form>
+<h4>Individual delivery history</h4>
+<div class="table-wrap"><table><thead><tr><th>Material</th><th>Quantity</th><th>Recorded (Uganda time)</th></tr></thead><tbody id="nurseryOfficeHistory"></tbody></table></div>
+</div>
+</div>
 <div class="notice" id="cornhillFastSmsPanel">
   <h3>FastSMS Uganda</h3>
   <p><strong>Connection: Not activated.</strong> Provider response interpretation is shared with the reviewed Windows version. Legacy documentation must be verified before enabling real SMS. Never enter credentials here.</p>
@@ -533,6 +553,7 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
 </main>
 
 <script src="/cornhill-hosted-material-catalogue.js"></script>
+<script src="/cornhill-nursery-office-intake.js"></script>
 <script>
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
@@ -696,7 +717,7 @@ function matchesSelectedLoginRole(p,role){
 async function validateSelectedLoginRole(){
  await loadProfile();
  if(!matchesSelectedLoginRole(profile,selectedLoginRole)){
-  materialCatalogueController?.clear();await db.auth.signOut({scope:'local'});user=null;profile=null;
+  materialCatalogueController?.clear();nurseryOfficeController?.clear();await db.auth.signOut({scope:'local'});user=null;profile=null;
   throw new Error('This account does not match the sign-in area selected. Choose your own role and account.');
  }
 }
@@ -1142,7 +1163,9 @@ $('maintenanceRows').addEventListener('click',async e=>{
 $('refreshVisitors').addEventListener('click',loadVisitors);
 $('refreshFacilities').addEventListener('click',async()=>{await loadMaintenance();if(isAssetViewer())await loadAssets()});
 let materialCatalogueController;
+let nurseryOfficeController;
 async function loadIntegrations(){
+ if(isAdmin()&&window.CornhillNurseryOfficeIntake){nurseryOfficeController??=window.CornhillNurseryOfficeIntake.setup({db,isAdmin});void nurseryOfficeController.load();}
  if(isAdmin()&&window.CornhillHostedMaterialCatalogue){materialCatalogueController??=window.CornhillHostedMaterialCatalogue.setup({db,isAdmin});void materialCatalogueController.load();}
  if(!isAdmin())return;const {data,error}=await db.from('school_provider_integrations').select('*').order('service_type').order('provider_name');
  if(error){$('integrationRows').innerHTML='<tr><td colspan="6">Provider register could not load.</td></tr>';return}
