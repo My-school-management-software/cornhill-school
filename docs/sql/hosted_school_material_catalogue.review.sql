@@ -26,11 +26,11 @@ create policy material_catalogue_admin_read on public.school_material_catalogue 
  using ((select public.is_school_admin()));
 create policy material_catalogue_admin_publish on public.school_material_catalogue for insert to authenticated
  with check ((select public.is_school_admin()) and created_by=(select auth.uid())
-   and exists(select 1 from public.academic_terms t where t.id=term_id and not t.is_closed and
-       starts_on=t.starts_on and
-       ((duration in ('termly','once') and ends_on=t.ends_on)
-        or (duration='annual' and ends_on=(starts_on + interval '1 year' - interval '1 day')::date)
-        or (duration='custom' and ends_on>=starts_on))));
+   and exists(select 1 from public.academic_terms t where t.id=school_material_catalogue.term_id and not t.is_closed and
+       school_material_catalogue.starts_on=t.starts_on and
+       ((school_material_catalogue.duration in ('termly','once') and school_material_catalogue.ends_on=t.ends_on)
+        or (school_material_catalogue.duration='annual' and school_material_catalogue.ends_on=(school_material_catalogue.starts_on + interval '1 year' - interval '1 day')::date)
+        or (school_material_catalogue.duration='custom' and school_material_catalogue.ends_on>=school_material_catalogue.starts_on))));
 -- No UPDATE/DELETE grant. The later edition workflow needs independent review.
 -- This table is a catalogue, not a delivery or clearance ledger. Annual/custom
 -- cross-term applicability, learner assignment snapshots and custody remain separate.
