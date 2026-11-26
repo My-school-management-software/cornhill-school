@@ -442,7 +442,25 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
   <section id="integrations" class="panel module hidden">
     <div class="module-head"><div><span class="kicker">ADMINISTRATOR SETUP</span><h2>Mobile Money, SMS & Backup Integrations</h2><p class="muted">Register the services the school intends to connect. This register never stores provider passwords, API tokens, private keys or PINs. It cannot mark a provider Active: live activation requires a separate server-side connection and verified test transactions.</p></div><button type="button" id="refreshIntegrations">Refresh providers</button></div>
     <div class="notice warning">MTN Mobile Money, Airtel Money and SMS are not yet connected. Live payments require merchant approval, official provider credentials, secure server-side processing, callback verification and reconciliation tests. Do not enter or paste secrets here.</div>
-    <div class="notice" id="cornhillFastSmsPanel">
+    <div class="notice" id="materialCataloguePanel">
+<h3>School Requirements &amp; Scholastic Materials</h3>
+<p>Catalogue setup for administrators. Define general or scholastic materials, class assignment, duration and quantity. Separate from money. This phase does not collect deliveries or clear learners.</p>
+<p id="materialCatalogueMsg" role="status">Catalogue awaiting backend setup.</p>
+<button type="button" id="materialCatalogueRefresh">Refresh requirements</button>
+<form id="materialCatalogueForm" hidden>
+<label>Category<select id="materialCatalogueCategory"><option value="general">General requirements</option><option value="scholastic">Scholastic materials</option></select></label>
+<label>Material name<input id="materialCatalogueLabel" required maxlength="100" placeholder="e.g. ruled ream"></label>
+<label>Unit<input id="materialCatalogueUnit" required maxlength="36" placeholder="e.g. ream"></label>
+<label>Quantity per selected class requirement<input id="materialCatalogueQty" required type="number" min="1" max="10000" step="1"></label>
+<label>Starts in term<select id="materialCatalogueTerm" required></select></label>
+<label>Duration<select id="materialCatalogueDuration"><option value="termly">Termly</option><option value="annual">Annually</option><option value="once">Once only</option><option value="custom">Custom</option></select></label>
+<label id="materialCatalogueCustom" hidden>Custom end date<input id="materialCatalogueEnd" type="date"></label>
+<fieldset><legend>Choose classes</legend><div id="materialCatalogueClasses"></div></fieldset>
+<button type="submit">Publish catalogue assignments</button>
+</form>
+<div class="table-wrap"><table><thead><tr><th>Class</th><th>Material</th><th>Category</th><th>Quantity</th><th>Duration</th><th>Dates</th></tr></thead><tbody id="materialCatalogueRows"></tbody></table></div>
+</div>
+<div class="notice" id="cornhillFastSmsPanel">
   <h3>FastSMS Uganda</h3>
   <p><strong>Connection: Not activated.</strong> Provider response interpretation is shared with the reviewed Windows version. Legacy documentation must be verified before enabling real SMS. Never enter credentials here.</p>
   <label for="cornhillFastSmsCode">Legacy response code reference</label>
@@ -514,6 +532,7 @@ html[data-service-workspace] #appPanel>section.module .card{min-width:0;max-widt
 <footer class="muted" style="text-align:center;padding:8px 0 26px">CORNHILL NURSERY AND PRIMARY SCHOOL · Secure school services · Uganda</footer>
 </main>
 
+<script src="/cornhill-hosted-material-catalogue.js"></script>
 <script>
 const SUPABASE_URL='https://yemhortbudwbcrzsoozk.supabase.co';
 const SUPABASE_KEY='sb_publishable_jmw4qoKOkV2ga9GiZ5n1sg_dQoHnE97';
@@ -677,7 +696,7 @@ function matchesSelectedLoginRole(p,role){
 async function validateSelectedLoginRole(){
  await loadProfile();
  if(!matchesSelectedLoginRole(profile,selectedLoginRole)){
-  await db.auth.signOut({scope:'local'});user=null;profile=null;
+  materialCatalogueController?.clear();await db.auth.signOut({scope:'local'});user=null;profile=null;
   throw new Error('This account does not match the sign-in area selected. Choose your own role and account.');
  }
 }
@@ -1122,7 +1141,9 @@ $('maintenanceRows').addEventListener('click',async e=>{
 });
 $('refreshVisitors').addEventListener('click',loadVisitors);
 $('refreshFacilities').addEventListener('click',async()=>{await loadMaintenance();if(isAssetViewer())await loadAssets()});
+let materialCatalogueController;
 async function loadIntegrations(){
+ if(isAdmin()&&window.CornhillHostedMaterialCatalogue){materialCatalogueController??=window.CornhillHostedMaterialCatalogue.setup({db,isAdmin});void materialCatalogueController.load();}
  if(!isAdmin())return;const {data,error}=await db.from('school_provider_integrations').select('*').order('service_type').order('provider_name');
  if(error){$('integrationRows').innerHTML='<tr><td colspan="6">Provider register could not load.</td></tr>';return}
  integrationRows=data||[];$('integrationRows').innerHTML=integrationRows.map(x=>'<tr><td><strong>'+esc(x.provider_name)+'</strong></td><td>'+esc(x.service_type)+'</td><td><select data-integration-status="'+esc(x.id)+'">'+['Setup required','Credentials pending','Testing','Disabled'].map(s=>'<option '+(x.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select></td><td><input data-integration-reference="'+esc(x.id)+'" maxlength="120" placeholder="Merchant / account reference" value="'+esc(x.account_reference||'')+'"><input data-integration-sender="'+esc(x.id)+'" maxlength="60" placeholder="Sender label" value="'+esc(x.sender_label||'')+'"></td><td><input data-integration-notes="'+esc(x.id)+'" maxlength="1000" value="'+esc(x.notes||'')+'"></td><td><button type="button" data-integration-save="'+esc(x.id)+'">Save</button></td></tr>').join('')||'<tr><td colspan="6">No provider records are configured.</td></tr>';
