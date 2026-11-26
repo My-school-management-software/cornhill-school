@@ -1,0 +1,30 @@
+# CORNHILL live/local parity — 26 November 2026
+WE SHARE ONE DREAM. Uganda, Africa/Kampala; DD/MM/YYYY; integer UGX.
+
+## Baseline and limits
+Reference hosted deployment: https://cornhill-school-ir6okm37u-cypher-projects1.vercel.app/
+This branch starts from GitHub main, NOT a verified deployed commit. Windows 0.1.14 candidate and latest uncommitted source remain unavailable to this session. The recovered 22 November new ideas specification and 23 November Director master requirements control the scope; do not treat this summary as replacing either. No production data, migration, deployment, SMS or financial posting is authorized by this change.
+
+## Parity inventory
+| Area | Recovered scope | Candidate status |
+| --- | --- | --- |
+| Physical requirements | Approved class/term/day/boarding catalogue; general brooms/toilet rolls; class-specific manila/markers/crayons; P6 ruled and P7 plain Dolphin/Rotary reams, exact labels/quantities configurable; Nursery books, pencils/pens, crayons, erasers, sharpeners/cutters; admission/existing learner intake; verified quantities; guardian-to-teacher-to-store/Bursar custody; two independent acknowledgements; role-scoped dated printable checklists | Pure quantity and handover projections added; authenticated service, catalogue, DB, print integration pending |
+| SMS | FastSMS server-only configuration; provider verification, recipient consent, class/material/verified balance filters; approved templates; payment/attendance/calendar notices; daily/monthly budget; recipient dedup and delivery state; UGX 50 quoted, not verified | Existing hosted payment outbox migration located; pure eligibility preview added; real adapter, atomic reservations, consent recheck, dispatch and delivery callbacks pending |
+| Finance | Current-term-first, repeated previous-debt reminder, explicit split/skip, combined balance, retained credit, full/half/custom bursaries, verified posting then receipt, audited reversal; boarding-only UGX 3000 hair fee once per approved period; exact period unresolved | Hosted finance foundation documented; comparison and implementation pending |
+| Separate books | Income A: fees, meals, boarding, uniforms, sweaters, sportswear; UGX 6000 label unresolved. Income B: graduation, trips, Western Paradise, mock/pre-mock, preparatory, municipal activities. Expense A: food, firewood, utensils, medical, salaries, development, maintenance, sanitation, office/classroom, communications, transport, miscellaneous, academics. Expense B against matching B activity. Explicit reviewed transfers only; integer amounts, dates, evidence and independent reports. | Pending |
+| Receipts/banking | Cash default; actual paid/balance, words, previous term and haircut allocation; 58mm/80mm/A4, X-printer; bank reconciliation and private evidence | Pending comparison and physical tests |
+| Staff | Single Director, personal teacher and leadership codes with issue/revoke lifecycle; Bursar and Deputy email verification/invitation/approval; named accounts and server role boundaries | Pending |
+| Attendance/payroll | One authorized kiosk; no personal phone clock; offline verified event queue, device capability dependent face/fingerprint/QR/NFC, optional local voice; normal punches, morning/evening prep and Saturday 08:00–13:00; two-hour grace, Headteacher/DOS reasons, Director review and Allow Deduction toggle; no final deduction on unsynced or disputed evidence; grouped attendance alert, individual salary and approved contractor costs | Pending; actual hardware acceptance required |
+| Admissions | Existing learner identity/LIN/code, class-scoped admissions, re-admission, term dates, service assignment and requirements; retain identity and historical records | Pending comparison |
+| Academics | Nursery seven areas, P1–P3 six subjects, upper primary four subjects, sets including P7 IV, effective grading/gateway rules, immutable report history, promotion, graduation; single A4, color remarks, initials/approved crest and stamp | Pending; grading rules differ from old hosted documentation; no change to historic grades |
+| Guardian | Linked learner only, verified PIN/phone/code, records and approved reports, balances and requirements, scoped communications | Pending |
+| VIC Connect | Staff conversation membership, voice/video/attachments and private evidence; notices and recipient-specific notification centre; optional media AI separately controlled | Pending; latest Windows candidate unavailable |
+| Calendar/Print | Terms, holidays, tasks, two-day reminders where enabled, class print centre, approved role-scoped records | Pending |
+| Settings/backup | Single Director settings; approved restore/Trash and frequent protected backup; no silent deletion or reduced backup cadence; preserve URL and free hosting | Pending |
+| Offline/sync | Local internet-outage operation; disconnected client draft only; no official receipt before posting; durable conflict-safe sync with explicit authority and reconciliation; no blind two-way overwrite; 30+ devices; trusted TLS; EXE/APK physical acceptance | Pending |
+
+## Verification
+15 requirements/custody and 12 SMS preview cases executed against pure functions during authoring. Node test files committed but full repository CI and deployment build not yet run. These modules are not currently wired to authenticated screens or database; no feature acceptance or installation is claimed. Server permissions, atomic operations and persisted records remain required.
+
+## Release gates
+Recover latest source-only Windows candidate; inventory the actual deployment SHA and schema without retrieving learner/staff personal records; reconcile existing routes and APIs; review additive migrations in disposable DB; verify role/class/guardian isolation, rollback, idempotency and no real SMS/payment; full regression and preview browser tests; separately approved production change plan and backup restoration. No secret values, database dumps or real records in commits or reports.
