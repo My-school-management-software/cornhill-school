@@ -20,3 +20,6 @@ test("two distinct acknowledgements",()=>assert.equal((()=>projectHandover({...h
 test("disagreement disputed",()=>assert.equal((()=>projectHandover({...h,acknowledgements:[{staffId:"b",accepted:false}]})==="disputed")(),true));
 test("reject same custodian",()=>assert.equal((()=>{try{projectHandover({...h,toStaffId:"a"});return false}catch{return true}})(),true));
 test("reject unlinked staff",()=>assert.equal((()=>{try{projectHandover({...h,acknowledgements:[{staffId:"z",accepted:true}]});return false}catch{return true}})(),true));
+
+test("reject duplicate acknowledgement after dispute",()=>assert.throws(()=>projectHandover({...h,acknowledgements:[{staffId:"a",accepted:false},{staffId:"a",accepted:true}]})));
+test("reject unlinked acknowledgement after dispute",()=>assert.throws(()=>projectHandover({...h,acknowledgements:[{staffId:"a",accepted:false},{staffId:"z",accepted:true}]})));
