@@ -4,6 +4,44 @@ const $ = id => document.getElementById(id);
 let principal = null;
 let workspace = { classes: [], years: [], terms: [], assessments: [] };
 let selected = null;
+let marksDirty = false;
+let markSaveInFlight = false;
+let markEditVersion = 0;
+function markSaveState(message, state = "idle") {
+  const element = $("mark-save-state");
+  if (!element) return;
+  element.textContent = message;
+  element.dataset.state = state;
+}
+function confirmMarkDraftDiscard() {
+  if (markSaveInFlight) {
+    notice("A save request is still being checked. Do not change the assessment yet.", true);
+    return false;
+  }
+  if (!marksDirty) return true;
+  const discard = window.confirm(
+    "These mark edits have not been confirmed saved. Leave this register and discard the unsaved edits?"
+  );
+  if (!discard) {
+    notice("Unsaved mark entries remain on screen. Save or review them before changing registers.", true);
+    return false;
+  }
+  marksDirty = false;
+  markSaveState("Unsaved edits were discarded by staff. No offline transfer occurred.", "discarded");
+  return true;
+}
+document.addEventListener("input", event => {
+  const target = event.target;
+  if (!target || !target.closest?.("#mark-rows")) return;
+  marksDirty = true;
+  markEditVersion++;
+  markSaveState("UNSAVED EDITS: Marks are not recorded until the local server confirms saving.", "unsaved");
+});
+window.addEventListener("beforeunload", event => {
+  if (!marksDirty && !markSaveInFlight) return;
+  event.preventDefault();
+  event.returnValue = "";
+});
 const csrf = () => {
   const prefix = "__Host-cornhill_csrf=";
   const item = document.cookie.split(";").map(value => value.trim()).find(value => value.startsWith(prefix));
@@ -111,6 +149,8 @@ function appendCell(row, value) {
   return cell;
 }
 function renderMarks(data) {
+  marksDirty = false;
+  markSaveState("Displaying server-confirmed marks. New edits are not saved automatically.", "confirmed");
   selected = data.assessment;
   $("assessment-status").textContent = data.assessment.assessmentName + " · " + data.assessment.status;
   $("empty").hidden = true;
@@ -290,6 +330,7 @@ async function refreshWorkspaceAndAssessment(id) {
 }
 async function saveMarks() {
   if (!selected || selected.status !== "Open" || !can("academics.marks_enter")) return;
+  if (markSaveInFlight) return;
   const marks = [];
   for (const input of $("mark-rows").querySelectorAll("input[data-learner-id]")) {
     if (input.value.trim() === "") continue;
@@ -305,12 +346,41 @@ async function saveMarks() {
   }
   if (!marks.length) throw new Error("Enter at least one score before saving.");
   if (marks.length > 500) throw new Error("Save no more than 500 marks at a time.");
-  const result = await api("/academics/marks", {
-    method: "POST",
-    body: { assessmentId: selected.id, classId: selected.classId, marks }
-  });
+  const editVersionAtSend = markEditVersion;
+  markSaveInFlight = true;
+  $("save-marks").disabled = true;
+  markSaveState("Saving to the local school server. The marks are not confirmed yet.", "saving");
+  let result;
+  try {
+    result = await api("/academics/marks", {
+      method: "POST",
+      body: { assessmentId: selected.id, classId: selected.classId, marks }
+    });
+  } catch {
+    marksDirty = true;
+    markSaveState(
+      "SAVE NOT CONFIRMED: Keep these entries. Check saved marks on the server before retrying; a lost response may still have saved them. No offline upload was performed.",
+      "unconfirmed"
+    );
+    throw new Error("Save not confirmed. Keep your entries and check the saved marks before retrying.");
+  } finally {
+    markSaveInFlight = false;
+    $("save-marks").disabled = false;
+  }
+  if (markEditVersion !== editVersionAtSend) {
+    marksDirty = true;
+    markSaveState("Some edits were made while saving. Those later edits are NOT confirmed saved.", "unsaved");
+    notice(result.savedCount + " marks confirmed by the server; later edits remain unsaved.", true);
+    return;
+  }
+  marksDirty = false;
+  markSaveState(result.savedCount + " mark(s) confirmed saved by the school server.", "confirmed");
   notice(result.savedCount + " mark(s) saved. Audit history was recorded.");
-  await loadSelectedAssessment();
+  try {
+    await loadSelectedAssessment();
+  } catch {
+    notice("Save was confirmed, but the register refresh did not complete. Reload when connected.", true);
+  }
 }
 $("create-year-form").addEventListener("submit", async event => {
   event.preventDefault();
@@ -360,12 +430,32 @@ $("logout").addEventListener("click", async () => {
   notice("You have signed out.");
 });
 $("class-select").addEventListener("change", async () => {
+  if (!confirmMarkDraftDiscard()) {
+    if (selected) $("class-select").value = selected.classId;
+    return;
+  }
   try { await loadWorkspace(); await loadSelectedAssessment(); }
   catch (error) { notice(error.message, true); }
 });
-$("term-select").addEventListener("change", () => { renderAssessments(); loadSelectedAssessment(); });
-$("assessment-select").addEventListener("change", loadSelectedAssessment);
-$("reload-marks").addEventListener("click", loadSelectedAssessment);
+$("term-select").addEventListener("change", () => {
+  if (!confirmMarkDraftDiscard()) {
+    if (selected) $("term-select").value = selected.academicTermId;
+    return;
+  }
+  renderAssessments();
+  void loadSelectedAssessment();
+});
+$("assessment-select").addEventListener("change", () => {
+  if (!confirmMarkDraftDiscard()) {
+    if (selected) $("assessment-select").value = selected.id;
+    return;
+  }
+  void loadSelectedAssessment();
+});
+$("reload-marks").addEventListener("click", () => {
+  if (!confirmMarkDraftDiscard()) return;
+  void loadSelectedAssessment();
+});
 $("load-report-history").addEventListener("click", loadReportHistory);
 $("save-marks").addEventListener("click", async () => {
   try { await saveMarks(); } catch (error) { notice(error.message, true); }

@@ -1,0 +1,13 @@
+# CORNHILL V35B — Direct synthetic PostgreSQL 17 binary-version verification repair
+
+Director's real Windows V35 result, 27 November 2026: `V35_SECURITY_SOURCE_TESTS=PASS`, 35/35 Node isolated tests pass, but `V35_SYNTHETIC_PG17_ACCEPTANCE=BLOCKED`, `V35_REASON=PG17_REQUIRED`, `V35_WORKING_SCHOOL_DB_WRITES=0`, `V35_CLOUD_AND_FINANCE_WRITES=0`. This happened before V35 created its private scratch cluster. It does not establish that PostgreSQL 17 is missing: earlier V32C actually restored a fresh snapshot using PG17 on the same PC.
+
+Direct inspection of the exact V35 ZIP found an overly strict binary preflight: `spawnSync(postgres.exe,['--version'])` required status=0 AND stdout containing the literal case-sensitive `PostgreSQL 17`, ignoring stderr or unusual process-launch behavior. Actual reason the singular probe failed is not available in V35 output. This check is nonessential because the test also checks the running isolated database's actual server_version_num.
+
+V35B ZIP BUILT: `CORNHILL-V35B-SYNTHETIC-PG17-VERSION-HOTFIX.zip`, 22,242 B, SHA256 `64d396ead80b5e770e879c7724494610ad2bd81b87692d64d0470fc412cd5349`. Internal SHA256 manifest and ZIP CRC PASS. **42/42 Node22 focused tests PASS**, 0 failed/skip, tested both working tree and extracted ZIP. NEW seven tests exercise stdout/stderr version parsing, version mismatch, binary absence, process-launch failure, nonzero exit and avoiding standalone postgres.exe version probe.
+
+V35B still verifies that pg_ctl.exe, initdb.exe, postgres.exe exist under the verified PostgreSQL17 Windows bin directory and BOTH pg_ctl and initdb successfully report PostgreSQL17; then it creates the isolated, fresh synthetic 127.0.0.1 random-port PG17 instance. **Server SQL independently checks its true PG17 version, exact private data directory, postgres database and nonproduction port before any synthetic fixture is loaded.** If checks fail, it reports bounded error class and blocks. It does NOT bypass version checks, connect to live cornhill_local, read production `.env`, migrate working database, touch learner/finance records, stop main Node/PG service or enable sync.
+
+The rest of the undeployed V35 transaction-candidate source, journal review-only migration 122 and transaction test harness are unchanged. Main Windows PostgreSQL 5432 and HTTPS 4174 may remain running. The Director must run V35B on Windows to claim real isolated PG17 transaction acceptance; do not treat the 42/42 mock tests as actual PG acceptance.
+
+Hosted finance still has 8 Posted while local has 9; finance sync OFF. Five formal global release gates remain 0/5.

@@ -4,6 +4,8 @@ import { createPostgresAuthRepositories } from "../db/auth-repositories.mjs";
 import { createPostgresSchoolCatalogRepository } from "../db/school-catalog-repositories.mjs";
 import { createPostgresAdmissionsRepository } from "../db/admissions-repositories.mjs";
 import { createPostgresAcademicsRepository } from "../db/academics-repositories.mjs";
+import { createPostgresAcademicDraftVerifier } from "../db/academic-draft-verifier.mjs";
+import { createAcademicDraftEligibilityHttpHandler } from "./academic-draft-eligibility-http-handler.mjs";
 import { createPostgresFinanceRepositories } from "../db/finance-repositories.mjs";
 import { createArgon2PasswordHasher } from "./argon2-password-hasher.mjs";
 import { createAuthService } from "./auth-service.mjs";
@@ -95,6 +97,28 @@ export async function createLocalAuthRuntime({
     const learnerProfileRouteHandler = createLearnerProfileHttpHandler({ authService, repository: admissionsRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN });
     const academicsRepository = createPostgresAcademicsRepository(pool);
     const academicsRouteHandler = createAcademicsHttpHandler({ authService, academicsRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN });
+    // Off by default. Never activate on a working Windows installation unless
+    // migration 096, restricted role grants and Director-reviewed policy are accepted.
+    const offlineDraftEligibilityEnabled = env.CORNHILL_OFFLINE_DRAFT_ELIGIBILITY === "read-only-v21";
+    let academicDraftEligibilityRouteHandler = null;
+    if (offlineDraftEligibilityEnabled) {
+      const schema = await pool.query(
+        "SELECT EXISTS (" +
+        "SELECT 1 FROM information_schema.columns " +
+        "WHERE table_schema='cornhill_school' AND table_name='learner_marks' " +
+        "AND column_name='offline_sync_revision') AS ready"
+      );
+      if (schema.rows[0]?.ready !== true) {
+        throw new Error("Offline draft preview requires reviewed local schema migration 096.");
+      }
+      const draftVerifier = createPostgresAcademicDraftVerifier({
+        pool, fingerprintSecret
+      });
+      academicDraftEligibilityRouteHandler = createAcademicDraftEligibilityHttpHandler({
+        authService, recordVerifier: draftVerifier, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+      });
+    }
+
     const staffLeadershipRepository = createPostgresStaffLeadershipRepository(pool);
     const leadershipRouteHandler = createStaffLeadershipHttpHandler({
       authService, repository: staffLeadershipRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
@@ -138,6 +162,8 @@ export async function createLocalAuthRuntime({
       if (await admissionsRouteHandler(request, response)) return true;
       if (await learnerProfileRouteHandler(request, response)) return true;
       if (await academicsRouteHandler(request, response)) return true;
+      if (academicDraftEligibilityRouteHandler &&
+          await academicDraftEligibilityRouteHandler(request, response)) return true;
       if (await staffAdministrationRouteHandler(request, response)) return true;
       if (await staffOperationsRouteHandler(request, response)) return true;
         if (await staffLeaveReviewRouteHandler(request, response)) return true;
@@ -194,6 +220,8 @@ export async function createLocalAuthRuntime({
         if (await admissionsRouteHandler(request, response)) return true;
         if (await learnerProfileRouteHandler(request, response)) return true;
         if (await academicsRouteHandler(request, response)) return true;
+      if (academicDraftEligibilityRouteHandler &&
+          await academicDraftEligibilityRouteHandler(request, response)) return true;
         if (await staffAdministrationRouteHandler(request, response)) return true;
         if (await staffOperationsRouteHandler(request, response)) return true;
         if (await staffLeaveReviewRouteHandler(request, response)) return true;
@@ -212,6 +240,7 @@ export async function createLocalAuthRuntime({
       authHandler: routeHandler,
       financeEnabled,
       evidenceEnabled,
+      offlineDraftEligibilityEnabled,
       databaseUser: "cornhill_auth_api",
       financeDatabaseUser: financeEnabled ? "cornhill_finance_api" : null,
       async close() {
