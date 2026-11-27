@@ -31,7 +31,20 @@ try {
     "current_setting('server_version_num') AS pg_version"
   );
   assert.equal(identity.rowCount,1);
-  assertIsolatedPostgresServerIdentity(identity.rows[0],target);
+  // Only boolean field diagnoses; never echo paths, cluster fingerprints or passwords.
+  const actual = identity.rows[0];
+  const preflightFields = {
+    database: actual.database === target.database,
+    tcp_port: Number(actual.port) === target.serverPort,
+    system_id: String(actual.system_identifier) === target.systemIdentifier,
+    data_directory: String(actual.data_directory || "").replaceAll("\\\\","/").replace(/\\/+$/,"") ===
+      String(target.dataDirectory || "").replaceAll("\\\\","/").replace(/\\/+$/,""),
+    server_address_present: typeof actual.server_address === "string" && actual.server_address.length > 0
+  };
+  for (const [key,ok] of Object.entries(preflightFields)) {
+    if (!ok) console.error("ISOLATED_PREFLIGHT_FIELD_FAILED=" + key);
+  }
+  assertIsolatedPostgresServerIdentity(actual,target);
   assert.match(String(identity.rows[0].pg_version),/^17[0-9]{4}$/);
   await client.query("BEGIN");
   inTransaction=true;
