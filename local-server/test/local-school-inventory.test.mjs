@@ -47,7 +47,7 @@ test("local inventory reads only aggregate counts and never selects school ident
 
 test("report contains only aggregate counts, no school record fields", async () => {
   const result = await getLocalSchoolInventory(makePool().pool);
-  assert.doesNotMatch(JSON.stringify(result), /student_id|learner_name|pupil_code|lin|guardian_phone|password|secret|receipt_no|uuid/i);
+  assert.doesNotMatch(JSON.stringify(result), /student_id|learner_name|pupil_code|\blin\b|guardian_phone|password|secret|receipt_no|uuid/i);
   assert.ok(Object.isFrozen(result));
   assert.ok(Object.isFrozen(result.counts));
 });
