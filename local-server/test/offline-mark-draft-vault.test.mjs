@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, writeFile, readdir, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { openOfflineMarkDraftVault } from "../src/sync/offline-mark-draft-vault.mjs";
 
 const example = () => ({
@@ -130,7 +131,7 @@ test("rejects missing or malformed identity or baseline", async () => {
 
 test("does not permit a vault inside the source repository", async () => {
   await assert.rejects(openOfflineMarkDraftVault({
-    directory: resolve(new URL("../", import.meta.url).pathname),
+    directory: fileURLToPath(new URL("../", import.meta.url)),
     key: randomBytes(32)
   }), /outside the code repository/);
 });
