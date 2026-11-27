@@ -32,6 +32,6 @@ jobs:
         with:
           node-version: "22"
       - name: Test offline conflict decisions and encrypted mark drafts
-        run: node --test test/offline-conflict-core.test.mjs test/offline-mark-draft-vault.test.mjs test/mark-draft-admission-service.test.mjs test/academics-unsaved-marks-guard.test.mjs
+        run: node --test test/offline-conflict-core.test.mjs test/offline-mark-draft-vault.test.mjs test/mark-draft-admission-service.test.mjs test/academics-unsaved-marks-guard.test.mjs test/academic-draft-verifier.test.mjs
       - name: Check JavaScript source syntax
-        run: node --check src/sync/offline-conflict-core.mjs && node --check src/sync/offline-mark-draft-vault.mjs && node --check src/sync/mark-draft-admission-service.mjs && node --check public/academics.js
+        run: node --check src/sync/offline-conflict-core.mjs && node --check src/sync/offline-mark-draft-vault.mjs && node --check src/sync/mark-draft-admission-service.mjs && node --check src/db/academic-draft-verifier.mjs && node --check public/academics.js
