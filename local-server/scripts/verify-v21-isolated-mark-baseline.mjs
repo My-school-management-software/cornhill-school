@@ -37,8 +37,7 @@ try {
     database: actual.database === target.database,
     tcp_port: Number(actual.port) === target.serverPort,
     system_id: String(actual.system_identifier) === target.systemIdentifier,
-    data_directory: String(actual.data_directory || "").replaceAll("\\\\","/").replace(/\\/+$/,"") ===
-      String(target.dataDirectory || "").replaceAll("\\\\","/").replace(/\\/+$/,""),
+    data_directory: String(actual.data_directory) === String(target.dataDirectory),
     server_address_present: typeof actual.server_address === "string" && actual.server_address.length > 0
   };
   for (const [key,ok] of Object.entries(preflightFields)) {
