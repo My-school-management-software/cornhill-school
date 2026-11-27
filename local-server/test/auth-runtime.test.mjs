@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createLocalAuthRuntime } from "../src/security/auth-runtime.mjs";
+import { Readable } from "node:stream";
 
 const ENV = {
   CORNHILL_DB_HOST: "127.0.0.1",
@@ -13,7 +14,7 @@ const ENV = {
 };
 const DUMMY_HASH = "$argon2id$v=19$m=19456,t=2,p=1$ZHVtbXlzYWx0$ZHVtbXl2YWx1ZQ";
 
-function poolFixture({ user = "cornhill_auth_api", database = "cornhill_local", failQuery = false } = {}) {
+function poolFixture({ user = "cornhill_auth_api", database = "cornhill_local", failQuery = false, schemaReady = false } = {}) {
   const calls = { ended: 0, released: 0, config: null };
   const pool = {
     async connect() {
@@ -25,7 +26,10 @@ function poolFixture({ user = "cornhill_auth_api", database = "cornhill_local", 
         release() { calls.released += 1; }
       };
     },
-    async query() { return { rows: [], rowCount: 0 }; },
+    async query(sql) {
+      if (String(sql).includes("information_schema.columns")) return { rows: [{ ready: schemaReady }] };
+      return { rows: [], rowCount: 0 };
+    },
     async end() { calls.ended += 1; }
   };
   return {
@@ -213,4 +217,56 @@ test("runtime fails closed and closes both pools when finance connects as the wr
   }), /could not start/);
   assert.equal(auth.calls.ended, 1);
   assert.equal(finance.calls.ended, 1);
+});
+
+test("V21 offline mark preview is disabled by default, including unrelated env flags", async () => {
+  for (const value of [undefined, "", "true", "enabled", "1"]) {
+    const fixture = poolFixture({ schemaReady: true });
+    const runtime = await createLocalAuthRuntime({
+      env: {...ENV, CORNHILL_OFFLINE_DRAFT_ELIGIBILITY: value},
+      poolFactory: fixture.poolFactory,
+      passwordHasherFactory: hasherFactory()
+    });
+    assert.equal(runtime.offlineDraftEligibilityEnabled, false);
+    await runtime.close();
+  }
+});
+test("V21 offline preview refuses activation when schema migration 096 is absent", async () => {
+  const fixture = poolFixture({ schemaReady: false });
+  await assert.rejects(createLocalAuthRuntime({
+    env: {...ENV, CORNHILL_OFFLINE_DRAFT_ELIGIBILITY: "read-only-v21"},
+    poolFactory: fixture.poolFactory,
+    passwordHasherFactory: hasherFactory()
+  }), /could not start/);
+  assert.equal(fixture.calls.ended, 1);
+});
+test("V21 preview enables only an authenticated, read-only API route after schema acceptance", async () => {
+  const fixture = poolFixture({ schemaReady: true });
+  const runtime = await createLocalAuthRuntime({
+    env: {...ENV, CORNHILL_OFFLINE_DRAFT_ELIGIBILITY: "read-only-v21"},
+    poolFactory: fixture.poolFactory,
+    passwordHasherFactory: hasherFactory()
+  });
+  try {
+    assert.equal(runtime.offlineDraftEligibilityEnabled, true);
+    assert.equal(runtime.financeEnabled, false);
+    const request = Readable.from([Buffer.from("{}")]);
+    request.url="/api/v1/academics/offline-drafts/eligibility";
+    request.method="POST";
+    request.headers={
+      host:"cornhill.local",origin:"https://cornhill.local",
+      "content-type":"application/json"
+    };
+    request.socket={encrypted:true};
+    const response={
+      statusCode:null, body:"", headers:{},
+      writeHead(status,headers){this.statusCode=status;this.headers=headers;},
+      end(body=""){this.body=Buffer.isBuffer(body)?body.toString():String(body);}
+    };
+    assert.equal(await runtime.authHandler(request,response),true);
+    assert.equal(response.statusCode,401);
+    assert.doesNotMatch(response.body,/learner|mark|score|secret|database|password/i);
+  } finally {
+    await runtime.close();
+  }
 });
