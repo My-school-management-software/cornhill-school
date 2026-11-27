@@ -1,0 +1,37 @@
+name: CORNHILL V21 safe offline draft tests
+
+on:
+  push:
+    branches:
+      - feat/cornhill-v20-cloud-sync-preflight-20261127
+    paths:
+      - "local-server/src/sync/**"
+      - "local-server/test/offline-*.test.mjs"
+      - ".github/workflows/v21-offline-draft-tests.yml"
+  pull_request:
+    paths:
+      - "local-server/src/sync/**"
+      - "local-server/test/offline-*.test.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-conflicts-and-encryption:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: local-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test offline conflict decisions and encrypted mark drafts
+        run: node --test test/offline-conflict-core.test.mjs test/offline-mark-draft-vault.test.mjs
+      - name: Check JavaScript source syntax
+        run: node --check src/sync/offline-conflict-core.mjs && node --check src/sync/offline-mark-draft-vault.mjs
