@@ -19,7 +19,7 @@ test("runner strips outer transaction wrapper and accepts comment headers",()=>{
  assert.equal(prepareTransactionalMigration("\uFEFF-- header\r\nBEGIN;\r\nSELECT 1;\r\nCOMMIT;"),"SELECT 1;");
  assert.throws(()=>prepareTransactionalMigration("/* unterminated\nBEGIN; SELECT 1; COMMIT;"),/BEGIN\/COMMIT/);
 });
-test("all ninety-five migrations use valid outer transactions",async()=>{
+test("all ninety-six migrations use valid outer transactions",async()=>{
  const dir=new URL("../migrations/",import.meta.url);const names=sortMigrationFiles(await readdir(dir));
  assert.deepEqual(names,[
  "001_local_identity_foundation.sql","002_local_authorization_foundation.sql","003_local_auth_rate_limit_indexes.sql",
@@ -34,7 +34,7 @@ test("all ninety-five migrations use valid outer transactions",async()=>{
  "074_local_school_catalog_read_api.sql","075_local_learner_roster_read_api.sql","076_local_learner_admission_write_api.sql","077_local_academics_workspace_api.sql","078_local_academic_period_setup.sql","079_local_staff_leadership_workspace.sql","080_local_director_staff_administration.sql","081_local_staff_operations_read_api.sql","082_local_attendance_device_import_api.sql","083_local_guardian_portal_read_scope.sql","084_local_guardian_pin_issuance_and_approval.sql","085_local_guardian_contact_lock_function.sql","086_local_staff_leave_independent_review.sql","087_local_staff_attendance_payroll_actions.sql","088_local_admission_database_integrity.sql","089_local_provisional_learner_class_guard.sql",
  "090_local_p7_index_roster_read_api.sql","091_local_learner_audit_append_only.sql",
  "092_local_learner_profile_edit_columns.sql","093_local_school_learner_catalogue_read.sql",
- "094_local_learner_source_identity_and_code_aliases.sql","095_local_academic_results_and_progression.sql"]);
+ "094_local_learner_source_identity_and_code_aliases.sql","095_local_academic_results_and_progression.sql", "096_local_offline_mark_revision_baseline.sql"]);
  for(const name of names){const source=await readFile(new URL(name,dir),"utf8");assert.doesNotThrow(()=>prepareTransactionalMigration(source),name);assert.doesNotMatch(source,/(?:GRANT|REVOKE)\s+(?:CONNECT|TEMPORARY)[\s\S]{0,80}ON DATABASE cornhill_local/i,name+" must support the isolated CI database name");}
 });
 test("runner rejects malformed or destructive SQL and ledger mismatches",()=>{
