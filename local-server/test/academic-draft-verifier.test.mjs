@@ -96,7 +96,7 @@ test("7. do not return a learner's name, code, marks, comment or private data",a
 });
 test("8. invalid identifiers are rejected before opening database transaction",async()=>{
   const f=fakePool();
-  for(const value of ["not-uuid",null,42,"../secret","22222222-2222-2222-2222-222222222222".toUpperCase()]){
+  for(const value of ["not-uuid",null,42,"../secret","aaaaaaaa-2222-4222-8222-222222222222".toUpperCase()]){
     await assert.rejects(f.verifier.verifyDraftSourceMapping({...args,learnerSourceId:value}));
   }
   assert.equal(f.queries.length,0);
