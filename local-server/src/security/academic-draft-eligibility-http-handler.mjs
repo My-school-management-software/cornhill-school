@@ -2,7 +2,7 @@
 // This endpoint NEVER saves a mark, queues a draft, or contacts the cloud.
 // It is disabled by default and requires migration 096 + an explicit local feature flag.
 import {
-  AuthenticationError, AuthenticationServiceError, CsrfValidationError
+  AuthenticationError, AuthenticationRateLimitError, AuthenticationServiceError, CsrfValidationError
 } from "./auth-service.mjs";
 import {
   AuthorizationError, staffHasClassAssignment, staffHasPermission
@@ -126,7 +126,9 @@ export function createAcademicDraftEligibilityHttpHandler({
       });
     } catch (error) {
       try { onError?.(error); } catch { /* do not leak logger errors */ }
-      if (error instanceof InvalidInput) {
+      if (error instanceof AuthenticationRateLimitError) {
+        send(response, 429, { error: "Too many sign-in attempts" });
+      } else if (error instanceof InvalidInput) {
         send(response, error.status, { error: error.message });
       } else if (error instanceof AuthenticationError) {
         send(response, 401, { error: "A valid staff session is required" });
