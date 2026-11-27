@@ -103,6 +103,9 @@ jobs:
       - name: Verify PostgreSQL tables, roles and schema permissions
         run: node scripts/verify-local-schema.mjs
 
+      - name: Verify isolated academic revision trigger and scoped mark reader
+        run: node scripts/verify-v21-isolated-mark-baseline.mjs
+
       - name: Exercise PostgreSQL authentication repositories
         run: node scripts/verify-auth-repositories.mjs
 
