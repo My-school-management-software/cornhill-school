@@ -3,7 +3,7 @@
 // Accept only non-identifying metadata assembled through a separate, permission-checked reader.
 const SCOPES = new Set(["learner_profile", "assessment_score"]);
 const FIELDS = new Set(["sourceId", "revision", "fingerprint"]);
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const MAX_MANIFEST = 5000;
 
