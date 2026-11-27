@@ -1,0 +1,15 @@
+# CORNHILL V35 — Direct academic transaction development without Codex
+
+Date: 27 November 2026 (Uganda). User said PROCEED and Codex is unavailable. The assistant created real source files and runnable tests directly; no Codex prompt is needed.
+
+Prior Windows acceptance: V32C fresh backup + isolated restore + encrypted same-Windows-user backup PASS. V33 academic preview POST-only route recognized by HTTP 405 on localhost 4174 after application restart; this was not actual authenticated mark saving. V33B local finance 9 Posted, 9 receipts with core integrity pass; hosted 8 Posted not reconciled. Finance sync OFF.
+
+V35 independent ZIP: CORNHILL-V35-DIRECT-SAFE-PG17-ACADEMIC-SYNC-TEST.zip, 19,861 bytes, SHA256 c1014796d94c22fe91c107b449e501a6ac6bef043c37a77fbed5fc3f1ee4d3ea. ZIP CRC and per-file manifest verified. 35/35 deterministic Node22 tests PASS, syntax checks PASS.
+
+Contains undeployed src/db/v35-offline-mark-transaction.mjs, V33 fingerprint reference, V34 strict batch validator, REVIEW ONLY journal migration 122, tests and isolated synthetic PG17 verification runner. V35 transaction matches staff advisory-lock then assessment row-lock ordering; staff/class/subject/enrollment checks inside transaction; stale mark and closed assessment rejection; same-actor/same-payload replay; all-or-none rollback; missing mark baseline support; optional subject from to_jsonb(assessment) rather than assuming column exists in earliest migration; correct V33 fingerprint even when legacy learner mark max-score differs.
+
+The Windows-only standalone test creates a brand-new synthetic temporary PostgreSQL17 cluster using installed PG17 binaries on non-production localhost random port. No real learner records, no school .env, no real cornhill_local DB, no Supabase access, no production migrations. Tests fake mark insert, idempotent retry, stale conflict, unauthorized staff, concurrent identical batches, closed assessment and journal integrity, then attempts identity-checked PG17 stop and private scratch cleanup. On uncertain PG ownership it fails closed and retains ONLY its own synthetic temp folder for review. Actual Windows PG17 test PENDING — tests run thus far were mock, not real PG.
+
+Nothing V35 installed into production, no school DB or finance writes, server restart or sync activated. Migration 122 is .review.sql and requires separate explicit Director approval after real disposable schema compatibility testing; do not auto-run on working school. Signed Windows EXE/Android APK and real multi-device sync remain pending, formal release gates 0/5.
+
+Next milestones: Director runs one synthetic PG17 acceptance command; if passed, implement authenticated staff POST+CSRF/origin guarded server endpoint behind disabled feature flag, test against current full schema in disposable database, then review migration and real device offline retry and conflict behavior. Avoid claiming actual sync acceptance until then.
