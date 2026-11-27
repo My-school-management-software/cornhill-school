@@ -12,7 +12,7 @@ import {
 } from "./session-cookies.mjs";
 
 const PATH = "/api/v1/academics/offline-drafts/eligibility";
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const FIELD_NAMES = ["learnerSourceId", "assessmentSourceId", "subjectSourceId"];
 const HEADERS = Object.freeze({
   "Cache-Control": "no-store",
