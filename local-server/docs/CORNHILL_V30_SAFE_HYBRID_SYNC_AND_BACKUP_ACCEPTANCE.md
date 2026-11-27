@@ -3,7 +3,7 @@
 Date: 27 November 2026, Uganda.
 
 ## Built and tested
-A source-additive Windows ZIP was created: CORNHILL-V30-HYBRID-SYNC-SAFE-FOUNDATION.zip (18,838 bytes; SHA256 08b572a4e56a7d5d0203c0243710de68f4ff8afd787e3f82e2bddf37cba9c687). ZIP integrity PASS. 67/67 deterministic Node22 tests PASS in isolated test environment. ACTUAL WINDOWS EXECUTION PENDING.
+A source-additive Windows ZIP was created: CORNHILL-V30-HYBRID-SYNC-SAFE-FOUNDATION.zip (18,892 bytes; SHA256 4f0b6310985cfcc409e80b72c6d74225426bfce8fcb929d2a3b0a28e0c2043f2). ZIP integrity PASS. 67/67 deterministic Node22 tests PASS in isolated test environment. ACTUAL WINDOWS EXECUTION PENDING.
 
 The source bundle includes strict learner_profile/assessment_score UUID/revision/fingerprint shadow comparison; encrypted AES-256-GCM durable academic draft storage with idempotency and no automatic replay; permission and baseline revision conflict preview; a local PostgreSQL 17 read-only aggregate continuity checker; and a one-command SHA-verified installer that only ADDS four NEW source files and never overwrites current source, changes .env, runs database migrations, posts payments, restarts services, or enables sync.
 
