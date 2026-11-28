@@ -76,3 +76,12 @@ The learner register's complete edit workflows, authorised contact-update API, f
 6. Director sees only update metadata, never the current or changed PIN; a Director-controlled audited PIN reset remains possible.
 7. Mobile and desktop test: no missing buttons, giant horizontally clipped forms, or overlays hiding information; no cross-user navigation/history leakage.
 8. No database or finance writes from read-only source review, tests, or UI staging.
+
+
+## F. V72 clarification: Director means the exact Learner Register Edit modal
+
+Screenshot received 28 Nov 2026 at 23:40 EAT, showing School Office → Learner registers → **Edit learner profile** modal. This is the specific interface the Director wants improved, **not** the application-wide navigation or the read-only class register table. The current form has First name, Middle name, Last name, Gender, Date of birth, Learner type, Previous school, LIN, P.7 Index number, mandatory audit reason, Save and Cancel.
+
+A separate **conflict-safe V72 local ZIP** was prepared from the actual installed V63 source snapshot. It replaces only the original school.html editor dialog, original school.js editor-opening function, and appends scoped school.css. The editor becomes a compact five-tab view (Learner, Guardian, Fees, Requirements, Academics) with missing DOB/LIN indicators, permission-scoped navigation to authoritative departmental systems, and no direct write access to guardian/fee/requirement records. It retains the original PATCH profile save, reason audit and role checks. Ten focused static/source tests pass. ZIP: `CORNHILL-V72-ADVANCED-LEARNER-EDITOR-REPAIR.zip`; **not yet installed/accepted on Director's PC**. This is an interim UI fix, **not** the completed all-fields editing workflow.
+
+Next work must create permissioned and audited guardian-contact edits and advanced-materials/fee read summaries, then connect them into the same learner modal, using verified local 140-migration lineage and real staff accounts. Guardian new PIN digits remain never visible to the Director; only status/timestamp and authorised one-time reset may appear.
