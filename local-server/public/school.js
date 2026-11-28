@@ -53,7 +53,8 @@ async function loadNurseryHistory(){
     }
     if(!totals.childNodes.length){const li=document.createElement("li");li.textContent="No materials recorded yet.";totals.append(li);}
     const allTimeCount=Number.isSafeInteger(d.summary?.collectionEvents) ? d.summary.collectionEvents : rows.length;
-    setNurseryStatus(d.historyLimited ? "Showing the latest "+rows.length+" of "+allTimeCount+" collection entries. Totals cover all history." : allTimeCount+" collection entries recorded individually for this learner.");
+    const notice=d.historyLimited ? "Showing the latest "+rows.length+" of "+allTimeCount+" collection entries. Totals cover all history." : allTimeCount+" collection entries recorded individually for this learner.";
+    setNurseryStatus(notice+(nurseryUnresolvedRequestsByLearner.has(l.id) ? " A previous receipt has an uncertain confirmation; please retry the restored entry before starting another." : ""));
   }catch(error){setNurseryStatus(error.message);}
 }
 function openNurseryMaterials(l){
