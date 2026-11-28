@@ -49,5 +49,7 @@ REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
 -- ensure that the teacher receiving or returning materials is a real staff member.
 GRANT SELECT (id, username, account_status) ON cornhill_auth.staff_accounts TO cornhill_auth_runtime;
 GRANT SELECT (staff_account_id, role_code) ON cornhill_auth.staff_role_assignments TO cornhill_auth_runtime;
+GRANT SELECT (staff_account_id, class_id, is_active)
+ ON cornhill_auth.staff_class_assignments TO cornhill_auth_runtime;
 
 COMMIT;
