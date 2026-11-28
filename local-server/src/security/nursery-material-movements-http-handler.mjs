@@ -103,7 +103,11 @@ export function createNurseryMaterialMovementsHttpHandler({authService,repositor
    if(movement.movementType==="director_surplus"&&!isDirector(principal))
      throw new AuthorizationError();
    // Do not accept future or silently over-backdated custody movements.
-   const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kampala",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+   const dayparts=new Intl.DateTimeFormat("en-GB",{
+     timeZone:"Africa/Kampala",year:"numeric",month:"2-digit",day:"2-digit"
+   }).formatToParts(new Date());
+   const piece=name=>dayparts.find(x=>x.type===name)?.value;
+   const today=piece("year")+"-"+piece("month")+"-"+piece("day");
    if(movement.movementDate>today)throw new InputError("Movement date cannot be in the future.");
    const out=await repository.recordMovement({actorStaffId:principal.id,movement});
    send(response,out.created?201:200,{movement:out.movement,alreadyRecorded:!out.created},"POST");
