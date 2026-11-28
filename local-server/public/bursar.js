@@ -695,15 +695,26 @@
   function updateAllocationSummary() {
     let allocated = 0;
     let invalid = false;
+    let selectedItemCount = 0;
     document.querySelectorAll(".fee-row").forEach(row => {
       const checkbox = row.querySelector(".fee-select");
       const amount = row.querySelector(".fee-allocation");
       if (!checkbox?.checked) return;
+      selectedItemCount += 1;
       const value = Number(amount.value);
       const maximum = Number(row.dataset.balance);
       if (!Number.isSafeInteger(value) || value <= 0 || value > maximum) invalid = true;
       else allocated += value;
     });
+    // The old single-choice "Collection item" field is only a receipt label.
+    // Mixed payments are represented by independently selected allocations.
+    // Do not create multiple receipts or lose the original idempotency key.
+    if (selectedItemCount > 1) {
+      byId("collection-item").value = "Multiple items";
+    } else if (selectedItemCount <= 1 &&
+               byId("collection-item").value === "Multiple items") {
+      byId("collection-item").value = "School fees";
+    }
     const received = Number(byId("amount-received").value) || 0;
     const remaining = received - allocated;
     byId("allocated-total").textContent = money(allocated);
