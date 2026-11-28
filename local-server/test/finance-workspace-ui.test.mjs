@@ -103,3 +103,11 @@ test("Bursar workspace exposes a permission-scoped searchable archive with recor
   assert.match(js,/item[.]recordId/);
   assert.match(js,/textContent=item[.]reference/);
 });
+
+test("Income A/B reports are shown only to finance.reports_read staff and not to payment-only accounts",()=>{
+  assert.match(html,/id="income-summary-panel"/);
+  assert.match(js,/finance[.]reports_read/);
+  assert.match(js,/byId\("income-summary-panel"\)[.]hidden = !hasPermission\(principal, "finance[.]reports_read"\)/);
+  assert.match(js,/finance[.]payments_record","finance[.]reports_read"/);
+  assert.match(js,/\/finance\/income-summary\?from=/);
+});
