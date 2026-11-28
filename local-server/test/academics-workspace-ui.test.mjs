@@ -38,3 +38,19 @@ test("academic workspace exposes year and term setup behind academic management 
   assert.match(js, /\/academics\/terms/);
   assert.match(js, /renderPeriods/);
 });
+
+test("class advancement requires an explicit decision for each learner; none are selected by default", () => {
+  for (const id of [
+    "advancement-panel", "advancement-class-select", "advancement-term-select",
+    "load-advancement", "advancement-candidates", "approve-selected-advancements"
+  ]) assert.ok(html.includes('id="' + id + '"'), id);
+  assert.match(js, /Not yet decided — keep pending/);
+  assert.match(js, /Promote to /);
+  assert.match(js, /Repeat /);
+  assert.match(js, /Completed primary school \(graduate\)/);
+  assert.match(js, /advance|advancement/i);
+  assert.match(js, /window\.confirm/);
+  assert.match(js, /selectedEditors = advancementEditors\.filter\(editor => editor\.decision\.value\)/);
+  assert.match(js, /approved: true/);
+  assert.match(css, /advancement-row/);
+});
