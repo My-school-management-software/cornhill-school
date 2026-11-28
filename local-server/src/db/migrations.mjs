@@ -75,6 +75,46 @@ export function assertMigrationLedgerRow(row, expectedChecksum, expectedName) {
   return true;
 }
 
+/**
+ * Refuse a migration-source downgrade or history collision before any DDL.
+ * A local computer may have a newer lineage of migration numbers 096–140:
+ * a candidate branch reusing 096–100 for different features MUST NOT apply
+ * its SQL on that existing database, even when the number of source files
+ * happens to match the number of applied migrations.
+ */
+export function assertMigrationManifestCompatible(sourceDigests, appliedRows) {
+  if (!(sourceDigests instanceof Map) || !Array.isArray(appliedRows)) {
+    throw new TypeError("Migration source manifest and applied rows are required.");
+  }
+  const appliedNames = new Set();
+  for (const row of appliedRows) {
+    const name = row?.migration_name;
+    if (typeof name !== "string" || !/^\\d{3,}_[a-z0-9_]+$/.test(name) ||
+        typeof row.checksum !== "string" || !/^[a-f0-9]{64}$/.test(row.checksum)) {
+      throw new Error("Applied migration ledger contains invalid entries; no migration writes allowed.");
+    }
+    if (appliedNames.has(name)) {
+      throw new Error("Duplicate applied migration names; no migration writes allowed.");
+    }
+    appliedNames.add(name);
+    if (!sourceDigests.has(name)) {
+      const prefix = name.split("_", 1)[0];
+      const other = [...sourceDigests.keys()].find(key => key.startsWith(prefix + "_"));
+      if (other) {
+        throw new Error("Migration version collision: applied " + name +
+          " differs from candidate " + other + "; keep the installed branch and do not migrate.");
+      }
+      throw new Error("Applied migration " + name +
+        " is missing from this source branch; do not downgrade the database.");
+    }
+    if (sourceDigests.get(name) !== row.checksum) {
+      throw new Error("Migration checksum mismatch for " + name +
+        "; do not edit an applied migration or its ledger checksum.");
+    }
+  }
+  return true;
+}
+
 function normalizeDataDirectory(value) {
   const normalized = String(value ?? "").replaceAll("\\", "/").replace(/\/+$/, "");
   return process.platform === "win32" ? normalized.toLowerCase() : normalized;
