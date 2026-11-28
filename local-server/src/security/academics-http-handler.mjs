@@ -184,17 +184,19 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
     const statusMatch = url.pathname.match(/^\/api\/v1\/academics\/assessments\/([0-9a-f-]{36})\/status$/i);
     const reportCardsMatch = url.pathname.match(/^\/api\/v1\/academics\/assessments\/([0-9a-f-]{36})\/report-cards$/i);
     const learnerReportCardsMatch = url.pathname.match(/^\/api\/v1\/academics\/learners\/([0-9a-f-]{36})\/report-cards$/i);
+    const isAdvancementCandidates = url.pathname === "/api/v1/academics/advancement/candidates";
+    const isAdvancementDecisions = url.pathname === "/api/v1/academics/advancement/decisions";
     const isWorkspace = url.pathname === "/api/v1/academics/workspace";
     const isYears = url.pathname === "/api/v1/academics/years";
     const isTerms = url.pathname === "/api/v1/academics/terms";
     const isAssessments = url.pathname === "/api/v1/academics/assessments";
     const isMarks = url.pathname === "/api/v1/academics/marks";
     if (!isWorkspace && !isYears && !isTerms && !isAssessments && !isMarks && !marksMatch && !statusMatch &&
-        !reportCardsMatch && !learnerReportCardsMatch) return false;
+        !reportCardsMatch && !learnerReportCardsMatch && !isAdvancementCandidates && !isAdvancementDecisions) return false;
 
     const method = String(request.method ?? "GET").toUpperCase();
-    const allowed = isWorkspace || marksMatch ? ["GET", "HEAD"] :
-      isYears || isTerms ? ["POST"] :
+    const allowed = isWorkspace || marksMatch || isAdvancementCandidates ? ["GET", "HEAD"] :
+      isYears || isTerms || isAdvancementDecisions ? ["POST"] :
       isAssessments ? ["GET", "HEAD", "POST"] :
       isMarks || reportCardsMatch ? ["POST"] :
       learnerReportCardsMatch ? ["GET", "HEAD"] : ["PATCH"];
@@ -220,6 +222,52 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
         sessionToken: readSessionTokenFromCookieHeader(request.headers.cookie),
         method, csrfToken
       });
+
+      if (isAdvancementCandidates || isAdvancementDecisions) {
+        // Academic calendars do not automatically promote learners.
+        // A staff member authorised to manage learner records must approve
+        // each named learner's individual decision.
+        requireAcademicPermission(principal, ["learners.manage"]);
+        if (isAdvancementCandidates) {
+          const classId = url.searchParams.get("classId");
+          const academicTermId = url.searchParams.get("academicTermId");
+          if (!isLocalUuid(classId) || !isLocalUuid(academicTermId)) {
+            throw new InputError("Choose a class and the new year's Term 1.");
+          }
+          if (isClassScoped(principal)) requireClassScope(principal, classId);
+          if (typeof academicsRepository.listYearAdvancementCandidates !== "function") {
+            throw new InputError("Academic advancement is not installed on this server.", 503);
+          }
+          const review = await academicsRepository.listYearAdvancementCandidates({
+            classId, academicTermId
+          });
+          send(response, 200, { review }, method);
+          return true;
+        }
+        const body = await readJson(request);
+        if (!isLocalUuid(body.learnerId) || !isLocalUuid(body.fromClassId) ||
+            !isLocalUuid(body.academicTermId)) {
+          throw new InputError("Choose a valid learner, class and new-year Term 1.");
+        }
+        if (isClassScoped(principal)) requireClassScope(principal, body.fromClassId);
+        if (!["Promote", "Repeat", "Complete"].includes(body.decision)) {
+          throw new InputError("Choose Promote, Repeat or Complete for this learner.");
+        }
+        if (body.approved !== true) {
+          throw new InputError("Explicit confirmation is required for each individual advancement.");
+        }
+        const reason = shortText(body.reason, 300, "Advancement reason");
+        if (typeof academicsRepository.recordYearAdvancementDecision !== "function") {
+          throw new InputError("Academic advancement is not installed on this server.", 503);
+        }
+        const result = await academicsRepository.recordYearAdvancementDecision({
+          staffId: principal.id, learnerId: body.learnerId,
+          fromClassId: body.fromClassId, academicTermId: body.academicTermId,
+          decision: body.decision, reason
+        });
+        send(response, 201, { result });
+        return true;
+      }
 
       if (reportCardsMatch) {
         requireAcademicPermission(principal, ["academics.results_publish"]);
