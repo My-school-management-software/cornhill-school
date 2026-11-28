@@ -201,6 +201,28 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
         return true;
       }
 
+      const incomeSummaryRoute = path === "/api/v1/finance/income-summary" && method === "GET";
+      if (incomeSummaryRoute) {
+        const fromDate = url.searchParams.get("from") || "";
+        const toDate = url.searchParams.get("to") || "";
+        const isoDay = /^\d{4}-\d{2}-\d{2}$/;
+        if (!isoDay.test(fromDate) || !isoDay.test(toDate) ||
+            !Number.isFinite(Date.parse(fromDate + "T00:00:00Z")) ||
+            !Number.isFinite(Date.parse(toDate + "T00:00:00Z")) ||
+            fromDate > toDate) {
+          throw new FinanceInputError(400, "Select a valid report start and end date.");
+        }
+        if (typeof financeRepository.getIncomeGroupSummary !== "function") {
+          sendJson(response, 503, { error: "Income reporting is not enabled on this installation." });
+          return true;
+        }
+        const summary = await financeRepository.getIncomeGroupSummary({
+          actorStaffId: principal.id, fromDate, toDate
+        });
+        sendJson(response, 200, { summary });
+        return true;
+      }
+
       const learnerSearchMatch = path === "/api/v1/finance/learners" && method === "GET";
       if (learnerSearchMatch) {
         const search = url.searchParams.get("search") ?? "";
