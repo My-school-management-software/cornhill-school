@@ -36,6 +36,7 @@ try {
     "academic_years",
     "admission_enquiries",
     "admission_events",
+    "annual_school_fee_rates",
     "assessments",
     "attendance_adjustments",
     "attendance_day_review_events",
@@ -65,6 +66,7 @@ try {
     "finance_audit_events",
     "finance_operator_limits",
     "guardian_contacts",
+    "income_b_item_price_history",
     "learner_code_aliases",
     "learner_marks",
     "learner_progression_events",
@@ -101,6 +103,22 @@ try {
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
     "Local school table inventory mismatch. Expected: " + JSON.stringify(expected) + "; actual: " + JSON.stringify(tables.rows.map(row => row.table_name)));
 
+  const v50AnnualFeeGuards = await pool.query(
+    "SELECT tgname FROM pg_trigger WHERE tgname IN " +
+    "('annual_school_fee_rate_approval_guard','annual_school_fee_rates_append_only'," +
+    "'income_b_price_approval_guard','income_b_item_prices_append_only') AND NOT tgisinternal"
+  );
+  assert(v50AnnualFeeGuards.rowCount === 4,
+    "Annual fee approvals and flexible Income B price histories must remain guarded and append-only.");
+  const v50RuntimeGrants = await pool.query(
+    "SELECT has_table_privilege('cornhill_auth_runtime'," +
+    "'cornhill_school.annual_school_fee_rates','INSERT') AS auth_rate_insert, " +
+    "has_table_privilege('cornhill_finance_runtime'," +
+    "'cornhill_school.income_b_item_price_history','UPDATE') AS finance_price_update"
+  );
+  assert(v50RuntimeGrants.rows[0]?.auth_rate_insert === false &&
+    v50RuntimeGrants.rows[0]?.finance_price_update === false,
+    "Direct runtime writes to approved fee rates or Income B price history must remain revoked.");
   const nurseryIntegrity = await pool.query(
     "SELECT tgname FROM pg_trigger WHERE tgname='nursery_material_receipts_append_only' AND NOT tgisinternal"
   );
