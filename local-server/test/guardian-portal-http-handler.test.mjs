@@ -150,7 +150,7 @@ test("parent enters learner code and registered phone before the school-issued P
   assert.deepEqual(deps.calls.find(x => x.type === "verify"), {
     type: "verify", pupilCode: "CH-2026-000001", phone: "+256700000001"
   });
-  assert.doesNotMatch(matched.body, /pin|guardianName|learnerName|phone/i);
+  assert.doesNotMatch(String(matched.body), /pin|guardianName|learnerName|phone/i);
 });
 
 test("unregistered phone/code is denied and never receives a PIN or learner profile", async () => {
@@ -161,7 +161,7 @@ test("unregistered phone/code is denied and never receives a PIN or learner prof
     body: { pupilCode: "CH-2026-000001", phone: "+256700000099" } }), rejected);
   assert.equal(rejected.status, 400);
   assert.equal(deps.calls.some(x => x.type === "list"), false);
-  assert.doesNotMatch(rejected.body, /pin|guardianName|learnerName/i);
+  assert.doesNotMatch(String(rejected.body), /pin|guardianName|learnerName/i);
 });
 
 test("guardian portal rejects a missing learner code even when guardian session exists", async () => {
