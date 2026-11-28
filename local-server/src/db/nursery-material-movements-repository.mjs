@@ -106,11 +106,14 @@ export function createPostgresNurseryMaterialMovementsRepository(pool){
        [movement.teacherStaffId,l.rows[0].classId]);
      if(!t.rows.length)throw conflict();
    }
-   const r=await c.query(`SELECT COALESCE(SUM(quantity_received),0)::text AS received,
+   // Stock must be available on the MOVEMENT DAY, not merely after later
+   // receipts. Backdating cannot borrow supplies that arrived afterwards.
+   const r=await c.query(`SELECT COALESCE(SUM(quantity_received) FILTER
+         (WHERE received_date <= $3::date),0)::text AS received,
        MIN(received_date)::text AS first_date
        FROM cornhill_school.nursery_material_receipts
        WHERE learner_id=$1::uuid AND lower(material_name)=lower($2::text)`,
-       [movement.learnerId,movement.materialName]);
+       [movement.learnerId,movement.materialName,movement.movementDate]);
    const received=NUMBER(r.rows[0]?.received);
    if(received===0||movement.movementDate<r.rows[0].first_date)throw conflict();
    // Do not allow backdating past an existing movement for this material;
