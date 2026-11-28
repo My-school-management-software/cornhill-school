@@ -173,3 +173,23 @@ jobs:
             exit 1
           }
           Write-Host "Guardian installer PowerShell syntax PASS; no school data modified."
+
+      - name: Smoke-test V62 source-only collector with synthetic files on Windows
+        shell: pwsh
+        run: |
+          $fake = Join-Path $env:RUNNER_TEMP ("cornhill-v62-synthetic-" + [guid]::NewGuid().ToString("N"))
+          $server = Join-Path $fake "local-server"
+          New-Item -ItemType Directory -Path (Join-Path $server "src/db") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $server "public") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $server "migrations") -Force | Out-Null
+          '{"name":"cornhill-local-server"}' | Set-Content -LiteralPath (Join-Path $server "package.json")
+          'export const syntheticMaterial = true;' | Set-Content -LiteralPath (Join-Path $server "src/db/material-synthetic.mjs")
+          'synthetic inventory' | Set-Content -LiteralPath (Join-Path $server "public/school.js")
+          $original = Get-Content -LiteralPath (Join-Path $server "src/db/material-synthetic.mjs") -Raw
+          & .\scripts\v62-local-materials-source-review.ps1 -RepoDirectory $fake
+          if ($LASTEXITCODE -ne 0) { throw "V62 synthetic source collector failed." }
+          if ((Get-Content -LiteralPath (Join-Path $server "src/db/material-synthetic.mjs") -Raw) -ne $original) {
+            throw "V62 changed the original source file."
+          }
+          Write-Host "V62 source-only collector synthetic Windows smoke test PASS."
+
