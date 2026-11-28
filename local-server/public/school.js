@@ -201,6 +201,9 @@ async function loadNurseryMovementHistory(){
     }
     if(d.movementHistoryLimited){const li=document.createElement("li");
       li.textContent="Only recent movements shown; balances include all records.";stock.append(li);}
+    if(nurseryMovementUncertainByLearner.has(l.id)){
+      setNurseryStatus("An earlier teacher-material movement has uncertain confirmation. Retry the exact restored entry before recording another.");
+    }
   }catch(e){setNurseryStatus("Material movement ledger unavailable: "+e.message);}
 }
 $("nursery-movement-form").elements.namedItem("movementType").addEventListener("change",nurseryMovementFields);
