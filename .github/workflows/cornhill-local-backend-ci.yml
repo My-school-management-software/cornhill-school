@@ -112,6 +112,9 @@ jobs:
       - name: Verify learner, academic history, staff, attendance and payroll integrity
         run: node scripts/verify-local-school-schema.mjs
 
+      - name: Rehearse learner-specific Nursery materials and Director surplus on isolated PostgreSQL 17
+        run: node scripts/verify-nursery-material-movements-isolated.mjs
+
       - name: Verify local atomic payment workflow and finance role
         run: node scripts/verify-local-finance.mjs
 
