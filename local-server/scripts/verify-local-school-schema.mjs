@@ -69,6 +69,7 @@ try {
     "learner_marks",
     "learner_progression_events",
     "learners",
+    "nursery_material_movements",
     "nursery_material_receipts",
     "payment_allocations",
     "payment_credit_allocation_batches",
@@ -104,6 +105,11 @@ try {
     "SELECT tgname FROM pg_trigger WHERE tgname='nursery_material_receipts_append_only' AND NOT tgisinternal"
   );
   assert(nurseryIntegrity.rowCount === 1, "Nursery material receipts must remain immutable.");
+  const nurseryMovementsIntegrity = await pool.query(
+    "SELECT tgname FROM pg_trigger WHERE tgname='nursery_material_movements_append_only' AND NOT tgisinternal"
+  );
+  assert(nurseryMovementsIntegrity.rowCount === 1,
+    "Nursery material withdrawals and Director surplus transfers must remain immutable.");
 
   const academicTriggers = await pool.query(
     "SELECT tgname FROM pg_trigger WHERE tgname IN ('academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard','academic_report_cards_append_only','learner_progression_events_append_only','academic_division_band_overlap_guard') AND NOT tgisinternal"
