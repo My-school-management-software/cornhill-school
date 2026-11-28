@@ -256,7 +256,7 @@ export function createPostgresAuthRepositories(pool) {
           s.revoked_at AS "revokedAt",
           COALESCE(sa.account_status, ga.account_status) AS "accountStatus",
           sa.username,
-          COALESCE(sa.username, ga.guardian_name) AS "displayName",
+          COALESCE(NULLIF(btrim(sp.legal_name), ''), sa.username, ga.guardian_name) AS "displayName",
           COALESCE((
             SELECT array_agg(ra.role_code ORDER BY ra.role_code)
             FROM cornhill_auth.staff_role_assignments ra
@@ -281,6 +281,7 @@ export function createPostgresAuthRepositories(pool) {
           ), ARRAY[]::text[]) AS "classIds"
         FROM cornhill_auth.auth_sessions s
         LEFT JOIN cornhill_auth.staff_accounts sa ON sa.id = s.staff_account_id
+        LEFT JOIN cornhill_school.staff_profiles sp ON sp.staff_account_id = sa.id
         LEFT JOIN cornhill_auth.guardian_accounts ga ON ga.id = s.guardian_account_id
         WHERE s.token_hash = $1
           AND s.revoked_at IS NULL
