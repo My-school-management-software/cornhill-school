@@ -1759,7 +1759,7 @@ try {
       "A former staff account must retain its profile and employment history for authorised review.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 69 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, P.7 graduation with preserved academic and enrolment history, non-overlapping learner progression, former-staff profile/employment retention, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: " + tables.rows.length + " tables, ten classes, fifteen subjects, " + feeItems.rows.length + " fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, P.7 graduation with preserved academic and enrolment history, non-overlapping learner progression, former-staff profile/employment retention, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
