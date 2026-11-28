@@ -721,6 +721,46 @@
     byId("post-payment-button").disabled = !activeLearnerId || received <= 0 || invalid;
   }
 
+  // Income A/B is calculated from posted per-item allocations on the server.
+  // Never classify unallocated learner credit or reversed payments as income.
+  const incomeToday = new Date();
+  const isoToday = new Date(incomeToday.getTime() -
+    incomeToday.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  byId("income-summary-from").value = isoToday.slice(0, 4) + "-01-01";
+  byId("income-summary-to").value = isoToday;
+  byId("income-summary-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const from = byId("income-summary-from").value;
+    const to = byId("income-summary-to").value;
+    const output = byId("income-summary-output");
+    output.replaceChildren();
+    showMessage("income-summary-message", "Loading posted income allocations…");
+    try {
+      const result = await request("/finance/income-summary?from=" +
+        encodeURIComponent(from) + "&to=" + encodeURIComponent(to));
+      const summary = result.summary || {};
+      const addLine = (label, amount) => {
+        const row = document.createElement("div");
+        row.className = "receipt-line";
+        const name = document.createElement("span");
+        name.textContent = label;
+        const value = document.createElement("strong");
+        value.textContent = money(amount);
+        row.append(name, value);
+        output.append(row);
+      };
+      addLine("Income A total", summary.income_a_ugx || 0);
+      addLine("Income B total", summary.income_b_ugx || 0);
+      for (const line of summary.items || []) {
+        addLine("Income " + line.income_group + " · " + line.item_name,
+          line.total_ugx);
+      }
+      showMessage("income-summary-message", "Posted allocations loaded. These figures do not include reversed payments or unallocated credit.", "success");
+    } catch (error) {
+      showMessage("income-summary-message", error.message, "error");
+    }
+  });
+
   byId("amount-received").addEventListener("input", updateAllocationSummary);
   byId("payment-method").addEventListener("change", () => {
     byId("provider-field").hidden = byId("payment-method").value !== "mobile_money";
