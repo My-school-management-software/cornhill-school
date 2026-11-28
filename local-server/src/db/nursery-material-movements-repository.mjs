@@ -91,7 +91,7 @@ export function createPostgresNurseryMaterialMovementsRepository(pool){
      await c.query("COMMIT");committed=true;
      return {created:false,movement:previous.rows[0]};
    }
-   const l=await c.query(`SELECT l.status,c.section
+   const l=await c.query(`SELECT l.status,c.section,l.class_id AS "classId"
       FROM cornhill_school.learners l
       JOIN cornhill_school.classes c ON c.id=l.class_id
       WHERE l.id=$1::uuid`,[movement.learnerId]);
@@ -99,9 +99,11 @@ export function createPostgresNurseryMaterialMovementsRepository(pool){
    if(movement.teacherStaffId){
      const t=await c.query(`SELECT a.id FROM cornhill_auth.staff_accounts a
        JOIN cornhill_auth.staff_role_assignments sr ON sr.staff_account_id=a.id
+       JOIN cornhill_auth.staff_class_assignments ca
+         ON ca.staff_account_id=a.id AND ca.is_active=true AND ca.class_id=$2::uuid
        WHERE a.id=$1::uuid AND a.account_status='active'
          AND sr.role_code IN ('teacher','class_teacher','nursery_head') LIMIT 1`,
-       [movement.teacherStaffId]);
+       [movement.teacherStaffId,l.rows[0].classId]);
      if(!t.rows.length)throw conflict();
    }
    const r=await c.query(`SELECT COALESCE(SUM(quantity_received),0)::text AS received,
