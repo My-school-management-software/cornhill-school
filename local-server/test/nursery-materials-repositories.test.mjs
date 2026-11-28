@@ -29,6 +29,22 @@ test("receipt list bound to selected learner only",async()=>{
  assert.match(calls[0].sql,/WHERE learner_id=\$1::uuid/);
  assert.match(calls[0].sql,/LIMIT 1000/);
 });
+test("all-time material summary uses a separate aggregated learner-scoped SQL query",async()=>{
+ const {pool,calls}=fake([{rows:[{materialName:"Crayons",collectionEvents:"1001",
+   quantityReceived:"2002"}]}]);
+ const summary=await createPostgresNurseryMaterialsRepository(pool).summarizeAllCollections(LEARNER);
+ assert.equal(summary.collectionEvents,1001);
+ assert.equal(summary.materials[0].quantityReceived,2002);
+ assert.deepEqual(calls[0].values,[LEARNER]);
+ assert.match(calls[0].sql,/SUM\(quantity_received\)/);
+ assert.match(calls[0].sql,/WHERE learner_id=\$1::uuid/);
+ assert.doesNotMatch(calls[0].sql,/LIMIT 1000/);
+});
+test("all-time summary rejects overflow and unsafe quantities",async()=>{
+ const {pool}=fake([{rows:[{materialName:"Crayons",collectionEvents:"9007199254740993",
+   quantityReceived:"100"}]}]);
+ await assert.rejects(()=>createPostgresNurseryMaterialsRepository(pool).summarizeAllCollections(LEARNER),RangeError);
+});
 test("new collection binds staff identity to server-side parameter",async()=>{
  const {pool,calls}=fake([{rows:[row]}]);
  const r=await createPostgresNurseryMaterialsRepository(pool).recordCollection(input);
@@ -70,7 +86,7 @@ test("database receipt row includes audit fields but per-learner summary only co
 test("repository has no delete or update API",()=>{
  const {pool}=fake([]);
  const repository=createPostgresNurseryMaterialsRepository(pool);
- assert.deepEqual(Object.keys(repository).sort(),["getLearnerScope","listCollections","recordCollection"]);
+ assert.deepEqual(Object.keys(repository).sort(),["getLearnerScope","listCollections","recordCollection","summarizeAllCollections"]);
 });
 test("rejects malformed UUID before sending database queries",async()=>{
  const {pool,calls}=fake([]);
