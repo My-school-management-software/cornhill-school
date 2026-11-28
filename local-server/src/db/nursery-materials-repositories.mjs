@@ -38,6 +38,32 @@ export function createPostgresNurseryMaterialsRepository(pool) {
       );
       return result.rows;
     },
+    // Always calculate totals over ALL receipts. Only the visible history is limited
+    // to 1,000 rows so the UI cannot silently undercount long-term collections.
+    async summarizeAllCollections(learnerId) {
+      requireUuid(learnerId, "Learner ID");
+      const result = await pool.query(
+        "SELECT MIN(material_name) AS \"materialName\", " +
+        "COUNT(*)::text AS \"collectionEvents\", " +
+        "SUM(quantity_received)::text AS \"quantityReceived\" " +
+        "FROM cornhill_school.nursery_material_receipts " +
+        "WHERE learner_id=$1::uuid GROUP BY lower(material_name) " +
+        "ORDER BY MIN(material_name)", [learnerId]
+      );
+      let total = 0;
+      const materials = result.rows.map(row => {
+        const collectionEvents = Number(row.collectionEvents);
+        const quantityReceived = Number(row.quantityReceived);
+        if (!Number.isSafeInteger(collectionEvents) || !Number.isSafeInteger(quantityReceived) ||
+            collectionEvents < 1 || quantityReceived < 1) {
+          throw new RangeError("Learner material totals exceed the safe counting range.");
+        }
+        total += collectionEvents;
+        if (!Number.isSafeInteger(total)) throw new RangeError("Learner receipt count is too large.");
+        return {materialName:row.materialName, quantityReceived, collectionEvents};
+      });
+      return {learnerId, collectionEvents:total, materials};
+    },
     async recordCollection({actorStaffId,collection}) {
       requireUuid(actorStaffId, "Staff account");
       if (!collection || typeof collection !== "object") throw new TypeError("Collection input is required.");
