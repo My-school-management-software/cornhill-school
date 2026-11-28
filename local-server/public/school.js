@@ -20,6 +20,9 @@ if(!action.childNodes.length)action.textContent="—";tr.append(action);$("learn
 // Nursery materials are recorded ONE LEARNER AT A TIME at the office, never as bulk class receipt.
 let selectedNurseryLearner=null;
 let nurseryPendingReceiptRequest=null;
+// Keep an uncertain network receipt's idempotency key when the dialog closes.
+// Never create a fresh receipt for that learner until this attempt is confirmed.
+const nurseryUnresolvedRequestsByLearner=new Map();
 const nurseryLearnerLabel=learner=>[learner.firstName,learner.middleName,learner.lastName].filter(Boolean).join(" ");
 function setNurseryStatus(message){$("nursery-materials-message").textContent=message;}
 function nurseryDateUganda(){
@@ -54,19 +57,34 @@ async function loadNurseryHistory(){
   }catch(error){setNurseryStatus(error.message);}
 }
 function openNurseryMaterials(l){
-  selectedNurseryLearner=l; nurseryPendingReceiptRequest=null;
-  $("nursery-materials-form").reset();
-  $("nursery-materials-form").elements.namedItem("receivedDate").value=nurseryDateUganda();
+  selectedNurseryLearner=l;
+  nurseryPendingReceiptRequest=nurseryUnresolvedRequestsByLearner.get(l.id)??null;
+  const materialForm=$("nursery-materials-form");
+  materialForm.reset();
+  materialForm.elements.namedItem("receivedDate").value=nurseryDateUganda();
+  if(nurseryPendingReceiptRequest){
+    // Restore the exact previous attempt's fields; changed details must not
+    // accidentally reuse the same request ID or create an extra material receipt.
+    const pending=JSON.parse(nurseryPendingReceiptRequest.serialized);
+    for(const name of ["materialName","quantityReceived","receivedDate","notes"]){
+      const field=materialForm.elements.namedItem(name);
+      if(field)field.value=pending[name]??"";
+    }
+  }
   $("nursery-materials-form").hidden=!can("learners.manage");
   $("nursery-materials-learner").textContent=nurseryLearnerLabel(l)+" · "+l.pupilCode+" · "+(l.className??"Nursery");
   $("nursery-materials-dialog").showModal();
-  setNurseryStatus("Loading this learner's received materials…");
+  setNurseryStatus(nurseryPendingReceiptRequest ?
+    "A previous material receipt's confirmation is uncertain. Review and retry the exact same entry." :
+    "Loading this learner's received materials…");
   void loadNurseryHistory();
 }
 $("nursery-materials-refresh").addEventListener("click",()=>{void loadNurseryHistory();});
 $("nursery-materials-close").addEventListener("click",()=>{
   $("nursery-materials-dialog").close();
   selectedNurseryLearner=null; nurseryPendingReceiptRequest=null;
+  // Do not delete nurseryUnresolvedRequestsByLearner: closing a window is not
+  // proof that a POST failed. The original idempotency key stays in memory.
 });
 $("nursery-materials-dialog").addEventListener("close",()=>{selectedNurseryLearner=null;nurseryPendingReceiptRequest=null;});
 $("nursery-materials-print").addEventListener("click",()=>window.print());
@@ -86,12 +104,16 @@ $("nursery-materials-form").addEventListener("submit",async event=>{
     setNurseryStatus("The previous receipt's outcome is uncertain. Keep its original details and retry, or refresh the history before starting a new receipt.");
     return;
   }
-  if(!nurseryPendingReceiptRequest)nurseryPendingReceiptRequest={id:crypto.randomUUID(),serialized};
+  if(!nurseryPendingReceiptRequest){
+    nurseryPendingReceiptRequest={id:crypto.randomUUID(),serialized};
+    nurseryUnresolvedRequestsByLearner.set(learner.id,nurseryPendingReceiptRequest);
+  }
   const button=form.querySelector('button[type="submit"]');button.disabled=true;
   setNurseryStatus("Checking and saving this learner's receipt…");
   try{
     const result=await api("/school/learners/"+encodeURIComponent(learner.id)+"/nursery-materials",{
       method:"POST",body:{requestId:nurseryPendingReceiptRequest.id,...data}});
+    nurseryUnresolvedRequestsByLearner.delete(learner.id);
     nurseryPendingReceiptRequest=null;form.reset();
     form.elements.namedItem("receivedDate").value=nurseryDateUganda();
     setNurseryStatus(result.alreadyRecorded?"Previous office receipt confirmed.":"Material collection saved for this learner.");
