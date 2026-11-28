@@ -49,7 +49,8 @@ async function loadNurseryHistory(){
       const li=document.createElement("li");li.textContent=item.materialName+": "+item.quantityReceived;totals.append(li);
     }
     if(!totals.childNodes.length){const li=document.createElement("li");li.textContent="No materials recorded yet.";totals.append(li);}
-    setNurseryStatus(rows.length+" collection entries recorded individually for this learner.");
+    const allTimeCount=Number.isSafeInteger(d.summary?.collectionEvents) ? d.summary.collectionEvents : rows.length;
+    setNurseryStatus(d.historyLimited ? "Showing the latest "+rows.length+" of "+allTimeCount+" collection entries. Totals cover all history." : allTimeCount+" collection entries recorded individually for this learner.");
   }catch(error){setNurseryStatus(error.message);}
 }
 function openNurseryMaterials(l){
