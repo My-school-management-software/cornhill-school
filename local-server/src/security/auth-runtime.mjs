@@ -9,6 +9,8 @@ import { createArgon2PasswordHasher } from "./argon2-password-hasher.mjs";
 import { createAuthService } from "./auth-service.mjs";
 import { createAuthHttpHandler } from "./auth-http-handler.mjs";
 import { createSchoolCatalogHttpHandler } from "./school-catalog-http-handler.mjs";
+import { createPostgresNurseryMaterialsRepository } from "../db/nursery-materials-repositories.mjs";
+import { createNurseryMaterialsHttpHandler } from "./nursery-materials-http-handler.mjs";
 import { createAdmissionsHttpHandler } from "./admissions-http-handler.mjs";
 import { createLearnerProfileHttpHandler } from "./learner-profile-http-handler.mjs";
 import { createAcademicsHttpHandler } from "./academics-http-handler.mjs";
@@ -129,12 +131,17 @@ export async function createLocalAuthRuntime({
       authService, schoolRepository: schoolCatalogRepository,
       expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
     });
+    const nurseryMaterialsRepository = createPostgresNurseryMaterialsRepository(pool);
+    const nurseryMaterialsRouteHandler = createNurseryMaterialsHttpHandler({
+      authService, repository: nurseryMaterialsRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+    });
 
     let routeHandler = async (request, response) => {
       if (await authRouteHandler(request, response)) return true;
         if (await guardianAccessRouteHandler(request, response)) return true;
       if (await guardianPortalRouteHandler(request, response)) return true;
       if (await schoolCatalogRouteHandler(request, response)) return true;
+        if (await nurseryMaterialsRouteHandler(request, response)) return true;
       if (await admissionsRouteHandler(request, response)) return true;
       if (await learnerProfileRouteHandler(request, response)) return true;
       if (await academicsRouteHandler(request, response)) return true;
@@ -191,6 +198,7 @@ export async function createLocalAuthRuntime({
         if (await guardianAccessRouteHandler(request, response)) return true;
         if (await guardianPortalRouteHandler(request, response)) return true;
         if (await schoolCatalogRouteHandler(request, response)) return true;
+        if (await nurseryMaterialsRouteHandler(request, response)) return true;
         if (await admissionsRouteHandler(request, response)) return true;
         if (await learnerProfileRouteHandler(request, response)) return true;
         if (await academicsRouteHandler(request, response)) return true;
