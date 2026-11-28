@@ -10,7 +10,7 @@ import {
   assertIsolatedPostgresServerIdentity
 } from "../src/db/migrations.mjs";
 
-const EXPECTED_MIGRATION_COUNT = 96;
+const EXPECTED_MIGRATION_COUNT = 97;
 
 function quoteIdentifier(value) {
   if (!/^cornhill_isolated_test_[a-f0-9]{32}$/.test(value)) {
