@@ -12,15 +12,32 @@ function responseRecorder() {
     end(body = "") { this.body = body; }
   };
 }
-function request({ path = "/api/v1/guardian/learners", method = "GET", encrypted = true, host = "localhost:4174", cookie = "__Host-cornhill_session=" + "A".repeat(43) } = {}) {
-  return { url: path, method, headers: { host, cookie }, socket: { encrypted } };
+function request({ path = "/api/v1/guardian/learners?pupilCode=CH-2026-000001", method = "GET",
+  encrypted = true, host = "localhost:4174", origin = ORIGIN, body, address = "127.0.0.1",
+  cookie = "__Host-cornhill_session=" + "A".repeat(43) } = {}) {
+  const req = { url: path, method, headers: { host, cookie, origin },
+    socket: { encrypted, remoteAddress: address } };
+  if (body !== undefined) {
+    req.headers["content-type"] = "application/json";
+    req[Symbol.asyncIterator] = async function* () { yield Buffer.from(JSON.stringify(body)); };
+  }
+  return req;
 }
 function dependencies({ principal = { id: GUARDIAN_ID, principalType: "guardian", accountStatus: "active" }, learners = [], error = null } = {}) {
   const calls = [];
   return {
     calls,
     authService: { async authenticate(input) { calls.push({ type: "auth", input }); if (error) throw error; return principal; } },
-    repository: { async listApprovedLearners(id) { calls.push({ type: "list", id }); if (error) throw error; return learners; } }
+    repository: {
+      async listApprovedLearners(id, pupilCode) {
+        calls.push({ type: "list", id, pupilCode }); if (error) throw error; return learners;
+      },
+      async verifyRegisteredLearnerGuardian(pupilCode, phone) {
+        calls.push({ type: "verify", pupilCode, phone });
+        if (error) throw error;
+        return pupilCode === "CH-2026-000001" && phone === "+256700000001";
+      }
+    }
   };
 }
 
@@ -33,6 +50,7 @@ test("guardian endpoint returns only repository-approved learner profiles", asyn
   assert.equal(res.status, 200);
   assert.deepEqual(JSON.parse(res.body), { learners: [learner] });
   assert.equal(deps.calls.find(x => x.type === "list").id, GUARDIAN_ID);
+  assert.equal(deps.calls.find(x => x.type === "list").pupilCode, "CH-2026-000001");
   assert.equal(res.headers["Cache-Control"], "no-store");
 });
 
@@ -118,4 +136,62 @@ test("repository failures return a generic service error", async () => {
 test("constructor rejects a non-HTTPS origin", () => {
   const deps = dependencies();
   assert.throws(() => createGuardianPortalHttpHandler({ ...deps, expectedOrigin: "http://localhost:4174" }), /HTTPS/);
+});
+
+test("parent enters learner code and registered phone before the school-issued PIN step", async () => {
+  const deps = dependencies();
+  const handler = createGuardianPortalHttpHandler({ ...deps, expectedOrigin: ORIGIN });
+  const matched = responseRecorder();
+  await handler(request({ path: "/api/v1/guardian/entry-check", method: "POST",
+    body: { pupilCode: "CH-2026-000001", phone: "0700000001" } }), matched);
+  assert.equal(matched.status, 200);
+  assert.deepEqual(JSON.parse(matched.body), { verified: true });
+  assert.equal(deps.calls.some(x => x.type === "auth"), false);
+  assert.deepEqual(deps.calls.find(x => x.type === "verify"), {
+    type: "verify", pupilCode: "CH-2026-000001", phone: "+256700000001"
+  });
+  assert.doesNotMatch(matched.body, /pin|guardianName|learnerName|phone/i);
+});
+
+test("unregistered phone/code is denied and never receives a PIN or learner profile", async () => {
+  const deps = dependencies();
+  const handler = createGuardianPortalHttpHandler({ ...deps, expectedOrigin: ORIGIN });
+  const rejected = responseRecorder();
+  await handler(request({ path: "/api/v1/guardian/entry-check", method: "POST",
+    body: { pupilCode: "CH-2026-000001", phone: "+256700000099" } }), rejected);
+  assert.equal(rejected.status, 400);
+  assert.equal(deps.calls.some(x => x.type === "list"), false);
+  assert.doesNotMatch(rejected.body, /pin|guardianName|learnerName/i);
+});
+
+test("guardian portal rejects a missing learner code even when guardian session exists", async () => {
+  const deps = dependencies();
+  const handler = createGuardianPortalHttpHandler({ ...deps, expectedOrigin: ORIGIN });
+  const res = responseRecorder();
+  await handler(request({ path: "/api/v1/guardian/learners" }), res);
+  assert.equal(res.status, 400);
+  assert.equal(deps.calls.some(x => x.type === "list"), false);
+});
+
+test("public guardian relation checks enforce TLS, origin and per-client rate limits", async () => {
+  const deps = dependencies();
+  const handler = createGuardianPortalHttpHandler({ ...deps, expectedOrigin: ORIGIN });
+  const data = { pupilCode: "CH-2026-000001", phone: "+256700000001" };
+  for (const invalid of [
+    request({ path: "/api/v1/guardian/entry-check", method: "POST",
+      body: data, encrypted: false, address: "10.2.2.1" }),
+    request({ path: "/api/v1/guardian/entry-check", method: "POST",
+      body: data, origin: "https://untrusted.test", address: "10.2.2.2" })
+  ]) {
+    const res = responseRecorder();
+    await handler(invalid, res);
+    assert.ok([403, 426].includes(res.status));
+  }
+  let last;
+  for (let i = 0; i < 13; i++) {
+    last = responseRecorder();
+    await handler(request({ path: "/api/v1/guardian/entry-check", method: "POST",
+      body: data, address: "10.2.2.3" }), last);
+  }
+  assert.equal(last.status, 429);
 });
