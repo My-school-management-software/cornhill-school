@@ -36,7 +36,7 @@ async function invoke(handler,{path,method="GET",headers={},body,encrypted=true}
   return {...res,handled};
 }
 function setup({principalValue=principal,authError,repoOverrides={}}={}){
-  const calls={auth:[],search:[],account:[],post:[],reprints:[],credits:[],creditLists:[],creditLookups:[],paymentLookups:[]};
+  const calls={auth:[],search:[],account:[],post:[],reprints:[],credits:[],creditLists:[],creditLookups:[],paymentLookups:[],incomeSummary:[]};
   const authService={
     async authenticate(input){
       calls.auth.push(input);
@@ -47,6 +47,7 @@ function setup({principalValue=principal,authError,repoOverrides={}}={}){
   const financeRepository={
     async searchLearners(input){calls.search.push(input);return [{learnerId:LEARNER_ID,pupilCode:"CRN-F-001",learnerName:"CI Learner",className:"P.4",isBursary:false}];},
     async getLearnerAccount(input){calls.account.push(input);return {learner:{id:LEARNER_ID,pupil_code:"CRN-F-001"},totals:{charged_ugx:150000,paid_ugx:25000,balance_ugx:125000},fee_obligations:[]};},
+    async getIncomeGroupSummary(input){calls.incomeSummary.push(input);return {income_a_ugx:12000,income_b_ugx:5000,items:[]};},
     async postPayment(input){calls.post.push(input);return {paymentId:"55555555-5555-4555-8555-555555555555",receiptNumber:"CR-2026-0000001",status:"Posted",allocatedAmountUgx:75000,unallocatedAmountUgx:10000,receipt:{amount_ugx:85000}};},
     async reprintReceipt(input){calls.reprints.push(input);return {receipt_number:input.receiptNumber,payment_status:"Posted",print_count:2,receipt_data_snapshot:{amount_ugx:85000}};},
     async allocateCredit(input){calls.credits.push(input);return {batch_id:"77777777-7777-4777-8777-777777777777",source_payment_id:input.sourcePaymentId,total_allocated_ugx:6000,remaining_credit_ugx:4000,replayed:false};},
@@ -330,4 +331,36 @@ test("payment status recovery requires payment-record permission and safely repo
   const missing=await invoke(allowed.handler,{path:"/api/v1/finance/payments/requests/66666666-6666-4666-8666-666666666666",headers:getHeaders});
   assert.equal(missing.statusCode,200);
   assert.equal(missing.json().payment,null);
+});
+
+test("income A/B summary requires finance.reports_read, not payment-posting access", async () => {
+  const reader = {
+    ...principal, rolePermissions: { bursar: ["finance.reports_read"] }
+  };
+  const {handler,calls} = setup({ principalValue: reader });
+  const res = await invoke(handler, {
+    path: "/api/v1/finance/income-summary?from=2026-01-01&to=2026-11-28",
+    headers: getHeaders
+  });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.json().summary.income_a_ugx, 12000);
+  assert.deepEqual(calls.incomeSummary[0], {
+    actorStaffId: STAFF_ID, fromDate: "2026-01-01", toDate: "2026-11-28"
+  });
+  const cannotPost = await invoke(handler, {
+    path: "/api/v1/finance/payments", method: "POST",
+    headers: postHeaders, body: JSON.stringify(validBody)
+  });
+  assert.equal(cannotPost.statusCode, 403);
+  assert.equal(calls.post.length, 0);
+});
+
+test("payment-only staff cannot read protected Income A/B reports", async () => {
+  const {handler,calls} = setup();
+  const res = await invoke(handler, {
+    path: "/api/v1/finance/income-summary?from=2026-01-01&to=2026-11-28",
+    headers: getHeaders
+  });
+  assert.equal(res.statusCode, 403);
+  assert.equal(calls.incomeSummary.length, 0);
 });
