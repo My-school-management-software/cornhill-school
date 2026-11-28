@@ -6,7 +6,7 @@
 <main class="shell"><div id="notice" class="notice" role="status" aria-live="polite">Checking local school service…</div>
 <section id="login" class="card narrow" hidden><p class="eyebrow">SECURE STAFF ACCESS</p><h2>Sign in</h2><form id="login-form"><label>Staff username<input id="username" autocomplete="username" required minlength="3" maxlength="120"></label><label>Password<input id="password" type="password" autocomplete="current-password" required maxlength="1024"></label><button>Sign in securely</button></form></section>
 <section id="app" hidden><div class="welcome"><div><p class="eyebrow">SCHOOL MANAGEMENT</p><h2 id="staff-name">Welcome</h2><p class="muted" id="staff-roles"></p></div><button id="logout" class="secondary">Sign out</button></div>
-<nav class="tabs"><a href="/app" class="app-home-link">Workspace home</a><button data-tab="overview" class="active">Overview</button><button data-tab="learners">Learners</button><button data-tab="admissions">Register learner</button><a id="bursar-link" class="bursar-link" href="/bursar" hidden>Fees & Bursar ↗</a><a class="academic-link" href="/academics">Teaching & Academics ↗</a><a class="leadership-link" href="/leadership">Leadership & Staff ↗</a></nav>
+<nav class="tabs"><a href="/app" class="app-home-link">Workspace home</a><button data-tab="overview" class="active">Overview</button><button data-tab="learners">Learners</button><button data-tab="admissions">Register learner</button><button data-tab="records-centre" hidden>Records Centre · Nursery Materials</button><a id="bursar-link" class="bursar-link" href="/bursar" hidden>Fees & Bursar ↗</a><a class="academic-link" href="/academics">Teaching & Academics ↗</a><a class="leadership-link" href="/leadership">Leadership & Staff ↗</a></nav>
 <section id="overview" class="view"><div class="stats"><article class="card"><span>Active classes</span><strong id="class-count">—</strong></article><article class="card"><span>Visible learners</span><strong id="learner-count">—</strong></article><article class="card"><span>Access</span><strong>Staff</strong></article></div><div class="card"><h3>School workspace</h3><p class="muted">Use the tabs to view the classes and learner records your account is authorised to access, or register a learner if your role permits it.</p><p id="scope-note" class="muted"></p></div></section>
 <section id="learners" class="view" hidden><div class="card"><div class="row"><div><h3>Learner register</h3><p class="muted">Search by pupil code, LIN or learner name.</p></div><button id="refresh" class="secondary">Refresh</button></div><div class="row"><select id="class-filter"><option value="">All permitted classes</option></select><input id="search" placeholder="Search pupil code, LIN or name" minlength="2" maxlength="80"><button id="search-button">Search</button></div><div class="table-wrap"><table><thead><tr><th>Pupil code</th><th>LIN</th><th>Learner</th><th>Class</th><th>P.7 Index No.</th><th>Gender</th><th>Date of birth</th><th>Admission date</th><th>Status</th><th>Action</th></tr></thead><tbody id="learner-rows"><tr><td colspan="10">Sign in to load records.</td></tr></tbody></table></div></div></section>
 <dialog id="learner-edit-dialog" class="card"><form id="learner-edit-form" class="grid"><h3 class="full">Edit learner profile</h3><input type="hidden" name="learnerId"><label>First name<input name="firstName" required maxlength="80"></label><label>Middle name<input name="middleName" maxlength="80"></label><label>Last name<input name="lastName" required maxlength="80"></label><label>Gender<select name="gender" required><option>Female</option><option>Male</option></select></label><label>Date of birth<input name="dateOfBirth" type="date"></label><label>Learner type<select name="learnerType" required><option value="Day">Day</option><option value="Boarding">Boarding</option></select></label><label>Previous school<input name="previousSchool" maxlength="160"></label><label>LIN<input name="lin" maxlength="40"></label><label>P.7 Index number<input name="p7IndexNumber" maxlength="40"></label><label class="full">Reason for change (required)<textarea name="reason" required maxlength="300"></textarea></label><div class="full row"><button type="submit">Save profile</button><button type="button" id="cancel-learner-edit" class="secondary">Cancel</button></div><p id="learner-edit-message" class="full muted" role="status"></p></form></dialog>
@@ -14,7 +14,22 @@
 <label>First name<input name="firstName" required maxlength="80"></label><label>Middle name<input name="middleName" maxlength="80"></label><label>Last name<input name="lastName" required maxlength="80"></label><label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option></select></label><label>Date of birth<input name="dateOfBirth" type="date"></label><label>Admission date<input name="admissionDate" type="date" required></label><label>Class<select name="classId" id="admission-class" required><option value="">Choose class</option></select></label><label>Learner type<select name="learnerType" required><option value="Day">Day</option><option value="Boarding">Boarding</option></select></label><label>Previous school<input name="previousSchool" maxlength="160"></label><label>LIN (if authorised)<input name="lin" maxlength="40"></label><label>P.7 Index Number (P.7 only)<input name="p7IndexNumber" maxlength="40" autocomplete="off"></label>
 <label class="check"><input name="isBursary" type="checkbox" id="bursary"> Bursary learner</label><label id="bursary-amount-wrap" hidden>Bursary amount (UGX)<input name="bursaryFeeUgx" type="number" min="0" step="1" value="0"></label><label>Bursary category<input name="bursaryCategory" maxlength="80"></label><label>Bursary reason<input name="bursaryReason" maxlength="300"></label><label class="check"><input name="takesBreakfast" type="checkbox"> Takes breakfast</label><label class="check"><input name="takesLunch" type="checkbox"> Takes lunch</label><label class="full">Admission note / reason<textarea name="reason" maxlength="300"></textarea></label>
 <fieldset><legend>Guardian details (if authorised)</legend><label>Guardian name<input name="guardianName" maxlength="140"></label><label>Relationship<input name="relationship" maxlength="60"></label><label>Phone (+256XXXXXXXXX)<input name="phone" type="tel" inputmode="tel" placeholder="+256700000000" maxlength="13"></label><label>WhatsApp (+256XXXXXXXXX)<input name="whatsapp" type="tel" inputmode="tel" placeholder="+256700000000" maxlength="13"></label><label>Email<input name="email" type="email" maxlength="254"></label><label class="check"><input name="smsOptIn" type="checkbox"> Guardian consents to payment SMS</label><label class="check"><input name="whatsappOptIn" type="checkbox"> Guardian consents to WhatsApp payment messages</label><p class="muted">After payment, SMS consent places a notification in the local queue; actual delivery still requires a configured SMS provider. WhatsApp consent is recorded, but WhatsApp delivery is not enabled yet.</p></fieldset>
-<div class="full"><button type="submit">Register learner</button><p id="admission-message" class="muted" role="status"></p></div></form></div></section></section></main>
+<div class="full"><button type="submit">Register learner</button><p id="admission-message" class="muted" role="status"></p></div></form></div></section>
+<section id="records-centre" class="view" hidden>
+  <div class="card">
+    <div class="row"><div><h3>Records Centre — Nursery material accountability</h3>
+    <p class="muted">Director-only record: materials received per learner, issued to teachers, used, returned, held at school and approved surplus transfers.</p></div>
+    <button type="button" class="secondary" id="nursery-records-centre-refresh">Refresh ledger</button>
+    <button type="button" class="secondary" id="nursery-records-centre-print">Print A4</button></div>
+    <p id="nursery-records-centre-message" role="status" aria-live="polite">Sign in as Director to view.</p>
+    <div class="table-wrap"><table><thead><tr>
+      <th>Learner</th><th>Class</th><th>Material</th><th>Received</th>
+      <th>Issued to teacher</th><th>Used</th><th>Returned</th>
+      <th>At office</th><th>With teachers</th><th>Approved surplus</th><th>Valuation UGX</th>
+    </tr></thead><tbody id="nursery-records-centre-rows"></tbody></table></div>
+    <p class="muted">Director-approved surplus transfers are physically accounted for but are NOT automatically recorded as personal profit or posted to school finance. Valuation and supporting approval are retained for separate financial reconciliation.</p>
+  </div>
+</section></section></main>
 <dialog id="nursery-materials-dialog" class="card nursery-materials-dialog" aria-labelledby="nursery-materials-heading">
   <header class="nursery-materials-print-heading">
     <p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL — WE SHARE ONE DREAM</p>
@@ -30,6 +45,30 @@
   </div>
   <h3>Quantity received for this learner</h3>
   <ul id="nursery-materials-totals"></ul>
+  <h3>Available materials &amp; custody balance</h3>
+  <ul id="nursery-material-stock"></ul>
+  <p class="muted">Office balance and quantities held by teachers are shown separately. Issuing to a teacher does not mean the item was used.</p>
+  <h3>Teacher withdrawals, use, returns and Director-approved surplus</h3>
+  <div class="table-wrap"><table><thead><tr>
+    <th>Date</th><th>Action</th><th>Material</th><th>Quantity</th><th>Teacher</th><th>Recorded by</th><th>Notes</th>
+  </tr></thead><tbody id="nursery-material-movements-rows"></tbody></table></div>
+  <form id="nursery-movement-form" class="grid">
+    <h3 class="full">Record materials taken during the term (one learner at a time)</h3>
+    <label>Action<select name="movementType" required>
+      <option value="teacher_issue">Give materials to teacher</option>
+      <option value="learner_used">Teacher reports materials used for learner</option>
+      <option value="teacher_return">Teacher returns unused materials to office</option>
+      <option value="director_surplus">Director-approved surplus transfer (end of term)</option>
+    </select></label>
+    <label>Material name<input name="materialName" required minlength="2" maxlength="100"></label>
+    <label>Quantity<input type="number" name="quantity" required min="1" max="1000" step="1"></label>
+    <label>Date taken/used/returned (Uganda)<input type="date" name="movementDate" required></label>
+    <label id="nursery-movement-teacher-wrap">Teacher receiving / responsible<select name="teacherStaffId"><option value="">Select teacher</option></select></label>
+    <label id="nursery-movement-value-wrap" hidden>Director-approved value per item (UGX)<input name="surplusUnitValueUgx" type="number" min="0" max="1000000000" step="1"></label>
+    <label class="full">Reason / accountability notes<textarea name="reason" required minlength="3" maxlength="300"></textarea></label>
+    <div class="full"><button type="submit">Record material movement</button></div>
+  </form>
+  <p class="muted">A transfer of remaining materials requires Director approval and a recorded unit valuation. It is not automatically counted as personal profit or school income.</p>
   <form id="nursery-materials-form" class="grid">
     <h3 class="full">Receive materials from this learner at the office</h3>
     <label>Material name<input name="materialName" required minlength="2" maxlength="100" autocomplete="off"></label>
