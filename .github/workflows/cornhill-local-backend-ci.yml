@@ -154,3 +154,16 @@ jobs:
 
       - name: Run release verification on Windows (source syntax and complete test suite)
         run: npm run verify:release
+
+      - name: Parse guardian pilot installer PowerShell script without executing installation
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          $path = (Resolve-Path "scripts/install-v50-guardian-pilot.ps1").Path
+          [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "Guardian installer PowerShell syntax PASS; no school data modified."
