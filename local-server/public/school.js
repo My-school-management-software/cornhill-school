@@ -128,6 +128,7 @@ $("nursery-materials-form").addEventListener("submit",async event=>{
  * with dated handover, subsequent use/return, and Director-approved surplus.
  * Ledger server, not the browser, decides stock availability and authorization. */
 const nurseryMovementUncertainByLearner=new Map();
+const nurseryOfficeStockByName=new Map();
 let nurseryMovementPending=null;
 const nurseryTeacherNames=new Map();
 const nurseryIsDirector=()=> (principal?.roles||[]).includes("director")&&can("system.roles_manage");
@@ -147,6 +148,7 @@ function openNurseryMovementPanel(l){
   form.hidden=!can("learners.manage");
   form.reset();
   form.elements.namedItem("movementDate").value=nurseryDateUganda();
+  nurseryOfficeStockByName.clear();
   nurseryMovementPending=nurseryMovementUncertainByLearner.get(l.id)??null;
   if(nurseryMovementPending){
     const data=JSON.parse(nurseryMovementPending.serialized);
@@ -192,7 +194,11 @@ async function loadNurseryMovementHistory(){
       rows.append(tr);
     }
     const stock=$("nursery-material-stock");stock.replaceChildren();
+    nurseryOfficeStockByName.clear();
+    const options=$("nursery-available-materials");options.replaceChildren();
     for(const item of (d.stock??[])){
+      nurseryOfficeStockByName.set(item.materialName.trim().toLocaleLowerCase("en"),item.officeRemaining);
+      const opt=document.createElement("option");opt.value=item.materialName;options.append(opt);
       const li=document.createElement("li");
       li.textContent=item.materialName+": received "+item.received+", issued "+item.issued+
         ", used "+item.used+", returned "+item.returned+", at office "+item.officeRemaining+
@@ -207,6 +213,23 @@ async function loadNurseryMovementHistory(){
   }catch(e){setNurseryStatus("Material movement ledger unavailable: "+e.message);}
 }
 $("nursery-movement-form").elements.namedItem("movementType").addEventListener("change",nurseryMovementFields);
+$("nursery-movement-use-all").addEventListener("click",()=>{
+  const form=$("nursery-movement-form");
+  const type=form.elements.namedItem("movementType").value;
+  if(!["teacher_issue","director_surplus"].includes(type)){
+    setNurseryStatus("Full office stock can only be issued to a teacher or approved as surplus.");return;
+  }
+  const item=String(form.elements.namedItem("materialName").value??"").trim().toLocaleLowerCase("en");
+  const remaining=nurseryOfficeStockByName.get(item);
+  if(!Number.isSafeInteger(remaining)||remaining<1){
+    setNurseryStatus("Select a material that is currently available at the office.");return;
+  }
+  if(remaining>1000){
+    setNurseryStatus("Enter separate movements of at most 1,000 items each.");return;
+  }
+  form.elements.namedItem("quantity").value=String(remaining);
+  setNurseryStatus("Filled "+remaining+" items from the currently displayed office balance. Final stock will be rechecked when saved.");
+});
 $("nursery-movement-form").addEventListener("submit",async event=>{
   event.preventDefault();
   const learner=selectedNurseryLearner,form=event.currentTarget;
