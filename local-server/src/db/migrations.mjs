@@ -89,7 +89,7 @@ export function assertMigrationManifestCompatible(sourceDigests, appliedRows) {
   const appliedNames = new Set();
   for (const row of appliedRows) {
     const name = row?.migration_name;
-    if (typeof name !== "string" || !/^\\d{3,}_[a-z0-9_]+$/.test(name) ||
+    if (typeof name !== "string" || !/^\d{3,}_[a-z0-9_]+$/.test(name) ||
         typeof row.checksum !== "string" || !/^[a-f0-9]{64}$/.test(row.checksum)) {
       throw new Error("Applied migration ledger contains invalid entries; no migration writes allowed.");
     }
