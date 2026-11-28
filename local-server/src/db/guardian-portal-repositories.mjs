@@ -6,9 +6,27 @@ export function createPostgresGuardianPortalRepository(pool) {
   }
 
   return Object.freeze({
-    async listApprovedLearners(guardianAccountId) {
+    async verifyRegisteredLearnerGuardian(pupilCode, phoneE164) {
+      if (typeof pupilCode !== "string" || !/^[A-Za-z0-9-]{3,30}$/.test(pupilCode) ||
+          typeof phoneE164 !== "string" || !/^\+256[0-9]{9}$/.test(phoneE164)) {
+        throw new TypeError("A learner code and registered Ugandan phone number are required.");
+      }
+      const result = await pool.query(
+        "SELECT EXISTS (SELECT 1 FROM cornhill_school.guardian_contacts gc " +
+        "JOIN cornhill_school.learners l ON l.id=gc.learner_id " +
+        "WHERE upper(l.pupil_code)=upper($1::text) AND gc.phone_e164=$2::text " +
+        "AND gc.is_active=true AND l.status<>'Archived') AS matched",
+        [pupilCode, phoneE164]
+      );
+      return result.rows[0]?.matched === true;
+    },
+
+    async listApprovedLearners(guardianAccountId, pupilCode) {
       if (typeof guardianAccountId !== "string" || !UUID_PATTERN.test(guardianAccountId)) {
         throw new TypeError("A valid guardian account UUID is required.");
+      }
+      if (typeof pupilCode !== "string" || !/^[A-Za-z0-9-]{3,30}$/.test(pupilCode)) {
+        throw new TypeError("The learner's permanent code is required.");
       }
       const result = await pool.query(`
         SELECT
@@ -30,12 +48,13 @@ export function createPostgresGuardianPortalRepository(pool) {
         LEFT JOIN cornhill_school.classes c
           ON c.id = l.class_id
         WHERE access.guardian_account_id = $1::uuid
+          AND upper(l.pupil_code) = upper($2::text)
           AND access.access_status = 'approved'
           AND access.approved_at IS NOT NULL
           AND access.revoked_at IS NULL
           AND l.status <> 'Archived'
         ORDER BY l.last_name, l.first_name, l.pupil_code
-      `, [guardianAccountId]);
+      `, [guardianAccountId, pupilCode]);
       return result.rows.map(row => Object.freeze({
         learnerId: row.learnerId,
         pupilCode: row.pupilCode,
