@@ -187,7 +187,7 @@ jobs:
           'synthetic inventory' | Set-Content -LiteralPath (Join-Path $server "public/school.js")
           $original = Get-Content -LiteralPath (Join-Path $server "src/db/material-synthetic.mjs") -Raw
           & .\scripts\v62-local-materials-source-review.ps1 -RepoDirectory $fake
-          if ($LASTEXITCODE -ne 0) { throw "V62 synthetic source collector failed." }
+          if (-not $?) { throw "V62 synthetic source collector failed." }
           if ((Get-Content -LiteralPath (Join-Path $server "src/db/material-synthetic.mjs") -Raw) -ne $original) {
             throw "V62 changed the original source file."
           }
