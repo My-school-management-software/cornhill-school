@@ -14,4 +14,34 @@
 <label>First name<input name="firstName" required maxlength="80"></label><label>Middle name<input name="middleName" maxlength="80"></label><label>Last name<input name="lastName" required maxlength="80"></label><label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option></select></label><label>Date of birth<input name="dateOfBirth" type="date"></label><label>Admission date<input name="admissionDate" type="date" required></label><label>Class<select name="classId" id="admission-class" required><option value="">Choose class</option></select></label><label>Learner type<select name="learnerType" required><option value="Day">Day</option><option value="Boarding">Boarding</option></select></label><label>Previous school<input name="previousSchool" maxlength="160"></label><label>LIN (if authorised)<input name="lin" maxlength="40"></label><label>P.7 Index Number (P.7 only)<input name="p7IndexNumber" maxlength="40" autocomplete="off"></label>
 <label class="check"><input name="isBursary" type="checkbox" id="bursary"> Bursary learner</label><label id="bursary-amount-wrap" hidden>Bursary amount (UGX)<input name="bursaryFeeUgx" type="number" min="0" step="1" value="0"></label><label>Bursary category<input name="bursaryCategory" maxlength="80"></label><label>Bursary reason<input name="bursaryReason" maxlength="300"></label><label class="check"><input name="takesBreakfast" type="checkbox"> Takes breakfast</label><label class="check"><input name="takesLunch" type="checkbox"> Takes lunch</label><label class="full">Admission note / reason<textarea name="reason" maxlength="300"></textarea></label>
 <fieldset><legend>Guardian details (if authorised)</legend><label>Guardian name<input name="guardianName" maxlength="140"></label><label>Relationship<input name="relationship" maxlength="60"></label><label>Phone (+256XXXXXXXXX)<input name="phone" type="tel" inputmode="tel" placeholder="+256700000000" maxlength="13"></label><label>WhatsApp (+256XXXXXXXXX)<input name="whatsapp" type="tel" inputmode="tel" placeholder="+256700000000" maxlength="13"></label><label>Email<input name="email" type="email" maxlength="254"></label><label class="check"><input name="smsOptIn" type="checkbox"> Guardian consents to payment SMS</label><label class="check"><input name="whatsappOptIn" type="checkbox"> Guardian consents to WhatsApp payment messages</label><p class="muted">After payment, SMS consent places a notification in the local queue; actual delivery still requires a configured SMS provider. WhatsApp consent is recorded, but WhatsApp delivery is not enabled yet.</p></fieldset>
-<div class="full"><button type="submit">Register learner</button><p id="admission-message" class="muted" role="status"></p></div></form></div></section></section></main></body></html>
+<div class="full"><button type="submit">Register learner</button><p id="admission-message" class="muted" role="status"></p></div></form></div></section></section></main>
+<dialog id="nursery-materials-dialog" class="card nursery-materials-dialog" aria-labelledby="nursery-materials-heading">
+  <header class="nursery-materials-print-heading">
+    <p class="eyebrow">CORNHILL NURSERY AND PRIMARY SCHOOL — WE SHARE ONE DREAM</p>
+    <h2 id="nursery-materials-heading">Learner's Nursery Materials</h2>
+    <p id="nursery-materials-learner" class="muted"></p>
+  </header>
+  <p id="nursery-materials-message" role="status" aria-live="polite">Loading learner materials…</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date received</th><th>Material</th><th>Quantity</th><th>Recorded by staff</th></tr></thead>
+      <tbody id="nursery-materials-rows"><tr><td colspan="4">No collections loaded.</td></tr></tbody>
+    </table>
+  </div>
+  <h3>Quantity received for this learner</h3>
+  <ul id="nursery-materials-totals"></ul>
+  <form id="nursery-materials-form" class="grid">
+    <h3 class="full">Receive materials from this learner at the office</h3>
+    <label>Material name<input name="materialName" required minlength="2" maxlength="100" autocomplete="off"></label>
+    <label>Quantity received<input name="quantityReceived" required type="number" min="1" max="1000" step="1"></label>
+    <label>Received date (Uganda)<input name="receivedDate" required type="date"></label>
+    <label class="full">Notes (optional)<textarea name="notes" maxlength="300"></textarea></label>
+    <div class="full"><button type="submit">Save learner's material receipt</button></div>
+  </form>
+  <p class="muted">Receipts belong to this learner only. Material receipts are permanent; errors require an authorised correction process.</p>
+  <div class="row nursery-materials-actions">
+    <button type="button" class="secondary" id="nursery-materials-refresh">Refresh collection history</button>
+    <button type="button" class="secondary" id="nursery-materials-print">Print learner checklist</button>
+    <button type="button" class="secondary" id="nursery-materials-close">Close</button>
+  </div>
+</dialog></body></html>
