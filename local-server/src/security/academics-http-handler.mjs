@@ -186,17 +186,19 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
     const learnerReportCardsMatch = url.pathname.match(/^\/api\/v1\/academics\/learners\/([0-9a-f-]{36})\/report-cards$/i);
     const isAdvancementCandidates = url.pathname === "/api/v1/academics/advancement/candidates";
     const isAdvancementDecisions = url.pathname === "/api/v1/academics/advancement/decisions";
+    const isAdvancementBatch = url.pathname === "/api/v1/academics/advancement/batch";
     const isWorkspace = url.pathname === "/api/v1/academics/workspace";
     const isYears = url.pathname === "/api/v1/academics/years";
     const isTerms = url.pathname === "/api/v1/academics/terms";
     const isAssessments = url.pathname === "/api/v1/academics/assessments";
     const isMarks = url.pathname === "/api/v1/academics/marks";
     if (!isWorkspace && !isYears && !isTerms && !isAssessments && !isMarks && !marksMatch && !statusMatch &&
-        !reportCardsMatch && !learnerReportCardsMatch && !isAdvancementCandidates && !isAdvancementDecisions) return false;
+        !reportCardsMatch && !learnerReportCardsMatch && !isAdvancementCandidates && !isAdvancementDecisions &&
+        !isAdvancementBatch) return false;
 
     const method = String(request.method ?? "GET").toUpperCase();
     const allowed = isWorkspace || marksMatch || isAdvancementCandidates ? ["GET", "HEAD"] :
-      isYears || isTerms || isAdvancementDecisions ? ["POST"] :
+      isYears || isTerms || isAdvancementDecisions || isAdvancementBatch ? ["POST"] :
       isAssessments ? ["GET", "HEAD", "POST"] :
       isMarks || reportCardsMatch ? ["POST"] :
       learnerReportCardsMatch ? ["GET", "HEAD"] : ["PATCH"];
@@ -223,7 +225,7 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
         method, csrfToken
       });
 
-      if (isAdvancementCandidates || isAdvancementDecisions) {
+      if (isAdvancementCandidates || isAdvancementDecisions || isAdvancementBatch) {
         // Academic calendars do not automatically promote learners.
         // A staff member authorised to manage learner records must approve
         // each named learner's individual decision.
@@ -242,6 +244,38 @@ export function createAcademicsHttpHandler({ authService, academicsRepository, e
             classId, academicTermId
           });
           send(response, 200, { review }, method);
+          return true;
+        }
+        if (isAdvancementBatch) {
+          const body = await readJson(request);
+          if (!isLocalUuid(body.fromClassId) || !isLocalUuid(body.academicTermId) ||
+              body.approved !== true || !Array.isArray(body.decisions) ||
+              body.decisions.length < 1 || body.decisions.length > 100) {
+            throw new InputError("A class, Term 1, explicit approval and 1–100 selected learners are required.");
+          }
+          if (isClassScoped(principal)) requireClassScope(principal, body.fromClassId);
+          const ids = new Set();
+          const decisions = body.decisions.map(item => {
+            if (!item || typeof item !== "object" || Array.isArray(item) ||
+                !isLocalUuid(item.learnerId) ||
+                !["Promote", "Repeat", "Complete"].includes(item.decision)) {
+              throw new InputError("Every selected learner needs a valid Promote, Repeat or Complete decision.");
+            }
+            if (ids.has(item.learnerId.toLowerCase())) {
+              throw new InputError("The same learner cannot be selected twice.");
+            }
+            ids.add(item.learnerId.toLowerCase());
+            return { learnerId: item.learnerId, decision: item.decision,
+              reason: shortText(item.reason, 300, "Advancement reason") };
+          });
+          if (typeof academicsRepository.recordYearAdvancementBatch !== "function") {
+            throw new InputError("Academic advancement is not installed on this server.", 503);
+          }
+          const result = await academicsRepository.recordYearAdvancementBatch({
+            staffId: principal.id, fromClassId: body.fromClassId,
+            academicTermId: body.academicTermId, decisions
+          });
+          send(response, 201, { result });
           return true;
         }
         const body = await readJson(request);
