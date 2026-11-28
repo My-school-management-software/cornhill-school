@@ -3,7 +3,7 @@ import {
 } from "./auth-service.mjs";
 import { AuthorizationError, isLocalUuid, staffHasClassAssignment, staffHasPermission } from "./authorization.mjs";
 import { readSessionTokenFromCookieHeader, readCsrfTokenFromCookieHeader } from "./session-cookies.mjs";
-import {validateNurseryMaterialCollection, summarizeNurseryMaterialCollections} from "./nursery-materials-contract.mjs";
+import {validateNurseryMaterialCollection} from "./nursery-materials-contract.mjs";
 
 const HEADERS = Object.freeze({
   "Cache-Control":"no-store","X-Content-Type-Options":"nosniff",
@@ -42,6 +42,7 @@ export function createNurseryMaterialsHttpHandler({authService,repository,expect
   if(typeof authService?.authenticate!=="function" ||
      typeof repository?.getLearnerScope!=="function" ||
      typeof repository?.listCollections!=="function" ||
+     typeof repository?.summarizeAllCollections!=="function" ||
      typeof repository?.recordCollection!=="function") {
     throw new TypeError("Nursery materials API dependencies are incomplete.");
   }
@@ -81,10 +82,15 @@ export function createNurseryMaterialsHttpHandler({authService,repository,expect
       }
       if(principal.roles.some(role=>CLASS_SCOPED_ROLES.has(role)) &&
          !staffHasClassAssignment({principal,classId:scope.classId}))throw new AuthorizationError();
-      if(method==="GET"||method==="HEAD") {
+      if (method==="HEAD") {
+        // HEAD confirms authorized route availability, without reading private history.
+        send(response,200,{receipts:[],summary:null},method);return true;
+      }
+      if (method==="GET") {
         const rows=await repository.listCollections(learnerId);
-        const tally=summarizeNurseryMaterialCollections(learnerId,rows);
-        send(response,200,{receipts:rows,summary:tally},method);return true;
+        const tally=await repository.summarizeAllCollections(learnerId);
+        send(response,200,{receipts:rows,summary:tally,
+          historyLimited:rows.length<tally.collectionEvents},method);return true;
       }
       if(scope.status!=="Active")throw new InputError("Materials can only be received for an active Nursery learner.",409);
       const body=await readJson(request);
