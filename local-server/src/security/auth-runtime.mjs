@@ -32,6 +32,8 @@ import { createEvidenceHttpHandler } from "./evidence-http-handler.mjs";
 import { createPrivateEvidenceStore } from "./private-evidence-store.mjs";
 import { createPostgresGuardianPortalRepository } from "../db/guardian-portal-repositories.mjs";
 import { createGuardianPortalHttpHandler } from "./guardian-portal-http-handler.mjs";
+import { createGuardianPinChangeHttpHandler } from "./guardian-pin-change-http-handler.mjs";
+import { createPostgresGuardianPinChangeRepository } from "../db/guardian-pin-change-repository.mjs";
 import { createPostgresGuardianAccessRepository } from "../db/guardian-access-repositories.mjs";
 import { createGuardianAccessHttpHandler } from "./guardian-access-http-handler.mjs";
 
@@ -129,6 +131,11 @@ export async function createLocalAuthRuntime({
     const guardianPortalRouteHandler = createGuardianPortalHttpHandler({
       authService, repository: guardianPortalRepository, expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
     });
+    const guardianPinChangeHandler = createGuardianPinChangeHttpHandler({
+      authService,
+      repository: createPostgresGuardianPinChangeRepository(pool, passwordHasher),
+      expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
+    });
     const schoolCatalogRouteHandler = createSchoolCatalogHttpHandler({
       authService, schoolRepository: schoolCatalogRepository,
       expectedOrigin: env.CORNHILL_LOCAL_ORIGIN
@@ -148,6 +155,7 @@ export async function createLocalAuthRuntime({
       if (await authRouteHandler(request, response)) return true;
         if (await guardianAccessRouteHandler(request, response)) return true;
       if (await guardianPortalRouteHandler(request, response)) return true;
+      if (await guardianPinChangeHandler(request, response)) return true;
       if (await schoolCatalogRouteHandler(request, response)) return true;
         if (await nurseryMaterialsRouteHandler(request, response)) return true;
       if (await nurseryMovementsRouteHandler(request, response)) return true;

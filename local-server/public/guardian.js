@@ -169,6 +169,45 @@
       button.disabled = false;
     }
   });
+  // Self-service change preserves the school-issued PIN unless the guardian
+  // explicitly verifies the current PIN and submits a new one.
+  $("guardian-change-pin-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const currentPin = $("guardian-current-pin").value;
+    const newPin = $("guardian-new-pin").value;
+    const confirmNewPin = $("guardian-confirm-pin").value;
+    if (!/^[0-9]{8}$/.test(currentPin) || !/^[0-9]{8}$/.test(newPin) ||
+        newPin !== confirmNewPin || newPin === currentPin) {
+      notice("Enter the current PIN and a different eight-digit PIN twice.", true);
+      return;
+    }
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      const result = await api("/guardian/pin/change", {
+        method: "POST",
+        body: { currentPin, newPin, confirmNewPin }
+      });
+      if (result.changed !== true || result.requiresSignIn !== true) {
+        throw new Error("PIN change confirmation was incomplete.");
+      }
+      principal = null;
+      $("portal-panel").hidden = true;
+      $("learner-list").replaceChildren();
+      $("login-panel").hidden = false;
+      resetEntry();
+      $("pupil-code").value = "";
+      $("phone").value = "";
+      notice("Your guardian PIN was changed. Sign in again with your new PIN.");
+    } catch (error) {
+      notice(error.message || "Guardian PIN could not be changed.", true);
+    } finally {
+      // Do not retain old or new PIN values in the page after submission.
+      form.reset();
+      button.disabled = false;
+    }
+  });
   $("change-details").addEventListener("click", () => {
     resetEntry();
     notice("Enter the learner code and registered guardian number again.");

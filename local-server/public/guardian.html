@@ -56,6 +56,23 @@
         <button id="sign-out" class="secondary" type="button">Sign out</button>
       </div>
       <div id="learner-list" class="learner-list" aria-live="polite"></div>
+      <section id="guardian-security-settings" class="panel" aria-labelledby="guardian-pin-heading">
+        <h3 id="guardian-pin-heading">Settings · Guardian PIN</h3>
+        <p class="muted">Your school-issued eight-digit PIN continues to work unless you choose to change it. Only you can choose a replacement PIN. After changing it, sign in again.</p>
+        <form id="guardian-change-pin-form" autocomplete="off">
+          <label for="guardian-current-pin">Current guardian PIN</label>
+          <input id="guardian-current-pin" type="password" inputmode="numeric" autocomplete="current-password"
+            pattern="[0-9]{8}" minlength="8" maxlength="8" required>
+          <label for="guardian-new-pin">New eight-digit PIN</label>
+          <input id="guardian-new-pin" type="password" inputmode="numeric" autocomplete="new-password"
+            pattern="[0-9]{8}" minlength="8" maxlength="8" required>
+          <label for="guardian-confirm-pin">Confirm new PIN</label>
+          <input id="guardian-confirm-pin" type="password" inputmode="numeric" autocomplete="new-password"
+            pattern="[0-9]{8}" minlength="8" maxlength="8" required>
+          <button type="submit">Change my PIN</button>
+          <p class="muted">The Director can verify when a PIN was updated or issue a new temporary PIN through authorised school controls, but cannot see the PIN you choose.</p>
+        </form>
+      </section>
     </section>
     <footer>For learner access corrections, contact CORNHILL school administration. Never share your guardian PIN.</footer>
   </main>
