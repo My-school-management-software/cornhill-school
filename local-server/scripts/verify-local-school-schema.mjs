@@ -963,6 +963,67 @@ try {
       && progressionPeriods.rows[1].previous_period_id === firstActiveEnrolment.rows[0].id,
       "Class progression must preserve the learner's financial receipts and linked enrolment chain: " + JSON.stringify(progressionDiagnostics));
 
+    // V53: selective new-year repetition is not a class-wide default.
+    // Both learners belong to Baby for 2025, but only ONE is explicitly
+    // approved to repeat for 2026. All synthetic records are rolled back.
+    const nurseryUntouched = await client.query(
+      "INSERT INTO cornhill_school.learners " +
+      "(first_name,last_name,gender,class_id,admission_date,admission_year,status) " +
+      "VALUES ('CI','UnselectedNursery','Male',$1::uuid,'2025-01-01',2025,'Active') " +
+      "RETURNING id",
+      [babyClass.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.enrolment_periods " +
+      "(learner_id,admission_date,class_id,status) " +
+      "VALUES ($1::uuid,'2025-01-01',$2::uuid,'Active')",
+      [nurseryUntouched.rows[0].id,babyClass.rows[0].id]
+    );
+    const nurseryRepeat = await client.query(
+      "SELECT cornhill_school.record_learner_progression(" +
+      "$1::uuid,$2::uuid,$3::uuid,$4::uuid,'2026-01-01'," +
+      "'CI individual nursery repetition approved')::text AS event_id",
+      [academicStaff.rows[0].id,babyLearner.rows[0].id,
+        babyClass.rows[0].id,termCurrent.rows[0].id]
+    );
+    assert(Boolean(nurseryRepeat.rows[0]?.event_id),
+      "One selected nursery learner must be allowed to repeat.");
+    const nurseryDecisions = await client.query(
+      "SELECT l.id, l.class_id, l.status, " +
+      "(SELECT count(*)::int FROM cornhill_school.enrolment_periods e WHERE e.learner_id=l.id) AS period_count, " +
+      "(SELECT count(*)::int FROM cornhill_school.learner_progression_events p WHERE p.learner_id=l.id) AS event_count, " +
+      "(SELECT COALESCE(string_agg(p.progression_type,','), '') FROM cornhill_school.learner_progression_events p WHERE p.learner_id=l.id) AS progression_type " +
+      "FROM cornhill_school.learners l WHERE l.id IN ($1::uuid,$2::uuid)",
+      [babyLearner.rows[0].id,nurseryUntouched.rows[0].id]
+    );
+    const nurseryRepeatedState = nurseryDecisions.rows.find(
+      row => row.id === babyLearner.rows[0].id
+    );
+    const nurseryUnselectedState = nurseryDecisions.rows.find(
+      row => row.id === nurseryUntouched.rows[0].id
+    );
+    assert(nurseryRepeatedState?.period_count === 2 &&
+      nurseryRepeatedState?.event_count === 1 &&
+      nurseryRepeatedState?.progression_type === "Repeated" &&
+      nurseryRepeatedState?.class_id === babyClass.rows[0].id &&
+      nurseryRepeatedState?.status === "Active",
+      "Selected Baby learner must repeat in Baby with auditable history.");
+    assert(nurseryUnselectedState?.period_count === 1 &&
+      nurseryUnselectedState?.event_count === 0 &&
+      nurseryUnselectedState?.class_id === babyClass.rows[0].id &&
+      nurseryUnselectedState?.status === "Active",
+      "An unselected nursery learner must never be automatically promoted or repeated.");
+    const duplicateAnnualDecisionRejected = await expectPgError(
+      client, "duplicate_annual_repeat_test",
+      "SELECT cornhill_school.record_learner_progression(" +
+      "$1::uuid,$2::uuid,$3::uuid,$4::uuid,'2026-01-01'," +
+      "'CI duplicate repeat must fail')",
+      [academicStaff.rows[0].id,babyLearner.rows[0].id,
+        babyClass.rows[0].id,termCurrent.rows[0].id], "23514"
+    );
+    assert(duplicateAnnualDecisionRejected,
+      "A learner must not receive two progression decisions for the same starting date.");
+
     const receiptMutationRejected = await expectPgError(
       client, "receipt_snapshot_immutable_test",
       "UPDATE cornhill_school.payment_receipts SET receipt_data_snapshot = '{}'::jsonb WHERE payment_id = $1",
