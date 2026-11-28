@@ -325,3 +325,44 @@ test("unauthorised staff and invalid CSRF never advance a learner", async () => 
   })).statusCode, 403);
   assert.equal(writes, 0);
 });
+
+test("Director can atomically approve only explicitly selected individual learners in a class", async () => {
+  const requested = [
+    { learnerId: STAFF_ID, decision: "Repeat", reason: "Year must be repeated" },
+    { learnerId: "44444444-4444-4444-8444-444444444444", decision: "Promote", reason: "Ready for next class" }
+  ];
+  const { handler, calls } = setup({ principal: directorAdvancement, overrides: {
+    async recordYearAdvancementBatch(input) {
+      calls.approval = input;
+      return { approvedCount: 2, events: [{}, {}] };
+    }
+  } });
+  const res = await invoke(handler, {
+    path: "/api/v1/academics/advancement/batch", method: "POST",
+    body: { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID,
+      approved: true, decisions: requested }
+  });
+  assert.equal(res.statusCode, 201, calls.lastError?.message);
+  assert.equal(res.json().result.approvedCount, 2);
+  assert.deepEqual(calls.approval, { staffId: STAFF_ID, fromClassId: CLASS_ID,
+    academicTermId: ASSESSMENT_ID, decisions: requested });
+});
+
+test("unselected learners, duplicate IDs, missing consent and bulk promote-all are blocked", async () => {
+  let count = 0;
+  const { handler } = setup({ principal: directorAdvancement, overrides: {
+    async recordYearAdvancementBatch() { count++; return { approvedCount: 1 }; }
+  } });
+  const url = "/api/v1/academics/advancement/batch";
+  const person = { learnerId: STAFF_ID, decision: "Promote", reason: "Good performance" };
+  for (const body of [
+    { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID, approved: true, decisions: [] },
+    { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID, approved: false, decisions: [person] },
+    { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID, approved: true, decisions: [person, person] },
+    { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID, approved: true, decisions: [
+      { ...person, decision: "All" }] }
+  ]) {
+    assert.equal((await invoke(handler, { path: url, method: "POST", body })).statusCode, 400);
+  }
+  assert.equal(count, 0);
+});
