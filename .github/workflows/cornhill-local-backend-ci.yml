@@ -160,7 +160,7 @@ jobs:
         run: |
           $tokens = $null
           $parseErrors = $null
-          foreach ($file in @("scripts/install-v50-guardian-pilot.ps1", "scripts/cornhill-v53-broad-readiness.ps1")) {
+          foreach ($file in @("scripts/install-v50-guardian-pilot.ps1", "scripts/cornhill-v53-broad-readiness.ps1", "scripts/cornhill-v54-local-academic-finance-source-review.ps1")) {
             $path = (Resolve-Path $file).Path
             [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$parseErrors) | Out-Null
             if ($parseErrors.Count -gt 0) {
