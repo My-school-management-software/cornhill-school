@@ -4,6 +4,8 @@ const $ = id => document.getElementById(id);
 let principal = null;
 let workspace = { classes: [], years: [], terms: [], assessments: [] };
 let selected = null;
+let advancementReview = null;
+let advancementEditors = [];
 const csrf = () => {
   const prefix = "__Host-cornhill_csrf=";
   const item = document.cookie.split(";").map(value => value.trim()).find(value => value.startsWith(prefix));
@@ -55,6 +57,25 @@ function renderAssessments() {
   setOptions($("assessment-select"), "Choose assessment", list,
     item => item.assessmentName + " · " + item.status + " · " + item.className);
 }
+function renderAdvancementOptions() {
+  const oldClass = $("advancement-class-select").value;
+  const oldTerm = $("advancement-term-select").value;
+  setOptions($("advancement-class-select"), "Choose class", workspace.classes,
+    item => item.displayName + (item.stream ? " · " + item.stream : ""));
+  const firstTerms = workspace.terms.filter(item => Number(item.termNumber) === 1);
+  setOptions($("advancement-term-select"), "Choose new-year Term 1", firstTerms,
+    item => item.academicYear + " · " + item.termName + " (" + item.status + ")");
+  if (workspace.classes.some(item => item.id === oldClass)) {
+    $("advancement-class-select").value = oldClass;
+  } else if ($("class-select").value) $("advancement-class-select").value = $("class-select").value;
+  if (firstTerms.some(item => item.id === oldTerm)) {
+    $("advancement-term-select").value = oldTerm;
+  } else {
+    const active = firstTerms.find(item => item.status === "Active");
+    if (active) $("advancement-term-select").value = active.id;
+  }
+  $("advancement-panel").hidden = !can("learners.manage");
+}
 async function loadWorkspace() {
   const query = new URLSearchParams();
   if ($("class-select").value) query.set("classId", $("class-select").value);
@@ -66,6 +87,7 @@ async function loadWorkspace() {
   setOptions($("period-year-select"), "Choose academic year", workspace.years,
     item => item.yearLabel + " · " + item.status);
   renderPeriods();
+  renderAdvancementOptions();
   setOptions($("term-select"), "Choose academic term", workspace.terms,
     item => item.academicYear + " · " + item.termName + " (" + item.status + ")");
   const active = workspace.terms.find(item => item.status === "Active");
@@ -311,6 +333,184 @@ async function saveMarks() {
   });
   notice(result.savedCount + " mark(s) saved. Audit history was recorded.");
   await loadSelectedAssessment();
+}
+function updateAdvancementBatchStatus() {
+  const count = advancementEditors.filter(editor => editor.decision.value).length;
+  $("advancement-selected-count").textContent =
+    count + " learner(s) selected. Everyone else remains pending.";
+  $("approve-selected-advancements").disabled =
+    count < 1 || count > 100 || !advancementReview?.canApprove;
+}
+$("approve-selected-advancements").addEventListener("click", async () => {
+  if (!advancementReview?.canApprove) return;
+  const selectedEditors = advancementEditors.filter(editor => editor.decision.value);
+  if (!selectedEditors.length || selectedEditors.length > 100) {
+    notice("Select between 1 and 100 individual decisions.", true);
+    return;
+  }
+  const decisions = [];
+  for (const editor of selectedEditors) {
+    const reason = editor.reason.value.trim();
+    if (reason.length < 2 || reason.length > 300) {
+      notice("Enter a reason for every selected learner. Check " + editor.learner.learnerName, true);
+      return;
+    }
+    decisions.push({
+      learnerId: editor.learner.id,
+      decision: editor.decision.value,
+      reason
+    });
+  }
+  const textSummary = decisions.reduce((counts, item) => {
+    counts[item.decision] = (counts[item.decision] || 0) + 1;
+    return counts;
+  }, {});
+  if (!window.confirm("Approve " + decisions.length +
+      " individually selected learners in " + advancementReview.className +
+      " for " + advancementReview.yearLabel + "? Promote: " +
+      (textSummary.Promote || 0) + ", Repeat: " + (textSummary.Repeat || 0) +
+      ", Complete P.7: " + (textSummary.Complete || 0) +
+      ". Unselected learners remain pending. All selected decisions succeed together or none are saved.")) {
+    return;
+  }
+  const button = $("approve-selected-advancements");
+  button.disabled = true;
+  try {
+    const response = await api("/academics/advancement/batch", {
+      method: "POST", body: {
+        fromClassId: advancementReview.classId,
+        academicTermId: advancementReview.termId,
+        decisions, approved: true
+      }
+    });
+    notice(response.result.approvedCount + " manually selected decisions approved and recorded.");
+    await loadAdvancementCandidates();
+  } catch (error) {
+    notice(error.message, true);
+    updateAdvancementBatchStatus();
+  }
+});
+async function loadAdvancementCandidates() {
+  const classId = $("advancement-class-select").value;
+  const academicTermId = $("advancement-term-select").value;
+  if (!classId || !academicTermId) {
+    $("advancement-summary").textContent = "Select a class and the new academic year's Term 1.";
+    return;
+  }
+  $("advancement-summary").textContent = "Loading the learner-by-learner review list…";
+  $("advancement-candidates").replaceChildren();
+  advancementReview = null;
+  advancementEditors = [];
+  updateAdvancementBatchStatus();
+  try {
+    const query = new URLSearchParams({ classId, academicTermId });
+    const { review } = await api("/academics/advancement/candidates?" + query);
+    advancementReview = review;
+    $("advancement-summary").textContent = review.className + " — " + review.yearLabel +
+      ": " + review.candidates.length + " learner(s) awaiting a decision. " +
+      review.newYearClassCount + " already assigned in this new academic year. " +
+      (review.canApprove ? "Individual decisions enabled." :
+        "Review only: activate the new academic year and Term 1 before approving.");
+    const host = $("advancement-candidates");
+    if (!review.candidates.length) {
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "No pending learners for this class and academic year.";
+      host.append(empty);
+    }
+    for (const learner of review.candidates) {
+      const row = document.createElement("section");
+      row.className = "advancement-row";
+      const name = document.createElement("strong");
+      name.textContent = learner.learnerName;
+      const meta = document.createElement("p");
+      meta.className = "muted";
+      meta.textContent = (learner.pupilCode || "") +
+        (learner.lin ? " · LIN " + learner.lin : "") +
+        " · Previous enrolment " + learner.enrolledFrom;
+      const identity = document.createElement("div");
+      identity.append(name, meta);
+      const controls = document.createElement("div");
+      controls.className = "advancement-controls";
+      const decision = document.createElement("select");
+      decision.setAttribute("aria-label", "Decision for " + learner.learnerName);
+      const choices = [{ value: "", label: "Not yet decided — keep pending" }];
+      if (review.nextClassId) choices.push({
+        value: "Promote", label: "Promote to " + review.nextClassName
+      });
+      choices.push({ value: "Repeat", label: "Repeat " + review.className });
+      if (review.classCode === "P7") choices.push({
+        value: "Complete", label: "Completed primary school (graduate)"
+      });
+      for (const choice of choices) {
+        const option = document.createElement("option");
+        option.value = choice.value;
+        option.textContent = choice.label;
+        decision.append(option);
+      }
+      const reason = document.createElement("input");
+      reason.type = "text";
+      reason.minLength = 2;
+      reason.maxLength = 300;
+      reason.placeholder = "Reason for decision (required)";
+      reason.setAttribute("aria-label", "Reason for " + learner.learnerName);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Approve this learner";
+      button.disabled = !review.canApprove;
+      const result = document.createElement("span");
+      result.setAttribute("role", "status");
+      controls.append(decision, reason, button, result);
+      row.append(identity, controls);
+      host.append(row);
+      advancementEditors.push({ learner, decision, reason });
+      decision.addEventListener("change", updateAdvancementBatchStatus);
+      button.addEventListener("click", async () => {
+        if (!decision.value) {
+          result.textContent = "Choose Promote, Repeat or Complete. Pending makes no changes.";
+          return;
+        }
+        const justification = reason.value.trim();
+        if (justification.length < 2 || justification.length > 300) {
+          result.textContent = "A reason of 2 to 300 characters is required.";
+          return;
+        }
+        const label = decision.options[decision.selectedIndex].textContent;
+        if (!window.confirm("Confirm " + label + " for " + learner.learnerName +
+          " (" + learner.pupilCode + ") in " + review.yearLabel +
+          "? This is an audited academic change.")) return;
+        button.disabled = true;
+        result.textContent = "Recording individual decision…";
+        try {
+          await api("/academics/advancement/decisions", { method: "POST", body: {
+            learnerId: learner.id, fromClassId: review.classId,
+            academicTermId: review.termId, decision: decision.value,
+            reason: justification, approved: true
+          }});
+          notice(learner.learnerName + ": " + label + " approved and recorded.");
+          await loadAdvancementCandidates();
+        } catch (error) {
+          result.textContent = error.message;
+          button.disabled = !review.canApprove;
+          notice(error.message, true);
+        }
+      });
+    }
+    updateAdvancementBatchStatus();
+  } catch (error) {
+    $("advancement-summary").textContent = error.message;
+    notice(error.message, true);
+  }
+}
+$("load-advancement").addEventListener("click", loadAdvancementCandidates);
+for (const id of ["advancement-class-select", "advancement-term-select"]) {
+  $(id).addEventListener("change", () => {
+    advancementReview = null;
+    advancementEditors = [];
+    updateAdvancementBatchStatus();
+    $("advancement-candidates").replaceChildren();
+    $("advancement-summary").textContent = "Selection changed. Load the review list before approving anyone.";
+  });
 }
 $("create-year-form").addEventListener("submit", async event => {
   event.preventDefault();

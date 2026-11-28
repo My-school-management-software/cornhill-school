@@ -128,6 +128,158 @@ export function createPostgresAcademicsRepository(pool) {
       };
     },
 
+    async listYearAdvancementCandidates({ classId, academicTermId }) {
+      assertUuid(classId, "Source class ID");
+      assertUuid(academicTermId, "New-year Term 1 ID");
+      const period = await pool.query(
+        "SELECT t.id::text AS \"termId\", t.term_name AS \"termName\", " +
+        "t.term_number AS \"termNumber\", t.status AS \"termStatus\", " +
+        "y.id::text AS \"yearId\", y.year_label AS \"yearLabel\", " +
+        "y.starts_on::text AS \"yearStart\", y.status AS \"yearStatus\", " +
+        "c.id::text AS \"classId\", c.class_code AS \"classCode\", " +
+        "c.display_name AS \"className\", c.level_order AS \"classLevel\", " +
+        "next_class.id::text AS \"nextClassId\", next_class.display_name AS \"nextClassName\" " +
+        "FROM cornhill_school.academic_terms t " +
+        "JOIN cornhill_school.academic_years y ON y.id=t.academic_year_id " +
+        "CROSS JOIN cornhill_school.classes c " +
+        "LEFT JOIN cornhill_school.classes next_class " +
+        "ON next_class.level_order=c.level_order+1 AND next_class.is_active=true " +
+        "WHERE t.id=$1::uuid AND c.id=$2::uuid AND c.is_active=true AND t.term_number=1",
+        [academicTermId, classId]
+      );
+      const details = period.rows[0];
+      if (!details) throw conflict("Choose Term 1 of an academic year and an active class.");
+      const result = await pool.query(
+        "SELECT l.id::text AS id, l.pupil_code AS \"pupilCode\", l.lin, " +
+        "concat_ws(' ',l.first_name,l.middle_name,l.last_name) AS \"learnerName\", " +
+        "ep.admission_date::text AS \"enrolledFrom\" " +
+        "FROM cornhill_school.enrolment_periods ep " +
+        "JOIN cornhill_school.learners l ON l.id=ep.learner_id " +
+        "WHERE ep.class_id=$1::uuid AND l.class_id=$1::uuid " +
+        "AND ep.status='Active' AND l.status='Active' " +
+        "AND ep.admission_date<$2::date " +
+        "ORDER BY l.last_name,l.first_name,l.pupil_code LIMIT 1000",
+        [classId, details.yearStart]
+      );
+      const advanced = await pool.query(
+        "SELECT count(*)::int AS count FROM cornhill_school.enrolment_periods ep " +
+        "JOIN cornhill_school.learners l ON l.id=ep.learner_id " +
+        "WHERE ep.class_id=$1::uuid AND ep.status='Active' " +
+        "AND l.status='Active' AND l.class_id=$1::uuid " +
+        "AND ep.admission_date>=$2::date",
+        [classId, details.yearStart]
+      );
+      return {
+        ...details, candidates: result.rows,
+        newYearClassCount: Number(advanced.rows[0]?.count ?? 0),
+        canApprove: details.yearStatus === "Active" && details.termStatus === "Active"
+      };
+    },
+
+    async recordYearAdvancementBatch({ staffId, fromClassId, academicTermId, decisions }) {
+      assertUuid(staffId, "Staff ID");
+      assertUuid(fromClassId, "Source class ID");
+      assertUuid(academicTermId, "Target Term 1 ID");
+      if (!Array.isArray(decisions) || decisions.length < 1 || decisions.length > 100) {
+        throw new TypeError("Choose 1 to 100 individually reviewed learners.");
+      }
+      const seen = new Set();
+      for (const row of decisions) {
+        if (!row || typeof row !== "object" || Array.isArray(row)) {
+          throw new TypeError("Each decision must be an individual learner record.");
+        }
+        assertUuid(row.learnerId, "Learner ID");
+        const id = row.learnerId.toLowerCase();
+        if (seen.has(id)) throw new TypeError("Duplicate learners are not allowed in one decision batch.");
+        seen.add(id);
+        if (!["Promote", "Repeat", "Complete"].includes(row.decision) ||
+            typeof row.reason !== "string" ||
+            row.reason.trim().length < 2 || row.reason.trim().length > 300) {
+          throw new TypeError("Each selected learner needs a decision and a reason.");
+        }
+      }
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const events = [];
+        for (const row of decisions) {
+          events.push(await this.recordYearAdvancementDecision({
+            staffId, fromClassId, academicTermId,
+            learnerId: row.learnerId, decision: row.decision, reason: row.reason
+          }, client));
+        }
+        await client.query("COMMIT");
+        return { approvedCount: events.length, events };
+      } catch (error) {
+        try { await client.query("ROLLBACK"); } catch {}
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
+    async recordYearAdvancementDecision({
+      staffId, learnerId, fromClassId, academicTermId, decision, reason
+    }, db = pool) {
+      for (const [value, name] of [[staffId, "Staff ID"], [learnerId, "Learner ID"],
+        [fromClassId, "Source class ID"], [academicTermId, "Academic Term ID"]]) {
+        assertUuid(value, name);
+      }
+      if (!["Promote", "Repeat", "Complete"].includes(decision)) {
+        throw new TypeError("Choose Promote, Repeat, or Complete.");
+      }
+      if (typeof reason !== "string" || reason.trim().length < 2 || reason.trim().length > 300) {
+        throw new TypeError("An advancement reason of 2 to 300 characters is required.");
+      }
+      // This review is only for the first active term of the new year.
+      // Old enrolments are not silently promoted; each learner is selected.
+      const check = await db.query(
+        "SELECT t.starts_on::text AS \"effectiveDate\", " +
+        "t.status AS \"termStatus\", y.status AS \"yearStatus\", " +
+        "y.starts_on::text AS \"yearStart\", " +
+        "c.class_code AS \"classCode\", c.level_order AS \"levelOrder\", " +
+        "next_class.id::text AS \"nextClassId\", " +
+        "l.id::text AS \"learnerId\", ep.admission_date::text AS \"enrolledFrom\" " +
+        "FROM cornhill_school.academic_terms t " +
+        "JOIN cornhill_school.academic_years y ON y.id=t.academic_year_id " +
+        "JOIN cornhill_school.classes c ON c.id=$2::uuid AND c.is_active=true " +
+        "LEFT JOIN cornhill_school.classes next_class " +
+        "ON next_class.level_order=c.level_order+1 AND next_class.is_active=true " +
+        "JOIN cornhill_school.learners l ON l.id=$3::uuid " +
+        "AND l.class_id=c.id AND l.status='Active' " +
+        "JOIN cornhill_school.enrolment_periods ep " +
+        "ON ep.learner_id=l.id AND ep.class_id=c.id AND ep.status='Active' " +
+        "WHERE t.id=$1::uuid AND t.term_number=1 " +
+        "AND ep.admission_date<y.starts_on",
+        [academicTermId, fromClassId, learnerId]
+      );
+      const row = check.rows[0];
+      if (!row) throw conflict("This learner is not pending a new-year decision in the selected class.");
+      if (row.yearStatus !== "Active" || row.termStatus !== "Active") {
+        throw conflict("Activate the new academic year and its Term 1 before approving learner movements.");
+      }
+      if (row.effectiveDate < row.yearStart) throw conflict("Term 1 must begin within the new academic year.");
+      if (decision === "Complete" && row.classCode !== "P7") {
+        throw conflict("Only P.7 learners can complete primary school.");
+      }
+      if (decision === "Promote" && !row.nextClassId) {
+        throw conflict("No next class exists. For P.7 choose Complete or Repeat.");
+      }
+      const toClassId = decision === "Complete" ? null :
+        decision === "Repeat" ? fromClassId : row.nextClassId;
+      // The existing SECURITY DEFINER progression function validates the
+      // actor's permission, locks the learner and active enrolment, appends
+      // the immutable event and updates the class atomically.
+      const result = await db.query(
+        "SELECT cornhill_school.record_learner_progression(" +
+        "$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::date,$6::text)::text AS \"eventId\"",
+        [staffId, learnerId, toClassId, academicTermId,
+          row.effectiveDate, reason.trim()]
+      );
+      return { eventId: result.rows[0]?.eventId,
+        decision, toClassId, learnerId };
+    },
+
     async getAssessmentMarks(assessmentId) {
       const assessment = await getAssessment(assessmentId);
       if (!assessment) return null;

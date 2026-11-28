@@ -6,6 +6,7 @@ on:
       - feat/local-first-self-hosted-migration-20261113
       - feat/full-school-integration-readiness-20261115
       - feat/cornhill-integration-batch-20261115
+      - feat/cornhill-v50-annual-fee-income-groups-20261128
   pull_request:
     branches:
       - main
@@ -153,3 +154,79 @@ jobs:
 
       - name: Run release verification on Windows (source syntax and complete test suite)
         run: npm run verify:release
+
+      - name: Parse guardian pilot installer PowerShell script without executing installation
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          foreach ($file in @("scripts/install-v50-guardian-pilot.ps1", "scripts/cornhill-v53-broad-readiness.ps1", "scripts/cornhill-v54-local-academic-finance-source-review.ps1", "scripts/v62-local-materials-source-review.ps1", "scripts/v63-real-materials-workflow-source-review.ps1")) {
+            $path = (Resolve-Path $file).Path
+            [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_ }
+              exit 1
+            }
+          }
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "Guardian installer PowerShell syntax PASS; no school data modified."
+
+      - name: Smoke-test V62 source-only collector with synthetic files on Windows
+        shell: pwsh
+        run: |
+          $fake = Join-Path $env:RUNNER_TEMP ("cornhill-v62-synthetic-" + [guid]::NewGuid().ToString("N"))
+          $server = Join-Path $fake "local-server"
+          New-Item -ItemType Directory -Path (Join-Path $server "src/db") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $server "public") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $server "migrations") -Force | Out-Null
+          '{"name":"cornhill-local-server"}' | Set-Content -LiteralPath (Join-Path $server "package.json")
+          'export const syntheticMaterial = true;' | Set-Content -LiteralPath (Join-Path $server "src/db/material-synthetic.mjs")
+          'synthetic inventory' | Set-Content -LiteralPath (Join-Path $server "public/school.js")
+          $original = Get-Content -LiteralPath (Join-Path $server "src/db/material-synthetic.mjs") -Raw
+          & .\scripts\v62-local-materials-source-review.ps1 -RepoDirectory $fake
+          if (-not $?) { throw "V62 synthetic source collector failed." }
+          if ((Get-Content -LiteralPath (Join-Path $server "src/db/material-synthetic.mjs") -Raw) -ne $original) {
+            throw "V62 changed the original source file."
+          }
+          Write-Host "V62 source-only collector synthetic Windows smoke test PASS."
+
+      - name: Synthetic test V63 materials source collector on Windows
+        shell: pwsh
+        run: |
+          $fake = Join-Path $env:RUNNER_TEMP ("cornhill-v63-synthetic-" + [guid]::NewGuid().ToString("N"))
+          $server = Join-Path $fake "local-server"
+          New-Item -ItemType Directory -Path (Join-Path $server "src/security") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $server "public") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $server "migrations") -Force | Out-Null
+          '{"name":"cornhill-local-server"}' | Set-Content -LiteralPath (Join-Path $server "package.json")
+          'export function materialsRequest() { return true; }' | Set-Content -LiteralPath (Join-Path $server "public/school-requirements.js")
+          'const x = "materialsIntake";' | Set-Content -LiteralPath (Join-Path $server "src/security/admissions-http-handler.mjs")
+          'const irrelevant = "ignore";' | Set-Content -LiteralPath (Join-Path $server "public/unrelated.js")
+          $original = Get-Content -LiteralPath (Join-Path $server "src/security/admissions-http-handler.mjs") -Raw
+          & .\scripts\v63-real-materials-workflow-source-review.ps1 -RepoDirectory $fake
+          if (-not $?) { throw "V63 synthetic source collector failed." }
+          if ((Get-Content -LiteralPath (Join-Path $server "src/security/admissions-http-handler.mjs") -Raw) -ne $original) {
+            throw "V63 changed original source."
+          }
+          $found = @(Get-ChildItem -LiteralPath (Join-Path $env:USERPROFILE "Downloads") -Filter "CORNHILL-V63-REAL-MATERIALS-WORKFLOW-*.zip")
+          if ($found.Count -eq 0) { throw "V63 did not generate a source ZIP." }
+          $latest = $found | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          $zipEntries = [IO.Compression.ZipFile]::OpenRead($latest.FullName)
+          try {
+            $paths = @($zipEntries.Entries | ForEach-Object { $_.FullName })
+            if (-not (@($paths | Where-Object { $_ -like "*school-requirements.js" }).Count -gt 0)) {
+              throw "School Requirements module was missing from V63 source pack."
+            }
+            if (-not (@($paths | Where-Object { $_ -like "*admissions-http-handler.mjs" }).Count -gt 0)) {
+              throw "Admission materials intake module was missing from V63 source pack."
+            }
+            if (@($paths | Where-Object { $_ -like "*unrelated.js" }).Count -gt 0) {
+              throw "V63 collected an unrelated source module."
+            }
+          } finally { $zipEntries.Dispose() }
+          Write-Host "V63 matched School Requirements and admissions material intake without changing files."
+
+

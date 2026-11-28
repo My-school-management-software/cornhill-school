@@ -143,6 +143,20 @@
         <div class="archive-pagination" aria-label="Finance archive pages"><button id="finance-archive-previous" class="button secondary" type="button" disabled>Previous</button><span id="finance-archive-page" class="muted" aria-live="polite">Page 1</span><button id="finance-archive-next" class="button secondary" type="button" disabled>Next</button></div>
       </section>
 
+      <section id="income-summary-panel" class="panel operations-panel">
+        <div class="section-heading">
+          <div><p class="eyebrow">FINANCE REPORTING</p><h3>Income A and Income B</h3>
+            <p class="muted">Posted amounts are reported separately by the payment's individual item allocations. Reversed payments and unused credit are not counted as income.</p></div>
+        </div>
+        <form id="income-summary-form" class="search-form">
+          <label class="field"><span>From date</span><input id="income-summary-from" type="date" required></label>
+          <label class="field"><span>To date</span><input id="income-summary-to" type="date" required></label>
+          <button class="button secondary" type="submit">View Income A/B</button>
+        </form>
+        <p id="income-summary-message" class="form-message" role="status" aria-live="polite"></p>
+        <div id="income-summary-output" class="finance-review-list" aria-live="polite"></div>
+      </section>
+
       <section id="payment-search-panel" class="panel search-panel">
         <div class="section-heading">
           <div>
@@ -251,9 +265,10 @@
               <input id="payer-name" type="text" maxlength="140" autocomplete="off">
             </label>
             <label class="field">
-              <span>Collection item</span>
+              <span>Receipt description (automatically becomes "Multiple items" when several balances are selected)</span>
               <select id="collection-item">
                 <option value="School fees">School fees</option>
+                <option value="Multiple items">Multiple items — School fees, Income A and Income B</option>
                 <option value="Bursary fees">Bursary fees</option>
                 <option value="Boarding">Boarding</option>
                 <option value="Breakfast">Breakfast</option>
@@ -276,6 +291,7 @@
             <div><span>Allocated to fee balances</span><strong id="allocated-total">UGX 0</strong></div>
             <div><span>Remaining as unallocated learner credit</span><strong id="unallocated-total">UGX 0</strong></div>
           </div>
+          <p class="muted">Select several items in one transaction, including school fees, graduation, exams or trips. Each will appear with its own paid amount and balance on one receipt.</p>
           <p id="allocation-message" class="form-message" role="status" aria-live="polite">Choose which term balances this payment should cover.</p>
           <div class="form-actions">
             <button id="post-payment-button" class="button primary" type="submit">Record payment and issue receipt</button>

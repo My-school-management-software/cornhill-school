@@ -19,7 +19,7 @@ test("runner strips outer transaction wrapper and accepts comment headers",()=>{
  assert.equal(prepareTransactionalMigration("\uFEFF-- header\r\nBEGIN;\r\nSELECT 1;\r\nCOMMIT;"),"SELECT 1;");
  assert.throws(()=>prepareTransactionalMigration("/* unterminated\nBEGIN; SELECT 1; COMMIT;"),/BEGIN\/COMMIT/);
 });
-test("all ninety-seven migrations use valid outer transactions",async()=>{
+test("all one hundred migrations use valid outer transactions",async()=>{
  const dir=new URL("../migrations/",import.meta.url);const names=sortMigrationFiles(await readdir(dir));
  assert.deepEqual(names,[
  "001_local_identity_foundation.sql","002_local_authorization_foundation.sql","003_local_auth_rate_limit_indexes.sql",
@@ -36,7 +36,10 @@ test("all ninety-seven migrations use valid outer transactions",async()=>{
  "092_local_learner_profile_edit_columns.sql","093_local_school_learner_catalogue_read.sql",
  "094_local_learner_source_identity_and_code_aliases.sql","095_local_academic_results_and_progression.sql",
  "096_local_individual_nursery_material_receipts.sql",
- "097_local_nursery_material_movement_accountability.sql"]);
+ "097_local_nursery_material_movement_accountability.sql",
+ "098_local_annual_school_fees_income_b_prices.sql",
+ "099_local_income_group_receipt_breakdown.sql",
+ "100_local_finance_account_income_classification.sql"]);
  for(const name of names){const source=await readFile(new URL(name,dir),"utf8");assert.doesNotThrow(()=>prepareTransactionalMigration(source),name);assert.doesNotMatch(source,/(?:GRANT|REVOKE)\s+(?:CONNECT|TEMPORARY)[\s\S]{0,80}ON DATABASE cornhill_local/i,name+" must support the isolated CI database name");}
 });
 test("runner rejects malformed or destructive SQL and ledger mismatches",()=>{

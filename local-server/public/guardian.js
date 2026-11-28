@@ -2,6 +2,22 @@
   "use strict";
   const $ = id => document.getElementById(id);
   let principal = null;
+  let verifiedLearnerCode = null;
+  let verifiedGuardianPhone = null;
+  const registeredPhone = input => {
+    if (typeof input !== "string") return null;
+    const value = input.replace(/\s+/g, "").trim();
+    const normalized = /^0[0-9]{9}$/.test(value) ? "+256" + value.slice(1) :
+      /^256[0-9]{9}$/.test(value) ? "+" + value : value;
+    return /^\+256[0-9]{9}$/.test(normalized) ? normalized : null;
+  };
+  function resetEntry() {
+    verifiedLearnerCode = null;
+    verifiedGuardianPhone = null;
+    $("login-form").hidden = false;
+    $("pin-form").hidden = true;
+    $("pin").value = "";
+  }
   const csrf = () => {
     const prefix = "__Host-cornhill_csrf=";
     const value = document.cookie.split(";").map(part => part.trim()).find(part => part.startsWith(prefix));
@@ -84,7 +100,9 @@
     }
   }
   async function loadPortal() {
-    const result = await api("/guardian/learners");
+    if (!verifiedLearnerCode) throw new Error("First verify the learner's code and registered parent or guardian phone.");
+    const result = await api("/guardian/learners?pupilCode=" +
+      encodeURIComponent(verifiedLearnerCode));
     if (!Array.isArray(result.learners)) throw new Error("The guardian learner response was incomplete.");
     renderLearners(result.learners);
     $("guardian-name").textContent = principal?.displayName || "Guardian";
@@ -101,24 +119,59 @@
   }
   $("login-form").addEventListener("submit", async event => {
     event.preventDefault();
-    const phone = $("phone").value.trim();
-    const pin = $("pin").value.trim();
-    if (!/^\+256[0-9]{9}$/.test(phone) || !/^[0-9]{8}$/.test(pin)) {
-      notice("Enter the registered Ugandan phone number and eight-digit guardian PIN.", true);
+    const pupilCode = $("pupil-code").value.trim().toUpperCase();
+    const phone = registeredPhone($("phone").value);
+    if (!/^[A-Z0-9-]{3,30}$/.test(pupilCode) || !phone) {
+      notice("Enter the learner's CORNHILL code and their registered Ugandan parent or guardian number.", true);
       return;
     }
     const button = event.currentTarget.querySelector("button[type=submit]");
     button.disabled = true;
     try {
-      const result = await api("/auth/guardian/login", { method: "POST", body: { phone, pin } });
+      const result = await api("/guardian/entry-check", {
+        method: "POST", body: { pupilCode, phone }
+      });
+      if (result.verified !== true) {
+        throw new Error("The learner code and registered number could not be confirmed.");
+      }
+      verifiedLearnerCode = pupilCode;
+      verifiedGuardianPhone = phone;
+      $("login-form").hidden = true;
+      $("pin-form").hidden = false;
       $("pin").value = "";
-      await enterGuardianSession(result.principal);
+      notice("Learner code and registered phone confirmed. Enter the guardian PIN issued by the school office. If none has been issued, contact the office.");
     } catch (error) {
-      $("pin").value = "";
+      resetEntry();
       notice(error.message, true);
     } finally {
       button.disabled = false;
     }
+  });
+  $("pin-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const pin = $("pin").value.trim();
+    if (!verifiedLearnerCode || !verifiedGuardianPhone || !/^[0-9]{8}$/.test(pin)) {
+      notice("Verify the learner code and registered number first, then enter the eight-digit PIN.", true);
+      return;
+    }
+    const button = event.currentTarget.querySelector("button[type=submit]");
+    button.disabled = true;
+    try {
+      const result = await api("/auth/guardian/login", {
+        method: "POST", body: { phone: verifiedGuardianPhone, pin }
+      });
+      $("pin").value = "";
+      await enterGuardianSession(result.principal);
+    } catch (error) {
+      $("pin").value = "";
+      notice(error.message + " If your PIN has not been issued, contact the school office.", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  $("change-details").addEventListener("click", () => {
+    resetEntry();
+    notice("Enter the learner code and registered guardian number again.");
   });
   $("sign-out").addEventListener("click", async () => {
     try { await api("/auth/logout", { method: "POST", body: {} }); } catch {}
@@ -126,16 +179,27 @@
     $("portal-panel").hidden = true;
     $("login-panel").hidden = false;
     $("learner-list").replaceChildren();
-    $("pin").value = "";
+    resetEntry();
+    $("pupil-code").value = "";
+    $("phone").value = "";
     notice("You have signed out.");
   });
   (async () => {
     try {
       const result = await api("/auth/session");
-      await enterGuardianSession(result.principal);
-    } catch {
+      // An existing guardian session never bypasses the explicit learner
+      // code and registered-phone step for this portal visit.
+      if (result.principal?.principalType === "guardian") {
+        principal = result.principal;
+      }
+      resetEntry();
       $("login-panel").hidden = false;
-      notice("Please sign in with your registered guardian phone and PIN.");
+      $("portal-panel").hidden = true;
+      notice("Begin with the learner code and registered parent or guardian phone number.");
+    } catch {
+      resetEntry();
+      $("login-panel").hidden = false;
+      notice("Begin with the learner code and registered parent or guardian phone number.");
     }
   })();
 })();

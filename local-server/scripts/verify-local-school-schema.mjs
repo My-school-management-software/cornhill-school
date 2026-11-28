@@ -36,6 +36,7 @@ try {
     "academic_years",
     "admission_enquiries",
     "admission_events",
+    "annual_school_fee_rates",
     "assessments",
     "attendance_adjustments",
     "attendance_day_review_events",
@@ -65,6 +66,7 @@ try {
     "finance_audit_events",
     "finance_operator_limits",
     "guardian_contacts",
+    "income_b_item_price_history",
     "learner_code_aliases",
     "learner_marks",
     "learner_progression_events",
@@ -101,6 +103,22 @@ try {
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
     "Local school table inventory mismatch. Expected: " + JSON.stringify(expected) + "; actual: " + JSON.stringify(tables.rows.map(row => row.table_name)));
 
+  const v50AnnualFeeGuards = await pool.query(
+    "SELECT tgname FROM pg_trigger WHERE tgname IN " +
+    "('annual_school_fee_rate_approval_guard','annual_school_fee_rates_append_only'," +
+    "'income_b_price_approval_guard','income_b_item_prices_append_only') AND NOT tgisinternal"
+  );
+  assert(v50AnnualFeeGuards.rowCount === 4,
+    "Annual fee approvals and flexible Income B price histories must remain guarded and append-only.");
+  const v50RuntimeGrants = await pool.query(
+    "SELECT has_table_privilege('cornhill_auth_runtime'," +
+    "'cornhill_school.annual_school_fee_rates','INSERT') AS auth_rate_insert, " +
+    "has_table_privilege('cornhill_finance_runtime'," +
+    "'cornhill_school.income_b_item_price_history','UPDATE') AS finance_price_update"
+  );
+  assert(v50RuntimeGrants.rows[0]?.auth_rate_insert === false &&
+    v50RuntimeGrants.rows[0]?.finance_price_update === false,
+    "Direct runtime writes to approved fee rates or Income B price history must remain revoked.");
   const nurseryIntegrity = await pool.query(
     "SELECT tgname FROM pg_trigger WHERE tgname='nursery_material_receipts_append_only' AND NOT tgisinternal"
   );
@@ -209,8 +227,18 @@ try {
   assert(balanceView.rows[0]?.reloptions?.includes("security_invoker=true") === true,
     "Fee balance view must use security-invoker semantics.");
 
-  const feeItems = await pool.query("SELECT item_code FROM cornhill_school.fee_catalogue ORDER BY item_code");
-  assert(feeItems.rows.length === 7, "Expected seven seeded fee catalogue items.");
+  const feeItems = await pool.query(
+    "SELECT item_code,income_group FROM cornhill_school.fee_catalogue ORDER BY item_code"
+  );
+  const expectedIncomeB = ["GRADUATION", "TOP_CLASS_GRADUATION", "MOCK_EXAMS",
+    "PRE_MOCK_EXAMS", "MUNICIPALITY_EXAMS", "SCHOOL_TRIP", "GRADUATION_TRIP",
+    "WESTERN_PARADISE"];
+  assert(feeItems.rows.length === 14,
+    "Expected seven original and seven additional Income B fee catalogue items.");
+  for (const item of expectedIncomeB) {
+    assert(feeItems.rows.some(row => row.item_code === item && row.income_group === "B"),
+      "Missing or misclassified Income B fee catalogue item: " + item);
+  }
   const financePermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'finance'"
   );
@@ -934,6 +962,67 @@ try {
       && String(progressionPeriods.rows[1].admission_date).slice(0, 10) === "2026-11-01"
       && progressionPeriods.rows[1].previous_period_id === firstActiveEnrolment.rows[0].id,
       "Class progression must preserve the learner's financial receipts and linked enrolment chain: " + JSON.stringify(progressionDiagnostics));
+
+    // V53: selective new-year repetition is not a class-wide default.
+    // Both learners belong to Baby for 2025, but only ONE is explicitly
+    // approved to repeat for 2026. All synthetic records are rolled back.
+    const nurseryUntouched = await client.query(
+      "INSERT INTO cornhill_school.learners " +
+      "(first_name,last_name,gender,class_id,admission_date,admission_year,status) " +
+      "VALUES ('CI','UnselectedNursery','Male',$1::uuid,'2025-01-01',2025,'Active') " +
+      "RETURNING id",
+      [babyClass.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO cornhill_school.enrolment_periods " +
+      "(learner_id,admission_date,class_id,status) " +
+      "VALUES ($1::uuid,'2025-01-01',$2::uuid,'Active')",
+      [nurseryUntouched.rows[0].id,babyClass.rows[0].id]
+    );
+    const nurseryRepeat = await client.query(
+      "SELECT cornhill_school.record_learner_progression(" +
+      "$1::uuid,$2::uuid,$3::uuid,$4::uuid,'2026-01-01'," +
+      "'CI individual nursery repetition approved')::text AS event_id",
+      [academicStaff.rows[0].id,babyLearner.rows[0].id,
+        babyClass.rows[0].id,termCurrent.rows[0].id]
+    );
+    assert(Boolean(nurseryRepeat.rows[0]?.event_id),
+      "One selected nursery learner must be allowed to repeat.");
+    const nurseryDecisions = await client.query(
+      "SELECT l.id, l.class_id, l.status, " +
+      "(SELECT count(*)::int FROM cornhill_school.enrolment_periods e WHERE e.learner_id=l.id) AS period_count, " +
+      "(SELECT count(*)::int FROM cornhill_school.learner_progression_events p WHERE p.learner_id=l.id) AS event_count, " +
+      "(SELECT COALESCE(string_agg(p.progression_type,','), '') FROM cornhill_school.learner_progression_events p WHERE p.learner_id=l.id) AS progression_type " +
+      "FROM cornhill_school.learners l WHERE l.id IN ($1::uuid,$2::uuid)",
+      [babyLearner.rows[0].id,nurseryUntouched.rows[0].id]
+    );
+    const nurseryRepeatedState = nurseryDecisions.rows.find(
+      row => row.id === babyLearner.rows[0].id
+    );
+    const nurseryUnselectedState = nurseryDecisions.rows.find(
+      row => row.id === nurseryUntouched.rows[0].id
+    );
+    assert(nurseryRepeatedState?.period_count === 2 &&
+      nurseryRepeatedState?.event_count === 1 &&
+      nurseryRepeatedState?.progression_type === "Repeated" &&
+      nurseryRepeatedState?.class_id === babyClass.rows[0].id &&
+      nurseryRepeatedState?.status === "Active",
+      "Selected Baby learner must repeat in Baby with auditable history.");
+    assert(nurseryUnselectedState?.period_count === 1 &&
+      nurseryUnselectedState?.event_count === 0 &&
+      nurseryUnselectedState?.class_id === babyClass.rows[0].id &&
+      nurseryUnselectedState?.status === "Active",
+      "An unselected nursery learner must never be automatically promoted or repeated.");
+    const duplicateAnnualDecisionRejected = await expectPgError(
+      client, "duplicate_annual_repeat_test",
+      "SELECT cornhill_school.record_learner_progression(" +
+      "$1::uuid,$2::uuid,$3::uuid,$4::uuid,'2026-01-01'," +
+      "'CI duplicate repeat must fail')",
+      [academicStaff.rows[0].id,babyLearner.rows[0].id,
+        babyClass.rows[0].id,termCurrent.rows[0].id], "23514"
+    );
+    assert(duplicateAnnualDecisionRejected,
+      "A learner must not receive two progression decisions for the same starting date.");
 
     const receiptMutationRejected = await expectPgError(
       client, "receipt_snapshot_immutable_test",
@@ -1731,7 +1820,7 @@ try {
       "A former staff account must retain its profile and employment history for authorised review.");
 
     await client.query("ROLLBACK");
-    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: 69 tables, ten classes, fifteen subjects, seven fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, P.7 graduation with preserved academic and enrolment history, non-overlapping learner progression, former-staff profile/employment retention, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
+    console.log("Local school, academic, finance, staff, attendance and payroll schemas verified: " + tables.rows.length + " tables, ten classes, fifteen subjects, " + feeItems.rows.length + " fee items, 50 permission codes, permanent pupil codes, LIN uniqueness, class-specific subject mappings, P.7 graduation with preserved academic and enrolment history, non-overlapping learner progression, former-staff profile/employment retention, date-range integrity and attendance adjustment history preservation, attendance incident identity and audit preservation, append-only payroll audit history, and ordinary and special-session Headteacher/DOS statement and Director decision authority.");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

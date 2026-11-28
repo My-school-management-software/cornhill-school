@@ -178,7 +178,9 @@ test("attendance import rejection evidence has a matching batch-specific route",
 });
 
 test("guardian portal learner reads are isolated to the guardian principal", () => {
-  contains(guardian, 'api("/guardian/learners")', "guardian learner UI path");
+  contains(guardian, 'api("/guardian/entry-check"', "guardian code and phone check UI path");
+  contains(guardian, '"/guardian/learners?pupilCode="', "guardian learner code-scoped UI path");
+  contains(guardianPortalApi, '"/api/v1/guardian/entry-check"', "guardian first-stage route");
   contains(guardianPortalApi, '"/api/v1/guardian/learners"', "guardian learner API path");
   contains(guardianPortalApi, 'principal.principalType !== "guardian"', "guardian-only principal check");
 });

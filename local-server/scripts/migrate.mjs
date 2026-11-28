@@ -6,6 +6,7 @@ import {
   assertIsolatedDatabaseIdentity,
   assertIsolatedPostgresServerIdentity,
   assertMigrationLedgerRow,
+  assertMigrationManifestCompatible,
   migrationChecksum,
   MIGRATION_LOCK_ID,
   prepareTransactionalMigration,
@@ -74,6 +75,28 @@ async function run() {
     }
 
     await client.query("SELECT pg_advisory_lock($1::bigint)", [MIGRATION_LOCK_ID]);
+
+    // READ-ONLY fail-closed lineage preflight, before CREATE SCHEMA or any DDL.
+    // Some CORNHILL Windows machines already contain a distinct 140-migration
+    // lineage. This candidate has 100 migrations and reuses versions 096–100
+    // for unrelated features. Never treat equal version numbers as equivalent.
+    const ledgerExists = await client.query(
+      "SELECT to_regclass('cornhill_meta.schema_migrations') IS NOT NULL AS exists"
+    );
+    if (ledgerExists.rows[0]?.exists === true) {
+      const applied = await client.query(
+        "SELECT migration_name, checksum FROM cornhill_meta.schema_migrations ORDER BY migration_name"
+      );
+      const sourceDigests = new Map();
+      for (const filename of migrationFiles) {
+        const name = basename(filename, ".sql");
+        const contents = await readFile(resolve(MIGRATIONS_DIR, filename), "utf8");
+        sourceDigests.set(name, migrationChecksum(contents));
+      }
+      assertMigrationManifestCompatible(sourceDigests, applied.rows);
+      console.log("Read-only migration lineage preflight verified " +
+        applied.rowCount + " applied source identities before any schema writes.");
+    }
 
     if (expectedIsolatedTarget && isolatedDatabaseIsEmpty === false) {
       const ledger = await client.query(

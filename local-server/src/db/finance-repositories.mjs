@@ -195,6 +195,21 @@ export function createPostgresFinanceRepositories(pool) {
       }));
     },
 
+    async getIncomeGroupSummary({ actorStaffId, fromDate, toDate }) {
+      assertUuid(actorStaffId, "Finance actor ID");
+      const validDate = value => typeof value === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+        !Number.isNaN(Date.parse(value + "T00:00:00Z"));
+      if (!validDate(fromDate) || !validDate(toDate) || fromDate > toDate) {
+        throw new TypeError("A valid income-report date range is required.");
+      }
+      const result = await pool.query(
+        "SELECT cornhill_school.finance_income_group_summary($1::uuid,$2::date,$3::date) AS summary",
+        [actorStaffId, fromDate, toDate]
+      );
+      return result.rows[0]?.summary ?? null;
+    },
+
     async getLearnerAccount({ actorStaffId, learnerId }) {
       assertUuid(actorStaffId, "Finance actor ID");
       assertUuid(learnerId, "Learner ID");

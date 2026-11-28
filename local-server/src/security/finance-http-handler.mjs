@@ -191,13 +191,37 @@ export function createFinanceHttpHandler({ authService, financeRepository, expec
       const paymentStatusRoute = Boolean(paymentStatusMatch && method === "GET" && UUID_PATTERN.test(paymentStatusMatch[1]));
       const creditStatusMatch = path.match(/^\/api\/v1\/finance\/credits\/allocations\/([0-9a-f-]{36})$/i);
       const creditStatusRoute = Boolean(creditStatusMatch && method === "GET" && UUID_PATTERN.test(creditStatusMatch[1]));
-      const requiredPermission = receiptReprintMatch && method === "POST"
-        ? "finance.receipts_reprint"
-        : (creditAllocateRoute || creditListRoute || creditStatusRoute)
-          ? "finance.credit_allocate"
-          : "finance.payments_record";
+      const incomeSummaryRoute = path === "/api/v1/finance/income-summary" && method === "GET";
+      const requiredPermission = incomeSummaryRoute
+        ? "finance.reports_read"
+        : receiptReprintMatch && method === "POST"
+          ? "finance.receipts_reprint"
+          : (creditAllocateRoute || creditListRoute || creditStatusRoute)
+            ? "finance.credit_allocate"
+            : "finance.payments_record";
       if (!staffHasPermission({ principal, permissionCode: requiredPermission })) {
         sendJson(response, 403, { error: "You do not have permission for this finance operation." });
+        return true;
+      }
+
+      if (incomeSummaryRoute) {
+        const fromDate = url.searchParams.get("from") || "";
+        const toDate = url.searchParams.get("to") || "";
+        const isoDay = /^\d{4}-\d{2}-\d{2}$/;
+        if (!isoDay.test(fromDate) || !isoDay.test(toDate) ||
+            !Number.isFinite(Date.parse(fromDate + "T00:00:00Z")) ||
+            !Number.isFinite(Date.parse(toDate + "T00:00:00Z")) ||
+            fromDate > toDate) {
+          throw new FinanceInputError(400, "Select a valid report start and end date.");
+        }
+        if (typeof financeRepository.getIncomeGroupSummary !== "function") {
+          sendJson(response, 503, { error: "Income reporting is not enabled on this installation." });
+          return true;
+        }
+        const summary = await financeRepository.getIncomeGroupSummary({
+          actorStaffId: principal.id, fromDate, toDate
+        });
+        sendJson(response, 200, { summary });
         return true;
       }
 

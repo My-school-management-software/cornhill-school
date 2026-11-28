@@ -26,17 +26,28 @@
     <section id="login-panel" class="panel login-panel">
       <p class="eyebrow">PRIVATE GUARDIAN SIGN-IN</p>
       <h2>Welcome</h2>
-      <p class="muted">Sign in with the phone number registered at school and the guardian PIN issued by school administration.</p>
-      <form id="login-form">
-        <label for="phone">Registered phone number</label>
-        <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="username"
-          placeholder="+2567XXXXXXXX" pattern="\+256[0-9]{9}" maxlength="13" required>
-        <label for="pin">Guardian PIN</label>
+      <p class="muted">First enter the learner's permanent code and the parent or guardian phone number registered at school. A guardian PIN is requested only after these two details match school records.</p>
+      <form id="login-form" aria-label="Step 1: Verify learner and registered guardian phone">
+        <strong>Step 1 of 2 — Learner code and registered phone</strong>
+        <label for="pupil-code">Learner's permanent code</label>
+        <input id="pupil-code" name="pupilCode" type="text" autocomplete="off" maxlength="30"
+          placeholder="Learner code issued by CORNHILL" required>
+        <label for="phone">Parent or guardian registered phone number</label>
+        <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"
+          placeholder="07XXXXXXXX or +2567XXXXXXXX" maxlength="18" required>
+        <button type="submit">Check registered details</button>
+      </form>
+      <form id="pin-form" hidden aria-label="Step 2: Enter school-issued guardian PIN">
+        <strong>Step 2 of 2 — School-issued guardian PIN</strong>
+        <p class="muted">The learner code and registered phone match school records. If this is your first visit, the school office must issue a PIN after verifying the registered contact. The PIN is not automatically shown here.</p>
+        <label for="pin">Guardian PIN (8 digits)</label>
         <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password"
           pattern="[0-9]{8}" minlength="8" maxlength="8" required>
         <button type="submit">Sign in securely</button>
+        <button id="change-details" class="secondary" type="button">Change learner code or phone</button>
+        <p class="muted">No PIN yet? Contact CORNHILL school office for authorised PIN issuance. Do not share a PIN with anyone else.</p>
       </form>
-      <p class="security-note">Profiles are linked and approved by the school. A pupil code by itself never grants access.</p>
+      <p class="security-note">A learner code and phone number are only the first verification step. Access to learner information also requires a valid PIN and an approved guardian-to-learner link.</p>
     </section>
 
     <section id="portal-panel" class="portal-panel" hidden>

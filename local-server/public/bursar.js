@@ -141,7 +141,7 @@
 
   function permissionGranted(principal) {
     if (!principal || principal.principalType !== "staff") return false;
-    const allowed = ["finance.payments_record","finance.expenses_request","finance.expenses_manage",
+    const allowed = ["finance.payments_record","finance.reports_read","finance.expenses_request","finance.expenses_manage",
       "finance.expenses_review","finance.expenses_post","finance.banking_manage",
       "finance.banking_review","finance.banking_verify"];
     return (principal.roles || []).some(role =>
@@ -378,13 +378,14 @@
 
   async function establishSession(principal) {
     if (!permissionGranted(principal)) {
-      showLogin("Your staff account does not currently have permission to record school payments. Contact the authorised school administrator.");
+      showLogin("Your staff account does not currently have permission to access authorised finance operations. Contact the school administrator.");
       return;
     }
     byId("login-panel").hidden = true;
     byId("workspace").hidden = false;
     const canRecordPayments = hasPermission(principal, "finance.payments_record");
     byId("payment-search-panel").hidden = !canRecordPayments;
+    byId("income-summary-panel").hidden = !hasPermission(principal, "finance.reports_read");
     byId("learner-panel").hidden = true;
     byId("receipt-panel").hidden = true;
     currentStaffId = principal.id;
@@ -612,7 +613,10 @@
       const status = document.createElement("span");
       status.className = "fee-status";
       status.textContent = item.term_status === "Active" ? "CURRENT TERM" : "PREVIOUS / OTHER TERM";
-      title.append(name, term, status);
+      const destination = document.createElement("small");
+      destination.textContent = item.income_group === "B" ? "Income B" :
+        item.income_group === "A" ? "Income A" : "";
+      title.append(name, term, status, destination);
       const charged = document.createElement("div");
       const chargedLabel = document.createElement("small");
       chargedLabel.textContent = "Charged";
@@ -692,15 +696,26 @@
   function updateAllocationSummary() {
     let allocated = 0;
     let invalid = false;
+    let selectedItemCount = 0;
     document.querySelectorAll(".fee-row").forEach(row => {
       const checkbox = row.querySelector(".fee-select");
       const amount = row.querySelector(".fee-allocation");
       if (!checkbox?.checked) return;
+      selectedItemCount += 1;
       const value = Number(amount.value);
       const maximum = Number(row.dataset.balance);
       if (!Number.isSafeInteger(value) || value <= 0 || value > maximum) invalid = true;
       else allocated += value;
     });
+    // The old single-choice "Collection item" field is only a receipt label.
+    // Mixed payments are represented by independently selected allocations.
+    // Do not create multiple receipts or lose the original idempotency key.
+    if (selectedItemCount > 1) {
+      byId("collection-item").value = "Multiple items";
+    } else if (selectedItemCount <= 1 &&
+               byId("collection-item").value === "Multiple items") {
+      byId("collection-item").value = "School fees";
+    }
     const received = Number(byId("amount-received").value) || 0;
     const remaining = received - allocated;
     byId("allocated-total").textContent = money(allocated);
@@ -717,6 +732,46 @@
     }
     byId("post-payment-button").disabled = !activeLearnerId || received <= 0 || invalid;
   }
+
+  // Income A/B is calculated from posted per-item allocations on the server.
+  // Never classify unallocated learner credit or reversed payments as income.
+  const incomeToday = new Date();
+  const isoToday = new Date(incomeToday.getTime() -
+    incomeToday.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  byId("income-summary-from").value = isoToday.slice(0, 4) + "-01-01";
+  byId("income-summary-to").value = isoToday;
+  byId("income-summary-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const from = byId("income-summary-from").value;
+    const to = byId("income-summary-to").value;
+    const output = byId("income-summary-output");
+    output.replaceChildren();
+    showMessage("income-summary-message", "Loading posted income allocations…");
+    try {
+      const result = await request("/finance/income-summary?from=" +
+        encodeURIComponent(from) + "&to=" + encodeURIComponent(to));
+      const summary = result.summary || {};
+      const addLine = (label, amount) => {
+        const row = document.createElement("div");
+        row.className = "receipt-line";
+        const name = document.createElement("span");
+        name.textContent = label;
+        const value = document.createElement("strong");
+        value.textContent = money(amount);
+        row.append(name, value);
+        output.append(row);
+      };
+      addLine("Income A total", summary.income_a_ugx || 0);
+      addLine("Income B total", summary.income_b_ugx || 0);
+      for (const line of summary.items || []) {
+        addLine("Income " + line.income_group + " · " + line.item_name,
+          line.total_ugx);
+      }
+      showMessage("income-summary-message", "Posted allocations loaded. These figures do not include reversed payments or unallocated credit.", "success");
+    } catch (error) {
+      showMessage("income-summary-message", error.message, "error");
+    }
+  });
 
   byId("amount-received").addEventListener("input", updateAllocationSummary);
   byId("payment-method").addEventListener("change", () => {
@@ -756,10 +811,30 @@
     addLine("Collection", snapshot.collection_item || "School fees");
     addLine("Method", snapshot.payment_method || "");
     if (snapshot.mobile_money_provider) addLine("Provider", snapshot.mobile_money_provider);
+    if (snapshot.received_by_staff_name) addLine("Received by", snapshot.received_by_staff_name);
     addLine("Amount Received", money(snapshot.amount_ugx), true);
     addLine("Unallocated Credit", money(snapshot.unallocated_amount_ugx));
-    for (const item of snapshot.allocations || []) {
-      addLine((item.term || "") + " · " + (item.fee_item || "Fee"), money(item.allocated_ugx));
+    const items = Array.isArray(snapshot.allocations) ? snapshot.allocations : [];
+    // The breakdown comes from the immutable issued snapshot, not mutable
+    // current balances or today's item prices. Older receipts remain legible.
+    for (const group of ["A", "B", "historical"]) {
+      const lines = items.filter(item =>
+        group === "historical" ? !["A", "B"].includes(item.income_group) :
+          item.income_group === group);
+      if (!lines.length) continue;
+      const heading = document.createElement("strong");
+      heading.className = "receipt-income-heading";
+      heading.textContent = group === "historical"
+        ? "Historical receipt lines" : "Income " + group;
+      container.append(heading);
+      for (const item of lines) {
+        const label = (item.academic_year ? item.academic_year + " · " : "") +
+          (item.term ? item.term + " · " : "") + (item.fee_item || "Fee");
+        addLine(label + " — paid", money(item.allocated_ugx));
+        if (item.balance_after_ugx != null) {
+          addLine(label + " — remaining", money(item.balance_after_ugx));
+        }
+      }
     }
     const thanks = document.createElement("p");
     thanks.textContent = "Thank you. Please keep this receipt for your records.";

@@ -248,3 +248,121 @@ test("academic terms require management permission and valid dates and year iden
   assert.equal(valid.statusCode, 201);
   assert.equal(calls.createdTerm.staffId, STAFF_ID);
 });
+
+const directorAdvancement = {
+  ...teacher, roles: ["director"], classIds: [],
+  rolePermissions: { director: ["learners.manage", "academics.terms_manage"] }
+};
+const advancementUrl = "/api/v1/academics/advancement/candidates?classId=" +
+  CLASS_ID + "&academicTermId=" + ASSESSMENT_ID;
+const decisionUrl = "/api/v1/academics/advancement/decisions";
+const validDecision = {
+  learnerId: STAFF_ID, fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID,
+  decision: "Repeat", reason: "Approved class repetition", approved: true
+};
+
+test("academic advancement candidate review requires learner management and cannot be viewed by teachers", async () => {
+  const denied = setup({ overrides: {
+    async listYearAdvancementCandidates() { throw new Error("Should not be called"); }
+  } });
+  assert.equal((await invoke(denied.handler, { path: advancementUrl })).statusCode, 403);
+  const allowed = setup({ principal: directorAdvancement, overrides: {
+    async listYearAdvancementCandidates(input) {
+      assert.deepEqual(input, { classId: CLASS_ID, academicTermId: ASSESSMENT_ID });
+      return { className: "P.6", yearLabel: "2027", candidates: [], canApprove: false };
+    }
+  } });
+  const response = await invoke(allowed.handler, { path: advancementUrl });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().review.yearLabel, "2027");
+});
+
+test("learner advancement is an individual confirmed Promote, Repeat or P.7 completion decision", async () => {
+  const allowed = setup({ principal: directorAdvancement, overrides: {
+    async recordYearAdvancementDecision(input) {
+      assert.deepEqual(input, {
+        staffId: STAFF_ID, learnerId: STAFF_ID, fromClassId: CLASS_ID,
+        academicTermId: ASSESSMENT_ID, decision: "Repeat", reason: "Approved class repetition"
+      });
+      return { eventId: STAFF_ID, decision: "Repeat" };
+    }
+  } });
+  const res = await invoke(allowed.handler, { path: decisionUrl, method: "POST", body: validDecision });
+  assert.equal(res.statusCode, 201, allowed.calls.lastError?.message);
+  assert.equal(res.json().result.decision, "Repeat");
+});
+
+test("academic advancement rejects mass promotion, missing approval and invalid decisions", async () => {
+  let writes = 0;
+  const allowed = setup({ principal: directorAdvancement, overrides: {
+    async recordYearAdvancementDecision() { writes++; return {}; }
+  } });
+  for (const body of [
+    { ...validDecision, approved: false },
+    { ...validDecision, approved: undefined },
+    { ...validDecision, decision: "PromoteAll" },
+    { ...validDecision, reason: "" },
+    { ...validDecision, learnerId: ["one", "two"] }
+  ]) {
+    assert.equal((await invoke(allowed.handler, {
+      path: decisionUrl, method: "POST", body
+    })).statusCode, 400);
+  }
+  assert.equal(writes, 0);
+});
+
+test("unauthorised staff and invalid CSRF never advance a learner", async () => {
+  let writes = 0;
+  const overrides = { async recordYearAdvancementDecision() { writes++; return {}; } };
+  const denied = setup({ overrides });
+  assert.equal((await invoke(denied.handler, {
+    path: decisionUrl, method: "POST", body: validDecision
+  })).statusCode, 403);
+  const validActor = setup({ principal: directorAdvancement, overrides });
+  assert.equal((await invoke(validActor.handler, {
+    path: decisionUrl, method: "POST", body: validDecision,
+    headers: { "x-cornhill-csrf": "incorrect" }
+  })).statusCode, 403);
+  assert.equal(writes, 0);
+});
+
+test("Director can atomically approve only explicitly selected individual learners in a class", async () => {
+  const requested = [
+    { learnerId: STAFF_ID, decision: "Repeat", reason: "Year must be repeated" },
+    { learnerId: "44444444-4444-4444-8444-444444444444", decision: "Promote", reason: "Ready for next class" }
+  ];
+  const { handler, calls } = setup({ principal: directorAdvancement, overrides: {
+    async recordYearAdvancementBatch(input) {
+      calls.approval = input;
+      return { approvedCount: 2, events: [{}, {}] };
+    }
+  } });
+  const res = await invoke(handler, {
+    path: "/api/v1/academics/advancement/batch", method: "POST",
+    body: { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID,
+      approved: true, decisions: requested }
+  });
+  assert.equal(res.statusCode, 201, calls.lastError?.message);
+  assert.equal(res.json().result.approvedCount, 2);
+  assert.deepEqual(calls.approval, { staffId: STAFF_ID, fromClassId: CLASS_ID,
+    academicTermId: ASSESSMENT_ID, decisions: requested });
+});
+
+test("unselected learners, duplicate IDs, missing consent and bulk promote-all are blocked", async () => {
+  let count = 0;
+  const { handler } = setup({ principal: directorAdvancement, overrides: {
+    async recordYearAdvancementBatch() { count++; return { approvedCount: 1 }; }
+  } });
+  const url = "/api/v1/academics/advancement/batch";
+  const person = { learnerId: STAFF_ID, decision: "Promote", reason: "Good performance" };
+  for (const body of [
+    { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID, approved: true, decisions: [] },
+    { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID, approved: false, decisions: [person] },
+    { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID, approved: true, decisions: [person, person] },
+    { fromClassId: CLASS_ID, academicTermId: ASSESSMENT_ID, approved: true, decisions: [
+      { ...person, decision: "All" }] }
+  ]) {
+    assert.equal((await invoke(handler, { path: url, method: "POST", body })).statusCode, 400);
+  }
+  assert.equal(count, 0);
+});
