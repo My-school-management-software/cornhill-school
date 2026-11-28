@@ -16,7 +16,7 @@ test("uncertain receipts keep their request UUID even after dialog close and reo
   assert.match(source,/nurseryPendingReceiptRequest=nurseryUnresolvedRequestsByLearner\.get\(l\.id\)\?\?null/);
   assert.match(source,/nurseryUnresolvedRequestsByLearner\.set\(learner\.id,nurseryPendingReceiptRequest\)/);
   assert.match(source,/nurseryUnresolvedRequestsByLearner\.delete\(learner\.id\)/);
-  assert.doesNotMatch(source,/nurseryUnresolvedRequestsByLearner\.clear\(\)/);
+  // Session logout MUST clear private pending receipts; dialog close must not.\n  assert.match(source,/nurseryUnresolvedRequestsByLearner\.clear\(\)/);\n  assert.doesNotMatch(source,/addEventListener\("close",[^;]*nurseryUnresolvedRequestsByLearner\.clear\(\)/);
 });
 test("reopening restores exact pending receipt details and warns office receiver",()=>{
   assert.match(source,/JSON\.parse\(nurseryPendingReceiptRequest\.serialized\)/);
