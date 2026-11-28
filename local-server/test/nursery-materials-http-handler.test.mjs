@@ -30,6 +30,7 @@ function setup({staff=principal(),scope={classId:CLASS,status:"Active",classSect
    repository:{
       async getLearnerScope(id){calls.scope.push(id);return scope;},
       async listCollections(id){calls.list.push(id);return [];},
+      async summarizeAllCollections(id){return {learnerId:id,collectionEvents:0,materials:[]};},
       async recordCollection(arg){calls.record.push(arg);return {created:true,receipt:{id:REQUEST,...arg.collection}};}
    },
    ...overrides
@@ -114,6 +115,7 @@ test("idempotent previous receipt response is 200, not duplicate 201",async()=>{
  const {handler}=setup({overrides:{repository:{
    async getLearnerScope(){return {classId:CLASS,status:"Active"};},
    async listCollections(){return [];},
+   async summarizeAllCollections(id){return {learnerId:id,collectionEvents:0,materials:[]};},
    async recordCollection(){return {created:false,receipt:{id:REQUEST}};}
  }}});
  const res=await invoke(handler,{method:"POST",body});
@@ -123,7 +125,7 @@ test("idempotent previous receipt response is 200, not duplicate 201",async()=>{
 test("HTTP error mapping does not expose database secrets",async()=>{
  const {handler}=setup({overrides:{repository:{
   async getLearnerScope(){throw new Error("db password=secret");},
-  async listCollections(){return [];},async recordCollection(){return {};}
+  async listCollections(){return [];},async summarizeAllCollections(id){return {learnerId:id,collectionEvents:0,materials:[]};},async recordCollection(){return {};}
  }}});
  const res=await invoke(handler);
  assert.equal(res.status,503);
@@ -140,6 +142,19 @@ test("POST rejects other methods and unrelated routes",async()=>{
  const {handler}=setup();
  assert.equal((await invoke(handler,{method:"DELETE"})).status,405);
  assert.equal((await invoke(handler,{path:"/api/v1/school/catalog"})).handled,false);
+});
+test("GET reports all-time totals when 1000-row visible history is incomplete",async()=>{
+ const {handler}=setup({overrides:{repository:{
+  async getLearnerScope(){return {classId:CLASS,status:"Active",classSection:"Nursery"};},
+  async listCollections(){return [];},
+  async summarizeAllCollections(id){return {learnerId:id,collectionEvents:1001,
+    materials:[{materialName:"Crayons",quantityReceived:2002,collectionEvents:1001}]};},
+  async recordCollection(){return {};}
+ }}});
+ const res=await invoke(handler);
+ assert.equal(res.status,200);
+ assert.equal(res.json().summary.collectionEvents,1001);
+ assert.equal(res.json().historyLimited,true);
 });
 test("HEAD contains no personal rows in response body",async()=>{
  const {handler}=setup();
