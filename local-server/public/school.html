@@ -60,8 +60,9 @@
       <option value="teacher_return">Teacher returns unused materials to office</option>
       <option value="director_surplus">Director-approved surplus transfer (end of term)</option>
     </select></label>
-    <label>Material name<input name="materialName" required minlength="2" maxlength="100"></label>
+    <label>Material name<input name="materialName" list="nursery-available-materials" required minlength="2" maxlength="100"><datalist id="nursery-available-materials"></datalist></label>
     <label>Quantity<input type="number" name="quantity" required min="1" max="1000" step="1"></label>
+    <div class="full"><button type="button" class="secondary" id="nursery-movement-use-all">Fill full office stock for selected material</button></div>
     <label>Date taken/used/returned (Uganda)<input type="date" name="movementDate" required></label>
     <label id="nursery-movement-teacher-wrap">Teacher receiving / responsible<select name="teacherStaffId"><option value="">Select teacher</option></select></label>
     <label id="nursery-movement-value-wrap" hidden>Director-approved value per item (UGX)<input name="surplusUnitValueUgx" type="number" min="0" max="1000000000" step="1"></label>
