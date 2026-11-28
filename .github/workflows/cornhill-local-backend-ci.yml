@@ -7,6 +7,7 @@ on:
       - feat/full-school-integration-readiness-20261115
       - feat/cornhill-integration-batch-20261115
       - feat/cornhill-v50-annual-fee-income-groups-20261128
+      - feat/cornhill-v70-register-guardian-pin-self-service-20261128
   pull_request:
     branches:
       - main
