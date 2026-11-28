@@ -58,7 +58,13 @@ export function summarizeNurseryMaterialCollections(learnerId, records) {
   if (!Array.isArray(records)) throw new TypeError("Collection records must be an array.");
   const byMaterial = new Map(), seen = new Set();
   for (const row of records) {
-    const item = validateNurseryMaterialCollection(row);
+    // Database receipt rows contain staff/audit fields. Validate only the receipt
+    // properties, and never merge records for a different learner.
+    const item = validateNurseryMaterialCollection({
+      learnerId: row?.learnerId, requestId: row?.requestId,
+      materialName: row?.materialName, quantityReceived: row?.quantityReceived,
+      receivedDate: row?.receivedDate, notes: row?.notes
+    });
     if (item.learnerId !== id) throw new TypeError("Cannot combine different learners' collection records.");
     if (seen.has(item.requestId)) throw new TypeError("Repeated collection request ID; review before counting.");
     seen.add(item.requestId);
