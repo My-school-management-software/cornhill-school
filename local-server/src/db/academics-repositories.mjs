@@ -176,9 +176,51 @@ export function createPostgresAcademicsRepository(pool) {
       };
     },
 
+    async recordYearAdvancementBatch({ staffId, fromClassId, academicTermId, decisions }) {
+      assertUuid(staffId, "Staff ID");
+      assertUuid(fromClassId, "Source class ID");
+      assertUuid(academicTermId, "Target Term 1 ID");
+      if (!Array.isArray(decisions) || decisions.length < 1 || decisions.length > 100) {
+        throw new TypeError("Choose 1 to 100 individually reviewed learners.");
+      }
+      const seen = new Set();
+      for (const row of decisions) {
+        if (!row || typeof row !== "object" || Array.isArray(row)) {
+          throw new TypeError("Each decision must be an individual learner record.");
+        }
+        assertUuid(row.learnerId, "Learner ID");
+        const id = row.learnerId.toLowerCase();
+        if (seen.has(id)) throw new TypeError("Duplicate learners are not allowed in one decision batch.");
+        seen.add(id);
+        if (!["Promote", "Repeat", "Complete"].includes(row.decision) ||
+            typeof row.reason !== "string" ||
+            row.reason.trim().length < 2 || row.reason.trim().length > 300) {
+          throw new TypeError("Each selected learner needs a decision and a reason.");
+        }
+      }
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const events = [];
+        for (const row of decisions) {
+          events.push(await this.recordYearAdvancementDecision({
+            staffId, fromClassId, academicTermId,
+            learnerId: row.learnerId, decision: row.decision, reason: row.reason
+          }, client));
+        }
+        await client.query("COMMIT");
+        return { approvedCount: events.length, events };
+      } catch (error) {
+        try { await client.query("ROLLBACK"); } catch {}
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
     async recordYearAdvancementDecision({
       staffId, learnerId, fromClassId, academicTermId, decision, reason
-    }) {
+    }, db = pool) {
       for (const [value, name] of [[staffId, "Staff ID"], [learnerId, "Learner ID"],
         [fromClassId, "Source class ID"], [academicTermId, "Academic Term ID"]]) {
         assertUuid(value, name);
@@ -191,7 +233,7 @@ export function createPostgresAcademicsRepository(pool) {
       }
       // This review is only for the first active term of the new year.
       // Old enrolments are not silently promoted; each learner is selected.
-      const check = await pool.query(
+      const check = await db.query(
         "SELECT t.starts_on::text AS \"effectiveDate\", " +
         "t.status AS \"termStatus\", y.status AS \"yearStatus\", " +
         "y.starts_on::text AS \"yearStart\", " +
@@ -228,7 +270,7 @@ export function createPostgresAcademicsRepository(pool) {
       // The existing SECURITY DEFINER progression function validates the
       // actor's permission, locks the learner and active enrolment, appends
       // the immutable event and updates the class atomically.
-      const result = await pool.query(
+      const result = await db.query(
         "SELECT cornhill_school.record_learner_progression(" +
         "$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::date,$6::text)::text AS \"eventId\"",
         [staffId, learnerId, toClassId, academicTermId,
