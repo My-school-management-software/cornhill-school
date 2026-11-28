@@ -1,5 +1,6 @@
 # CORNHILL V50 Guardian Portal safe source-only installer.
 # Does not access .env or modify PostgreSQL/cloud data, learner records or receipts.
+# All matching tests installed with source, and previous local customisations respected.
 param([string]$RepoDirectory = (Join-Path $env:USERPROFILE 'cornhill-school'), [switch]$DoNotStartServer)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -10,7 +11,11 @@ $targetRef = 'refs/remotes/origin/' + $branch
 $baseRef = 'refs/remotes/origin/' + $baseBranch
 $files = @('local-server/public/guardian.html','local-server/public/guardian.js',
   'local-server/src/db/guardian-portal-repositories.mjs',
-  'local-server/src/security/guardian-portal-http-handler.mjs')
+  'local-server/src/security/guardian-portal-http-handler.mjs',
+  'local-server/test/guardian-portal-ui.test.mjs',
+  'local-server/test/guardian-portal-http-handler.test.mjs',
+  'local-server/test/guardian-portal-repositories.test.mjs',
+  'local-server/test/workspace-api-contract-batch.test.mjs')
 $encoding = New-Object System.Text.UTF8Encoding($false)
 $backupPath = $null
 $modified = $false
@@ -131,7 +136,7 @@ try {
   Write-Host 'V50_GUARDIAN_SOURCE_INSTALLED=TRUE' -ForegroundColor Green
   Write-Host 'LEARNER_CODE_AND_REGISTERED_PHONE_FIRST=TRUE'
   Write-Host 'SCHOOL_ISSUED_PIN_REQUIRED=TRUE'
-  Write-Host 'FILES_CHANGED=4'
+  Write-Host 'FILES_CHANGED=8 (4 portal source files + 4 matching regression tests)'
   Write-Host 'DATABASE_WRITES=0; FINANCE_WRITES=0; CLOUD_WRITES=0'
   Write-Host ('Original four files saved to ' + $backupPath)
   if (-not $DoNotStartServer) {
