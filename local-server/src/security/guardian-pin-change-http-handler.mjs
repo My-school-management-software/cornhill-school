@@ -1,9 +1,7 @@
 import {
   AuthenticationError, AuthenticationServiceError, CsrfValidationError
 } from "./auth-service.mjs";
-import {
-  readSessionTokenFromCookieHeader, readCsrfTokenFromCookieHeader
-} from "./session-cookies.mjs";
+import { readSessionTokenFromCookieHeader } from "./session-cookies.mjs";
 
 const HEADERS = Object.freeze({
   "Cache-Control": "no-store",
@@ -80,11 +78,16 @@ export function createGuardianPinChangeHttpHandler({ authService, repository, ex
       send(response, 403, { error: "Request origin is not authorised." }); return true;
     }
     try {
+      // A CSRF header is mandatory for credential changes. Never substitute
+      // a token read from the cookie when the caller omitted the header.
+      if (typeof request.headers["x-cornhill-csrf"] !== "string" ||
+          request.headers["x-cornhill-csrf"].length < 20) {
+        send(response, 403, { error: "The request could not be verified." }); return true;
+      }
       const principal = await authService.authenticate({
         sessionToken: readSessionTokenFromCookieHeader(request.headers.cookie),
         method,
-        csrfToken: request.headers["x-cornhill-csrf"] ??
-          readCsrfTokenFromCookieHeader(request.headers.cookie)
+        csrfToken: request.headers["x-cornhill-csrf"]
       });
       if (principal.principalType !== "guardian" || principal.accountStatus !== "active") {
         send(response, 403, { error: "Only the signed-in guardian may change their PIN." }); return true;
