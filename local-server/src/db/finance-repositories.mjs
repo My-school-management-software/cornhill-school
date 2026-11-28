@@ -198,7 +198,7 @@ export function createPostgresFinanceRepositories(pool) {
     async getIncomeGroupSummary({ actorStaffId, fromDate, toDate }) {
       assertUuid(actorStaffId, "Finance actor ID");
       const validDate = value => typeof value === "string" &&
-        /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value) &&
         !Number.isNaN(Date.parse(value + "T00:00:00Z"));
       if (!validDate(fromDate) || !validDate(toDate) || fromDate > toDate) {
         throw new TypeError("A valid income-report date range is required.");
