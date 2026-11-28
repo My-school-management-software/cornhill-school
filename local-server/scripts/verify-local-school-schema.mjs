@@ -68,8 +68,8 @@ try {
     "learner_code_aliases",
     "learner_marks",
     "learner_progression_events",
-  "nursery_material_receipts",
     "learners",
+    "nursery_material_receipts",
     "payment_allocations",
     "payment_credit_allocation_batches",
     "payment_credit_allocations",
@@ -99,6 +99,11 @@ try {
   ];
   assert(JSON.stringify(tables.rows.map(row => row.table_name)) === JSON.stringify(expected),
     "Local school table inventory mismatch. Expected: " + JSON.stringify(expected) + "; actual: " + JSON.stringify(tables.rows.map(row => row.table_name)));
+
+  const nurseryIntegrity = await pool.query(
+    "SELECT tgname FROM pg_trigger WHERE tgname='nursery_material_receipts_append_only' AND NOT tgisinternal"
+  );
+  assert(nurseryIntegrity.rowCount === 1, "Nursery material receipts must remain immutable.");
 
   const academicTriggers = await pool.query(
     "SELECT tgname FROM pg_trigger WHERE tgname IN ('academic_audit_events_append_only','assessments_audit_capture','learner_marks_audit_capture','assessment_lifecycle_guard','learner_mark_scope_guard','academic_years_audit_capture','academic_terms_audit_capture','academic_period_audit_events_append_only','academic_term_year_dates_guard','academic_report_cards_append_only','learner_progression_events_append_only','academic_division_band_overlap_guard') AND NOT tgisinternal"
