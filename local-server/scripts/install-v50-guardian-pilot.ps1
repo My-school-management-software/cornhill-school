@@ -16,7 +16,7 @@ $files = @('local-server/public/guardian.html','local-server/public/guardian.js'
   'local-server/test/guardian-portal-http-handler.test.mjs',
   'local-server/test/guardian-portal-repositories.test.mjs',
   'local-server/test/workspace-api-contract-batch.test.mjs')
-$encoding = New-Object System.Text.UTF8Encoding($false)
+$encoding = [System.Text.UTF8Encoding]::new($false)
 $backupPath = $null
 $modified = $false
 
@@ -46,7 +46,7 @@ function Git-Required([string[]]$arguments, [string]$label) {
 function Restore-Code {
   if (-not $modified -or -not $backupPath) { return }
   foreach ($relative in $files) {
-    $saved = Join-Path $backupPath ($relative -replace '[/\]', '__')
+    $saved = Join-Path $backupPath ($relative -replace '[/\\]', '__')
     if (Test-Path -LiteralPath $saved) {
       Copy-Item -LiteralPath $saved -Destination (Join-Path $RepoDirectory $relative) -Force
     }
@@ -83,7 +83,7 @@ try {
   foreach ($relative in $files) {
     $local = Join-Path $RepoDirectory $relative
     if (-not (Test-Path -LiteralPath $local)) { throw ('Missing file: ' + $relative) }
-    $filename = $relative -replace '[/\]', '__'
+    $filename = $relative -replace '[/\\]', '__'
     $baseFile = Join-Path $stageDir ($filename + '.base')
     $updatedFile = Join-Path $stageDir ($filename + '.updated')
     $baseText = Git-Required @('show',($baseSha + ':' + $relative)) ('Base source: ' + $relative)
@@ -111,7 +111,7 @@ try {
   [void](New-Item -Path $backupPath -ItemType Directory)
   foreach ($relative in $files) {
     Copy-Item -LiteralPath (Join-Path $RepoDirectory $relative) -Destination (
-      Join-Path $backupPath ($relative -replace '[/\]', '__'))
+      Join-Path $backupPath ($relative -replace '[/\\]', '__'))
   }
   $modified = $true
   foreach ($relative in $files) {
@@ -138,7 +138,7 @@ try {
   Write-Host 'SCHOOL_ISSUED_PIN_REQUIRED=TRUE'
   Write-Host 'FILES_CHANGED=8 (4 portal source files + 4 matching regression tests)'
   Write-Host 'DATABASE_WRITES=0; FINANCE_WRITES=0; CLOUD_WRITES=0'
-  Write-Host ('Original four files saved to ' + $backupPath)
+  Write-Host ('Original eight source and test files saved to ' + $backupPath)
   if (-not $DoNotStartServer) {
     Write-Host 'Restarting CORNHILL local HTTPS server. Keep this PowerShell window open.' -ForegroundColor Cyan
     Set-Location $serverPath
