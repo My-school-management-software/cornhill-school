@@ -83,6 +83,16 @@ test("PIN change requires encrypted same-origin request", async () => {
   assert.equal((await send(f, { host: "evil.example" })).status, 403);
   assert.equal(f.calls.changes.length, 0);
 });
+test("missing X-Cornhill-CSRF request header blocks PIN mutation", async () => {
+  const f = create();
+  const req = request();
+  delete req.headers["x-cornhill-csrf"];
+  const res = response();
+  await f.handle(req, res);
+  assert.equal(res.status, 403);
+  assert.equal(f.calls.auth.length, 0);
+  assert.equal(f.calls.changes.length, 0);
+});
 test("rejects PIN reuse, mismatch, simple PIN and non-eight-digit PIN", async () => {
   const f = create();
   for (const bad of [
