@@ -612,7 +612,10 @@
       const status = document.createElement("span");
       status.className = "fee-status";
       status.textContent = item.term_status === "Active" ? "CURRENT TERM" : "PREVIOUS / OTHER TERM";
-      title.append(name, term, status);
+      const destination = document.createElement("small");
+      destination.textContent = item.income_group === "B" ? "Income B" :
+        item.income_group === "A" ? "Income A" : "";
+      title.append(name, term, status, destination);
       const charged = document.createElement("div");
       const chargedLabel = document.createElement("small");
       chargedLabel.textContent = "Charged";
@@ -756,10 +759,30 @@
     addLine("Collection", snapshot.collection_item || "School fees");
     addLine("Method", snapshot.payment_method || "");
     if (snapshot.mobile_money_provider) addLine("Provider", snapshot.mobile_money_provider);
+    if (snapshot.received_by_staff_name) addLine("Received by", snapshot.received_by_staff_name);
     addLine("Amount Received", money(snapshot.amount_ugx), true);
     addLine("Unallocated Credit", money(snapshot.unallocated_amount_ugx));
-    for (const item of snapshot.allocations || []) {
-      addLine((item.term || "") + " · " + (item.fee_item || "Fee"), money(item.allocated_ugx));
+    const items = Array.isArray(snapshot.allocations) ? snapshot.allocations : [];
+    // The breakdown comes from the immutable issued snapshot, not mutable
+    // current balances or today's item prices. Older receipts remain legible.
+    for (const group of ["A", "B", "historical"]) {
+      const lines = items.filter(item =>
+        group === "historical" ? !["A", "B"].includes(item.income_group) :
+          item.income_group === group);
+      if (!lines.length) continue;
+      const heading = document.createElement("strong");
+      heading.className = "receipt-income-heading";
+      heading.textContent = group === "historical"
+        ? "Historical receipt lines" : "Income " + group;
+      container.append(heading);
+      for (const item of lines) {
+        const label = (item.academic_year ? item.academic_year + " · " : "") +
+          (item.term ? item.term + " · " : "") + (item.fee_item || "Fee");
+        addLine(label + " — paid", money(item.allocated_ugx));
+        if (item.balance_after_ugx != null) {
+          addLine(label + " — remaining", money(item.balance_after_ugx));
+        }
+      }
     }
     const thanks = document.createElement("p");
     thanks.textContent = "Thank you. Please keep this receipt for your records.";
