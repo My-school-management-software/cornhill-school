@@ -68,6 +68,7 @@ try {
     "learner_code_aliases",
     "learner_marks",
     "learner_progression_events",
+  "nursery_material_receipts",
     "learners",
     "payment_allocations",
     "payment_credit_allocation_batches",
