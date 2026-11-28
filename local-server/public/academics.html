@@ -40,6 +40,21 @@
     <div><h3>Terms</h3><div id="terms-list" class="period-list">No terms created.</div></div>
   </div>
 </section>
+<section id="advancement-panel" class="panel" hidden>
+  <div class="section-head">
+    <div><h2>Class-by-class annual advancement</h2>
+      <p class="muted">Each learner is reviewed separately. Choose Promote, Repeat, or—for P.7—Complete Primary. Nobody is promoted automatically. Term changes do not promote learners.</p>
+    </div><span class="pill">Individual Director-authorised decisions</span>
+  </div>
+  <div class="selectors">
+    <label>Review current class<select id="advancement-class-select"><option value="">Choose class</option></select></label>
+    <label>New academic year — Term 1<select id="advancement-term-select"><option value="">Choose new-year Term 1</option></select></label>
+    <button id="load-advancement" type="button" class="secondary">Load learners for review</button>
+  </div>
+  <p class="muted">New-year decisions become available only when the target academic year and its Term 1 are Active. You may review candidates before activation. No bulk or automatic promotions.</p>
+  <div id="advancement-summary" class="notice" role="status" aria-live="polite">Choose a class and the next year's Term 1 to review learners.</div>
+  <div id="advancement-candidates" class="advancement-candidates"></div>
+</section>
 <section id="create-panel" class="panel" hidden><h2>Create assessment</h2><form id="create-form" class="create-grid">
 <label>Assessment name<input name="assessmentName" required minlength="2" maxlength="100" placeholder="e.g. End of Term 1 Examination"></label>
 <label>Type<select name="assessmentType"><option>Beginning of Term</option><option>Mid Term</option><option selected>End of Term</option><option>Continuous Assessment</option><option>Mock</option><option>Practice</option></select></label>
