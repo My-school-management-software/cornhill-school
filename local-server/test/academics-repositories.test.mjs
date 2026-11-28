@@ -222,3 +222,50 @@ test("new-year advancement cannot write decisions before Year and Term 1 are act
   }), /Activate the new academic year/);
   assert.equal(pool.calls.length, 1);
 });
+
+test("one-class selected advancement batch commits both learner decisions as one transaction", async () => {
+  const pool = fixturePool({ queryResults: [
+    { rows: [{ effectiveDate: "2027-01-20", yearStart: "2027-01-20",
+      yearStatus: "Active", termStatus: "Active", classCode: "P6", nextClassId: SUBJECT }] },
+    { rows: [{ eventId: ID }] },
+    { rows: [{ effectiveDate: "2027-01-20", yearStart: "2027-01-20",
+      yearStatus: "Active", termStatus: "Active", classCode: "P6", nextClassId: SUBJECT }] },
+    { rows: [{ eventId: CLASS }] }
+  ] });
+  const result = await createPostgresAcademicsRepository(pool).recordYearAdvancementBatch({
+    staffId: ID, fromClassId: CLASS, academicTermId: TERM,
+    decisions: [{ learnerId: ID, decision: "Repeat", reason: "Repeating the class" },
+      { learnerId: SUBJECT, decision: "Promote", reason: "Promotion approved" }]
+  });
+  assert.equal(result.approvedCount, 2);
+  assert.equal(pool.calls[0].sql, "BEGIN");
+  assert.equal(pool.calls.at(-2).sql, "COMMIT");
+  assert.equal(pool.calls.at(-1).release, true);
+  assert.ok(pool.calls.slice(1, -2).every(call => call.transaction === true));
+});
+
+test("advancement batch rejects duplicate learners before beginning a transaction", async () => {
+  const pool = fixturePool();
+  await assert.rejects(createPostgresAcademicsRepository(pool).recordYearAdvancementBatch({
+    staffId: ID, fromClassId: CLASS, academicTermId: TERM,
+    decisions: [{ learnerId: ID, decision: "Repeat", reason: "Needs improvement" },
+      { learnerId: ID, decision: "Promote", reason: "Ready to progress" }]
+  }), /Duplicate learners/);
+  assert.equal(pool.calls.length, 0);
+});
+
+test("advancement batch rolls back every decision when one learner fails validation", async () => {
+  const pool = fixturePool({ queryResults: [
+    { rows: [{ effectiveDate: "2027-01-20", yearStart: "2027-01-20",
+      yearStatus: "Active", termStatus: "Active", classCode: "P6", nextClassId: SUBJECT }] },
+    { rows: [{ eventId: ID }] },
+    { rows: [] }
+  ] });
+  await assert.rejects(createPostgresAcademicsRepository(pool).recordYearAdvancementBatch({
+    staffId: ID, fromClassId: CLASS, academicTermId: TERM,
+    decisions: [{ learnerId: ID, decision: "Repeat", reason: "Needs another year" },
+      { learnerId: SUBJECT, decision: "Promote", reason: "Ready" }]
+  }), /not pending a new-year decision/);
+  assert.ok(pool.calls.some(call => call.sql === "ROLLBACK"));
+  assert.equal(pool.calls.some(call => call.sql === "COMMIT"), false);
+});
