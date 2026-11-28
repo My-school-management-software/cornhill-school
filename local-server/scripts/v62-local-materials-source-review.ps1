@@ -11,7 +11,7 @@ $includeList=New-Object System.Collections.Generic.List[string]
 foreach($folderName in @('src\db','src\security','public','test','scripts')) {
   $folder=Join-Path $root $folderName
   if(!(Test-Path -LiteralPath $folder)) { continue }
-  foreach($file in Get-ChildItem -LiteralPath $folder -Recurse -File -ErrorAction Stop) {
+  foreach($file in (Get-ChildItem -LiteralPath $folder -Recurse -File -ErrorAction Stop)) {
     if($file.Extension -notin @('.mjs','.js','.css','.html')) { continue }
     if($file.Name -match '(?i)(material|inventory|stock|handover|clearance)') {
       $relative=$file.FullName.Substring($root.Length).TrimStart([char]'\')
