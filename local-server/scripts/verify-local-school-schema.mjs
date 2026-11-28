@@ -227,8 +227,18 @@ try {
   assert(balanceView.rows[0]?.reloptions?.includes("security_invoker=true") === true,
     "Fee balance view must use security-invoker semantics.");
 
-  const feeItems = await pool.query("SELECT item_code FROM cornhill_school.fee_catalogue ORDER BY item_code");
-  assert(feeItems.rows.length === 7, "Expected seven seeded fee catalogue items.");
+  const feeItems = await pool.query(
+    "SELECT item_code,income_group FROM cornhill_school.fee_catalogue ORDER BY item_code"
+  );
+  const expectedIncomeB = ["GRADUATION", "TOP_CLASS_GRADUATION", "MOCK_EXAMS",
+    "PRE_MOCK_EXAMS", "MUNICIPALITY_EXAMS", "SCHOOL_TRIP", "GRADUATION_TRIP",
+    "WESTERN_PARADISE"];
+  assert(feeItems.rows.length === 14,
+    "Expected seven original and seven additional Income B fee catalogue items.");
+  for (const item of expectedIncomeB) {
+    assert(feeItems.rows.some(row => row.item_code === item && row.income_group === "B"),
+      "Missing or misclassified Income B fee catalogue item: " + item);
+  }
   const financePermissions = await pool.query(
     "SELECT count(*)::int AS count FROM cornhill_auth.permission_catalog WHERE category = 'finance'"
   );
