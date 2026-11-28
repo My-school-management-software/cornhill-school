@@ -5,6 +5,7 @@ let principal = null;
 let workspace = { classes: [], years: [], terms: [], assessments: [] };
 let selected = null;
 let advancementReview = null;
+let advancementEditors = [];
 const csrf = () => {
   const prefix = "__Host-cornhill_csrf=";
   const item = document.cookie.split(";").map(value => value.trim()).find(value => value.startsWith(prefix));
@@ -333,6 +334,62 @@ async function saveMarks() {
   notice(result.savedCount + " mark(s) saved. Audit history was recorded.");
   await loadSelectedAssessment();
 }
+function updateAdvancementBatchStatus() {
+  const count = advancementEditors.filter(editor => editor.decision.value).length;
+  $("advancement-selected-count").textContent =
+    count + " learner(s) selected. Everyone else remains pending.";
+  $("approve-selected-advancements").disabled =
+    count < 1 || count > 100 || !advancementReview?.canApprove;
+}
+$("approve-selected-advancements").addEventListener("click", async () => {
+  if (!advancementReview?.canApprove) return;
+  const selectedEditors = advancementEditors.filter(editor => editor.decision.value);
+  if (!selectedEditors.length || selectedEditors.length > 100) {
+    notice("Select between 1 and 100 individual decisions.", true);
+    return;
+  }
+  const decisions = [];
+  for (const editor of selectedEditors) {
+    const reason = editor.reason.value.trim();
+    if (reason.length < 2 || reason.length > 300) {
+      notice("Enter a reason for every selected learner. Check " + editor.learner.learnerName, true);
+      return;
+    }
+    decisions.push({
+      learnerId: editor.learner.id,
+      decision: editor.decision.value,
+      reason
+    });
+  }
+  const textSummary = decisions.reduce((counts, item) => {
+    counts[item.decision] = (counts[item.decision] || 0) + 1;
+    return counts;
+  }, {});
+  if (!window.confirm("Approve " + decisions.length +
+      " individually selected learners in " + advancementReview.className +
+      " for " + advancementReview.yearLabel + "? Promote: " +
+      (textSummary.Promote || 0) + ", Repeat: " + (textSummary.Repeat || 0) +
+      ", Complete P.7: " + (textSummary.Complete || 0) +
+      ". Unselected learners remain pending. All selected decisions succeed together or none are saved.")) {
+    return;
+  }
+  const button = $("approve-selected-advancements");
+  button.disabled = true;
+  try {
+    const response = await api("/academics/advancement/batch", {
+      method: "POST", body: {
+        fromClassId: advancementReview.classId,
+        academicTermId: advancementReview.termId,
+        decisions, approved: true
+      }
+    });
+    notice(response.result.approvedCount + " manually selected decisions approved and recorded.");
+    await loadAdvancementCandidates();
+  } catch (error) {
+    notice(error.message, true);
+    updateAdvancementBatchStatus();
+  }
+});
 async function loadAdvancementCandidates() {
   const classId = $("advancement-class-select").value;
   const academicTermId = $("advancement-term-select").value;
@@ -343,6 +400,8 @@ async function loadAdvancementCandidates() {
   $("advancement-summary").textContent = "Loading the learner-by-learner review list…";
   $("advancement-candidates").replaceChildren();
   advancementReview = null;
+  advancementEditors = [];
+  updateAdvancementBatchStatus();
   try {
     const query = new URLSearchParams({ classId, academicTermId });
     const { review } = await api("/academics/advancement/candidates?" + query);
@@ -404,6 +463,8 @@ async function loadAdvancementCandidates() {
       controls.append(decision, reason, button, result);
       row.append(identity, controls);
       host.append(row);
+      advancementEditors.push({ learner, decision, reason });
+      decision.addEventListener("change", updateAdvancementBatchStatus);
       button.addEventListener("click", async () => {
         if (!decision.value) {
           result.textContent = "Choose Promote, Repeat or Complete. Pending makes no changes.";
@@ -435,6 +496,7 @@ async function loadAdvancementCandidates() {
         }
       });
     }
+    updateAdvancementBatchStatus();
   } catch (error) {
     $("advancement-summary").textContent = error.message;
     notice(error.message, true);
@@ -444,6 +506,8 @@ $("load-advancement").addEventListener("click", loadAdvancementCandidates);
 for (const id of ["advancement-class-select", "advancement-term-select"]) {
   $(id).addEventListener("change", () => {
     advancementReview = null;
+    advancementEditors = [];
+    updateAdvancementBatchStatus();
     $("advancement-candidates").replaceChildren();
     $("advancement-summary").textContent = "Selection changed. Load the review list before approving anyone.";
   });
