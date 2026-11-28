@@ -19,3 +19,30 @@
   .nursery-materials-dialog form,.nursery-materials-dialog .nursery-materials-actions{display:none!important}
   .nursery-materials-dialog th,.nursery-materials-dialog td{font-size:11px;padding:5px}
 }
+
+/* V49 school Records Centre printable A4 landscape accountability ledger.
+ * The signed-in tiny V47C header and navigation are unchanged. */
+@media print {
+  @page{size:A4 landscape;margin:9mm}
+  body:has(#records-centre:not([hidden])) > .bar {display:none!important}
+  body:has(#records-centre:not([hidden])) > .shell {display:block!important;margin:0;padding:0;max-width:none}
+  body:has(#records-centre:not([hidden])) .shell > #notice,
+  body:has(#records-centre:not([hidden])) #login,
+  body:has(#records-centre:not([hidden])) #app > .welcome,
+  body:has(#records-centre:not([hidden])) #app > .tabs,
+  body:has(#records-centre:not([hidden])) #app > .view:not(#records-centre) {
+    display:none!important
+  }
+  body:has(#records-centre:not([hidden])) #app,body:has(#records-centre:not([hidden])) #records-centre{
+    display:block!important
+  }
+  body:has(#records-centre:not([hidden])) #nursery-materials-dialog{display:none!important}
+  body:has(#records-centre:not([hidden])) #records-centre .card{
+    border:0!important;box-shadow:none!important;margin:0;padding:0
+  }
+  body:has(#records-centre:not([hidden])) #records-centre button {display:none!important}
+  body:has(#records-centre:not([hidden])) #records-centre table{min-width:0;width:100%;font-size:9px}
+  body:has(#records-centre:not([hidden])) #records-centre th,
+  body:has(#records-centre:not([hidden])) #records-centre td{font-size:8px;padding:3px;word-break:break-word}
+  body:has(#records-centre:not([hidden])) #records-centre .table-wrap{overflow:visible}
+}
