@@ -16,7 +16,20 @@ JOIN cornhill_school.payment_records pr ON pr.id=pa.payment_id
 JOIN cornhill_school.fee_obligations fo ON fo.id=pa.fee_obligation_id
 JOIN cornhill_school.fee_catalogue fc ON fc.id=fo.fee_item_id
 JOIN cornhill_school.academic_terms at ON at.id=fo.academic_term_id
-WHERE pr.status='Posted';
+WHERE pr.status='Posted'
+UNION ALL
+-- Retained learner credit becomes allocated income only when it is applied
+-- to a specific fee. Count it once, on the date of the credit allocation.
+SELECT source.id, pca.learner_id, batch.created_at, batch.actor_staff_id,
+       pca.fee_obligation_id, fc.item_code, fc.item_name, fc.income_group,
+       pca.amount_ugx, fo.academic_term_id, at.academic_year_id
+FROM cornhill_school.payment_credit_allocations pca
+JOIN cornhill_school.payment_credit_allocation_batches batch ON batch.id=pca.batch_id
+JOIN cornhill_school.payment_records source ON source.id=pca.source_payment_id
+JOIN cornhill_school.fee_obligations fo ON fo.id=pca.fee_obligation_id
+JOIN cornhill_school.fee_catalogue fc ON fc.id=fo.fee_item_id
+JOIN cornhill_school.academic_terms at ON at.id=fo.academic_term_id
+WHERE source.status='Posted';
 
 REVOKE ALL ON cornhill_school.finance_posted_income_allocations FROM PUBLIC;
 -- Restricted to an actor-authorised function: no blanket SELECT grant.
@@ -78,10 +91,16 @@ BEGIN
       'charged_ugx',fo.amount_ugx,
       'allocated_ugx',pa.amount_ugx,
       'balance_after_ugx',GREATEST(fo.amount_ugx-(
-        SELECT COALESCE(SUM(pa2.amount_ugx),0)
-        FROM cornhill_school.payment_allocations pa2
-        JOIN cornhill_school.payment_records pr2 ON pr2.id=pa2.payment_id
-        WHERE pa2.fee_obligation_id=fo.id AND pr2.status='Posted'
+        SELECT COALESCE(SUM(posted.amount_ugx),0)
+        FROM (
+          SELECT pa2.amount_ugx FROM cornhill_school.payment_allocations pa2
+          JOIN cornhill_school.payment_records pr2 ON pr2.id=pa2.payment_id
+          WHERE pa2.fee_obligation_id=fo.id AND pr2.status='Posted'
+          UNION ALL
+          SELECT pca.amount_ugx FROM cornhill_school.payment_credit_allocations pca
+          JOIN cornhill_school.payment_records source ON source.id=pca.source_payment_id
+          WHERE pca.fee_obligation_id=fo.id AND source.status='Posted'
+        ) posted
       ),0)
     ) ORDER BY fc.income_group,ay.year_label,at.term_number,fc.item_name),'[]'::jsonb)
     INTO allocs FROM cornhill_school.payment_allocations pa
